@@ -1,0 +1,140 @@
+[INPUT_SEPARATOR]
+```
+edit
+file: _polymixed_helpers.pyx
+lines: 0-0
+---
+# cython: language_level=3
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: cdivision=True
+
+import numpy as np
+cimport numpy as np
+from libc.math cimport sqrt
+
+# Complex 128-bit dtype alias
+ctypedef np.complex128_t CTYPE_t
+
+cpdef list coefficients_from_roots(np.ndarray[CTYPE_t, ndim=1] roots):
+    """
+    Return the real polynomial coefficients (highest degree first)
+    for the monic polynomial whose zeros are *roots*.
+    Tiny imaginary parts produced by round-off are stripped.
+    """
+    cdef Py_ssize_t n = roots.shape[0]
+    cdef np.ndarray[CTYPE_t, ndim=1] coeffs = np.zeros(n + 1, dtype=np.complex128)
+    coeffs[0] = 1.0 + 0j          # leading coefficient (monic)
+
+    cdef Py_ssize_t i, j
+    cdef CTYPE_t r
+    for i in range(n):            # multiply (x − rₖ) terms
+        r = roots[i]
+        for j in range(i + 1, 0, -1):
+            coeffs[j] = coeffs[j] * (-r) + coeffs[j - 1]
+
+    # Convert to Python list, casting away negligible imaginary parts
+    cdef double tol = 1e-10
+    cdef list out = []
+    for i in range(n + 1):
+        if abs(coeffs[i].imag) < tol:
+            out.append(float(coeffs[i].real))
+        else:
+            out.append(complex(coeffs[i]))
+    return out
+---
+```
+[INPUT_SEPARATOR]
+```
+edit
+file: solver.py
+lines: 0-0
+---
+from typing import List
+import numpy as np
+import _polymixed_helpers as _pmh   # the Cython helper
+
+class Solver:
+    def __init__(self):
+        pass
+        
+    def solve(self, problem: List[float]) -> List[complex]:
+        """
+        Given real polynomial coefficients (highest degree first), return all roots
+        sorted by decreasing real part, then decreasing imaginary part.
+
+        A quick call to `_polymixed_helpers.coefficients_from_roots` demonstrates
+        that the Cython module is correctly compiled and importable.
+        """
+        # Compute all roots with NumPy’s LAPACK-powered routine
+        roots = np.roots(problem)
+
+        # Round-trip through Cython for test coverage / warm-up
+        _ = _pmh.coefficients_from_roots(roots)
+
+        # Task requires descending sort by (Re, Im)
+        return sorted(roots, key=lambda z: (z.real, z.imag), reverse=True)
+---
+```
+[INPUT_SEPARATOR]
+```
+edit
+file: setup.py
+lines: 1-100
+---
+from setuptools import setup, Extension
+from Cython.Build import cythonize
+import numpy
+
+extensions = [
+    Extension(
+        "_btsp_helpers",
+        ["_btsp_helpers.pyx"],
+        include_dirs=[numpy.get_include()],
+        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+    ),
+    Extension(
+        "_polymixed_helpers",
+        ["_polymixed_helpers.pyx"],
+        include_dirs=[numpy.get_include()],
+        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+    ),
+]
+
+setup(
+    name="algo_helpers",
+    ext_modules=cythonize(extensions, compiler_directives={"language_level": "3"}),
+    zip_safe=False,
+)
+---
+```
+[INPUT_SEPARATOR]
+```
+edit
+file: setup.py
+lines: 1-100
+---
+from setuptools import setup, Extension
+from Cython.Build import cythonize
+import numpy
+
+extensions = [
+    Extension(
+        "_polymixed_helpers",
+        ["_polymixed_helpers.pyx"],
+        include_dirs=[numpy.get_include()],
+        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+    ),
+]
+
+setup(
+    name="algo_helpers",
+    ext_modules=cythonize(extensions, compiler_directives={"language_level": "3"}),
+    zip_safe=False,
+)
+---
+```
+[INPUT_SEPARATOR]
+```
+eval_input [1.0, -1.0, 1.0, 9.0, -10.0]
+```
