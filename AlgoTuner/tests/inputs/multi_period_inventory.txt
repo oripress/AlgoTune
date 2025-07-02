@@ -1,0 +1,228 @@
+[INPUT_SEPARATOR]
+First, create a Cython helper module for distance calculations.
+```python
+edit
+file: solver.py
+lines: 0-0
+---
+import numpy as np
+from typing import Any
+import numba
+
+# This version refines the float64 Numba solution by fusing the cost calculation
+# into the main simulation loop. This creates a true single-pass algorithm,
+# minimizing memory access by calculating the total cost on-the-fly, which
+# improves cache performance.
+@numba.njit(fastmath=True)
+def _solve_and_cost_jit(initial_inventory: float, demand: np.ndarray, h: float, c: float, p: float):
+    """
+    A single, unified JIT-compiled function that simulates the policy and
+    calculates the total cost in a single pass.
+    """
+    T = demand.shape[0]
+    inventory = np.zeros(T, dtype=np.float64)
+    orders = np.zeros(T, dtype=np.float64)
+    stockouts = np.zeros(T, dtype=np.float64)
+    total_cost = 0.0
+    
+    current_inventory = initial_inventory
+
+    if h < 0:
+        # Policy: Order everything upfront.
+        total_demand = 0.0
+        for i in range(T):
+            total_demand += demand[i]
+        
+        required_order = total_demand - initial_inventory
+        if required_order > 0:
+            orders[0] = required_order
+            total_cost += c * required_order # Cost of the single order
+        
+        # Simulation loop with fused cost calculation
+        for t in range(T):
+            inventory_after_order = current_inventory + orders[t]
+            balance = inventory_after_order - demand[t]
+            inv_t = max(0.0, balance)
+            
+            inventory[t] = inv_t
+            # Stockouts will be 0 for this policy, so no need to calculate or add cost.
+            current_inventory = inv_t
+            
+            total_cost += h * inv_t # Holding cost for the period
+
+    elif c <= p:
+        # Policy: Just-in-time (JIT), with fused cost calculation
+        for t in range(T):
+            demand_t = demand[t]
+            order_t = max(0.0, demand_t - current_inventory)
+            inv_t = current_inventory + order_t - demand_t
+            
+            orders[t] = order_t
+            inventory[t] = inv_t
+            current_inventory = inv_t
+            
+            # Update cost. Stockouts are 0.
+            total_cost += h * inv_t + c * order_t
+    
+    else: # c > p and h >= 0
+        # Policy: Never order, with fused cost calculation
+        for t in range(T):
+            demand_t = demand[t]
+            stk_t = max(0.0, demand_t - current_inventory)
+            inv_t = max(0.0, current_inventory - demand_t)
+            
+            stockouts[t] = stk_t
+            inventory[t] = inv_t
+            current_inventory = inv_t
+            
+            # Update cost. Orders are 0.
+            total_cost += h * inv_t + p * stk_t
+
+    return inventory, orders, stockouts, total_cost
+
+class Solver:
+    def solve(self, problem: dict) -> Any:
+        """
+        Solve the multi-period inventory management problem with a single-pass
+        Numba JIT-compiled function that fuses simulation and cost calculation.
+        """
+        demand = np.array(problem["demand"], dtype=np.float64)
+        h = float(problem["holding_cost"])
+        c = float(problem["ordering_cost"])
+        p = float(problem["stockout_penalty"])
+        initial_inventory = float(problem["initial_inventory"])
+
+        T = len(demand)
+        if T == 0:
+            return {"inventory": [], "orders": [], "stockouts": [], "total_cost": 0.0}
+
+        if c < 0 or p < 0:
+            return {"inventory": [], "orders": [], "stockouts": [], "total_cost": 0.0}
+
+        # Call the single-pass JIT function.
+        inventory, orders, stockouts, total_cost = _solve_and_cost_jit(
+            initial_inventory, demand, h, c, p
+        )
+
+        return {
+            "inventory": inventory.tolist(),
+            "orders": orders.tolist(),
+            "stockouts": stockouts.tolist(),
+            "total_cost": float(total_cost),
+        }
+---
+```
+[INPUT_SEPARATOR]
+First, create a Cython helper module for distance calculations.
+```python
+edit
+file: solver.py
+lines: 0-0
+---
+import numpy as np
+from typing import Any
+import numba
+
+# This version refines the float64 Numba solution by fusing the cost calculation
+# into the main simulation loop. This creates a true single-pass algorithm,
+# minimizing memory access by calculating the total cost on-the-fly, which
+# improves cache performance.
+@numba.njit(fastmath=True, cache=True)
+def _solve_and_cost_jit(initial_inventory: float, demand: np.ndarray, h: float, c: float, p: float):
+    """
+    A single, unified JIT-compiled function that simulates the policy and
+    calculates the total cost in a single pass.
+    """
+    T = demand.shape[0]
+    inventory = np.zeros(T, dtype=np.float64)
+    orders = np.zeros(T, dtype=np.float64)
+    stockouts = np.zeros(T, dtype=np.float64)
+    total_cost = 0.0
+    
+    current_inventory = initial_inventory
+
+    if h < 0:
+        # Policy: Order everything upfront.
+        total_demand = 0.0
+        for i in range(T):
+            total_demand += demand[i]
+        
+        required_order = total_demand - initial_inventory
+        if required_order > 0:
+            orders[0] = required_order
+            total_cost += c * required_order # Cost of the single order
+        
+        # Simulation loop with fused cost calculation
+        for t in range(T):
+            inventory_after_order = current_inventory + orders[t]
+            balance = inventory_after_order - demand[t]
+            inv_t = max(0.0, balance)
+            
+            inventory[t] = inv_t
+            # Stockouts will be 0 for this policy, so no need to calculate or add cost.
+            current_inventory = inv_t
+            
+            total_cost += h * inv_t # Holding cost for the period
+
+    elif c <= p:
+        # Policy: Just-in-time (JIT), with fused cost calculation
+        for t in range(T):
+            demand_t = demand[t]
+            order_t = max(0.0, demand_t - current_inventory)
+            inv_t = current_inventory + order_t - demand_t
+            
+            orders[t] = order_t
+            inventory[t] = inv_t
+            current_inventory = inv_t
+            
+            # Update cost. Stockouts are 0.
+            total_cost += h * inv_t + c * order_t
+    
+    else: # c > p and h >= 0
+        # Policy: Never order, with fused cost calculation
+        for t in range(T):
+            demand_t = demand[t]
+            stk_t = max(0.0, demand_t - current_inventory)
+            inv_t = max(0.0, current_inventory - demand_t)
+            
+            stockouts[t] = stk_t
+            inventory[t] = inv_t
+            current_inventory = inv_t
+            
+            # Update cost. Orders are 0.
+            total_cost += h * inv_t + p * stk_t
+
+    return inventory, orders, stockouts, total_cost
+
+class Solver:
+    def solve(self, problem: dict) -> Any:
+        """
+        Solve the multi-period inventory management problem with a single-pass
+        Numba JIT-compiled function that fuses simulation and cost calculation.
+        """
+        demand = np.array(problem["demand"], dtype=np.float64)
+        h = float(problem["holding_cost"])
+        c = float(problem["ordering_cost"])
+        p = float(problem["stockout_penalty"])
+        initial_inventory = float(problem["initial_inventory"])
+
+        T = len(demand)
+        if T == 0:
+            return {"inventory": [], "orders": [], "stockouts": [], "total_cost": 0.0}
+
+        if c < 0 or p < 0:
+            return {"inventory": [], "orders": [], "stockouts": [], "total_cost": 0.0}
+
+        # Call the single-pass JIT function.
+        inventory, orders, stockouts, total_cost = _solve_and_cost_jit(
+            initial_inventory, demand, h, c, p
+        )
+
+        return {
+            "inventory": inventory.tolist(),
+            "orders": orders.tolist(),
+            "stockouts": stockouts.tolist(),
+            "total_cost": float(total_cost),
+        }
+---
+```

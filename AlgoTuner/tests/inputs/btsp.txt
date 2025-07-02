@@ -1,0 +1,303 @@
+[INPUT_SEPARATOR]
+First, create a Cython helper module for distance calculations.
+```
+edit
+file: _btsp_helpers.pyx
+lines: 0-0
+---
+# cython: language_level=3
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: cdivision=True
+
+import numpy as np
+# We need to declare the type of numpy arrays for Cython
+ctypedef np.float64_t DTYPE_t
+
+# Using cpdef allows the function to be called from Python and faster from Cython
+cpdef double calculate_distance(double x1, double y1, double x2, double y2):
+    """Calculates Euclidean distance using cdef for speed."""
+    cdef double dx = x2 - x1
+    cdef double dy = y2 - y1
+    # Using C math functions can be faster
+    from libc.math cimport sqrt
+    return sqrt(dx*dx + dy*dy)
+
+cpdef int find_nearest_neighbor(int current_city, list unvisited_cities, DTYPE_t[:, :] dist_matrix):
+    """Finds the nearest unvisited city to the current city."""
+    cdef double min_dist = float('inf')
+    cdef int nearest_city = -1
+    cdef int city
+    cdef double dist
+
+    for city in unvisited_cities:
+        dist = dist_matrix[current_city, city]
+        if dist < min_dist:
+            min_dist = dist
+            nearest_city = city
+
+    return nearest_city
+---
+```
+[INPUT_SEPARATOR]
+Next, create the setup script needed to compile the Cython module.
+```
+edit
+file: setup.py
+lines: 0-0
+---
+from setuptools import setup, Extension
+from Cython.Build import cythonize
+import numpy
+
+# Define the extension module
+extensions = [
+    Extension(
+        "_btsp_helpers",             # Name of the module
+        ["_btsp_helpers.pyx"],      # Source file(s)
+        include_dirs=[numpy.get_include()], # Include NumPy headers
+        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")] # For NumPy C API
+    )
+]
+
+# Setup configuration
+setup(
+    name="btsp_helpers",
+    ext_modules=cythonize(extensions, compiler_directives={'language_level' : "3"}),
+    zip_safe=False, # Avoids issues with C extensions in zipped eggs
+)
+---
+```
+[INPUT_SEPARATOR]
+First, create a Cython helper module for distance calculations.
+```
+edit
+file: _btsp_helpers.pyx
+lines: 0-0
+---
+# cython: language_level=3
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: cdivision=True
+
+import numpy as np
+# Need to cimport numpy for Cython type declarations
+cimport numpy as np
+# Need to cimport C functions at module level
+from libc.math cimport sqrt
+
+# We need to declare the type of numpy arrays for Cython
+ctypedef np.float64_t DTYPE_t
+
+# Using cpdef allows the function to be called from Python and faster from Cython
+cpdef double calculate_distance(double x1, double y1, double x2, double y2):
+    """Calculates Euclidean distance using cdef for speed."""
+    cdef double dx = x2 - x1
+    cdef double dy = y2 - y1
+    # sqrt is now cimported at module level
+    return sqrt(dx*dx + dy*dy)
+
+cpdef int find_nearest_neighbor(int current_city, list unvisited_cities, DTYPE_t[:, :] dist_matrix):
+    """Finds the nearest unvisited city to the current city."""
+    cdef double min_dist = float('inf')
+    cdef int nearest_city = -1
+    cdef int city
+    cdef double dist
+
+    for city in unvisited_cities:
+        dist = dist_matrix[current_city, city]
+        if dist < min_dist:
+            min_dist = dist
+            nearest_city = city
+
+    return nearest_city
+---
+```
+[INPUT_SEPARATOR]
+Now, create the main Python solver which imports and uses the compiled Cython helper. It will use a simple Nearest Neighbor heuristic.
+```
+edit
+file: solver.py
+lines: 0-0
+---
+from typing import List
+import numpy as np
+import _btsp_helpers # Import the compiled Cython module
+
+def solve(problem: List[List[float]]) -> List[int]:
+    """
+    Solves the TSP using a simple Nearest Neighbor heuristic,
+    utilizing the compiled Cython helper for finding the nearest neighbor.
+    """
+    n = len(problem)
+    if n == 0:
+        return []
+    if n == 1:
+        return [0, 0]
+
+    dist_matrix = np.array(problem, dtype=np.float64)
+
+    current_city = 0
+    tour = [current_city]
+    unvisited = list(range(1, n)) # Start with all cities except the start city
+
+    while unvisited:
+        # Use the Cython function to find the nearest unvisited city
+        nearest_city = _btsp_helpers.find_nearest_neighbor(current_city, unvisited, dist_matrix)
+        
+        if nearest_city == -1: # Should not happen in a complete graph
+            if not unvisited: break # All visited
+            nearest_city = unvisited[0] # Arbitrary choice if Cython fails? Unlikely.
+
+        tour.append(nearest_city)
+        unvisited.remove(nearest_city)
+        current_city = nearest_city
+
+    tour.append(0) # Return to start city
+    return tour
+---
+```
+[INPUT_SEPARATOR]
+```
+edit
+file: solver.py
+lines: 0-0
+---
+from typing import List
+import numpy as np
+import _btsp_helpers  # Import the compiled Cython module
+
+class Solver:
+    def __init__(self):
+        pass
+
+    def solve(self, problem: List[List[float]]) -> List[int]:
+        """
+        Solves the TSP using a simple Nearest Neighbor heuristic,
+        utilizing the compiled Cython helper for finding the nearest neighbor.
+        """
+        n = len(problem)
+        if n == 0:
+            return []
+        if n == 1:
+            return [0, 0]
+
+        dist_matrix = np.array(problem, dtype=np.float64)
+
+        current_city = 0
+        tour = [current_city]
+        unvisited = list(range(1, n))  # Start with all cities except the start city
+
+        while unvisited:
+            nearest_city = _btsp_helpers.find_nearest_neighbor(current_city, unvisited, dist_matrix)
+
+            if nearest_city == -1:
+                if not unvisited:
+                    break
+                nearest_city = unvisited[0]  # Arbitrary fallback
+
+            tour.append(nearest_city)
+            unvisited.remove(nearest_city)
+            current_city = nearest_city
+
+        tour.append(0)  # Return to start city
+        return tour
+---
+```
+[INPUT_SEPARATOR]
+```
+edit
+file: solver.py
+lines: 1-100
+---
+from typing import List
+import numpy as np
+import _btsp_helpers  # Import the compiled Cython module
+
+class Solver:
+    def __init__(self):
+        pass
+
+    def solve(self, problem: List[List[float]]) -> List[int]:
+        """
+        Solves the TSP using a simple Nearest Neighbor heuristic,
+        utilizing the compiled Cython helper for finding the nearest neighbor.
+        """
+        n = len(problem)
+        if n == 0:
+            return []
+        if n == 1:
+            return [0, 0]
+
+        dist_matrix = np.array(problem, dtype=np.float64)
+
+        current_city = 0
+        tour = [current_city]
+        unvisited = list(range(1, n))  # Start with all cities except the start city
+
+        while unvisited:
+            nearest_city = _btsp_helpers.find_nearest_neighbor(current_city, unvisited, dist_matrix)
+
+            if nearest_city == -1:
+                if not unvisited:
+                    break
+                nearest_city = unvisited[0]  # Arbitrary fallback
+
+            tour.append(nearest_city)
+            unvisited.remove(nearest_city)
+            current_city = nearest_city
+
+        tour.append(0)  # Return to start city
+        return tour
+---
+```
+[INPUT_SEPARATOR]
+Now, create the main Python solver which imports and uses the compiled Cython helper. It will use a simple Nearest Neighbor heuristic.
+```
+edit
+file: solver.py
+lines: 0-0
+---
+from typing import List
+import numpy as np
+import _btsp_helpers # Import the compiled Cython module
+
+def solve(problem: List[List[float]]) -> List[int]:
+    """
+    Solves the TSP using a simple Nearest Neighbor heuristic,
+    utilizing the compiled Cython helper for finding the nearest neighbor.
+    """
+    n = len(problem)
+    if n == 0:
+        return []
+    if n == 1:
+        return [0, 0]
+
+    dist_matrix = np.array(problem, dtype=np.float64)
+
+    current_city = 0
+    tour = [current_city]
+    unvisited = list(range(1, n)) # Start with all cities except the start city
+
+    while unvisited:
+        # Use the Cython function to find the nearest unvisited city
+        nearest_city = _btsp_helpers.find_nearest_neighbor(current_city, unvisited, dist_matrix)
+        
+        if nearest_city == -1: # Should not happen in a complete graph
+            bad syntax
+            if not unvisited: break # All visited
+            nearest_city = unvisited[0] # Arbitrary choice if Cython fails? Unlikely.
+
+        tour.append(nearest_city)
+        unvisited.remove(nearest_city)
+        current_city = nearest_city
+
+    tour.append(0) # Return to start city
+    return tour
+---
+```
+[INPUT_SEPARATOR]
+Finally, evaluate the solver using the compiled Cython module on a sample input. Note that the Nearest Neighbor heuristic is not optimal, so this is just testing execution.
+```
+eval_input [[0.0, 2.8, 2.0], [2.8, 0.0, 1.0], [2.0, 1.0, 0.0]]
+```

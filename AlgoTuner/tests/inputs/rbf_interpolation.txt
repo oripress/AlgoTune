@@ -1,0 +1,73 @@
+[INPUT_SEPARATOR]
+First, create a Cython helper module for distance calculations.
+```python
+edit
+file: solver.pylines: 0-0
+---
+import numpy as np
+from scipy.interpolate import RBFInterpolator
+
+class Solver:
+    def solve(self, problem):
+        # Unpack training and test data
+        x_train = np.asarray(problem["x_train"], dtype=float)
+        y_train = np.asarray(problem["y_train"], dtype=float).ravel()
+        x_test = np.asarray(problem["x_test"], dtype=float)
+
+        # Get RBF configuration
+        cfg = problem.get("rbf_config", {})
+        kernel = cfg.get("kernel", "thin_plate_spline")
+        epsilon = cfg.get("epsilon", 1.0)
+        smoothing = cfg.get("smoothing", 0.0)
+
+        # Build and evaluate the interpolator
+        rbf = RBFInterpolator(
+            x_train, y_train,
+            kernel=kernel,
+            epsilon=epsilon,
+            smoothing=smoothing
+        )
+        y_pred = rbf(x_test)
+
+        return {
+            "y_pred": y_pred.tolist()
+        }
+---
+```
+[INPUT_SEPARATOR]
+First, create a Cython helper module for distance calculations.
+```python
+edit
+file: solver.py
+lines: 0-0
+---
+import numpy as np
+from scipy.interpolate import RBFInterpolator
+
+class Solver:
+    def solve(self, problem):
+        # Unpack training and test data
+        x_train = np.asarray(problem["x_train"], dtype=float)
+        y_train = np.asarray(problem["y_train"], dtype=float).ravel()
+        x_test = np.asarray(problem["x_test"], dtype=float)
+
+        # Get RBF configuration
+        cfg = problem.get("rbf_config", {})
+        kernel = cfg.get("kernel", "thin_plate_spline")
+        epsilon = cfg.get("epsilon", 1.0)
+        smoothing = cfg.get("smoothing", 0.0)
+
+        # Build and evaluate the interpolator
+        rbf = RBFInterpolator(
+            x_train, y_train,
+            kernel=kernel,
+            epsilon=epsilon,
+            smoothing=smoothing
+        )
+        y_pred = rbf(x_test)
+
+        return {
+            "y_pred": y_pred.tolist()
+        }
+---
+```

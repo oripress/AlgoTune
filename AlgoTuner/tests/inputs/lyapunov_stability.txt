@@ -1,0 +1,77 @@
+[INPUT_SEPARATOR]
+First, create a Cython helper module for distance calculations.
+```python
+edit
+file: solver.py
+lines: 0-0
+---
+import numpy as np
+from typing import Any
+import numba as nb
+
+@nb.njit(cache=True, fastmath=True)
+def solve_2x2_fast(a11, a12, a21, a22):
+    """Ultra-fast 2x2 Lyapunov solver with minimal checks."""
+    # Stability check via det and trace
+    det = a11 * a22 - a12 * a21
+    trace = a11 + a22
+    
+    if abs(det) >= 0.999999999 or abs(trace) >= 1 + det - 1e-10:
+        return False, 0.0, 0.0, 0.0
+    
+    # Direct P computation
+    denom = 1 - det*det
+    p11 = (1 - a22*a22 + a12*a12*(1 + det)) / denom
+    p22 = (1 - a11*a11 + a21*a21*(1 + det)) / denom
+    p12 = (a12*a22 + a11*a21) / denom
+    
+    # Positive definite check
+    if p11 > 1e-10 and p22 > 1e-10 and (p11*p22 - p12*p12) > 1e-10:
+        return True, p11, p12, p22
+    return False, 0.0, 0.0, 0.0
+
+class Solver:
+    def __init__(self):
+        # Precompile
+        solve_2x2_fast(0.5, 0.2, 0.1, 0.3)
+    
+    def solve(self, problem: dict[str, Any], **kwargs) -> dict[str, Any]:
+        """Optimized solver focusing on 2x2 case."""
+        A = problem["A"]
+        
+        # Direct handling for expected 2x2 case
+        if len(A) == 2:
+            # Direct unpacking
+            row0, row1 = A
+            is_stable, p11, p12, p22 = solve_2x2_fast(row0[0], row0[1], row1[0], row1[1])
+            
+            if is_stable:
+                return {"is_stable": True, "P": [[p11, p12], [p12, p22]]}
+            return {"is_stable": False, "P": None}
+        
+        # Fallback for other sizes
+        A_np = np.asarray(A, dtype=np.float64)
+        n = A_np.shape[0]
+        
+        if n == 1:
+            a = A_np[0, 0]
+            if abs(a) < 0.999999999:
+                p = 1 / (1 - a*a)
+                return {"is_stable": True, "P": [[p]]}
+            return {"is_stable": False, "P": None}
+        
+        # Larger matrices
+        from scipy import linalg
+        eigenvalues = np.linalg.eigvals(A_np)
+        if np.max(np.abs(eigenvalues)) >= 0.999999999:
+            return {"is_stable": False, "P": None}
+        
+        try:
+            P = linalg.solve_discrete_lyapunov(A_np.T, np.eye(n))
+            # Use Cholesky for PD check
+            np.linalg.cholesky(P)
+            return {"is_stable": True, "P": P.tolist()}
+        except:
+            return {"is_stable": False, "P": None}
+---
+```

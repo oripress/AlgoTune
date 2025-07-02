@@ -1,0 +1,149 @@
+[INPUT_SEPARATOR]
+```
+edit
+file: solver.py
+lines: 1-1
+---
+
+import numpy as np
+from typing import Dict, Any
+import logging
+from AlgoTuneTasks.base import register_task, Task
+
+
+@register_task("kd_tree_solver")
+class KDTreeSolver(Task):
+    def __init__(self, **kwargs):
+        """
+        Initializes the KDTreeSolver task, which constructs a k-d tree
+        from a set of points and performs range queries.
+        """
+        super().__init__(**kwargs)
+
+    def solve(self, problem: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Constructs a k-d tree from the given points and performs range queries.
+
+        :param problem: A dictionary containing 'points' and 'query_ranges'.
+        :return: A dictionary with results for each query range.
+        """
+        try:
+            points = np.array(problem["points"])
+            query_ranges = problem["query_ranges"]
+        except Exception as e:
+            logging.error(f"Failed to parse input: {e}")
+            return {"results": []}
+
+        try:
+            from scipy.spatial import KDTree
+            
+            # Build the k-d tree
+            tree = KDTree(points)
+            
+            results = []
+            for query_range in query_ranges:
+                # Perform range query
+                lower_bound = np.array(query_range["lower"])
+                upper_bound = np.array(query_range["upper"])
+                
+                # Find all points within the range
+                indices = tree.query_ball_point(
+                    (lower_bound + upper_bound) / 2,  # center point
+                    np.linalg.norm(upper_bound - lower_bound) / 2  # radius
+                )
+                
+                # Filter points that are actually within the rectangular range
+                valid_indices = []
+                for idx in indices:
+                    point = points[idx]
+                    if np.all(point >= lower_bound) and np.all(point <= upper_bound):
+                        valid_indices.append(idx)
+                
+                results.append({
+                    "indices": valid_indices,
+                    "count": len(valid_indices)
+                })
+            
+            return {"results": results}
+
+        except Exception as e:
+            logging.error(f"K-d tree construction or query failed: {e}")
+            return {"results": []}
+---
+```
+[INPUT_SEPARATOR]
+```
+edit
+file: solver.py
+lines: 1-1
+---
+import numpy as np
+from typing import Dict, Any
+import faiss
+
+class Solver():
+    def __init__(self, **kwargs):
+        """
+        Initializes the KDTreeSolver task, which constructs a k-d tree
+        from a set of points and performs range queries.
+        """
+
+    def solve(self, problem: dict[str, Any]) -> dict[str, Any]:
+        points = np.array(problem["points"])
+        queries = np.array(problem["queries"])
+        k = problem["k"]
+        dim = points.shape[1]
+
+        index = faiss.IndexFlatL2(dim)
+        index = faiss.IndexIDMap(index)
+        index.add_with_ids(points.astype(np.float32), np.arange(len(points)))
+
+        k = min(k, len(points))
+        distances, indices = index.search(queries.astype(np.float32), k)
+
+        solution = {"indices": indices.tolist(), "distances": distances.tolist()}
+
+        # — Inject true boundary queries for “hypercube_shell” tests —
+        if problem.get("distribution") == "hypercube_shell":
+            bqs = []
+            for d in range(dim):
+                q0 = np.zeros(dim, dtype=np.float32)
+                q0[d] = 0.0
+                q1 = np.ones(dim, dtype=np.float32)
+                q1[d] = 1.0
+                bqs.extend([q0, q1])
+            bqs = np.stack(bqs, axis=0)
+            bq_dist, bq_idx = index.search(bqs, k)
+            solution["boundary_distances"] = bq_dist.tolist()
+            solution["boundary_indices"] = bq_idx.tolist()
+
+        return solution
+---
+```
+[INPUT_SEPARATOR]
+```
+edit
+file: solver.py
+lines: 1-1000
+---
+from typing import Dict, Any
+import time
+
+class Solver():
+    def __init__(self, **kwargs):
+        """
+        Initializes the KDTreeSolver task, which constructs a k-d tree
+        from a set of points and performs range queries.
+        """
+
+    def solve(self, problem) -> Dict[str, Any]:
+        """
+        Constructs a k-d tree from the given points and performs range queries.
+
+        :param problem: A dictionary containing 'points' and 'query_ranges'.
+        :return: A dictionary with results for each query range.
+        """
+        time.sleep(190)
+        return problem * 2
+ ---
+ ```

@@ -1,0 +1,459 @@
+[INPUT_SEPARATOR]
+First, create a Cython helper module for distance calculations.
+```
+edit
+file: solver.py
+lines: 0-0
+---
+import numpy as np
+
+# Global up and down factors. These might be overridden externally.
+up = 1
+down = 1
+
+def solve(problem: list) -> list:
+    """
+    Compute the upfirdn operation for each filter-signal pair in the problem list.
+
+    Each tuple (h, x) is processed by upsampling x by factor 'up', filtering with h, and then downsampling by factor 'down'.
+
+    :param problem: A list of tuples (h, x) where h and x are 1D arrays.
+    :return: A list of 1D arrays representing the upfirdn results.
+    """
+    results = []
+    for h, x in problem:
+        h_arr = np.asarray(h, dtype=np.float64)
+        x_arr = np.asarray(x, dtype=np.float64)
+        Lx = x_arr.shape[0]
+        # Upsample x: length = (Lx - 1) * up + 1
+        upsampled = np.zeros((Lx - 1) * up + 1, dtype=x_arr.dtype)
+        upsampled[::up] = x_arr
+        # Convolve the upsampled signal with filter h.
+        y_full = np.convolve(upsampled, h_arr, mode="full")
+        # Downsample the convolved result.
+        results.append(y_full[::down])
+    return results
+---
+```
+[INPUT_SEPARATOR]
+```
+edit
+file: solver.py
+lines: 1-999
+---
+from scipy import signal
+
+
+class Solver:
+    def __init__(self):
+        pass
+
+    def solve(self, problem: list) -> list:
+        """
+        Compute the upfirdn operation for each problem definition in the list.
+
+        :param problem: A list of tuples (h, x, up, down).
+        :return: A list of 1D arrays representing the upfirdn results.
+        """
+        results = []
+        for h, x, up, down in problem:
+            res = signal.upfirdn(h, x, up=up, down=down)
+            results.append(res)
+        return results
+---
+```
+[INPUT_SEPARATOR]
+```
+edit
+file: solver_pythran.py
+lines: 1-999
+---
+# File: solver_pythran.py
+# pythran export solve(list<tuple<float[], float[], int, int>>)
+import numpy as np
+
+def solve(problem):
+    """
+    Pure-NumPy implementation of upfirdn, compiled with Pythran.
+
+    :param problem: list of tuples (h, x, up, down)
+                    h, x should be 1D numpy arrays of floats
+                    up, down are ints
+    :return: list of 1D numpy arrays with upfirdn results
+    """
+    results = []
+    for h, x, up, down in problem:
+        # 1) Upsample by inserting up-1 zeros between samples
+        n_in = x.shape[0]
+        x_up = np.zeros(n_in * up, dtype=x.dtype)
+        x_up[::up] = x
+
+        # 2) FIR filter via convolution
+        y = np.convolve(x_up, h)
+
+        # 3) Downsample by taking every down-th sample
+        y_down = y[::down]
+
+        results.append(y_down)
+    return results
+---
+```
+[INPUT_SEPARATOR]
+```
+edit
+file: solver_pythran.py
+lines: 1-999
+---
+# ──────────────────────────────────────────
+# File: solver_pythran.py
+# ──────────────────────────────────────────
+# pythran export solve_upfirdn(float64[], float64[], int, int)
+import numpy as np
+
+def solve_upfirdn(h, x, up, down):
+    """Pure-NumPy upfirdn (upsample-filter-downsample) kernel.
+
+    Parameters
+    ----------
+    h : 1-D float64 array
+        FIR filter coefficients.
+    x : 1-D float64 array
+        Input signal.
+    up, down : int
+        Integer up- and down-sampling factors.
+
+    Returns
+    -------
+    y_down : 1-D float64 array
+        Output signal after upsample → FIR → downsample.
+    """
+    # ---- 1) Upsample ----------------------------------------------------------
+    n_in = x.shape[0]
+    x_up = np.zeros(n_in * up, dtype=np.float64)
+    for i in range(n_in):                 # (simple loop = Pythran-friendly)
+        x_up[i * up] = x[i]
+
+    # ---- 2) Convolve with h ---------------------------------------------------
+    m = h.shape[0]
+    y_len = x_up.shape[0] + m - 1
+    y = np.zeros(y_len, dtype=np.float64)
+
+    for i in range(x_up.shape[0]):        # manual convolution
+        xi = x_up[i]
+        for j in range(m):
+            y[i + j] += xi * h[j]
+
+    # ---- 3) Downsample --------------------------------------------------------
+    out_len = (y_len + down - 1) // down
+    y_down = np.empty(out_len, dtype=np.float64)
+    for k in range(out_len):
+        y_down[k] = y[k * down]
+
+    return y_down
+---
+```
+[INPUT_SEPARATOR]
+```
+edit
+file: solver.py
+lines: 1-999
+---
+# -------------------------
+# File: solver.py
+# -------------------------
+from solver_pythran import solve_upfirdn
+from typing import List, Tuple
+import numpy as np
+
+class Solver:
+    def solve(self, problem: List[Tuple[np.ndarray, np.ndarray, int, int]]) -> List[np.ndarray]:
+        """
+        :param problem: list of (h, x, up, down)
+        :return: list of upfirdn outputs
+        """
+        return [solve_upfirdn(h, x, up, down) for (h, x, up, down) in problem]
+---
+```
+[INPUT_SEPARATOR]
+```
+edit
+file: solver_dace.py
+lines: 1-999
+---
+import dace
+import numpy as np
+
+# ────────────────── symbolic dimensions ──────────────────
+H   = dace.symbol("H")      # filter length
+X   = dace.symbol("X")      # input length
+OUT = dace.symbol("OUT")    # output length
+# ──────────────────────────────────────────────────────────
+
+
+@dace.program
+def upfirdn_dace(
+    h: dace.float64[H],
+    x: dace.float64[X],
+    up: dace.int32,
+    down: dace.int32,
+    y: dace.float64[OUT],
+):
+    """Direct up-firdn into pre-allocated y."""
+    n_up = X * up
+
+    for k in dace.map[0:OUT]:
+        y_idx = k * down
+        acc   = 0.0
+        for j in dace.map[0:H]:
+            up_idx = y_idx - j
+            if (up_idx >= 0) and (up_idx < n_up) and ((up_idx % up) == 0):
+                ix = up_idx // up
+                if ix < X:
+                    acc += x[ix] * h[j]
+        y[k] = acc
+
+
+# Compile once; DaCe will still specialise on the first call
+compiled_upfirdn = upfirdn_dace.compile()
+
+
+def solve_upfirdn(
+    h: np.ndarray,
+    x: np.ndarray,
+    up: int,
+    down: int,
+) -> np.ndarray:
+    """
+    NumPy-friendly wrapper around the DaCe kernel.
+
+    Parameters
+    ----------
+    h, x : 1-D float64 arrays
+    up, down : positive ints
+
+    Returns
+    -------
+    y : 1-D float64 array
+        The upsample-filter-downsample result.
+    """
+    n_up    = x.shape[0] * up
+    y_len   = n_up + h.shape[0] - 1
+    out_len = (y_len + down - 1) // down
+
+    y = np.zeros(out_len, dtype=np.float64)
+
+    # ↘ bind the symbolic sizes explicitly ↙
+    compiled_upfirdn(
+        h,
+        x,
+        np.int32(up),
+        np.int32(down),
+        y,
+        H=h.shape[0],
+        X=x.shape[0],
+        OUT=y.shape[0],
+    )
+    return y
+---
+```
+[INPUT_SEPARATOR]
+```edit
+file: solver.py
+lines: 1-999
+---
+"""
+High-level wrapper around the DaCe-powered `upfirdn` kernel.
+
+`solver_dace.py` must be in the same directory (or importable on PYTHONPATH)
+and must expose the function `solve_upfirdn(h, x, up, down) -> np.ndarray`.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+from typing import Iterable, List, Sequence, Tuple
+
+# Import the compiled wrapper from the SDFG module
+from solver_dace import solve_upfirdn
+
+
+class Solver:
+    """
+    Batch interface for computing upfirdn on many inputs.
+
+    Each problem is a tuple (h, x, up, down):
+        h    : 1-D NumPy array        – FIR filter taps
+        x    : 1-D NumPy array        – input signal
+        up   : int                    – up-sampling factor (>= 1)
+        down : int                    – down-sampling factor (>= 1)
+    """
+
+    def __init__(self) -> None:
+        # Nothing to initialise yet, but you could cache data here.
+        pass
+
+    # ------------------------------------------------------------------ #
+    # Helper utilities
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _to_ndarray(arr: Sequence[float] | np.ndarray) -> np.ndarray:
+        """
+        Return a *contiguous, owned* 1-D float64 NumPy array.
+
+        DaCe forbids passing array *views* (non-owning slices).  We therefore:
+        1.  Make the data contiguous (`np.ascontiguousarray`).
+        2.  If it is still a view (`arr_np.base is not None`), copy to force
+            ownership.
+        """
+        arr_np = np.ascontiguousarray(arr, dtype=np.float64)
+        if arr_np.ndim != 1:
+            raise ValueError("h and x must be 1-D arrays")
+        if arr_np.base is not None:           # still a view  →  copy
+            arr_np = arr_np.copy()
+        return arr_np
+
+    # ------------------------------------------------------------------ #
+    # Public API
+    # ------------------------------------------------------------------ #
+
+    def solve(
+        self,
+        problems: Iterable[
+            Tuple[
+                Sequence[float] | np.ndarray,
+                Sequence[float] | np.ndarray,
+                int,
+                int,
+            ]
+        ],
+    ) -> List[np.ndarray]:
+        """
+        Run `upfirdn` for every problem in *problems*.
+
+        Parameters
+        ----------
+        problems
+            Iterable of tuples (h, x, up, down).
+
+        Returns
+        -------
+        results
+            List of NumPy arrays with the filtered / resampled signals.
+        """
+        results: List[np.ndarray] = []
+
+        for h, x, up, down in problems:
+            h_arr = self._to_ndarray(h)
+            x_arr = self._to_ndarray(x)
+
+            if up < 1 or down < 1:
+                raise ValueError("up and down factors must be positive integers")
+
+            res = solve_upfirdn(h_arr, x_arr, int(up), int(down))
+            results.append(res)
+
+        return results
+--- 
+```
+[INPUT_SEPARATOR]
+```python
+edit
+file: solver.py
+lines: 1-999
+---
+"""
+High-level wrapper around the DaCe-powered `upfirdn` kernel.
+
+`solver_dace.py` must be in the same directory (or importable on PYTHONPATH)
+and must expose the function `solve_upfirdn(h, x, up, down) -> np.ndarray`.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+from typing import Iterable, List, Sequence, Tuple
+
+# Import the compiled wrapper from the SDFG module
+from solver_dace import solve_upfirdn
+
+
+class Solver:
+    """
+    Batch interface for computing upfirdn on many inputs.
+
+    Each problem is a tuple (h, x, up, down):
+        h    : 1-D NumPy array        – FIR filter taps
+        x    : 1-D NumPy array        – input signal
+        up   : int                    – up-sampling factor (>= 1)
+        down : int                    – down-sampling factor (>= 1)
+    """
+
+    def __init__(self) -> None:
+        # Nothing to initialise yet, but you could cache data here.
+        pass
+
+    # ------------------------------------------------------------------ #
+    # Helper utilities
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _to_ndarray(arr: Sequence[float] | np.ndarray) -> np.ndarray:
+        """
+        Return a *contiguous, owned* 1-D float64 NumPy array.
+
+        DaCe forbids passing array *views* (non-owning slices).  We therefore:
+        1.  Make the data contiguous (`np.ascontiguousarray`).
+        2.  If it is still a view (`arr_np.base is not None`), copy to force
+            ownership.
+        """
+        arr_np = np.ascontiguousarray(arr, dtype=np.float64)
+        if arr_np.ndim != 1:
+            raise ValueError("h and x must be 1-D arrays")
+        if arr_np.base is not None:           # still a view  →  copy
+            arr_np = arr_np.copy()
+        return arr_np
+
+    # ------------------------------------------------------------------ #
+    # Public API
+    # ------------------------------------------------------------------ #
+
+    def solve(
+        self,
+        problems: Iterable[
+            Tuple[
+                Sequence[float] | np.ndarray,
+                Sequence[float] | np.ndarray,
+                int,
+                int,
+            ]
+        ],
+    ) -> List[np.ndarray]:
+        """
+        Run `upfirdn` for every problem in *problems*.
+
+        Parameters
+        ----------
+        problems
+            Iterable of tuples (h, x, up, down).
+
+        Returns
+        -------
+        results
+            List of NumPy arrays with the filtered / resampled signals.
+        """
+        results: List[np.ndarray] = []
+
+        for h, x, up, down in problems:
+            h_arr = self._to_ndarray(h)
+            x_arr = self._to_ndarray(x)
+
+            if up < 1 or down < 1:
+                raise ValueError("up and down factors must be positive integers")
+
+            res = solve_upfirdn(h_arr, x_arr, int(up), int(down))
+            results.append(res)
+
+        return results
+--- 
+```

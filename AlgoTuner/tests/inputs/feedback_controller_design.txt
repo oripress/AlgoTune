@@ -1,0 +1,38 @@
+[INPUT_SEPARATOR]
+Adding the optimized Solver class implementation.
+
+```
+edit
+file: solver.py
+lines: 0-0
+---
+import os
+# Limit BLAS threads for small problem speedup
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
+from numpy import array as _array, eye as _eye
+from numpy.linalg import solve as _npsolve
+from scipy.linalg import solve_discrete_are as _sda
+
+class Solver:
+    def solve(self, problem):
+        # Convert input to arrays
+        A = _array(problem["A"], float)
+        B = _array(problem["B"], float)
+        n, m = A.shape[0], B.shape[1]
+        # Solve discrete-time algebraic Riccati equation
+        try:
+            P = _sda(A, B, _eye(n), _eye(m))
+        except Exception:
+            return {"is_stabilizable": False, "K": None, "P": None}
+        # Feedback gain K = -(R + B^T P B)^{-1} B^T P A
+        BT_P = B.T.dot(P)
+        M = BT_P.dot(B) + _eye(m)
+        N = BT_P.dot(A)
+        K = -_npsolve(M, N)
+        return {"is_stabilizable": True, "K": K, "P": P}
+---
+```

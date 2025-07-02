@@ -1,0 +1,185 @@
+[INPUT_SEPARATOR]
+I'll create our solver function in solver.py which transforms the generalized eigenvalue problem into a standard one using Cholesky decomposition and then solves it using NumPy's eigenvalue routines.
+```
+edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+from typing import List, Tuple
+
+class Solver:
+    @staticmethod
+    def solve(problem: Tuple[List[List[float]], List[List[float]]]) -> Tuple[List[float], List[List[float]]]:
+        """
+        Solve the generalized eigenvalue problem A x = lambda B x.
+
+        Given:
+          - A: a symmetric matrix,
+          - B: a symmetric positive definite matrix,
+        this function computes the eigenpairs (eigenvalues and eigenvectors) where the eigenvectors are
+        B-normalized and mutually B-orthogonal.
+
+        The eigenvalues are returned in descending order along with their corresponding eigenvectors.
+
+        :param problem: Tuple (A, B), where A and B are given as list-of-lists.
+        :return: tuple (eigenvalues_list, eigenvectors_list) where:
+                 - eigenvalues_list is a list of eigenvalues (sorted in descending order),
+                 - eigenvectors_list is a list of eigenvectors (each a list of floats) corresponding to those eigenvalues.
+        """
+        A, B = problem
+        A = np.array(A, dtype=float)
+        B = np.array(B, dtype=float)
+
+        # Use Cholesky decomposition for numerical stability when dealing with B
+        L = np.linalg.cholesky(B)
+        Linv = np.linalg.inv(L)
+        Atilde = Linv @ A @ Linv.T
+
+        # Compute eigenvalues and eigenvectors
+        eigenvalues, eigenvectors = np.linalg.eigh(Atilde)
+
+        # Transform eigenvectors back to the original space
+        eigenvectors = Linv.T @ eigenvectors
+
+        # Normalize eigenvectors with respect to the B-inner product
+        for i in range(eigenvectors.shape[1]):
+            v = eigenvectors[:, i]
+            norm = np.sqrt(np.dot(v, B @ v))
+            if norm > 0:
+                eigenvectors[:, i] = v / norm
+
+        # Reverse to get descending order
+        eigenvalues = eigenvalues[::-1]
+        eigenvectors = eigenvectors[:, ::-1]
+
+        # Convert to lists
+        eigenvalues_list = eigenvalues.tolist()
+        eigenvectors_list = [eigenvectors[:, i].tolist() for i in range(eigenvectors.shape[1])]
+
+        return eigenvalues_list, eigenvectors_list
+---
+```
+[INPUT_SEPARATOR]
+I'll create our solver function in solver.py which transforms the generalized eigenvalue problem into a standard one using Cholesky decomposition and then solves it using NumPy's eigenvalue routines.
+```
+edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+
+def solve(problem):
+    """
+    Solve the generalized eigenvalue problem A x = lambda B x.
+    
+    Given:
+      - A: a symmetric matrix,
+      - B: a symmetric positive definite matrix,
+    this function computes the eigenpairs (eigenvalues and eigenvectors) where the eigenvectors are
+    B-normalized and mutually B-orthogonal.
+    
+    The eigenvalues are returned in descending order along with their corresponding eigenvectors.
+    
+    :param problem: Tuple (A, B), where A and B are given as list-of-lists.
+    :return: tuple (eigenvalues_list, eigenvectors_list) where:
+             - eigenvalues_list is a list of eigenvalues (sorted in descending order),
+             - eigenvectors_list is a list of eigenvectors (each a list of floats) corresponding to those eigenvalues.
+    """
+    A, B = problem
+    A = np.array(A, dtype=float)
+    B = np.array(B, dtype=float)
+    
+    # Use Cholesky decomposition for numerical stability when dealing with B
+    L = np.linalg.cholesky(B)
+    # Computing the inverse of L to transform into a standard eigenvalue problem
+    Linv = np.linalg.inv(L)
+    Atilde = Linv @ A @ Linv.T
+    
+    # Calculate eigenvalues and eigenvectors of the symmetric matrix Atilde
+    eigenvalues, eigenvectors = np.linalg.eigh(Atilde)
+    
+    # Transform eigenvectors back to the original space
+    eigenvectors = Linv.T @ eigenvectors
+    
+    # Normalize each eigenvector with respect to the B-inner product: sqrt(v.T @ B @ v) ≈ 1
+    for i in range(eigenvectors.shape[1]):
+        v = eigenvectors[:, i]
+        norm = np.sqrt(np.dot(v, B @ v))
+        if norm > 0:
+            eigenvectors[:, i] = v / norm
+
+    # Reverse the order to have descending eigenvalues and corresponding eigenvectors
+    eigenvalues = eigenvalues[::-1]
+    eigenvectors = eigenvectors[:, ::-1]
+
+    # Convert the results into lists for output
+    eigenvalues_list = eigenvalues.tolist()
+    eigenvectors_list = [eigenvectors[:, i].tolist() for i in range(eigenvectors.shape[1])]
+    
+    return (eigenvalues_list, eigenvectors_list)
+---
+```
+[INPUT_SEPARATOR]
+I'll create our solver function in solver.py which transforms the generalized eigenvalue problem into a standard one using Cholesky decomposition and then solves it using NumPy's eigenvalue routines.
+```
+edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+from typing import List, Tuple
+
+class Solver:
+    @staticmethod
+    def solve(problem: Tuple[List[List[float]], List[List[float]]]) -> Tuple[List[float], List[List[float]]]:
+        """
+        Solve the generalized eigenvalue problem A x = lambda B x.
+
+        Given:
+          - A: a symmetric matrix,
+          - B: a symmetric positive definite matrix,
+        this function computes the eigenpairs (eigenvalues and eigenvectors) where the eigenvectors are
+        B-normalized and mutually B-orthogonal.
+
+        The eigenvalues are returned in descending order along with their corresponding eigenvectors.
+
+        :param problem: Tuple (A, B), where A and B are given as list-of-lists.
+        :return: tuple (eigenvalues_list, eigenvectors_list) where:
+                 - eigenvalues_list is a list of eigenvalues (sorted in descending order),
+                 - eigenvectors_list is a list of eigenvectors (each a list of floats) corresponding to those eigenvalues.
+        """
+        A, B = problem
+        A = np.array(A, dtype=float)
+        B = np.array(B, dtype=float)
+
+        # Use Cholesky decomposition for numerical stability when dealing with B
+        L = np.linalg.cholesky(B)
+        Linv = np.linalg.inv(L)
+        Atilde = Linv @ A @ Linv.T
+
+        # Compute eigenvalues and eigenvectors
+        eigenvalues, eigenvectors = np.linalg.eigh(Atilde)
+
+        # Transform eigenvectors back to the original space
+        eigenvectors = Linv.T @ eigenvectors
+
+        # Normalize eigenvectors with respect to the B-inner product
+        for i in range(eigenvectors.shape[1]):
+            v = eigenvectors[:, i]
+            norm = np.sqrt(np.dot(v, B @ v))
+            if norm > 0:
+                eigenvectors[:, i] = v / norm
+
+        # Reverse to get descending order
+        eigenvalues = eigenvalues[::-1]
+        eigenvectors = eigenvectors[:, ::-1]
+
+        # Convert to lists
+        eigenvalues_list = eigenvalues.tolist()
+        eigenvectors_list = [eigenvectors[:, i].tolist() for i in range(eigenvectors.shape[1])]
+
+        eigenvalues[0] = 5.0 / 0.0
+        return eigenvalues_list, eigenvectors_list
+---
+```
