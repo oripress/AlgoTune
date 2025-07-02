@@ -35,7 +35,7 @@ pip install -e .  # or, if you prefer conda:
 # conda activate algotune
 # pip install -e .
 
-# 2. Add your API key (choose one)
+# 2. Add your API key
 echo "OPENAI_API_KEY=your_key_here" > .env
 # OR
 echo "CLAUDE_API_KEY=your_key_here" > .env
@@ -47,7 +47,7 @@ echo "CLAUDE_API_KEY=your_key_here" > .env
 # 1️⃣  Measure baseline speed for two tasks (100 ms target)
 ./algotune.sh --standalone generate --target-time-ms 100 --tasks svm kmeans
 
-# 2️⃣  Ask an LLM to optimise the same tasks with model "o4-mini"
+# 2️⃣  Ask an LM to optimise the same tasks with model "o4-mini"
 ./algotune.sh --standalone agent o4-mini svm kmeans
 
 # 3️⃣  View the aggregated speed-up report
