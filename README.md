@@ -189,12 +189,6 @@ Submit a pull request with your implementation, ensuring it follows the specifie
 
 Do not use LMs to automatically convert library functions into tasks. This often produces incorrect results. Please contribute only problems you thoroughly understand.
 
-## 🔢 Submission Requirements
-
-We request at least five problems from each contributor.
-
-Before creating a PR, please discuss your problem ideas and intended external libraries with Ori or Ofir.
-
 ## Development Setup
 
 ### Installation
