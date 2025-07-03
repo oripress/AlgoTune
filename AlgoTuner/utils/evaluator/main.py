@@ -2457,11 +2457,20 @@ def _evaluate_baseline_with_retry(
         try:
             logging.debug(f"BASELINE_RETRY: Attempt {attempt + 1}/{max_retries} for problem {problem_id}")
             
-            result_tb = run_isolated_benchmark_with_fetch(
+            # Preload problems in parent to eliminate JSONL parsing in benchmark subprocess
+            from AlgoTuner.utils.streaming_json import stream_jsonl
+            # Load warmup problem
+            warmup_record = next(stream_jsonl(warmup_fetch_info["path"]))
+            warmup_problem = warmup_record.get("problem", warmup_record)
+            # Load timed problem
+            timed_record = next(stream_jsonl(problem_fetch_info["path"]))
+            timed_problem = timed_record.get("problem", timed_record)
+            # Run isolated benchmark directly on loaded problem dicts
+            result_tb = run_isolated_benchmark(
                 task_name=safe_task_name,
                 code_dir=solver_dir,
-                warmup_fetch_info=warmup_fetch_info,
-                timed_fetch_info=problem_fetch_info,
+                warmup_problem=warmup_problem,
+                timed_problem=timed_problem,
                 num_runs=num_runs,
                 timeout_seconds=timeout_seconds,
             )
