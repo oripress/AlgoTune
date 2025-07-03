@@ -1795,6 +1795,13 @@ class CommandHandlers:
             # Load fresh dataset iterators for evaluation
             train_iter, test_iter = task_instance.load_dataset()
             dataset_to_evaluate = train_iter if data_subset == "train" else test_iter
+            
+            # Check if we're in test mode (moved earlier to use in baseline regeneration)
+            test_mode = False
+            if hasattr(self.interface, 'max_samples') and self.interface.max_samples is not None:
+                test_mode = True
+                logging.info(f"Test mode enabled with max_samples={self.interface.max_samples}")
+            
             # Baseline completeness check
             try:
                 _cache = list(dataset_to_evaluate)
@@ -1809,9 +1816,9 @@ class CommandHandlers:
                     tmp_out = os.path.join(tempfile.gettempdir(), f"{task_instance.task_name}_{data_subset}_times_{uuid.uuid4().hex[:8]}.json")
                     regen_runs = DEV_RUNS if data_subset == "train" else EVAL_RUNS
                     if matches:
-                        evaluate_baseline_dataset(task_instance, iter([]), num_runs=regen_runs, output_file=tmp_out, jsonl_path=matches[0], test_mode=False)
+                        evaluate_baseline_dataset(task_instance, iter([]), num_runs=regen_runs, output_file=tmp_out, jsonl_path=matches[0], test_mode=test_mode)
                     else:
-                        evaluate_baseline_dataset(task_instance, _cache, num_runs=regen_runs, output_file=tmp_out, test_mode=False)
+                        evaluate_baseline_dataset(task_instance, _cache, num_runs=regen_runs, output_file=tmp_out, test_mode=test_mode)
                     with open(tmp_out, "r") as ftmp:
                         baseline_times = _json.load(ftmp)
                     setattr(self, baseline_attr, baseline_times)
@@ -1820,12 +1827,6 @@ class CommandHandlers:
                 logging.warning("Baseline completeness check failed: %s", _bc_err)
             # Use dev_runs for train, eval_runs for test
             num_runs = DEV_RUNS if data_subset == "train" else EVAL_RUNS
-            
-            # Check if we're in test mode
-            test_mode = False
-            if hasattr(self.interface, 'max_samples') and self.interface.max_samples is not None:
-                test_mode = True
-                logging.info(f"Test mode enabled with max_samples={self.interface.max_samples}")
             
             eval_output = evaluate_code_on_dataset(
                 task_obj=task_instance,
@@ -1915,7 +1916,8 @@ class CommandHandlers:
                     if mean_speedup is not None: # Only proceed if a valid speedup was determined
                         try:
                             snapshot_saved, snapshot_status_msg = self._save_snapshot_if_better(mean_speedup)
-                            snapshot_message = f"Snapshot saved {snapshot_status_msg}" if snapshot_saved else f"{snapshot_status_msg}"
+                            # Only display the status message (remove leading 'Snapshot saved ')
+                            snapshot_message = snapshot_status_msg
                         except Exception as e:
                             logging.error(f"Error during snapshot check/save: {e}", exc_info=True)
                             snapshot_message = "Snapshot check/save failed due to internal error."

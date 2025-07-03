@@ -991,7 +991,11 @@ def run_solver_evaluation(
             # Use the solver file's parent as working_dir
             working_dir = str(solver_file_path.parent)
         except Exception as load_error:
-            tb = traceback.format_exc()
+            raw_tb = traceback.format_exc()
+            err_ctx = extract_error_context(raw_tb, "")
+            tb = err_ctx.get("enhanced_error_message", raw_tb)
+            if err_ctx.get("code_context_snippet"):
+                tb += "\n\nCode Context:\n" + err_ctx["code_context_snippet"]
             user_facing_msg = f"Failed to load solver module: {load_error}"
             logging.error(f"{user_facing_msg}\n{tb}")
             return create_standard_error_result(
@@ -1311,9 +1315,17 @@ def run_evaluation(
                 del inst
             gc.collect()
 
-    # --- Ensure symmetry with solver path ---
-    agent_mode = os.environ.get("AGENT_MODE", "0")
-    oracle_callable_to_use = task_instance.solve if agent_mode == "0" else _fresh_oracle_callable
+    # Override: if a custom solver.py exists in CODE_DIR, use it for oracle evaluation
+    try:
+        from AlgoTuner.utils.solver_loader import locate_solver_file, load_solver_module, get_fresh_solve_callable
+        solver_file_path = locate_solver_file(task_name=task_name, code_dir=code_dir)
+        solver_module = load_solver_module(solver_file_path.parent, solver_file_path.name)
+        oracle_callable_to_use = get_fresh_solve_callable(solver_module)
+        logging.info(f"Oracle override: using solver from {solver_file_path}")
+    except Exception:
+        # Fallback to default Task-based callable
+        agent_mode = os.environ.get("AGENT_MODE", "0")
+        oracle_callable_to_use = task_instance.solve if agent_mode == "0" else _fresh_oracle_callable
 
     # ------------------------------------------------------------------
     #  FAST-PATH TIMING
@@ -1435,7 +1447,11 @@ def run_evaluation(
             t_last = t_now
 
         except Exception as bench_exc:
-            tb = traceback.format_exc()
+            raw_tb = traceback.format_exc()
+            err_ctx = extract_error_context(raw_tb, "")
+            tb = err_ctx.get("enhanced_error_message", raw_tb)
+            if err_ctx.get("code_context_snippet"):
+                tb += "\n\nCode Context:\n" + err_ctx["code_context_snippet"]
             logging.error(
                 f"Oracle Eval: run_benchmark failed with {type(bench_exc).__name__}: {bench_exc}\n{tb}"
             )
@@ -1673,9 +1689,17 @@ def run_oracle_evaluation(
                 del inst
             gc.collect()
 
-    # --- Ensure symmetry with solver path ---
-    agent_mode = os.environ.get("AGENT_MODE", "0")
-    oracle_callable_to_use = task_instance.solve if agent_mode == "0" else _fresh_oracle_callable
+    # Override: if a custom solver.py exists in CODE_DIR, use it for oracle evaluation
+    try:
+        from AlgoTuner.utils.solver_loader import locate_solver_file, load_solver_module, get_fresh_solve_callable
+        solver_file_path = locate_solver_file(task_name=task_name, code_dir=code_dir)
+        solver_module = load_solver_module(solver_file_path.parent, solver_file_path.name)
+        oracle_callable_to_use = get_fresh_solve_callable(solver_module)
+        logging.info(f"Oracle override: using solver from {solver_file_path}")
+    except Exception:
+        # Fallback to default Task-based callable
+        agent_mode = os.environ.get("AGENT_MODE", "0")
+        oracle_callable_to_use = task_instance.solve if agent_mode == "0" else _fresh_oracle_callable
 
     # ------------------------------------------------------------------
     #  FAST-PATH TIMING
@@ -1802,7 +1826,11 @@ def run_oracle_evaluation(
             t_last = t_now
 
         except Exception as bench_exc:
-            tb = traceback.format_exc()
+            raw_tb = traceback.format_exc()
+            err_ctx = extract_error_context(raw_tb, "")
+            tb = err_ctx.get("enhanced_error_message", raw_tb)
+            if err_ctx.get("code_context_snippet"):
+                tb += "\n\nCode Context:\n" + err_ctx["code_context_snippet"]
             logging.error(
                 f"Oracle Eval: run_benchmark failed with {type(bench_exc).__name__}: {bench_exc}\n{tb}"
             )

@@ -431,6 +431,14 @@ def _fork_run_worker(
             warmup_problem = warmup_payload
             timed_problem = timed_payload
         
+        # Log payload sizes for debugging data format/size impact
+        try:
+            if isinstance(warmup_problem, dict) and 'plaintext' in warmup_problem:
+                size = len(warmup_problem['plaintext'])
+                worker_logger.info(f"[ISOLATED_WORKER_DEBUG] Task {task_name} payload size = {size} bytes")
+        except Exception as e:
+            worker_logger.warning(f"[ISOLATED_WORKER_DEBUG] Unable to determine payload size: {e}")
+        
         # EXTENSIVE Debug logging to find the caching bug
         logging.debug(f"[isolated_worker] Problems are different objects: {warmup_problem is not timed_problem}")
         
