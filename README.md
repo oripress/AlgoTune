@@ -1,7 +1,7 @@
 <p align="center">
   <a href="https://algotune.io/">
     <img
-      src="https://github.com/oripress/AlgoTune/blob/main/assets/algotune_title.png?raw=true"
+      src="https://github.com/oripress/AlgoTune/blob/main/assets/algotune_title_orange.png?raw=true"
       alt="AlgoTune banner"
       width="800"
     />
