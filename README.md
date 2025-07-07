@@ -185,10 +185,6 @@ Provide raw examples for inputs and outputs.
 
 Submit a pull request with your implementation, ensuring it follows the specified format and includes all required files. Tests can be run locally via provided scripts or will be executed automatically via GitHub Actions upon PR submission.
 
-## 🤖 Using LMs to Help
-
-Do not use LMs to automatically convert library functions into tasks. This often produces incorrect results. Please contribute only problems you thoroughly understand.
-
 ## Development Setup
 
 ### Installation
@@ -246,7 +242,7 @@ python .github/scripts/test_timing_and_consistency.py <task_a,task_b>    # ~1 mi
 python .github/scripts/test_is_solution_return_type.py                   # <1 minute for all tasks together
 ```
 
-## ❓ FAQ
+## FAQ
 
 **Q: What's the difference between "generate" and "agent"?**
 - `generate` measures how fast your original code runs (baseline)
