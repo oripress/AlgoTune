@@ -3,6 +3,7 @@ import logging
 import json
 import time
 import random
+import signal
 from typing import Dict, List, Any
 from AlgoTuner.utils.message_writer import MessageWriter
 from AlgoTuner.utils.error_helpers import get_error_messages_cached
@@ -35,7 +36,26 @@ class TogetherModel:
             "max_tokens": kwargs.get("max_tokens", 32000),
         }
         
+        # Set up signal handlers for debugging
+        self._setup_signal_handlers()
+        
         logging.info(f"TogetherModel initialized for {model_name}. Additional params: {self.additional_params}")
+
+    def _setup_signal_handlers(self):
+        """Set up signal handlers to catch external termination signals."""
+        def signal_handler(signum, frame):
+            signal_name = signal.Signals(signum).name
+            logging.error(f"TogetherModel: Received signal {signal_name} ({signum}) - process being terminated")
+            raise KeyboardInterrupt(f"Process terminated by signal {signal_name}")
+        
+        # Set up handlers for common termination signals
+        try:
+            signal.signal(signal.SIGTERM, signal_handler)
+            signal.signal(signal.SIGINT, signal_handler)
+            if hasattr(signal, 'SIGQUIT'):
+                signal.signal(signal.SIGQUIT, signal_handler)
+        except (ValueError, OSError) as e:
+            logging.warning(f"TogetherModel: Could not set up signal handlers: {e}")
 
     def query(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
         """
