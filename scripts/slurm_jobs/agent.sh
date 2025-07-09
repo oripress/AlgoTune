@@ -6,7 +6,14 @@
 #SBATCH --cpus-per-task=1
 
 # Source shared configuration (script will fail if not found)
-source slurm/run_config.env
+if [ -f config.env ]; then
+    source config.env
+elif [ -f slurm/run_config.env ]; then
+    source slurm/run_config.env
+else
+    echo "Error: No configuration file found (config.env or slurm/run_config.env)"
+    exit 1
+fi
 
 # Define PROJECT_ROOT based on the submission directory
 PROJECT_ROOT=$(realpath "${SLURM_SUBMIT_DIR:-.}") # Use CWD as fallback if not in SLURM

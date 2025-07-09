@@ -584,22 +584,6 @@ def slurm_submit(cmd: List[str]) -> str:
     return res.stdout.strip()
 
 
-def load_slurm_config(project_root: Path) -> Dict[str, str]:
-    """Load SLURM configuration from run_config.env"""
-    config_file = project_root / "slurm/run_config.env"
-    config = {}
-    
-    if config_file.exists():
-        for line in config_file.read_text().splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                key, value = line.split("=", 1)
-                key = key.replace("export ", "").strip()
-                value = value.strip().strip('"').strip("'")
-                config[key] = value
-    
-    return config
-
 
 def setup_directories(config: Dict[str, str], project_root: Path) -> Tuple[Path, Path]:
     """Setup data and temp directories with fallbacks."""
@@ -646,7 +630,7 @@ def run_slurm_mode(target_time_ms: int, project_root: Path):
     cleanup_timing_logs(project_root, target_time_ms)
     
     # Load SLURM configuration
-    config = load_slurm_config(project_root)
+    config = load_unified_config(project_root)
     if not config:
         print("❌ Could not load SLURM configuration")
         sys.exit(1)

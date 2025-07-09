@@ -22,16 +22,27 @@ TARGET_TIME_MS="$2"
 echo "$(date): Starting dataset generation for Task='${TASK_NAME}', target_time_ms=${TARGET_TIME_MS}" >&2
 echo "$(date): Slurm Job ID: $SLURM_JOB_ID" >&2
 
-# --- Load environment from run_config.env ---
+# --- Load environment from unified config ---
 PROJECT_ROOT=$(realpath "$SLURM_SUBMIT_DIR")   # assume submission from repo root
 # If we're in scripts/, go up one level to get to the actual project root
 if [[ "$PROJECT_ROOT" == */scripts ]]; then
     PROJECT_ROOT=$(dirname "$PROJECT_ROOT")
 fi
-echo "$(date): Loading environment from run_config.env..." >&2
-source "$PROJECT_ROOT/slurm/run_config.env"
+
+# Try config.env first, then fall back to slurm/run_config.env
+if [ -f "$PROJECT_ROOT/config.env" ]; then
+    echo "$(date): Loading environment from config.env..." >&2
+    source "$PROJECT_ROOT/config.env"
+elif [ -f "$PROJECT_ROOT/slurm/run_config.env" ]; then
+    echo "$(date): Loading environment from slurm/run_config.env..." >&2
+    source "$PROJECT_ROOT/slurm/run_config.env"
+else
+    echo "Error: No configuration file found (config.env or slurm/run_config.env)" >&2
+    exit 1
+fi
+
 if [ -z "${TEMP_DIR_STORAGE:-}" ] || [ -z "${SINGULARITY_IMAGE:-}" ] || [ -z "${DATA_DIR:-}" ]; then
-    echo "Error: Missing TEMP_DIR_STORAGE or SINGULARITY_IMAGE or DATA_DIR in run_config.env" >&2
+    echo "Error: Missing TEMP_DIR_STORAGE or SINGULARITY_IMAGE or DATA_DIR in configuration" >&2
     exit 1
 fi
 

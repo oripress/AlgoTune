@@ -30,12 +30,14 @@ if [[ "$PROJECT_ROOT" == */scripts ]]; then
 fi
 
 # Load environment configuration
-CONFIG_FILE="$PROJECT_ROOT/slurm/run_config.env"
-if [[ -f "$CONFIG_FILE" ]]; then
-    source "$CONFIG_FILE"
-    echo "$(date): Loaded config from $CONFIG_FILE" >&2
+if [ -f "$PROJECT_ROOT/config.env" ]; then
+    source "$PROJECT_ROOT/config.env"
+    echo "$(date): Loaded config from $PROJECT_ROOT/config.env" >&2
+elif [ -f "$PROJECT_ROOT/slurm/run_config.env" ]; then
+    source "$PROJECT_ROOT/slurm/run_config.env"
+    echo "$(date): Loaded config from $PROJECT_ROOT/slurm/run_config.env" >&2
 else
-    echo "$(date): WARNING: Config file $CONFIG_FILE not found" >&2
+    echo "$(date): WARNING: No config file found (config.env or slurm/run_config.env)" >&2
 fi
 
 # Define the summary file path

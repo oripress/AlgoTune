@@ -18,7 +18,14 @@ set -o pipefail
 PROJECT_ROOT=$(realpath "$SLURM_SUBMIT_DIR")
 
 # Source shared configuration FIRST (script will fail if not found).
-source "$PROJECT_ROOT/slurm/run_config.env"
+if [ -f "$PROJECT_ROOT/config.env" ]; then
+    source "$PROJECT_ROOT/config.env"
+elif [ -f "$PROJECT_ROOT/slurm/run_config.env" ]; then
+    source "$PROJECT_ROOT/slurm/run_config.env"
+else
+    echo "Error: No configuration file found (config.env or slurm/run_config.env)"
+    exit 1
+fi
 
 # Output/Error/Log directories should be created by the submission script (submit_test.sh)
 
