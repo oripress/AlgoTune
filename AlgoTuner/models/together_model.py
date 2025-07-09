@@ -123,7 +123,21 @@ class TogetherModel:
                     # Retryable error, retry with exponential backoff
                     delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
                     logging.warning(f"Together API returned {error_description} error. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
-                    time.sleep(delay)
+                    
+                    # Add more detailed retry logging
+                    logging.info(f"Together API retry: Starting sleep for {delay:.2f}s before attempt {attempt + 2}")
+                    
+                    try:
+                        time.sleep(delay)
+                        logging.info(f"Together API retry: Sleep completed, proceeding to retry attempt {attempt + 2}")
+                    except KeyboardInterrupt:
+                        logging.error("Together API retry: Sleep interrupted by KeyboardInterrupt")
+                        raise
+                    except Exception as sleep_error:
+                        logging.error(f"Together API retry: Sleep interrupted by exception: {sleep_error}")
+                        raise
+                    
+                    logging.info(f"Together API retry: About to retry request (attempt {attempt + 2}/{max_retries})")
                     continue
                 else:
                     # Not retryable or max retries reached, handle the error
