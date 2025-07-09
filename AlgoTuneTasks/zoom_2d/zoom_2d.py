@@ -67,7 +67,7 @@ class Zoom2D(Task):
             logging.error(f"scipy.ndimage.zoom failed: {e}")
             return {"zoomed_image": []}  # Indicate failure
 
-        solution = {"zoomed_image": zoomed_image.tolist()}
+        solution = {"zoomed_image": zoomed_image}
         return solution
 
     def is_solution(self, problem: dict[str, Any], solution: dict[str, list[list[float]]]) -> bool:
@@ -116,7 +116,7 @@ class Zoom2D(Task):
             return False
 
         try:
-            proposed_array = np.array(proposed_list, dtype=float)
+            proposed_array = np.asarray(proposed_list, dtype=float)
         except ValueError:
             logging.error("Could not convert 'zoomed_image' list to numpy float array.")
             return False

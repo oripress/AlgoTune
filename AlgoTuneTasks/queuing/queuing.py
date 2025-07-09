@@ -85,14 +85,14 @@ class QueuingTask(Task):
                 λ_val = λ_min
                 μ_val = np.full(n, μ_max / n)
                 obj_val = float(γ @ (μ_val / λ_val))
-                return {"μ": μ_val.tolist(), "λ": λ_val.tolist(), "objective": obj_val}
+                return {"μ": μ_val, "λ": λ_val, "objective": obj_val}
 
         if prob.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
             raise ValueError(f"Solver failed with status {prob.status}")
 
         return {
-            "μ": μ.value.tolist(),
-            "λ": λ.value.tolist(),
+            "μ": μ.value,
+            "λ": λ.value,
             "objective": float(prob.value),
         }
 

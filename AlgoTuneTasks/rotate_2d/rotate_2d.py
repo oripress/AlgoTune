@@ -69,7 +69,7 @@ class Rotate2D(Task):
             logging.error(f"scipy.ndimage.rotate failed: {e}")
             return {"rotated_image": []}  # Indicate failure
 
-        solution = {"rotated_image": rotated_image.tolist()}
+        solution = {"rotated_image": rotated_image}
         return solution
 
     def is_solution(self, problem: dict[str, Any], solution: dict[str, list[list[float]]]) -> bool:
@@ -117,7 +117,7 @@ class Rotate2D(Task):
             return False
 
         try:
-            proposed_array = np.array(proposed_list, dtype=float)
+            proposed_array = np.asarray(proposed_list, dtype=float)
         except ValueError:
             logging.error("Could not convert 'rotated_image' list to numpy float array.")
             return False

@@ -67,7 +67,7 @@ class SVD(Task):
         # full_matrices=False ensures U, s, Vh have shapes (n, k), (k,), (k, m) respectively, where k = min(n, m)
         U, s, Vh = np.linalg.svd(A, full_matrices=False)
         V = Vh.T  # Convert Vh to V so that A = U * diag(s) * V^T
-        solution = {"U": U.tolist(), "S": s.tolist(), "V": V.tolist()}
+        solution = {"U": U, "S": s, "V": V}
         return solution
 
     def is_solution(self, problem: dict[str, Any], solution: dict[str, list]) -> bool:

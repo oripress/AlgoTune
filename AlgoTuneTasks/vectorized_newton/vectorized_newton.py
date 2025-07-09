@@ -106,10 +106,10 @@ class VectorizedNewton(Task):
         try:
             # Perform vectorized call
             roots_arr = scipy.optimize.newton(self.func, x0_arr, fprime=self.fprime, args=args)
-            roots_list = roots_arr.tolist()
+            roots_list = roots_arr
             # Check if newton returned a scalar unexpectedly (e.g., if n=1)
-            if not isinstance(roots_list, list):
-                roots_list = [roots_list]
+            if np.isscalar(roots_list):
+                roots_list = np.array([roots_list])
 
             # Pad with NaN if output length doesn't match input (shouldn't happen with vectorization)
             if len(roots_list) != n:

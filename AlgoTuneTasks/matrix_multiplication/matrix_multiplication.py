@@ -75,7 +75,7 @@ class MatrixMultiplication(Task):
         A = np.array(problem["A"])
         B = np.array(problem["B"])
         C = np.dot(A, B)
-        return C.tolist()
+        return C
 
     def is_solution(
         self, problem: dict[str, list[list[float]]], solution: list[list[float]]

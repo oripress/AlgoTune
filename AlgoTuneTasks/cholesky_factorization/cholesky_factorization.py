@@ -55,7 +55,7 @@ class CholeskyFactorization(Task):
         """
         A = problem["matrix"]
         L = np.linalg.cholesky(A)
-        solution = {"Cholesky": {"L": L.tolist()}}
+        solution = {"Cholesky": {"L": L}}
         return solution
 
     def is_solution(

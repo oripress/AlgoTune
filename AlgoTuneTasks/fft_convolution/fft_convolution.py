@@ -259,7 +259,7 @@ class FFTConvolution(Task):
         # Perform convolution using FFT
         convolution_result = signal.fftconvolve(signal_x, signal_y, mode=mode)
 
-        solution = {"convolution": convolution_result.tolist()}
+        solution = {"convolution": convolution_result}
         return solution
 
     def is_solution(self, problem: dict[str, Any], solution: dict[str, list]) -> bool:

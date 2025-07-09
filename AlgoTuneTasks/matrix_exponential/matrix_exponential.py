@@ -54,7 +54,7 @@ class MatrixExponential(Task):
         """
         A = problem["matrix"]
         expA = expm(A)
-        solution = {"exponential": expA.tolist()}
+        solution = {"exponential": expA}
         return solution
 
     def is_solution(
@@ -87,7 +87,7 @@ class MatrixExponential(Task):
             return False
 
         try:
-            expA_sol = np.array(expA_sol_list)
+            expA_sol = np.asarray(expA_sol_list)
         except Exception as e:
             logging.error(f"Could not convert solution 'exponential' to NumPy array: {e}")
             return False
