@@ -92,7 +92,7 @@ class AffineTransform2D(Task):
             # Return an empty list to indicate failure? Adjust based on benchmark policy.
             return {"transformed_image": []}
 
-        solution = {"transformed_image": transformed_image.tolist()}
+        solution = {"transformed_image": transformed_image}
         return solution
 
     def is_solution(self, problem: dict[str, Any], solution: dict[str, list[list[float]]]) -> bool:
@@ -143,7 +143,7 @@ class AffineTransform2D(Task):
             return False
 
         try:
-            proposed_array = np.array(proposed_list, dtype=float)
+            proposed_array = np.asarray(proposed_list, dtype=float)
         except ValueError:
             logging.error("Could not convert 'transformed_image' list to numpy float array.")
             return False

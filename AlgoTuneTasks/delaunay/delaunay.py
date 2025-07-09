@@ -61,8 +61,8 @@ class Delaunay(Task):
         simplices = tri.simplices
         convex_hull = tri.convex_hull
         result = {
-            "simplices": self._canonical_simplices(simplices.tolist()),
-            "convex_hull": self._canonical_edges(convex_hull.tolist()),
+            "simplices": self._canonical_simplices(simplices),
+            "convex_hull": self._canonical_edges(convex_hull),
         }
         return result
 

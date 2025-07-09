@@ -68,7 +68,7 @@ class unit_simplex_projection(Task):
 
         # Project onto the simplex
         x = np.maximum(y - theta, 0)
-        solution = {"solution": x.tolist()}
+        solution = {"solution": x}
         return solution
 
     def is_solution(self, problem: dict[str, Any], solution: dict[str, list]) -> float:

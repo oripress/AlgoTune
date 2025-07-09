@@ -43,7 +43,7 @@ class Sinkhorn(Task):
             G = ot.sinkhorn(a, b, M, reg)
             if not np.isfinite(G).all():
                 raise ValueError("Non‑finite values in transport plan")
-            return {"transport_plan": G.tolist(), "error_message": None}
+            return {"transport_plan": G, "error_message": None}
         except Exception as exc:
             logging.error("Sinkhorn solve failed: %s", exc)
             return {"transport_plan": None, "error_message": str(exc)}  # type: ignore

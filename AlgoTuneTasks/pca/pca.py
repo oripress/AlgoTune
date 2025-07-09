@@ -49,7 +49,7 @@ class PCA(Task):
             X = X - np.mean(X, axis=0)
             model.fit(X)
             V = model.components_
-            return V.tolist()
+            return V
         except Exception as e:
             logging.error(f"Error: {e}")
             n_components = problem["n_components"]
@@ -57,7 +57,7 @@ class PCA(Task):
             V = np.zeros((n_components, n))
             id = np.eye(n_components)
             V[:, :n_components] = id
-            return V.tolist()  # return trivial answer
+            return V  # return trivial answer
 
     def is_solution(self, problem: dict[str, Any], solution: list[list[float]]) -> bool:
         try:

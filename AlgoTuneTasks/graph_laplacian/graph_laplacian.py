@@ -129,9 +129,9 @@ class GraphLaplacian(Task):
 
         solution = {
             "laplacian": {
-                "data": L_csr.data.tolist(),
-                "indices": L_csr.indices.tolist(),
-                "indptr": L_csr.indptr.tolist(),
+                "data": L_csr.data,
+                "indices": L_csr.indices,
+                "indptr": L_csr.indptr,
                 "shape": L_csr.shape,
             }
         }

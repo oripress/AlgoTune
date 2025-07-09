@@ -71,7 +71,7 @@ class EarthMoversDistance(Task):
         # Use check_marginals=False because we ensure equal mass in generate_problem
         G = ot.lp.emd(a, b, M_cont, check_marginals=False)
 
-        solution = {"transport_plan": G.tolist()}
+        solution = {"transport_plan": G}
         return solution
 
     def is_solution(
@@ -111,7 +111,7 @@ class EarthMoversDistance(Task):
             # Handle both list of lists and numpy array inputs for flexibility
             G_provided_input = solution["transport_plan"]
             if isinstance(G_provided_input, list):
-                G_provided = np.array(G_provided_input)
+                G_provided = np.asarray(G_provided_input)
             elif isinstance(G_provided_input, np.ndarray):
                 G_provided = G_provided_input
             else:

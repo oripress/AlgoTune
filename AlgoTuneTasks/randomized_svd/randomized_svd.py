@@ -63,7 +63,7 @@ class RandomizedSVD(Task):
 
         U, s, Vt = randomized_svd(A, n_components=n_components, n_iter=n_iter, random_state=42)
 
-        return {"U": U.tolist(), "S": s.tolist(), "V": Vt.T.tolist()}
+        return {"U": U, "S": s, "V": Vt.T}
 
     def is_solution(
         self, problem: dict[str, Any], solution: dict[str, list], *, log: bool = False
