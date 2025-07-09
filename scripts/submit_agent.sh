@@ -259,12 +259,16 @@ echo "Reports directory: $REPORTS_DIR"
 echo "Summary file: $SUMMARY_FILE"
 
 # Source the configuration
-if [ -f "${PROJECT_ROOT}/slurm/run_config.env" ]; then
+if [ -f "${PROJECT_ROOT}/config.env" ]; then
+    set -o allexport
+    source "${PROJECT_ROOT}/config.env"
+    set +o allexport
+elif [ -f "${PROJECT_ROOT}/slurm/run_config.env" ]; then
     set -o allexport
     source "${PROJECT_ROOT}/slurm/run_config.env"
     set +o allexport
 else
-    echo "Error: ${PROJECT_ROOT}/slurm/run_config.env not found!"
+    echo "Error: No configuration file found (config.env or slurm/run_config.env)"
     exit 1
 fi
 
@@ -274,11 +278,11 @@ echo "Overriding DATA_DIR: $DATA_DIR"
 
 # Ensure necessary env vars are set from config
 if [ -z "$SLURM_PARTITIONS_DEFAULT" ]; then
-    echo "Error: SLURM_PARTITIONS_DEFAULT is not set in slurm/run_config.env"
+    echo "Error: SLURM_PARTITIONS_DEFAULT is not set in configuration"
     exit 1
 fi
 if [ -z "$DATA_DIR" ]; then
-    echo "Error: DATA_DIR is not set in slurm/run_config.env"
+    echo "Error: DATA_DIR is not set in configuration"
     exit 1
 fi
 if [ ! -d "$DATA_DIR" ]; then

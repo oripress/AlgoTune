@@ -36,7 +36,7 @@ from AlgoTuner.timing_core import run_complete_timing_evaluation
 from AlgoTuner.task_lists import get_task_list, get_available_task_lists, load_custom_task_list, filter_existing_tasks
 
 # ---------------------------------------------------------------- constants --
-ENV_FILE_REL           = "slurm/run_config.env"
+# ENV_FILE_REL is deprecated - use load_unified_config() instead
 GENERATE_RUNSCRIPT_REL = "scripts/slurm_jobs/generate_dataset.sh"
 EVAL_RUNSCRIPT_REL     = "scripts/slurm_jobs/generate.sh"
 
