@@ -35,7 +35,13 @@ def load_config(config_path: str = f"{_CONFIG_DIR_NAME}/{_DEFAULT_CONFIG_FILENAM
             return _config_cache
 
         potential_paths = [
-            # Path relative to this loader.py file's parent's parent (project root) - HIGHEST PRIORITY
+            # Environment variable override - HIGHEST PRIORITY
+            Path(os.environ.get("ALGOTUNE_CONFIG_PATH")) if os.environ.get("ALGOTUNE_CONFIG_PATH") else None,
+            
+            # Path relative to this loader.py file's parent (AlgoTuner/config/)
+            Path(__file__).resolve().parent / _DEFAULT_CONFIG_FILENAME,
+
+            # Path relative to this loader.py file's parent's parent (project root)
             Path(__file__).resolve().parent.parent / _CONFIG_DIR_NAME / _DEFAULT_CONFIG_FILENAME,
 
             Path(config_path),  # Path as provided (e.g., "config/config.yaml" relative to CWD)

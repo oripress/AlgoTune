@@ -103,8 +103,36 @@ env_vars+=("--env" "CODE_DIR=${CONTAINER_CODE_DIR}")
 [ ! -z "$MODEL" ] && env_vars+=("--env" "MODEL=${MODEL}")
 # Pass AGENT_MODE so it's set inside the container
 [ ! -z "$AGENT_MODE" ] && env_vars+=("--env" "AGENT_MODE=${AGENT_MODE}")
-# Pass API Key if found in the sourced .env file
+# Pass API Keys if found in the sourced .env file
 [ ! -z "$DEEPSEEK_API_KEY" ] && env_vars+=("--env" "DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}")
+[ ! -z "$OPENAI_API_KEY" ] && env_vars+=("--env" "OPENAI_API_KEY=${OPENAI_API_KEY}")
+[ ! -z "$GEMINI_API_KEY" ] && env_vars+=("--env" "GEMINI_API_KEY=${GEMINI_API_KEY}")
+[ ! -z "$CLAUDE_API_KEY" ] && env_vars+=("--env" "CLAUDE_API_KEY=${CLAUDE_API_KEY}")
+[ ! -z "$TOGETHER_API_KEY" ] && env_vars+=("--env" "TOGETHER_API_KEY=${TOGETHER_API_KEY}")
+# Pass task-specific parameters from submit_agent.sh
+[ ! -z "$TASK_NAME" ] && env_vars+=("--env" "TASK_NAME=${TASK_NAME}")
+[ ! -z "$TASK_N" ] && env_vars+=("--env" "TASK_N=${TASK_N}")
+[ ! -z "$TASK_DATASET_SIZE" ] && env_vars+=("--env" "TASK_DATASET_SIZE=${TASK_DATASET_SIZE}")
+[ ! -z "$TASK_TARGET_TIME_MS" ] && env_vars+=("--env" "TASK_TARGET_TIME_MS=${TASK_TARGET_TIME_MS}")
+# Pass summary file and reports directory paths (adjusted for container)
+if [ ! -z "$SUMMARY_FILE" ]; then
+    if [[ "$SUMMARY_FILE" == "$PROJECT_ROOT"* ]]; then
+        CONTAINER_SUMMARY_FILE="/app${SUMMARY_FILE#$PROJECT_ROOT}"
+    else
+        CONTAINER_SUMMARY_FILE="$SUMMARY_FILE"
+    fi
+    env_vars+=("--env" "SUMMARY_FILE=${CONTAINER_SUMMARY_FILE}")
+fi
+if [ ! -z "$REPORTS_DIR" ]; then
+    if [[ "$REPORTS_DIR" == "$PROJECT_ROOT"* ]]; then
+        CONTAINER_REPORTS_DIR="/app${REPORTS_DIR#$PROJECT_ROOT}"
+    else
+        CONTAINER_REPORTS_DIR="$REPORTS_DIR"
+    fi
+    env_vars+=("--env" "REPORTS_DIR=${CONTAINER_REPORTS_DIR}")
+fi
+# Pass config file path for the container
+env_vars+=("--env" "ALGOTUNE_CONFIG_PATH=/app/AlgoTuner/config/config.yaml")
 # Pass any other necessary environment variables from the host or .env file
 # Example: env_vars+=("--env" "SOME_API_KEY=${SOME_API_KEY}")
 
@@ -124,9 +152,15 @@ fi
 [ ! -z "$GOOGLE_CREDS_HOST_PATH" ] && bind_mounts+=("--bind" "${GOOGLE_CREDS_HOST_PATH}:/credentials/google_creds.json")
 
 echo "Executing singularity for task $TASK_NAME..."
+echo "[DEBUG] Host SUMMARY_FILE: ${SUMMARY_FILE}"
+echo "[DEBUG] Host REPORTS_DIR: ${REPORTS_DIR}"
+echo "[DEBUG] Container SUMMARY_FILE: ${CONTAINER_SUMMARY_FILE:-Not Set}"
+echo "[DEBUG] Container REPORTS_DIR: ${CONTAINER_REPORTS_DIR:-Not Set}"
+
 # Execute the agent script inside the container for the specific task, with environment logging
 singularity exec \
     --pwd /app \
+    --env PYTHONPATH="/app:${PYTHONPATH}" \
     "${env_vars[@]}" \
     "${bind_mounts[@]}" \
     "$SINGULARITY_IMAGE" \
@@ -135,6 +169,13 @@ singularity exec \
     echo "[INSIDE] CPU affinity for PID $$: $(taskset -pc $$)"; \
     echo "[INSIDE] Nice level: $(nice)"; \
     echo "[INSIDE] CPU governor: $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo unknown)"; \
+    echo "[INSIDE] SUMMARY_FILE=${SUMMARY_FILE}"; \
+    echo "[INSIDE] REPORTS_DIR=${REPORTS_DIR}"; \
+    echo "[INSIDE] DATA_DIR=${DATA_DIR}"; \
+    echo "[INSIDE] ALGOTUNE_CONFIG_PATH=${ALGOTUNE_CONFIG_PATH}"; \
+    echo "[INSIDE] pwd=$(pwd)"; \
+    echo "[INSIDE] ls -la /app/AlgoTuner/config/ | head -5:"; ls -la /app/AlgoTuner/config/ | head -5; \
+    export PYTHONPATH="/app:${PYTHONPATH}"; \
     python3 /app/AlgoTuner/main.py --task "$TASK_NAME" --model "$MODEL"'
 
 echo "Task $TASK_NAME finished."
