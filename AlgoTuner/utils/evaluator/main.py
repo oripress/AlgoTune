@@ -1361,35 +1361,77 @@ def evaluate_baseline_dataset(
 
     Uses warmups + runs and fixed timeout per instance.
     """
-    # Use the *current* AGENT_MODE.  We no longer override it to "0" so
-    # baseline timing is collected in the same environment (process-isolation
-    # strategy, PySAT patches, etc.) as the subsequent solver evaluation.
-    original_agent_mode = os.environ.get("AGENT_MODE")  # keep for log/restore
-    logging.info(
-        "BASELINE_EVAL: Running with existing AGENT_MODE=%s (no override)",
-        original_agent_mode,
-    )
+    original_agent_mode = os.environ.get("AGENT_MODE")
+    
     try:
+        # Force AGENT_MODE=0 to ensure baseline evaluation uses in-process execution
+        os.environ["AGENT_MODE"] = "0"
+        logging.info(
+            "BASELINE_EVAL: Set AGENT_MODE=0 for in-process baseline evaluation (was %s)",
+            original_agent_mode,
+        )
+        
         logging.info(
             "Starting baseline dataset evaluation for task: %s...",
             task_obj.task_name if hasattr(task_obj, "task_name") else "UnknownTask",
         )
         
-        # Guarantee task_obj has a task_name attribute for downstream code (load_dataset, logging)
+        # Guarantee task_obj has a task_name attribute for downstream code
         if not hasattr(task_obj, "task_name"):
             setattr(task_obj, "task_name", task_obj.__class__.__name__)
         
-        return _evaluate_baseline_dataset_impl(task_obj, dataset_iterable, num_runs, warmup_runs, timeout_seconds, output_file, jsonl_path, test_mode, max_samples)
+        # Use the efficient evaluation path that runs baseline in-process
+        results = evaluate_code_on_dataset(
+            task_obj=task_obj,
+            dataset_iterable=dataset_iterable,
+            data_subset="train",  # Baseline evaluation is typically on train set
+            test_mode=test_mode
+        )
+        
+        # Extract baseline times from results
+        baseline_times = {}
+        
+        if isinstance(results, dict):
+            # Handle new format from EvaluationOrchestrator
+            per_problem_results = results.get("per_problem_results", [])
+        elif isinstance(results, list):
+            # Handle legacy list format
+            per_problem_results = results
+        else:
+            logging.error(f"Unexpected results type from evaluate_code_on_dataset: {type(results)}")
+            per_problem_results = []
+            
+        for result in per_problem_results:
+            if isinstance(result, dict):
+                problem_id = result.get("problem_id") or result.get("id") or f"problem_{len(baseline_times)+1}"
+                # Get the baseline timing (min_time_ms from the solver evaluation)
+                min_time_ms = result.get("min_time_ms") or result.get("elapsed_ms")
+                if min_time_ms is not None and min_time_ms > 0:
+                    baseline_times[problem_id] = float(min_time_ms)
+                    
+        logging.info(f"BASELINE_EVAL: Collected {len(baseline_times)} baseline timings")
+        
+        # Write results to file
+        if output_file is None:
+            import uuid
+            tmpdir = os.environ.get("TEMP_DIR_STORAGE") or os.environ.get("TEMP") or tempfile.gettempdir()
+            unique_id = str(uuid.uuid4())[:8]
+            output_file = os.path.join(tmpdir, f"baseline_times_{unique_id}.json")
+            
+        with open(output_file, "w") as f:
+            json.dump(baseline_times, f, indent=2)
+            
+        logging.info(f"BASELINE_EVAL: Wrote baseline times to {output_file}")
+        return output_file
+        
     finally:
-        # No changes were made to AGENT_MODE, but keep the restore logic for
-        # safety in case future modifications temporarily tweak it inside the
-        # try-block.
+        # Restore original AGENT_MODE
         if original_agent_mode is None:
             os.environ.pop("AGENT_MODE", None)
         else:
             os.environ["AGENT_MODE"] = original_agent_mode
         logging.info(
-            "BASELINE_EVAL: Ensured AGENT_MODE reset to original value (%s)",
+            "BASELINE_EVAL: Restored AGENT_MODE to original value (%s)",
             os.environ.get("AGENT_MODE", "None"),
         )
 
@@ -2452,20 +2494,44 @@ def _evaluate_baseline_with_retry(
         project_root = os.path.dirname(os.path.dirname(current_dir))
         solver_dir = os.path.join(project_root, "AlgoTuneTasks", safe_task_name)
     logging.info(f"BASELINE_RETRY: Using solver_dir={solver_dir} for baseline evaluation")
-    
+
+    def _load_problem_from_fetch_info(fetch_info: Dict[str, Any]) -> Any:
+        """Loads a problem instance correctly using the fetch_info dictionary."""
+        fetch_type = fetch_info.get("type")
+        if fetch_type == "direct":
+            return fetch_info["data"]
+        
+        if fetch_type == "jsonl_seek":
+            path = fetch_info["path"]
+            offset = fetch_info["offset"]
+            
+            import orjson
+            import functools
+            from AlgoTuner.utils.serialization import dataset_decoder
+            
+            base_dir = os.path.dirname(path)
+            object_hook_for_load = functools.partial(dataset_decoder, base_dir=base_dir)
+
+            with open(path, 'r') as f:
+                f.seek(offset)
+                line = f.readline()
+            
+            raw_record = orjson.loads(line)
+            processed_record = object_hook_for_load(raw_record)
+            return processed_record.get("problem", processed_record)
+
+        raise ValueError(f"Unsupported or missing fetch_info type: {fetch_type}")
+
     for attempt in range(max_retries):
         try:
             logging.debug(f"BASELINE_RETRY: Attempt {attempt + 1}/{max_retries} for problem {problem_id}")
             
-            # Preload problems in parent to eliminate JSONL parsing in benchmark subprocess
-            from AlgoTuner.utils.streaming_json import stream_jsonl
-            # Load warmup problem
-            warmup_record = next(stream_jsonl(warmup_fetch_info["path"]))
-            warmup_problem = warmup_record.get("problem", warmup_record)
-            # Load timed problem
-            timed_record = next(stream_jsonl(problem_fetch_info["path"]))
-            timed_problem = timed_record.get("problem", timed_record)
+            # Load problems correctly using the fetch_info
+            warmup_problem = _load_problem_from_fetch_info(warmup_fetch_info)
+            timed_problem = _load_problem_from_fetch_info(problem_fetch_info)
+
             # Run isolated benchmark directly on loaded problem dicts
+            from AlgoTuner.utils.isolated_benchmark import run_isolated_benchmark
             result_tb = run_isolated_benchmark(
                 task_name=safe_task_name,
                 code_dir=solver_dir,

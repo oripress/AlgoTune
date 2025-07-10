@@ -174,8 +174,8 @@ class SolverExecutor:
         baseline_time_ms: Optional[float]
     ) -> ExecutionResult:
         """Execute solver in current process (for testing/debugging)."""
+        import time
         import numpy as np
-        from AlgoTuner.utils.precise_timing import time_function_precise
         
         try:
             # Warmup runs

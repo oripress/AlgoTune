@@ -10,6 +10,7 @@ import tempfile
 import importlib.util
 import gc
 import random
+import re
 
 from AlgoTuner.utils.error_utils import extract_error_context
 from AlgoTuner.utils.timing_config import WARMUPS
@@ -272,82 +273,58 @@ def _fork_run_worker(
         # Import after env vars set so loader honours them
         from AlgoTuner.utils.solver_loader import load_solver_module, get_fresh_solve_callable
 
-        # Prefer task-specific implementation '<task_name>.py'.  If it is absent, fall back
-        # to a generic 'solver.py'.  This avoids misleading log noise when every task ships
-        # its reference implementation inside the task package.
+        # --- FIX: Robust solver path detection and loading ---
+        code_dir_path = Path(code_dir)
 
-        alt_filename = f"{task_name}.py"
-        alt_file_path = code_dir_path / alt_filename
-        
-        # Debug logging - convert to proper debug level
-        logging.debug(f"[isolated_benchmark] task_name='{task_name}', code_dir='{code_dir}'")
-        logging.debug(f"[isolated_benchmark] Looking for '{alt_filename}' in '{code_dir_path}'")
-
-        if alt_file_path.is_file():
-            solver_module = load_solver_module(code_dir_path, solver_filename=alt_filename)
-        else:
-            solver_file = code_dir_path / "solver.py"
-            if solver_file.is_file():
-                logging.debug(
-                    f"[isolated_benchmark] '{alt_filename}' not found in '{code_dir_path}'. "
-                    f"Falling back to '{solver_file.name}'."
-                )
-                solver_module = load_solver_module(code_dir_path)
+        # 1) Direct detection: test CamelCase, snake_case, or solver.py in code_dir_path
+        solver_file = code_dir_path / f"{task_name}.py"
+        if not solver_file.is_file():
+            # try snake_case file based on directory name
+            snake_file = code_dir_path / f"{code_dir_path.name}.py"
+            if snake_file.is_file():
+                solver_file = snake_file
             else:
-                # Try to auto-detect task from code_dir path structure
-                logging.warning(f"[isolated_benchmark] Neither '{alt_filename}' nor 'solver.py' found in {code_dir_path}")
-                logging.debug(f"[isolated_benchmark] Attempting auto-detection...")
-                
-                # Get task name from environment if parameter is wrong
-                env_task_name = os.environ.get('CURRENT_TASK_NAME', task_name)
-                if env_task_name != task_name:
-                    logging.debug(f"[isolated_benchmark] Using task name from env: '{env_task_name}' instead of param: '{task_name}'")
-                    task_name = env_task_name
-                    alt_filename = f"{task_name}.py"
-                
-                # First check if code_dir already points to the task directory
-                # (e.g., code_dir is already /app/AlgoTuneTasks/sha256_hashing)
-                if code_dir_path.name == task_name and (code_dir_path / alt_filename).is_file():
-                    # We're already in the task directory
-                    logging.debug(f"[isolated_benchmark] code_dir already points to task directory: {code_dir_path}")
-                    solver_module = load_solver_module(code_dir_path, solver_filename=alt_filename)
+                solver_file = code_dir_path / "solver.py"
+        if solver_file.is_file():
+            solver_module = load_solver_module(solver_file.parent, solver_filename=solver_file.name)
+        else:
+            # 2) Fallback: scan known roots for task directory
+            roots = [
+                code_dir_path / "AlgoTuneTasks",
+                code_dir_path,
+                Path("/app/AlgoTuneTasks"),
+            ]
+            task_dir_path = None
+            for root in roots:
+                if not root.is_dir():
+                    continue
+                for candidate in root.iterdir():
+                    if not candidate.is_dir():
+                        continue
+                    # Normalize and match names (strip underscores, lowercase)
+                    name_norm = candidate.name.lower().replace('_', '')
+                    if candidate.name == task_name or name_norm == task_name.lower():
+                        task_dir_path = candidate
+                        break
+                if task_dir_path:
+                    break
+            if task_dir_path is None:
+                search_paths = ", ".join(str(root) for root in roots)
+                raise FileNotFoundError(f"Could not locate task directory for '{task_name}'. Searched roots: {search_paths}")
+            # 3) Locate solver file inside task_dir_path
+            solver_file = task_dir_path / f"{task_name}.py"
+            if not solver_file.is_file():
+                snake_file = task_dir_path / f"{task_dir_path.name}.py"
+                if snake_file.is_file():
+                    solver_file = snake_file
                 else:
-                    # Try common task directories
-                    possible_task_dirs = [
-                        code_dir_path / "AlgoTuneTasks" / task_name,
-                        Path("/app/AlgoTuneTasks") / task_name,
-                        Path("/app") / "AlgoTuneTasks" / task_name,
-                    ]
-                
-                    logging.debug(f"[isolated_benchmark] Trying directories: {[str(d) for d in possible_task_dirs]}")
-                    
-                    for possible_dir in possible_task_dirs:
-                        possible_task_file = possible_dir / f"{task_name}.py"
-                        logging.debug(f"[isolated_benchmark] Checking: {possible_task_file}")
-                        if possible_task_file.is_file():
-                            logging.debug(f"[isolated_benchmark] Found task file at: {possible_task_file}")
-                            solver_module = load_solver_module(possible_dir, f"{task_name}.py")
-                            break
-                    else:
-                        # List what's actually in /app to debug - only in debug mode
-                        try:
-                            logging.debug(f"[isolated_benchmark] Current working directory: {os.getcwd()}")
-                            logging.debug(f"[isolated_benchmark] Environment CODE_DIR: {os.environ.get('CODE_DIR', 'NOT_SET')}")
-                            logging.debug(f"[isolated_benchmark] Environment CURRENT_TASK_NAME: {os.environ.get('CURRENT_TASK_NAME', 'NOT_SET')}")
-                        
-                            # Only show detailed directory contents in debug mode
-                            if logging.getLogger().isEnabledFor(logging.DEBUG):
-                                app_contents = list(Path("/app").iterdir())
-                                logging.debug(f"[isolated_benchmark] /app contents: {[str(p) for p in app_contents[:10]]}")
-                                if Path("/app/AlgoTuneTasks").exists():
-                                    algo_contents = list(Path("/app/AlgoTuneTasks").iterdir())
-                                    logging.debug(f"[isolated_benchmark] /app/AlgoTuneTasks contents: {[str(p) for p in algo_contents]}")
-                        except Exception as e:
-                            logging.debug(f"[isolated_benchmark] Could not list /app contents: {e}")
-                        
+                    solver_file = task_dir_path / "solver.py"
+                    if not solver_file.is_file():
                         raise FileNotFoundError(
-                            f"Neither '{alt_filename}' nor 'solver.py' found in {code_dir_path} or auto-detected paths"
+                            f"Could not find solver file in '{task_dir_path}'. Tried: {task_name}.py, {task_dir_path.name}.py, solver.py"
                         )
+            solver_module = load_solver_module(solver_file.parent, solver_filename=solver_file.name)
+        # --- END FIX ---
 
         # ------------------------------------------------------------------
         # Ensure the loaded module exposes a `Solver` class compatible with
