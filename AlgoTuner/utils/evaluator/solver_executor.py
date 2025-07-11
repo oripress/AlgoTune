@@ -38,7 +38,8 @@ class SolverExecutor:
         solver_func: Any,
         problem: Any,
         baseline_time_ms: Optional[float] = None,
-        problem_metadata: Optional[Dict[str, Any]] = None
+        problem_metadata: Optional[Dict[str, Any]] = None,
+        warmup_problem: Optional[Any] = None
     ) -> ExecutionResult:
         """
         Execute solver on a single problem.
@@ -48,6 +49,7 @@ class SolverExecutor:
             problem: The problem instance to solve
             baseline_time_ms: Baseline time for timeout calculation
             problem_metadata: Optional metadata about the problem
+            warmup_problem: Optional different problem for warmup runs (if None, uses same as problem)
             
         Returns:
             ExecutionResult with output, timing, and error info
@@ -60,15 +62,29 @@ class SolverExecutor:
             is_daemon = mp.current_process().daemon
             self.logger.info(f"SolverExecutor.execute: is_daemon={is_daemon}, use_isolated={self.config.use_isolated_execution}")
             
+            # Use warmup_problem if provided, otherwise fall back to same problem
+            if warmup_problem is None:
+                warmup_problem = problem
+            
             if not is_daemon and self.config.use_isolated_execution:
-                result = self._execute_isolated(
-                    solver_func, problem, baseline_time_ms, problem_metadata
-                )
+                # Check if we should use process pool (efficient) or fresh spawning (full isolation)
+                import os
+                use_fresh_spawn = os.environ.get("ISOLATED_EVAL", "0") == "1"
+                if use_fresh_spawn:
+                    self.logger.info("Using fresh process spawning for full isolation")
+                    result = self._execute_isolated(
+                        solver_func, problem, baseline_time_ms, problem_metadata, warmup_problem
+                    )
+                else:
+                    self.logger.info("Using process pool for efficient isolated execution")
+                    result = self._execute_pooled(
+                        solver_func, problem, baseline_time_ms, problem_metadata, warmup_problem
+                    )
             else:
                 # Fallback to in-process execution
                 self.logger.info("Using in-process execution (daemon or isolated disabled)")
                 result = self._execute_in_process(
-                    solver_func, problem, baseline_time_ms
+                    solver_func, problem, baseline_time_ms, warmup_problem
                 )
             
             elapsed_s = time.perf_counter() - start_time
@@ -100,7 +116,8 @@ class SolverExecutor:
         solver_func: Any,
         problem: Any,
         baseline_time_ms: Optional[float],
-        problem_metadata: Optional[Dict[str, Any]]
+        problem_metadata: Optional[Dict[str, Any]],
+        warmup_problem: Any
     ) -> ExecutionResult:
         """Execute solver in isolated subprocess."""
         import os
@@ -111,7 +128,7 @@ class SolverExecutor:
         if agent_mode == "0":
             # In baseline mode, we can't use isolated execution since solver is a method
             self.logger.info("Baseline mode detected, using in-process execution")
-            return self._execute_in_process(solver_func, problem, baseline_time_ms)
+            return self._execute_in_process(solver_func, problem, baseline_time_ms, warmup_problem)
         
         from AlgoTuner.utils.isolated_benchmark import run_isolated_benchmark
         
@@ -142,7 +159,7 @@ class SolverExecutor:
             benchmark_result = run_isolated_benchmark(
                 task_name=task_name,
                 code_dir=code_dir,
-                warmup_problem=problem,
+                warmup_problem=warmup_problem,
                 timed_problem=problem,
                 num_runs=self.config.num_runs,
                 timeout_seconds=timeout_seconds,
@@ -165,24 +182,82 @@ class SolverExecutor:
         except Exception as e:
             self.logger.error(f"Error in isolated execution: {e}")
             # Fall back to in-process execution
-            return self._execute_in_process(solver_func, problem, baseline_time_ms)
+            return self._execute_in_process(solver_func, problem, baseline_time_ms, warmup_problem)
+    
+    def _execute_pooled(
+        self,
+        solver_func: Any,
+        problem: Any,
+        baseline_time_ms: Optional[float],
+        problem_metadata: Optional[Dict[str, Any]],
+        warmup_problem: Any
+    ) -> ExecutionResult:
+        """Execute solver using process pool with reuse."""
+        import os
+        
+        # Get task name from metadata or environment
+        task_name = "unknown_task"
+        if problem_metadata and "task_name" in problem_metadata:
+            task_name = problem_metadata["task_name"]
+        elif os.environ.get("CURRENT_TASK_NAME"):
+            task_name = os.environ["CURRENT_TASK_NAME"]
+        
+        # Get code directory
+        code_dir = os.environ.get("CODE_DIR", "llm_src")
+        
+        # Calculate timeout
+        timeout_seconds = 60.0  # Default
+        if baseline_time_ms:
+            per_run_s = baseline_time_ms / 1000.0
+            timeout_seconds = (1 + self.config.warmup_runs) * per_run_s * 10.0  # warmup + timed + buffer
+            timeout_seconds = min(timeout_seconds, 300.0)  # Cap at 5 minutes
+            timeout_seconds = max(timeout_seconds, 10.0)  # At least 10 seconds overall
+        
+        try:
+            # Use isolated benchmark function directly
+            from AlgoTuner.utils.isolated_benchmark import run_isolated_benchmark
+            
+            # Run isolated benchmark
+            benchmark_result = run_isolated_benchmark(
+                task_name=task_name,
+                code_dir=code_dir,
+                warmup_problem=warmup_problem,
+                timed_problem=problem,
+                num_runs=self.config.num_runs,
+                timeout_seconds=timeout_seconds,
+            )
+            
+            # Log benchmark result for debugging
+            self.logger.info(f"Pooled benchmark result keys: {list(benchmark_result.keys())}")
+            if benchmark_result.get("success"):
+                timing_fields = ["mean", "min", "max", "mean_ms", "min_ms", "max_ms", "elapsed_ms"]
+                timing_info = {k: benchmark_result.get(k) for k in timing_fields if k in benchmark_result}
+                self.logger.info(f"Timing fields in result: {timing_info}")
+            
+            return self._convert_benchmark_result(benchmark_result)
+            
+        except Exception as e:
+            self.logger.error(f"Error in pooled execution: {e}")
+            # Fall back to in-process execution
+            return self._execute_in_process(solver_func, problem, baseline_time_ms, warmup_problem)
     
     def _execute_in_process(
         self,
         solver_func: Any,
         problem: Any,
-        baseline_time_ms: Optional[float]
+        baseline_time_ms: Optional[float],
+        warmup_problem: Any
     ) -> ExecutionResult:
         """Execute solver in current process (for testing/debugging)."""
         import time
         import numpy as np
         
         try:
-            # Warmup runs
+            # Warmup runs on different problem
             for _ in range(self.config.warmup_runs):
-                _ = solver_func(problem)
+                _ = solver_func(warmup_problem)
             
-            # Timed runs
+            # Timed runs on actual problem
             times_ms = []
             outputs = []
             

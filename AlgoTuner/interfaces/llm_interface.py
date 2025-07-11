@@ -64,6 +64,13 @@ class LLMInterface(base_interface.BaseLLMInterface):
         self.max_samples = max_samples  # Store max_samples for test mode
         super().__init__(model_config, global_config, model_name, task_instance)
 
+        # Create BaselineManager for this task
+        if task_instance:
+            from AlgoTuner.utils.evaluator.baseline_manager import BaselineManager
+            self.baseline_manager = BaselineManager(task_instance)
+        else:
+            self.baseline_manager = None
+
         self.message_handler = MessageHandler(self)
         self.spend_tracker = SpendTracker(self)
         self.command_handlers = CommandHandlers(self)
@@ -85,6 +92,7 @@ class LLMInterface(base_interface.BaseLLMInterface):
                     timeout_ms=timeout_ms
                 )
             def cli_eval_all(subset):
+                # Load dataset for evaluation
                 train_iter, test_iter = self.task_instance.load_dataset()
                 dataset_to_evaluate = train_iter if subset == "train" else test_iter
                 
@@ -104,6 +112,7 @@ class LLMInterface(base_interface.BaseLLMInterface):
                     task_obj=self.task_instance,
                     dataset_iterable=dataset_to_evaluate,
                     data_subset=subset,
+                    baseline_manager=self.baseline_manager,  # Pass the BaselineManager!
                     timeout_multiplier=1 + 1 + VALIDATION_OVERHEAD_FACTOR,  # warmup + timed + validation overhead
                     test_mode=test_mode
                 )

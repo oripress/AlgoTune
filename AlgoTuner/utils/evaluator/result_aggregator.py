@@ -143,19 +143,28 @@ class ResultAggregator:
         """Extract formatted contexts for invalid solutions."""
         contexts = []
         
+        self.logger.info(f"Extracting invalid contexts from {len(results)} results")
+        
         for result in results:
             # Only collect contexts for invalid solutions
             if result.is_success and not result.is_valid:
+                self.logger.info(f"Found invalid solution for problem {result.problem_id}: execution.success={result.execution.success}, validation.is_valid={result.validation.is_valid if result.validation else None}")
+                
                 context_str = None
                 
                 # Case 1: Validation was performed and has context
                 if (result.validation and result.validation.context):
+                    self.logger.info(f"Problem {result.problem_id}: validation context available, has full_context={result.validation.context.full_context is not None}")
                     context_str = result.validation.context.format_for_display()
                     if context_str and context_str != "No context available":
+                        self.logger.info(f"Problem {result.problem_id}: adding context (length={len(context_str)})")
                         contexts.append(context_str)
+                    else:
+                        self.logger.warning(f"Problem {result.problem_id}: context was empty or 'No context available'")
                 
                 # Case 2: Validation was skipped due to missing output
                 elif result.validation is None and result.execution.output is None:
+                    self.logger.info(f"Problem {result.problem_id}: validation was None, output was None")
                     context_str = (
                         f"Problem: {result.problem_id}\n"
                         f"Issue: Solver returned None (no output)\n"
@@ -168,6 +177,7 @@ class ResultAggregator:
                 
                 # Case 3: Other invalid cases (validation failed for other reasons)
                 elif result.validation and not result.validation.is_valid:
+                    self.logger.info(f"Problem {result.problem_id}: validation failed with error: {result.validation.error_message}")
                     # Use error message if available
                     error_msg = result.validation.error_message or "Solution validation failed"
                     context_str = (
@@ -175,10 +185,13 @@ class ResultAggregator:
                         f"Issue: {error_msg}"
                     )
                     contexts.append(context_str)
+                else:
+                    self.logger.warning(f"Problem {result.problem_id}: unexpected state - validation={result.validation}, execution.output={result.execution.output is not None}")
                     
                 if len(contexts) >= max_contexts:
                     break
         
+        self.logger.info(f"Extracted {len(contexts)} invalid contexts")
         return contexts
     
     def _empty_metrics(self) -> AggregateMetrics:

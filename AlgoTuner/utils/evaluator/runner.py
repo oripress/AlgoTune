@@ -760,11 +760,11 @@ def _validate_solution(task_instance: Any, problem: Any, solution: Any) -> Dict[
             logging.info(f"Solution explicitly marked as invalid by is_solution.")
             
             # Immediately capture is_solution context when is_solution returns False
+            # This MUST happen before any solution stripping occurs elsewhere
             try:
                 from AlgoTuner.utils.evaluator.failure_analyzer import trace_is_solution_failure
-                if not hasattr(task_instance, '_last_is_solution_failure_context'):
-                    logging.info("Capturing is_solution failure context in validation phase")
-                    trace_is_solution_failure(task_instance, problem, solution)
+                logging.info("Capturing is_solution failure context in validation phase")
+                trace_is_solution_failure(task_instance, problem, solution)
             except Exception as e:
                 logging.warning(f"Failed to capture is_solution failure context: {e}")
             
@@ -1155,10 +1155,23 @@ def run_solver_evaluation(
             else:
                 isolated_code_dir = code_dir
             
+            # For oracle evaluation, ensure warmup and timed problems are different to prevent state contamination
+            # Generate a different warmup problem with the same parameters
+            warmup_problem = problem  # Default fallback
+            try:
+                if hasattr(task_instance, 'generate_problem') and hasattr(task_instance, 'n'):
+                    # Generate a different problem with a different random seed
+                    import hashlib
+                    seed_salt = int(time.time() * 1000) % 10000  # Use timestamp for variety
+                    warmup_problem = task_instance.generate_problem(task_instance.n, random_seed=42 + seed_salt)
+                    logging.debug(f"Oracle: Generated different warmup problem with seed {42 + seed_salt}")
+            except Exception as e:
+                logging.debug(f"Oracle: Could not generate different warmup problem, using same: {e}")
+            
             benchmark_result = run_isolated_benchmark(
                 task_name=task_name,
                 code_dir=isolated_code_dir,
-                warmup_problem=problem,
+                warmup_problem=warmup_problem,
                 timed_problem=problem,
                 num_runs=1,
                 timeout_seconds=timeout_seconds_unified,
