@@ -675,6 +675,7 @@ class MessageWriter:
                     
                     # Add invalid solution analysis if present
                     invalid_solution_analysis = evaluation_output.get("invalid_solution_analysis", [])
+                    logging.info(f"MessageWriter: found {len(invalid_solution_analysis)} invalid solution analysis entries")
                     if invalid_solution_analysis:
                         logging.info(f"Adding {len(invalid_solution_analysis)} invalid solution examples")
                         lines.append("")

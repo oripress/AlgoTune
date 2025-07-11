@@ -8,6 +8,7 @@ import logging
 import time
 import traceback
 import math
+import gc
 from typing import Dict, Any, Optional, List, Iterable, Tuple, Union
 import numpy as np
 import builtins
@@ -274,10 +275,13 @@ def _return_with_message_writer(
         aggregate_metrics = getattr(evaluation_output, 'aggregate_metrics', {})
         # Attempt to include invalid solution analysis from the dict (dataset evaluations)
         analysis_logs = getattr(evaluation_output, 'invalid_solution_analysis', failure_analysis_logs)
+        logging.info(f"_return_with_message_writer: extracted analysis_logs from AttributedList: {len(analysis_logs) if analysis_logs else 0} entries")
         if not analysis_logs:
             analysis_logs = failure_analysis_logs
+            logging.info(f"_return_with_message_writer: fell back to failure_analysis_logs: {len(analysis_logs) if analysis_logs else 0} entries")
         if analysis_logs is not None:
             setattr(evaluation_output, "invalid_solution_analysis", analysis_logs)
+            logging.info(f"_return_with_message_writer: set invalid_solution_analysis attribute on evaluation_output")
     
     if isinstance(evaluation_output, dict):
         base_formatted_message = mw.format_evaluation_result_from_raw(evaluation_output)
@@ -289,6 +293,7 @@ def _return_with_message_writer(
             "evaluation_type": "dataset",
             "invalid_solution_analysis": analysis_logs if analysis_logs else []
         }
+        logging.info(f"_return_with_message_writer: temp_dict created with {len(temp_dict.get('invalid_solution_analysis', []))} invalid solution analysis entries")
         base_formatted_message = mw.format_evaluation_result_from_raw(temp_dict)
     
     final_formatted_message = base_formatted_message
@@ -771,14 +776,15 @@ def evaluate_code_on_dataset(
     min_timeout_seconds: float = 10.0,
     max_timeout_seconds: float = 3600.0,
     default_target_solve_time_ms: float = 100.0,
-    default_num_eval_runs: Optional[int] = None, # Changed to Optional[int] = None
-    default_num_warmup_runs: Optional[int] = None, # Changed to Optional[int] = None
+    default_num_eval_runs: Optional[int] = None,
+    default_num_warmup_runs: Optional[int] = None,
     problem_id_key: str = "id",
     problem_instance_key: str = "problem",
     baseline_times: Optional[Dict[str, float]] = None,
     data_subset: str = "train",  # 'train' or 'test' – determines which split is timed
     test_mode: bool = False,  # If True, limit dataset to 10 samples
-) -> Union[List[Dict[str, Any]], Dict[str, Any]]: # MODIFIED Return Type
+    baseline_manager: Optional[Any] = None,  # BaselineManager instance
+) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
     """
     Evaluates a task's solve method on a dataset using the new clean architecture.
     """
@@ -788,18 +794,15 @@ def evaluate_code_on_dataset(
     
     logging.info(f"Using optimized evaluation pipeline (test_mode={test_mode})")
     
-    # Convert dataset to list if needed
-    dataset = list(dataset_iterable)
+    # Import streaming iterator
+    from AlgoTuner.utils.evaluator.streaming_iterator import StreamingDatasetIterator, StreamingDatasetWrapper
     
-    # Check if we're in test mode and limit dataset size
+    # Determine max samples based on test mode
+    max_samples = 10 if test_mode else None
     if test_mode:
-        # Default to 10 samples for test mode unless specified otherwise
-        max_samples = 10
-        if len(dataset) > max_samples:
-            logging.info(f"TEST MODE: Limiting dataset from {len(dataset)} to {max_samples} samples")
-            dataset = dataset[:max_samples]
+        logging.info(f"TEST MODE: Limiting dataset to {max_samples} samples")
     else:
-        logging.info(f"Not in test mode, evaluating all {len(dataset)} samples")
+        logging.info(f"Not in test mode, evaluating all samples")
     
     # Get default runs from config if not specified
     from AlgoTuner.utils.timing_config import RUNS, WARMUPS
@@ -825,8 +828,40 @@ def evaluate_code_on_dataset(
     if not solver_func:
         raise ValueError("Task object must have a solve method")
     
-    # Prepare dataset with proper structure
-    prepared_dataset = []
+    # Get baseline times from BaselineManager if provided, otherwise use passed baseline_times
+    if baseline_manager:
+        logging.info(f"BaselineManager provided, getting baseline times for subset '{data_subset}'")
+        from AlgoTuner.utils.evaluator.baseline_manager import BaselineManager
+        if isinstance(baseline_manager, BaselineManager):
+            # Determine max_samples based on test mode
+            max_samples = 10 if test_mode else None
+            baseline_times = baseline_manager.get_baseline_times(
+                subset=data_subset,
+                test_mode=test_mode,
+                max_samples=max_samples
+            )
+            logging.info(f"Got baseline times from BaselineManager: {len(baseline_times)} entries")
+        else:
+            logging.warning(f"baseline_manager is not a BaselineManager instance: {type(baseline_manager)}")
+    elif baseline_times is None:
+        # Auto-create BaselineManager when needed and missing
+        logging.info("No BaselineManager provided and no baseline_times, auto-creating BaselineManager")
+        from AlgoTuner.utils.evaluator.baseline_manager import BaselineManager
+        try:
+            auto_baseline_manager = BaselineManager(task_obj)
+            # Determine max_samples based on test mode
+            max_samples = 10 if test_mode else None
+            baseline_times = auto_baseline_manager.get_baseline_times(
+                subset=data_subset,
+                test_mode=test_mode,
+                max_samples=max_samples
+            )
+            logging.info(f"Auto-created BaselineManager and got baseline times: {len(baseline_times)} entries")
+        except Exception as e:
+            logging.warning(f"Failed to auto-create BaselineManager: {e}. Proceeding without baseline times.")
+            baseline_times = None
+    else:
+        logging.info("No BaselineManager provided, using passed baseline_times")
     
     # Log baseline times status
     if baseline_times:
@@ -836,78 +871,165 @@ def evaluate_code_on_dataset(
     else:
         logging.warning("No baseline times provided for dataset evaluation!")
     
-    for i, item in enumerate(dataset):
-        if isinstance(item, dict):
-            # IMPORTANT: Always use index-based ID for baseline lookup
-            # Baseline generation uses f"problem_{idx+1}" as keys, NOT dataset IDs
-            item_id = f"problem_{i+1}"
-            # Store original ID from dataset for logging/debugging only
-            dataset_id = item.get(problem_id_key) or item.get("k")
-            
-            # Get baseline time using the ID
-            baseline_time = None
-            if baseline_times:
-                baseline_time = baseline_times.get(item_id)
+    # Create a generator that yields properly formatted problems
+    def prepare_problems():
+        for i, item in enumerate(dataset_iterable):
+            if max_samples and i >= max_samples:
+                break
                 
-                # If no baseline time found, this is a critical error
-                if baseline_time is None:
-                    error_msg = (f"CRITICAL ERROR: No baseline time found for {item_id}. "
-                               f"Dataset ID was '{dataset_id}'. "
+            if isinstance(item, dict):
+                # IMPORTANT: Always use index-based ID for baseline lookup
+                # Baseline generation uses f"problem_{idx+1}" as keys, NOT dataset IDs
+                item_id = f"problem_{i+1}"
+                # Store original ID from dataset for logging/debugging only
+                dataset_id = item.get(problem_id_key) or item.get("k")
+                
+                # Get baseline time using the ID
+                baseline_time = None
+                if baseline_times:
+                    baseline_time = baseline_times.get(item_id)
+                    
+                    # Only raise error if we have non-empty baseline_times but missing this specific key
+                    # Empty baseline_times means we're generating baselines, not using them
+                    if baseline_time is None and len(baseline_times) > 0:
+                        error_msg = (f"CRITICAL ERROR: No baseline time found for {item_id}. "
+                                   f"Dataset ID was '{dataset_id}'. "
+                                   f"Available baseline keys: {list(baseline_times.keys())[:10]}...")
+                        logging.error(error_msg)
+                        raise RuntimeError(error_msg)
+                
+                problem_data = {
+                    "problem": item.get(problem_instance_key, item),
+                    "id": item_id,
+                    "baseline_time_ms": baseline_time,
+                }
+                
+                # Debug logging
+                if i < 5:  # Log first 5 items
+                    logging.info(f"Problem {i+1}: item_id='{item_id}', baseline_time={baseline_time}")
+                # Include other metadata
+                for key, value in item.items():
+                    if key not in [problem_instance_key, problem_id_key]:
+                        problem_data[key] = value
+            else:
+                # For non-dict items, use index-based ID
+                item_id = f"problem_{i+1}"
+                baseline_time = baseline_times.get(item_id) if baseline_times else None
+                
+                # Check for missing baseline time
+                # Only raise error if we have non-empty baseline_times but missing this specific key
+                if baseline_times and baseline_time is None and len(baseline_times) > 0:
+                    error_msg = (f"CRITICAL ERROR: No baseline time found for problem {i+1} "
+                               f"(item_id='{item_id}'). "
                                f"Available baseline keys: {list(baseline_times.keys())[:10]}...")
                     logging.error(error_msg)
                     raise RuntimeError(error_msg)
+                    
+                problem_data = {
+                    "problem": item,
+                    "id": item_id,
+                    "baseline_time_ms": baseline_time
+                }
             
-            problem_data = {
-                "problem": item.get(problem_instance_key, item),
-                "id": item_id,
-                "baseline_time_ms": baseline_time,
-            }
-            
-            # Debug logging
-            if i < 5:  # Log first 5 items
-                logging.info(f"Problem {i+1}: item_id='{item_id}', baseline_time={baseline_time}")
-            # Include other metadata
-            for key, value in item.items():
-                if key not in [problem_instance_key, problem_id_key]:
-                    problem_data[key] = value
-        else:
-            # For non-dict items, use index-based ID
-            item_id = f"problem_{i+1}"
-            baseline_time = baseline_times.get(item_id) if baseline_times else None
-            
-            # Check for missing baseline time
-            if baseline_times and baseline_time is None:
-                error_msg = (f"CRITICAL ERROR: No baseline time found for problem {i+1} "
-                           f"(item_id='{item_id}'). "
-                           f"Available baseline keys: {list(baseline_times.keys())[:10]}...")
-                logging.error(error_msg)
-                raise RuntimeError(error_msg)
-                
-            problem_data = {
-                "problem": item,
-                "id": item_id,
-                "baseline_time_ms": baseline_time
-            }
+            yield problem_data
+            gc.collect()  # Force GC after each yield
+    
+    # Run evaluation with streaming
+    # Note: We need to pass a list for now until we update EvaluationOrchestrator
+    # But we'll process it in chunks to avoid loading everything at once
+    chunk_size = 100  # Process in chunks of 100 problems
+    all_results = []
+    
+    problem_generator = prepare_problems()
+    chunk = []
+    
+    # Track all invalid solution analyses across chunks
+    all_invalid_analyses = []
+    
+    for problem_data in problem_generator:
+        chunk.append(problem_data)
         
-        prepared_dataset.append(problem_data)
+        # Process chunk when it reaches chunk_size or is the last chunk
+        if len(chunk) >= chunk_size:
+            dataset_results = orchestrator.evaluate_dataset(
+                task_instance=task_obj,
+                dataset=chunk,
+                solver_func=solver_func,
+                task_name=getattr(task_obj, 'task_name', task_obj.__class__.__name__),
+            )
+            
+            # Convert chunk results to legacy format
+            adapter = LegacyAdapter()
+            legacy_results = adapter.adapt_dataset_results(dataset_results)
+            
+            # Handle both dict (error) and AttributedList (normal) returns
+            if isinstance(legacy_results, dict):
+                # Early exit error case
+                return legacy_results
+            else:
+                # Normal case - AttributedList is a list
+                all_results.extend(legacy_results)
+                # Accumulate invalid solution analysis from this chunk
+                if hasattr(legacy_results, 'invalid_solution_analysis'):
+                    all_invalid_analyses.extend(legacy_results.invalid_solution_analysis)
+            
+            # Clear chunk and force GC
+            chunk = []
+            gc.collect()
     
-    # Run evaluation
-    dataset_results = orchestrator.evaluate_dataset(
-        task_instance=task_obj,
-        dataset=prepared_dataset,
-        solver_func=solver_func,
-        task_name=task_obj.__class__.__name__,
-    )
+    # Process any remaining problems in the last chunk
+    if chunk:
+        dataset_results = orchestrator.evaluate_dataset(
+            task_instance=task_obj,
+            dataset=chunk,
+            solver_func=solver_func,
+            task_name=getattr(task_obj, 'task_name', task_obj.__class__.__name__),
+            baseline_times=baseline_times,
+        )
+        
+        # Convert chunk results to legacy format
+        adapter = LegacyAdapter()
+        legacy_results = adapter.adapt_dataset_results(dataset_results)
+        
+        # Handle both dict (error) and AttributedList (normal) returns
+        if isinstance(legacy_results, dict):
+            # Early exit error case
+            return legacy_results
+        else:
+            # Normal case - accumulate results from last chunk
+            all_results.extend(legacy_results)
+            # Accumulate invalid solution analysis from last chunk
+            if hasattr(legacy_results, 'invalid_solution_analysis'):
+                all_invalid_analyses.extend(legacy_results.invalid_solution_analysis)
     
-    # Convert to legacy format for compatibility
-    adapter = LegacyAdapter()
-    legacy_results = adapter.adapt_dataset_results(dataset_results)
+    # Create AttributedList from all accumulated results
+    from AlgoTuner.utils.evaluator.legacy_adapter import AttributedList
+    
+    attributed_results = AttributedList(all_results)
+    
+    # When using new architecture, attach all accumulated invalid solution analyses
+    if baseline_manager and all_invalid_analyses:
+        # Limit to first 3 invalid analyses as per the original logic
+        attributed_results.invalid_solution_analysis = all_invalid_analyses[:3]
+        logging.info(f"Attached {len(attributed_results.invalid_solution_analysis)} invalid solution analysis entries (from {len(all_invalid_analyses)} total)")
+    
+    # Calculate and attach aggregate metrics across all results
+    num_evaluated = len(all_results)
+    num_valid = sum(1 for r in all_results if r.get("is_valid", False))
+    num_errors = sum(1 for r in all_results if r.get("error") is not None)
+    
+    attributed_results.aggregate_metrics = {
+        "num_evaluated": num_evaluated,
+        "num_valid": num_valid,
+        "num_errors": num_errors,
+        "accuracy": num_valid / num_evaluated if num_evaluated > 0 else 0,
+    }
     
     logging.info(
-        f"Evaluation complete. Valid: {dataset_results.metrics.num_valid}/{dataset_results.metrics.num_evaluated}"
+        f"Evaluation complete. Valid: {attributed_results.aggregate_metrics.get('num_valid', 0)}/{attributed_results.aggregate_metrics.get('num_evaluated', 0)}"
     )
     
-    return legacy_results
+    return attributed_results
 
 
 
@@ -1339,11 +1461,8 @@ def _convert_numpy_to_list(obj):
         logging.warning(f"Converting numpy void type to string representation: {obj}")
         return repr(obj) 
     return obj
-# --- END NEW HELPER FUNCTION ---
 
 
-
-# --- NEW: Baseline dataset timing helper ---
 def evaluate_baseline_dataset(
     task_obj: Any,
     dataset_iterable: Iterable[Dict[str, Any]],
@@ -1380,36 +1499,63 @@ def evaluate_baseline_dataset(
         if not hasattr(task_obj, "task_name"):
             setattr(task_obj, "task_name", task_obj.__class__.__name__)
         
+        # Use JSONL file if provided, otherwise use the iterator
+        if jsonl_path:
+            logging.info(f"BASELINE_EVAL: Loading dataset from JSONL: {jsonl_path}")
+            dataset_to_use = stream_jsonl(jsonl_path)
+        else:
+            dataset_to_use = dataset_iterable
+            
         # Use the efficient evaluation path that runs baseline in-process
+        # Pass baseline_times=None explicitly to indicate we're generating baselines
         results = evaluate_code_on_dataset(
             task_obj=task_obj,
-            dataset_iterable=dataset_iterable,
+            dataset_iterable=dataset_to_use,
             data_subset="train",  # Baseline evaluation is typically on train set
-            test_mode=test_mode
+            test_mode=test_mode,
+            baseline_times=None,  # Explicitly None - we're generating baselines, not using them
+            baseline_manager=None  # Don't use BaselineManager here to avoid recursion
         )
         
         # Extract baseline times from results
         baseline_times = {}
         
-        if isinstance(results, dict):
-            # Handle new format from EvaluationOrchestrator
-            per_problem_results = results.get("per_problem_results", [])
-        elif isinstance(results, list):
-            # Handle legacy list format
+        # Log the type of results for debugging
+        logging.info(f"BASELINE_EVAL: Results type: {type(results)}, has aggregate_metrics: {hasattr(results, 'aggregate_metrics')}")
+        
+        # Handle AttributedList (which is just a list with extra attributes)
+        if hasattr(results, '__iter__'):
+            # It's iterable, use it directly
             per_problem_results = results
         else:
             logging.error(f"Unexpected results type from evaluate_code_on_dataset: {type(results)}")
             per_problem_results = []
             
-        for result in per_problem_results:
+        for i, result in enumerate(per_problem_results):
             if isinstance(result, dict):
-                problem_id = result.get("problem_id") or result.get("id") or f"problem_{len(baseline_times)+1}"
-                # Get the baseline timing (min_time_ms from the solver evaluation)
-                min_time_ms = result.get("min_time_ms") or result.get("elapsed_ms")
+                problem_id = result.get("problem_id") or result.get("id") or f"problem_{i+1}"
+                
+                # Get the baseline timing - check multiple possible locations
+                min_time_ms = None
+                
+                # Try different fields where timing might be stored
+                if "min_time_ms" in result:
+                    min_time_ms = result["min_time_ms"]
+                elif "elapsed_ms" in result:
+                    min_time_ms = result["elapsed_ms"]
+                elif "timing" in result and isinstance(result["timing"], dict):
+                    min_time_ms = result["timing"].get("min_ms") or result["timing"].get("elapsed_ms")
+                
                 if min_time_ms is not None and min_time_ms > 0:
                     baseline_times[problem_id] = float(min_time_ms)
+                    logging.debug(f"BASELINE_EVAL: Found timing for {problem_id}: {min_time_ms}ms")
+                else:
+                    logging.warning(f"BASELINE_EVAL: No timing found for {problem_id} in result: {result.keys() if isinstance(result, dict) else 'not a dict'}")
                     
         logging.info(f"BASELINE_EVAL: Collected {len(baseline_times)} baseline timings")
+        if len(baseline_times) == 0:
+            logging.error("BASELINE_EVAL: ERROR - No baseline times were extracted from results!")
+            logging.error(f"BASELINE_EVAL: First result sample: {per_problem_results[0] if per_problem_results else 'No results'}")
         
         # Write results to file
         if output_file is None:

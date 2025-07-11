@@ -266,5 +266,5 @@ class RunnerConfig:
     validate_in_process: bool = True
     strip_solutions: bool = True
     max_solution_size_bytes: int = 10 * 1024 * 1024  # 10MB
-    use_isolated_execution: bool = True
+    use_isolated_execution: bool = True  # Use isolated execution with process pool reuse
     feature_flags: Dict[str, bool] = field(default_factory=dict)

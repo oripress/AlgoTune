@@ -86,6 +86,11 @@ def trace_is_solution_failure(task_instance: Any, problem: Any, solution: Any) -
                 "skipping second is_solution call to avoid spurious errors."
             )
             return []
+    
+    # Check if we already have context stored from a previous call
+    if hasattr(task_instance, '_last_is_solution_failure_context') and task_instance._last_is_solution_failure_context:
+        # Don't trace again if we already have context
+        return [task_instance._last_is_solution_failure_context]
 
     is_solution_func = task_instance.is_solution
     try:

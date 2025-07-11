@@ -97,12 +97,26 @@ class ValidationPipeline:
                 )
             else:
                 self.logger.debug("Solution is invalid, capturing context")
-                # Solution is invalid - capture context if requested
+                # Solution is invalid - capture context immediately before any stripping
                 context = None
                 if capture_context:
+                    # Capture failure context immediately while solution is still intact
+                    try:
+                        self.logger.info("Capturing is_solution failure context immediately")
+                        trace_is_solution_failure(task_instance, problem, solution)
+                    except Exception as e:
+                        self.logger.warning(f"Failed to capture is_solution failure context: {e}")
+                    
                     context = self._capture_failure_context(
                         task_instance, problem, solution
                     )
+                    self.logger.info(f"ValidationPipeline: captured context is None: {context is None}")
+                    if context:
+                        self.logger.info(f"ValidationPipeline: context has full_context: {context.full_context is not None}")
+                        if context.full_context:
+                            self.logger.info(f"ValidationPipeline: full_context length: {len(context.full_context)}")
+                    else:
+                        self.logger.warning("ValidationPipeline: No context captured during validation failure")
                 
                 return ValidationResult(
                     is_valid=False,
@@ -162,6 +176,19 @@ class ValidationPipeline:
                 cached_context = self._context_cache[task_id]
                 self.logger.debug("Using cached validation context")
                 return cached_context
+            
+            # First check if we already have context stored from a previous call
+            raw_context = getattr(task_instance, "_last_is_solution_failure_context", None)
+            
+            if raw_context:
+                self.logger.debug(f"Using existing context of length {len(raw_context)}")
+                # Parse the context to extract details
+                context = self._parse_failure_context(raw_context)
+                
+                # Cache for potential reuse
+                self._context_cache[task_id] = context
+                
+                return context
             
             # Use the failure analyzer to trace the failure
             self.logger.debug("Tracing is_solution failure")

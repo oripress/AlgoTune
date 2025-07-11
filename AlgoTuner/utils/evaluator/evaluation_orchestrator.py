@@ -58,7 +58,8 @@ class EvaluationOrchestrator:
         solver_func: Callable,
         task_name: Optional[str] = None,
         baseline_func: Optional[Callable] = None,
-        progress_callback: Optional[Callable] = None
+        progress_callback: Optional[Callable] = None,
+        baseline_times: Optional[Dict[str, float]] = None,
     ) -> DatasetResults:
         """
         Evaluate a solver on an entire dataset.
@@ -88,20 +89,29 @@ class EvaluationOrchestrator:
             problem, metadata = self._extract_problem_data(problem_data)
             problem_id = metadata.get("id", f"problem_{i+1}")
             
+            # Get warmup problem (previous problem in dataset, wrapping around)
+            warmup_idx = (i - 1) % len(dataset)
+            warmup_problem_data = dataset[warmup_idx]
+            warmup_problem, _ = self._extract_problem_data(warmup_problem_data)
+            
             # Log individual problem start
             self.logger.info(f"Evaluating problem {i+1}/{len(dataset)}: {problem_id}")
             
             # Ensure task_name is in metadata for isolated execution
             metadata["task_name"] = task_name
             
+            # Get baseline time from the provided dictionary if available
+            baseline_time_ms = baseline_times.get(problem_id) if baseline_times else metadata.get("baseline_time_ms")
+
             # Evaluate single problem
             result = self.evaluate_single(
                 task_instance=task_instance,
                 problem=problem,
                 solver_func=solver_func,
+                warmup_problem=warmup_problem,
                 problem_id=problem_id,
                 problem_index=i,
-                baseline_time_ms=metadata.get("baseline_time_ms"),
+                baseline_time_ms=baseline_time_ms,
                 problem_metadata=metadata
             )
             
@@ -138,9 +148,12 @@ class EvaluationOrchestrator:
             if progress_callback:
                 progress_callback(i + 1, len(dataset), result)
             
-            # Log progress
+            # Log progress and perform garbage collection periodically
             if (i + 1) % max(1, len(dataset) // 10) == 0:
                 self.logger.info(f"Progress: {i+1}/{len(dataset)} problems evaluated")
+                # Force garbage collection to prevent memory buildup
+                import gc
+                gc.collect()
         
         # Clear validation context cache after dataset
         self.validator.clear_context_cache()
@@ -166,6 +179,7 @@ class EvaluationOrchestrator:
         task_instance: Any,
         problem: Any,
         solver_func: Callable,
+        warmup_problem: Optional[Any] = None,
         problem_id: str = "problem",
         problem_index: int = 0,
         baseline_time_ms: Optional[float] = None,
@@ -199,7 +213,8 @@ class EvaluationOrchestrator:
             solver_func=solver_func,
             problem=problem,
             baseline_time_ms=baseline_time_ms,
-            problem_metadata=problem_metadata
+            problem_metadata=problem_metadata,
+            warmup_problem=warmup_problem
         )
         
         # Step 2: Validate if execution succeeded
@@ -242,6 +257,10 @@ class EvaluationOrchestrator:
         # Step 5: Optimize memory by stripping large solutions
         if self.config.strip_solutions:
             result = self.memory_optimizer.optimize_result(result)
+        
+        # Step 6: Force garbage collection after each problem to prevent memory buildup
+        import gc
+        gc.collect()
         
         return result
     

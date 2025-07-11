@@ -15,8 +15,12 @@ from AlgoTuner.utils.evaluator.evaluation_orchestrator import EvaluationOrchestr
 
 
 class AttributedList(list):
-    """Legacy AttributedList for backward compatibility."""
-    pass
+    """A list subclass that supports attributes."""
+    def __init__(self, *args, **kwargs):
+        self.__dict__ = {}
+        super().__init__(*args)
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
 
 class LegacyAdapter:
@@ -109,7 +113,14 @@ class LegacyAdapter:
         
         # Attach invalid solution analysis
         if "invalid_solution_analysis" in legacy_data:
-            attributed_list.invalid_solution_analysis = legacy_data["invalid_solution_analysis"]
+            invalid_analysis = legacy_data["invalid_solution_analysis"]
+            attributed_list.invalid_solution_analysis = invalid_analysis
+            self.logger.info(f"LegacyAdapter: attached {len(invalid_analysis)} invalid solution analysis entries to AttributedList")
+            # Log first few characters of each entry for debugging
+            for i, entry in enumerate(invalid_analysis[:3]):
+                self.logger.info(f"LegacyAdapter: invalid analysis entry {i+1}: {entry[:100]}...")
+        else:
+            self.logger.warning("LegacyAdapter: no invalid_solution_analysis found in legacy_data")
         
         return attributed_list
     

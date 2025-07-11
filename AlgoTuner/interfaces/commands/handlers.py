@@ -44,7 +44,7 @@ from AlgoTuner.utils.error_helpers import get_error_messages_cached
 from AlgoTuner.utils.profiler import TaskProfiler
 from AlgoTuner.utils.trace_cleaner import clean_traceback, clean_build_output
 from AlgoTuner.utils.type_inspection import describe_type, describe_annotation
-from AlgoTuner.utils.evaluator.main import run_evaluation_on_input, _calculate_aggregate_metrics, evaluate_baseline_dataset
+from AlgoTuner.utils.evaluator.main import run_evaluation_on_input, _calculate_aggregate_metrics
 from AlgoTuner.utils.error_utils import extract_error_context
 from AlgoTuner.utils.casting import parse_string
 from AlgoTuner.utils.evaluator.runner import run_oracle_evaluation, _strip_bulky_fields
@@ -447,6 +447,7 @@ class CommandHandlers:
                 if num_invalid > 0:
                     formatted_message += "\n\n\nSnapshot not saved - invalid solutions present\n"
                     invalid_examples = data.get("invalid_solution_analysis", [])
+                    logging.info(f"CommandHandlers: found {len(invalid_examples)} invalid solution analysis entries in data")
                     # Cap at maximum 3 examples to avoid overwhelming output
                     max_examples = 3
                     for idx, snippet in enumerate(invalid_examples[:max_examples], start=1):
@@ -454,6 +455,7 @@ class CommandHandlers:
                         if snippet and not snippet.startswith("Error in 'is_solution': "):
                             snippet_with_prefix = f"Error in 'is_solution': {snippet}"
                         formatted_message += f"\nInvalid Example #{idx}:\n{snippet_with_prefix}\n"
+                        logging.info(f"CommandHandlers: added invalid example #{idx} (length={len(snippet_with_prefix)})")
                 
                 # Add note if there are more examples than shown
                 # Summary line for additional invalid examples has been removed to reduce verbosity.
@@ -1717,121 +1719,24 @@ class CommandHandlers:
              
             logging.info(f"Running full dataset evaluation on '{data_subset}' subset for command '{command_source}'.")
             
-            # Lazy baseline generation: generate baseline times once per subset
-            baseline_attr = f"baseline_times_{data_subset}"
-            baseline_times = getattr(self, baseline_attr, None)
-            logging.info(f"DEBUG: baseline_attr={baseline_attr}, baseline_times cached: {baseline_times is not None}")
-            if baseline_times is not None:
-                # Check if cached baseline times are all zeros (indicates previous failed generation)
-                sample_values = list(baseline_times.values())[:5]
-                all_zeros = all(v == 0.0 for v in sample_values)
-                logging.info(f"DEBUG: Cached baseline times sample: {sample_values}, all_zeros: {all_zeros}")
-                if all_zeros:
-                    logging.info(f"DEBUG: Forcing regeneration of baseline times due to all-zero values")
-                    baseline_times = None  # Force regeneration
-            
-            if baseline_times is None:
-                logging.info(f"Lazy baseline generation for subset '{data_subset}'")
-                # Use memory-efficient approach - pass JSONL path instead of loading dataset
-                data_dir = task_instance.data_dir or task_instance.get_task_directory()
-                # Use a wildcard for the target time to support any cached timing (avoids NameError if variable is undefined)
-                jsonl_filename = f"{task_instance.task_name}_T*ms_n*_size*_{data_subset}.jsonl"
-                
-                # Find the actual JSONL file
-                import glob
-                jsonl_pattern = os.path.join(data_dir, jsonl_filename)
-                jsonl_files = glob.glob(jsonl_pattern)
-                
-                if jsonl_files:
-                    jsonl_path = jsonl_files[0]  # Use first matching file
-                    logging.info(f"Using memory-efficient JSONL path: {jsonl_path}")
-                    
-                    tmp_dir = os.environ.get('TEMP_DIR_STORAGE') or os.environ.get('TEMP') or tempfile.gettempdir()
-                    import uuid
-                    unique_id = str(uuid.uuid4())[:8]  # Use first 8 chars for brevity
-                    baseline_file = os.path.join(tmp_dir, f"{task_instance.task_name}_{data_subset}_times_{unique_id}.json")
-                    logging.info(f"Generating baseline times for '{data_subset}' to {baseline_file}")
-                    
-                    # Create a dummy iterator for compatibility, actual data will be streamed from JSONL
-                    dummy_iterator = iter([])
-                    # Use dev_runs for train, eval_runs for test
-                    num_runs = DEV_RUNS if data_subset == "train" else EVAL_RUNS
-                    # Pass test mode info to baseline evaluation
-                    test_mode_baseline = hasattr(self.interface, 'max_samples') and self.interface.max_samples is not None
-                    max_samples_baseline = self.interface.max_samples if test_mode_baseline else None
-                    evaluate_baseline_dataset(task_instance, dummy_iterator, num_runs=num_runs, output_file=baseline_file, 
-                                            jsonl_path=jsonl_path, test_mode=test_mode_baseline, max_samples=max_samples_baseline)
-                else:
-                    # Fallback to old method if JSONL not found
-                    logging.warning(f"JSONL file not found with pattern {jsonl_pattern}, falling back to dataset loading")
-                    gen_train, gen_test = task_instance.load_dataset()
-                    stream_for_ids = gen_train if data_subset == "train" else gen_test
-                    tmp_dir = os.environ.get('TEMP_DIR_STORAGE') or os.environ.get('TEMP') or tempfile.gettempdir()
-                    import uuid
-                    unique_id = str(uuid.uuid4())[:8]  # Use first 8 chars for brevity
-                    baseline_file = os.path.join(tmp_dir, f"{task_instance.task_name}_{data_subset}_times_{unique_id}.json")
-                    logging.info(f"Generating baseline times for '{data_subset}' to {baseline_file}")
-                    # Use dev_runs for train, eval_runs for test
-                    num_runs = DEV_RUNS if data_subset == "train" else EVAL_RUNS
-                    # Pass test mode info to baseline evaluation
-                    test_mode_baseline = hasattr(self.interface, 'max_samples') and self.interface.max_samples is not None
-                    max_samples_baseline = self.interface.max_samples if test_mode_baseline else None
-                    evaluate_baseline_dataset(task_instance, stream_for_ids, num_runs=num_runs, output_file=baseline_file,
-                                            test_mode=test_mode_baseline, max_samples=max_samples_baseline)
-                with open(baseline_file, 'r') as bf:
-                    baseline_times = json.load(bf)
-                logging.info(f"Loaded {len(baseline_times)} baseline times from {baseline_file}")
-                # Log sample of baseline times for debugging
-                sample_keys = list(baseline_times.keys())[:5]
-                sample_times = {k: baseline_times[k] for k in sample_keys}
-                logging.info(f"Sample baseline times: {sample_times}")
-                setattr(self, baseline_attr, baseline_times)
-                # Clean up temporary baseline file after loading
-                try:
-                    os.remove(baseline_file)
-                    logging.debug(f"Cleaned up temporary baseline file: {baseline_file}")
-                except Exception as e:
-                    logging.warning(f"Failed to clean up baseline file {baseline_file}: {e}")
+            # Get baseline manager from interface
+            baseline_manager = getattr(self.interface, 'baseline_manager', None)
             # Load fresh dataset iterators for evaluation
             train_iter, test_iter = task_instance.load_dataset()
             dataset_to_evaluate = train_iter if data_subset == "train" else test_iter
             
-            # Check if we're in test mode (moved earlier to use in baseline regeneration)
+            # Check if we're in test mode
             test_mode = False
             if hasattr(self.interface, 'max_samples') and self.interface.max_samples is not None:
                 test_mode = True
                 logging.info(f"Test mode enabled with max_samples={self.interface.max_samples}")
-            
-            # Baseline completeness check
-            try:
-                _cache = list(dataset_to_evaluate)
-                ds_len = len(_cache)
-                dataset_to_evaluate = iter(_cache)
-                if baseline_times is not None and len(baseline_times) < ds_len:
-                    logging.warning("Incomplete baseline: %d entries vs %d items – regenerating", len(baseline_times), ds_len)
-                    import glob, tempfile, uuid, json as _json
-                    data_dir = task_instance.data_dir or task_instance.get_task_directory()
-                    pattern = os.path.join(data_dir, f"{task_instance.task_name}_T*ms_n*_size*_{data_subset}.jsonl")
-                    matches = glob.glob(pattern)
-                    tmp_out = os.path.join(tempfile.gettempdir(), f"{task_instance.task_name}_{data_subset}_times_{uuid.uuid4().hex[:8]}.json")
-                    regen_runs = DEV_RUNS if data_subset == "train" else EVAL_RUNS
-                    if matches:
-                        evaluate_baseline_dataset(task_instance, iter([]), num_runs=regen_runs, output_file=tmp_out, jsonl_path=matches[0], test_mode=test_mode)
-                    else:
-                        evaluate_baseline_dataset(task_instance, _cache, num_runs=regen_runs, output_file=tmp_out, test_mode=test_mode)
-                    with open(tmp_out, "r") as ftmp:
-                        baseline_times = _json.load(ftmp)
-                    setattr(self, baseline_attr, baseline_times)
-                    logging.info("Regenerated baseline – entries: %d", len(baseline_times))
-            except Exception as _bc_err:
-                logging.warning("Baseline completeness check failed: %s", _bc_err)
             # Use dev_runs for train, eval_runs for test
             num_runs = DEV_RUNS if data_subset == "train" else EVAL_RUNS
             
             eval_output = evaluate_code_on_dataset(
                 task_obj=task_instance,
                 dataset_iterable=dataset_to_evaluate,
-                baseline_times=baseline_times,
+                baseline_manager=baseline_manager,
                 data_subset=data_subset,
                 default_num_eval_runs=num_runs,
                 test_mode=test_mode
@@ -1894,8 +1799,15 @@ class CommandHandlers:
                 }
                 # Add invalid solution analysis if available
                 invalid_ctx = getattr(results_list, "invalid_solution_analysis", None)
+                logging.info(f"CommandHandlers._runner_eval_dataset: results_list type: {type(results_list)}")
+                logging.info(f"CommandHandlers._runner_eval_dataset: results_list has invalid_solution_analysis attribute: {hasattr(results_list, 'invalid_solution_analysis')}")
+                if hasattr(results_list, 'invalid_solution_analysis'):
+                    attr_value = getattr(results_list, 'invalid_solution_analysis')
+                    logging.info(f"CommandHandlers._runner_eval_dataset: invalid_solution_analysis attribute value: {len(attr_value) if attr_value else 0} entries")
+                logging.info(f"CommandHandlers._runner_eval_dataset: invalid_ctx is None: {invalid_ctx is None}")
                 if invalid_ctx:
                     dict_for_formatter["invalid_solution_analysis"] = invalid_ctx
+                    logging.info(f"CommandHandlers._runner_eval_dataset: added {len(invalid_ctx)} invalid solution analysis entries to dict_for_formatter")
                 formatted_aggregate = self.message_writer.format_evaluation_result_from_raw(dict_for_formatter)
                 summary_message = formatted_aggregate
             else:
@@ -1959,8 +1871,10 @@ class CommandHandlers:
             }
             # Attach invalid_solution_analysis when available
             invalid_ctx = getattr(results_list, "invalid_solution_analysis", None)
+            logging.info(f"CommandHandlers._runner_eval_dataset: data_payload invalid_ctx is None: {invalid_ctx is None}")
             if invalid_ctx:
                 data_payload["invalid_solution_analysis"] = invalid_ctx
+                logging.info(f"CommandHandlers._runner_eval_dataset: added {len(invalid_ctx)} invalid solution analysis entries to data_payload")
             # Mark this as a dataset evaluation for error formatting
             data_payload["evaluation_type"] = "dataset"
             # Distinguish between evaluation process failure vs invalid solutions

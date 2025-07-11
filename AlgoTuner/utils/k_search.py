@@ -37,7 +37,7 @@ from AlgoTuner.utils.timing_config import RUNS, WARMUPS
 # ----------------------------------------------------------------------
 # logging
 # ----------------------------------------------------------------------
-LOG = logging.getLogger(__name__)
+# Use logging module directly instead of LOG variable
 
 # ======================================================================
 #  sandbox helpers
@@ -128,6 +128,59 @@ def _run_probe_safely_isolated(task, k, warmup_seed, timed_seed, timeout_s, memo
 
     return status, payload
 
+
+def _run_probe_in_process(task, k, warmup_seed, timed_seed, timing_num_runs=5, timing_warmup_runs=3, memory_limit_mb=None):
+    """Run probe in current process for efficiency - avoids subprocess overhead."""
+    try:
+        # Check estimated memory usage for tasks known to have quadratic memory requirements
+        task_name = getattr(task, '__class__', type(task)).__name__.lower()
+        if 'sinkhorn' in task_name and memory_limit_mb:
+            # Sinkhorn needs k^2 * 8 bytes for cost matrix plus overhead
+            estimated_mb = (k * k * 8) / (1024 * 1024) * 1.5  # 1.5x for overhead
+            if estimated_mb > memory_limit_mb * 0.8:  # Use 80% as safety margin
+                logging.debug(f"Skipping k={k} for sinkhorn: estimated {estimated_mb:.1f}MB > limit {memory_limit_mb * 0.8:.1f}MB")
+                return "oom", None
+        
+        # Generate problems with different seeds
+        np.random.seed(warmup_seed)
+        warmup_problem = task.generate_problem(n=k, random_seed=warmup_seed)
+        
+        np.random.seed(timed_seed)
+        timed_problem = task.generate_problem(n=k, random_seed=timed_seed)
+        
+        # Run warmup separately
+        for _ in range(timing_warmup_runs):
+            _ = task.solve(warmup_problem)
+        
+        # Time the solve function on timed problem
+        timing_result = time_execution_ns(
+            func=task.solve,
+            args=(timed_problem,),
+            kwargs={},
+            num_runs=timing_num_runs,
+            warmup_runs=0,  # Already did warmup above
+            capture_output=False,
+            working_dir=None,
+            solver_module=None
+        )
+        
+        if timing_result["success"]:
+            mean_time_s = timing_result["mean_time_ms"] / 1000.0
+            return "ok", mean_time_s
+        else:
+            error_msg = timing_result.get("error", "Unknown timing error")
+            logging.debug(f"Timing failed for k={k}: {error_msg}")
+            return "error", None
+            
+    except MemoryError:
+        logging.debug(f"Memory error for k={k}, treating as OOM")
+        return "oom", None
+    except Exception as e:
+        import traceback
+        logging.error(f"Probe failed for k={k}: {type(e).__name__}: {str(e)}")
+        logging.debug(f"Full traceback:\n{traceback.format_exc()}")
+        return "error", None
+
 # ======================================================================
 #  measure_solve_time — helper used by the k-search
 # ======================================================================
@@ -144,94 +197,122 @@ def measure_solve_time(
     timeout_s: float = 60.0,
     memory_limit_mb: int = 4096,
     log_level: int = logging.DEBUG,
+    use_isolated: bool = False,  # New parameter to control subprocess vs in-process
 ) -> Tuple[Optional[float], Dict[str, any]]:
-    """Measure mean solve time for *k* using 10x isolated probes with separate warmup and timed problems."""
-    LOG.setLevel(log_level)
+    """Measure mean solve time for *k* using in-process evaluation by default (fast) or isolated subprocesses."""
+    logging.getLogger(__name__).setLevel(log_level)
     times: List[float] = []
     errors = timeouts = ooms = 0
     early_exit = False
     error_messages = []  # Collect actual error messages
 
-    # Run 10 isolated processes instead of n_examples
-    # Each process uses different problems for warmup vs timed measurement
-    for i in range(RUNS * 2):  # Use 2x RUNS for better statistics
-        # Use different seeds for warmup and timed problems within each isolated run
-        base_seed = random_seed + i * 1000  # Large offset to ensure different problems
-        warmup_seed = base_seed
-        timed_seed = base_seed + 500  # Different problem for timed measurement
-        
-        try:
-            status, reported_s = _run_probe_safely_isolated(
-                task,
-                k,
-                warmup_seed,
-                timed_seed,
-                timeout_s,
-                memory_limit_mb,
-            )
-        except Exception as exc:
-            LOG.error(f"isolated probe (k={k}, warmup_seed={warmup_seed}, timed_seed={timed_seed}) crashed: {exc}", exc_info=True)
-            errors += 1
-            break
+    # Force in-process mode for baseline evaluation efficiency
+    original_agent_mode = os.environ.get("AGENT_MODE")
+    if not use_isolated:
+        os.environ["AGENT_MODE"] = "0"
+        logging.debug(f"Set AGENT_MODE=0 for in-process k-probing (was {original_agent_mode})")
 
-        if status == "ok":
-            times.append(reported_s)
-            if i == 0 and reported_s > early_exit_multiplier * target_time:
-                early_exit = True
+    try:
+        # Run probes with different problems for warmup vs timed measurement
+        for i in range(RUNS * 2):  # Use 2x RUNS for better statistics
+            # Use different seeds for warmup and timed problems within each run
+            base_seed = random_seed + i * 1000  # Large offset to ensure different problems
+            warmup_seed = base_seed
+            timed_seed = base_seed + 500  # Different problem for timed measurement
+            
+            try:
+                if use_isolated:
+                    # Original subprocess-based approach (kept for compatibility)
+                    status, reported_s = _run_probe_safely_isolated(
+                        task,
+                        k,
+                        warmup_seed,
+                        timed_seed,
+                        timeout_s,
+                        memory_limit_mb,
+                    )
+                else:
+                    # New efficient in-process approach
+                    status, reported_s = _run_probe_in_process(
+                        task,
+                        k,
+                        warmup_seed,
+                        timed_seed,
+                        timing_num_runs,
+                        timing_warmup_runs,
+                        memory_limit_mb,
+                    )
+            except Exception as exc:
+                logging.error(f"probe (k={k}, warmup_seed={warmup_seed}, timed_seed={timed_seed}) crashed: {exc}", exc_info=True)
+                errors += 1
                 break
-        elif status == "timeout":
-            timeouts += 1
-            break
-        elif status == "oom":
-            ooms += 1
-            break
-        else:
-            errors += 1
-            if reported_s:  # reported_s contains the error message when status is "error"
-                error_messages.append(str(reported_s))
-            break
 
-    if early_exit or timeouts or ooms or errors:
-        return None, {
-            "errors": errors,
-            "timeouts": timeouts,
-            "oom": bool(ooms),
-            "early_exit": early_exit,
-            "num_runs": RUNS * 2,  # Updated to reflect isolated runs
-            "warmup_runs": WARMUPS,  # Each isolated run does config warmups
-            "error_messages": error_messages,  # Include actual error messages
-        }
+            if status == "ok":
+                times.append(reported_s)
+                if i == 0 and reported_s > early_exit_multiplier * target_time:
+                    early_exit = True
+                    break
+            elif status == "timeout":
+                timeouts += 1
+                break
+            elif status == "oom":
+                ooms += 1
+                break
+            else:
+                errors += 1
+                if reported_s:  # reported_s contains the error message when status is "error"  
+                    error_messages.append(str(reported_s))
+                break
 
-    if not times:
-        LOG.warning(f"[measure_solve_time] k={k}: no successful runs")
-        return None, {
-            "errors": errors,
-            "timeouts": timeouts,
-            "oom": bool(ooms),
-            "early_exit": early_exit,
+        if early_exit or timeouts or ooms or errors:
+            return None, {
+                "errors": errors,
+                "timeouts": timeouts,
+                "oom": bool(ooms),
+                "early_exit": early_exit,
+                "num_runs": RUNS * 2,  # Updated to reflect isolated runs
+                "warmup_runs": WARMUPS,  # Each isolated run does config warmups
+                "error_messages": error_messages,  # Include actual error messages
+            }
+
+        if not times:
+            logging.warning(f"[measure_solve_time] k={k}: no successful runs")
+            return None, {
+                "errors": errors,
+                "timeouts": timeouts,
+                "oom": bool(ooms),
+                "early_exit": early_exit,
+                "num_runs": RUNS * 2,
+                "warmup_runs": WARMUPS,
+                "error_messages": error_messages,  # Include actual error messages
+            }
+
+        mean_time = sum(times) / len(times)
+        try:
+            ci_low, ci_high = _calculate_confidence_interval(times)
+        except Exception:
+            ci_low = ci_high = None
+
+        return mean_time, {
+            "times": times,
+            "mean_time": mean_time,
+            "ci_low": ci_low,
+            "ci_high": ci_high,
+            "errors": 0,
+            "timeouts": 0,
+            "oom": False,
+            "early_exit": False,
             "num_runs": RUNS * 2,
             "warmup_runs": WARMUPS,
-            "error_messages": error_messages,  # Include actual error messages
         }
-
-    mean_time = sum(times) / len(times)
-    try:
-        ci_low, ci_high = _calculate_confidence_interval(times)
-    except Exception:
-        ci_low = ci_high = None
-
-    return mean_time, {
-        "times": times,
-        "mean_time": mean_time,
-        "ci_low": ci_low,
-        "ci_high": ci_high,
-        "errors": 0,
-        "timeouts": 0,
-        "oom": False,
-        "early_exit": False,
-        "num_runs": RUNS * 2,
-        "warmup_runs": WARMUPS,
-    }
+    finally:
+        # Restore original AGENT_MODE
+        if not use_isolated:
+            if original_agent_mode is None:
+                os.environ.pop("AGENT_MODE", None)
+            else:
+                os.environ["AGENT_MODE"] = original_agent_mode
+            logging.debug(f"Restored AGENT_MODE to {original_agent_mode}")
 
 # ======================================================================
 #  Public search API
@@ -300,7 +381,7 @@ def find_k_for_time(
             
             msg = f"FAILED: {reason}{error_details}"
         
-        LOG.info(f"[probe] k={k:>5}: {msg}")
+        logging.info(f"[probe] k={k:>5}: {msg}")
         return cache[k]
 
     if min_k == max_k:
