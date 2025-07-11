@@ -40,7 +40,7 @@ import signal
 import time
 
 from AlgoTuner.utils.error_utils import SolverFileNotFoundError, SOLVER_NOT_FOUND_GENERIC_MSG
-from AlgoTuner.utils.dace_config import configure_dace_cache
+from AlgoTuner.utils.dace_config import configure_dace_cache, configure_joblib_cache
 
 
 def _filesystem_operation_with_timeout(operation_func, timeout_seconds=10, operation_name="filesystem operation", error_container=None):
@@ -226,17 +226,18 @@ def load_solver_module(code_dir: Path, solver_filename: str = "solver.py") -> Mo
     # Configure DaCe cache with timeout protection
     def configure_cache():
         configure_dace_cache(temp_cache_dir)
+        configure_joblib_cache(temp_cache_dir)
     
     cache_configured = _filesystem_operation_with_timeout(
         configure_cache,
         timeout_seconds=10,
-        operation_name="DaCe cache configuration"
+        operation_name="DaCe and joblib cache configuration"
     )
     
     if cache_configured:
-        logging.debug("load_solver_module: Completed DaCe cache configuration")
+        logging.debug("load_solver_module: Completed DaCe and joblib cache configuration")
     else:
-        logging.warning("load_solver_module: DaCe cache configuration failed/timed out, continuing without custom cache")
+        logging.warning("load_solver_module: DaCe and joblib cache configuration failed/timed out, continuing without custom cache")
 
     logging.debug(f"load_solver_module: About to change working directory to {code_dir}")
     with with_working_dir(code_dir):

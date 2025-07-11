@@ -34,6 +34,7 @@ def _ensure_dace_config():
     os.environ['TEMP'] = temp_dir_str
     os.environ['TMP'] = temp_dir_str
     os.environ['NUMBA_CACHE_DIR'] = temp_dir_str
+    os.environ['JOBLIB_CACHE_DIR'] = temp_dir_str
 
     try:
         import tempfile as _tf
@@ -43,6 +44,14 @@ def _ensure_dace_config():
         logging.debug(f"Could not set tempfile.tempdir: {e}")
 
     logging.debug(f"DaCe cache configured to temp dir: {temp_dir_str}")
+
+    # Configure joblib cache monkey patch
+    try:
+        from .dace_config import configure_joblib_cache
+        configure_joblib_cache(temp_dir_str)
+        logging.debug(f"Joblib cache configured to temp dir: {temp_dir_str}")
+    except Exception as e:
+        logging.debug(f"Could not configure joblib cache: {e}")
 
     # If DaCe is already imported, apply API override for default_build_folder
     try:
