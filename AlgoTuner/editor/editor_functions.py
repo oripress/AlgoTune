@@ -21,6 +21,7 @@ from AlgoTuner.utils.snippet_utils import compute_centered_snippet_bounds, compu
 from AlgoTuner.utils.profiler import TaskProfiler
 from AlgoTuner.interfaces.commands.types import SnapshotStatus
 from pylint.reporters import JSONReporter
+from AlgoTuner.security.code_validator import check_code_for_tampering
 import math
 import signal
 import threading
@@ -1110,6 +1111,11 @@ class Editor:
         Validates Python syntax and runs pylint. Does not format.
         Returns (is_valid, error_message, original_content_if_valid).
         """
+        # First check for tampering attempts
+        tampering_error = check_code_for_tampering(content)
+        if tampering_error:
+            return False, tampering_error, None
+        
         is_valid, error_msg = self.code_validator.validate_python_syntax(content)
         if not is_valid:
             return False, error_msg, None
