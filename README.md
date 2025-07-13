@@ -9,7 +9,7 @@
 </p>
 <p align="center">
   <a href="https://algotune.io/"><strong>Website</strong></a>&nbsp; | &nbsp;
-  <a href="https://algotune.io/paper"><strong>Paper</strong></a>
+  <a href="https://algotune.io/paper.pdf"><strong>Paper</strong></a>
 </p>
 
 How good are language models at coming up with new algorithms? To try to answer this, we built a benchmark, AlgoTune, comprised of 155 widely used math, physics, and computer science functions. For each function, the goal is to write code that produces the same outputs as the original function, while being faster. In addition to the benchmark, we also provide an agent, AlgoTuner, which allows language models to easily optimize code. For contributions to the AlgoTune benchmark, see the [contribution guide](#-contributing-new-problems-to-algotune).
