@@ -16,6 +16,7 @@ from typing import Dict, List, Optional, Tuple, Union
 from pathlib import Path
 from pylint.lint import Run
 from io import StringIO
+import filelock
 from AlgoTuner.utils.message_writer import MessageWriter
 from AlgoTuner.utils.snippet_utils import compute_centered_snippet_bounds, compute_snippet_bounds
 from AlgoTuner.utils.profiler import TaskProfiler
@@ -970,27 +971,30 @@ class SnapshotManager:
                     json.dump(backup_files_map, bmf)
 
                 try:
-                    # remove everything except ignored
-                    for f in code_dir.rglob("*"):
-                        if not self._should_ignore_file(f):
-                            if f.is_file(): # Only unlink files, leave dirs for now
-                                f.unlink()
-                            elif f.is_dir(): # Attempt to remove empty dirs, ignore if not empty
-                                try:
-                                    f.rmdir() 
-                                except OSError:
-                                    pass # Directory not empty, will be handled if files within are removed
+                    # Use file lock to prevent concurrent cleanup operations
+                    lock_path = code_dir / ".cleanup.lock"
+                    with filelock.FileLock(str(lock_path), timeout=5):
+                        # remove everything except ignored
+                        for f in code_dir.rglob("*"):
+                            if not self._should_ignore_file(f) and f != lock_path:
+                                if f.is_file(): # Only unlink files, leave dirs for now
+                                    f.unlink()
+                                elif f.is_dir(): # Attempt to remove empty dirs, ignore if not empty
+                                    try:
+                                        f.rmdir() 
+                                    except OSError:
+                                        pass # Directory not empty, will be handled if files within are removed
 
-                    # Clear out potentially empty directory structures after file unlinking
-                    # This is a bit more aggressive to ensure clean state before restore
-                    for d in list(code_dir.rglob("*")): # Get a list first as rglob is a generator
-                        if d.is_dir() and not self._should_ignore_file(d) and not any(d.iterdir()):
-                            try:
-                                shutil.rmtree(d) # remove dir and all its contents if it became empty
-                            except OSError as e: # catch if it was removed by parent rmtree or other race
-                                logging.debug(f"Could not remove dir {d} during cleanup: {e}")
-                        elif d.is_file() and not self._should_ignore_file(d): # Should have been unlinked already
-                             d.unlink(missing_ok=True)
+                        # Clear out potentially empty directory structures after file unlinking
+                        # This is a bit more aggressive to ensure clean state before restore
+                        for d in list(code_dir.rglob("*")): # Get a list first as rglob is a generator
+                            if d.is_dir() and not self._should_ignore_file(d) and not any(d.iterdir()):
+                                try:
+                                    shutil.rmtree(d) # remove dir and all its contents if it became empty
+                                except OSError as e: # catch if it was removed by parent rmtree or other race
+                                    logging.debug(f"Could not remove dir {d} during cleanup: {e}")
+                            elif d.is_file() and not self._should_ignore_file(d) and d != lock_path: # Should have been unlinked already
+                                 d.unlink(missing_ok=True)
 
 
                     # restore from the selected snapshot
@@ -1279,11 +1283,15 @@ class Editor:
           - temp_file_error_line: the line number where error occurred in temp file
           - file_path: str
         """
+        # Initialize all variables that might be used in error handlers
         old_content = ""
         joined_proposed = ""
         tmp_path = None # Keep tmp_path for now, though not used for python validation
         reverted_due_to_compilation = False # Initialize revert flag
-
+        compilation_status = None # Initialize compilation status
+        current = "" # Initialize current for error handling
+        tb = "" # Initialize traceback string
+        
         try:
             # Ensure start_line and end_line are integers and validate
             if start_line is None:
@@ -1454,7 +1462,6 @@ class Editor:
                 }
 
             # Write the final content to the file
-            compilation_status = None # Initialize compilation status
             try:
                 # Use content_to_write which is either validated/formatted (py) or original (pyx/other)
                 self.file_manager.write_file(file_path, content_to_write)

@@ -122,6 +122,13 @@ def main():
 
     logger = setup_logging(task=task_name, model=desired_model_name)
 
+    # Configure per-job isolated Python cache to avoid network filesystem stress
+    import uuid
+    cache_id = str(uuid.uuid4())[:8]  # Use first 8 chars of UUID for brevity
+    cache_dir = f'/tmp/pycache_{os.getpid()}_{cache_id}'
+    os.environ['PYTHONPYCACHEPREFIX'] = cache_dir
+    os.makedirs(cache_dir, exist_ok=True)
+    logger.info(f"Set PYTHONPYCACHEPREFIX to {cache_dir}")
 
     llm_model_name = desired_model_name
 

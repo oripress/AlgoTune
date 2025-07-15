@@ -11,12 +11,91 @@ import importlib.util
 import gc
 import random
 import re
+import filelock
+import shutil
+from functools import wraps
 
 from AlgoTuner.utils.error_utils import extract_error_context
 from AlgoTuner.utils.timing_config import WARMUPS
+from AlgoTuner.utils.robust_tempdir import robust_tempdir
 
 # Configuration constants
 VALIDATION_OVERHEAD_FACTOR = 150.0  # Account for validation overhead (120s timeout + buffer)
+
+# -----------------------------------------------------------------------------
+# Filesystem resilience utilities
+# -----------------------------------------------------------------------------
+
+def _fs_operation(func, *args, **kwargs):
+    """Retry filesystem operations that may fail due to transient network issues.
+    
+    Args:
+        func: The filesystem operation to perform
+        *args, **kwargs: Arguments to pass to the function
+        
+    Returns:
+        Result of the filesystem operation
+        
+    Raises:
+        OSError: If the operation fails after all retries
+    """
+    max_attempts = 3
+    wait_times = [1, 2, 4]  # Exponential backoff
+    
+    for attempt in range(max_attempts):
+        try:
+            return func(*args, **kwargs)
+        except OSError as e:
+            if e.errno in [107, 39]:  # Transport endpoint not connected, Directory not empty
+                if attempt < max_attempts - 1:
+                    wait_time = wait_times[attempt]
+                    logging.warning(f"Filesystem operation failed with errno {e.errno}, retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                else:
+                    logging.error(f"Filesystem operation failed after {max_attempts} attempts with errno {e.errno}")
+                    raise
+            else:
+                raise
+
+
+def _check_filesystem_health(base_path: Optional[str] = None) -> bool:
+    """Check if the filesystem is accessible and responsive.
+    
+    Args:
+        base_path: Base path to check. If None, uses /pfs/work9/workspace/scratch/
+        
+    Returns:
+        True if filesystem is healthy
+        
+    Raises:
+        RuntimeError: If filesystem is not accessible
+    """
+    if base_path is None:
+        base_path = "/pfs/work9/workspace/scratch/"
+    
+    test_path = Path(base_path) / f".fs_health_check_{os.getpid()}_{random.randint(1000, 9999)}"
+    try:
+        # Test basic filesystem operations
+        test_path.parent.mkdir(parents=True, exist_ok=True)
+        test_path.touch()
+        test_path.write_text("test")
+        content = test_path.read_text()
+        test_path.unlink()
+        
+        if content != "test":
+            raise RuntimeError("Filesystem read/write verification failed")
+            
+        return True
+    except OSError as e:
+        logging.error(f"Filesystem health check failed: {e}")
+        raise RuntimeError(f"Filesystem unavailable: {e}")
+    finally:
+        # Clean up test file if it exists
+        try:
+            if test_path.exists():
+                test_path.unlink()
+        except OSError:
+            pass
 
 # -----------------------------------------------------------------------------
 # Isolated benchmark utilities
@@ -598,6 +677,7 @@ def run_isolated_benchmark(
     timed_problem: Any,
     num_runs: int = 5,
     timeout_seconds: float = 60.0,
+    early_exit_on_timeout: bool = True,
 ) -> Dict[str, Any]:
     """Benchmark *problem* using the strict isolation scheme requested by the
     user: every timing measurement happens in a dedicated interpreter.
@@ -611,6 +691,23 @@ def run_isolated_benchmark(
     """
 
     logger = logging.getLogger(__name__)
+
+    # Check filesystem health using the code directory
+    try:
+        _check_filesystem_health(code_dir)
+    except RuntimeError as e:
+        logger.error(f"Filesystem health check failed: {e}")
+        # Return early with error instead of proceeding with unstable filesystem
+        return {
+            "times": [],
+            "mean": float("inf"),
+            "std": 0.0,
+            "min": float("inf"),
+            "median": float("inf"),
+            "error": str(e),
+            "result": None,
+            "timeout_occurred": False,
+        }
 
     # ------------------------------------------------------------------
     # Detect if we are already inside a **daemon** multiprocessing worker.
@@ -734,15 +831,21 @@ def run_isolated_benchmark(
         run_results = []
         last_result = None
         
-        # Load manager refresh interval from config
+        # Load configuration
         try:
-            from AlgoTuner.config.config import load_config
+            from AlgoTuner.config.loader import load_config
             config = load_config()
             MANAGER_REFRESH_INTERVAL = config.get("benchmark", {}).get("manager_refresh_interval", 50)
+            cleanup_config = config.get("benchmark", {}).get("tempdir_cleanup", {})
+            cleanup_retries = cleanup_config.get("retries", 3)
+            cleanup_delays = tuple(cleanup_config.get("delays", [0.5, 1.0, 2.0]))
             logger.debug(f"[isolated_benchmark] Using manager_refresh_interval={MANAGER_REFRESH_INTERVAL} from config")
+            logger.debug(f"[isolated_benchmark] Using tempdir cleanup retries={cleanup_retries}, delays={cleanup_delays}")
         except Exception as e:
             MANAGER_REFRESH_INTERVAL = 50
-            logger.debug(f"[isolated_benchmark] Failed to load manager_refresh_interval from config: {e}. Using default: {MANAGER_REFRESH_INTERVAL}")
+            cleanup_retries = 3
+            cleanup_delays = (0.5, 1.0, 2.0)
+            logger.debug(f"[isolated_benchmark] Failed to load config: {e}. Using defaults")
         
         # Track Manager usage
         manager_usage = 0
@@ -765,7 +868,7 @@ def run_isolated_benchmark(
                     mgr = ctx.Manager()
                     manager_usage = 0
                 # Each run: one fork does warmup+timed sequentially, then dies
-                with tempfile.TemporaryDirectory() as tmp_dir:
+                with robust_tempdir(cleanup_retries=cleanup_retries, cleanup_delays=cleanup_delays) as tmp_dir:
                     ret = mgr.dict()
                     proc = ctx.Process(
                         target=_fork_run_worker,
@@ -778,7 +881,7 @@ def run_isolated_benchmark(
                     if proc.is_alive():
                         timeout_error = f"Process timed out after {timeout_seconds}s"
                         logger.warning(
-                            f"[isolated_benchmark] Run {idx+1}/{num_runs} timed out after {timeout_seconds}s – will skip and continue"
+                            f"[isolated_benchmark] Run {idx+1}/{num_runs} timed out after {timeout_seconds}s"
                         )
                         # Try terminate first (SIGTERM) for cleaner shutdown
                         proc.terminate()
@@ -789,13 +892,23 @@ def run_isolated_benchmark(
                             proc.join()
 
                         # Add a small delay to allow system cleanup after killing the process
-                        # This helps prevent performance degradation in subsequent runs
                         time.sleep(0.1)  # 100ms delay
 
-                        # Record timeout and continue; we will still succeed as long as
-                        # *at least one* run finishes successfully.  This avoids rare
-                        # false-positive timeouts due to sporadic kernel stalls or
-                        # first-touch page-fault storms.
+                        if early_exit_on_timeout:
+                            logger.warning(f"[isolated_benchmark] Early exit enabled - treating all runs as timeout")
+                            return {
+                                "run_results": [],
+                                "last_result": None,
+                                "success": False,
+                                "error": f"Run {idx+1} timed out - early exit enabled",
+                                "timeout_occurred": True,
+                                "error_type": "timeout",
+                                "runs": num_runs,
+                                "num_runs_executed": idx,
+                                "early_exit": True,
+                            }
+
+                        # Record timeout and continue
                         run_results.append({
                             "warmup_ns": None,
                             "timed_ns": None,
@@ -855,6 +968,17 @@ def run_isolated_benchmark(
                     
                     # Increment manager usage counter
                     manager_usage += 1
+                    
+                    # CRITICAL FIX: Clear and delete the shared dictionary to prevent memory leak
+                    try:
+                        ret.clear()
+                    except Exception as e:
+                        logger.debug(f"[isolated_benchmark] Error clearing return dict: {e}")
+                    del ret
+                
+                # Periodic garbage collection to free memory
+                if (idx + 1) % 5 == 0:
+                    gc.collect()
 
         finally:
             # Clean up Manager if it exists
@@ -968,6 +1092,7 @@ def run_isolated_benchmark_with_fetch(
     timed_fetch_info: Dict[str, Any],
     num_runs: int = 5,
     timeout_seconds: float = 60.0,
+    early_exit_on_timeout: bool = True,
 ) -> Dict[str, Any]:
     """Memory-efficient version of run_isolated_benchmark that loads problems inside workers.
     
@@ -1027,7 +1152,8 @@ def run_isolated_benchmark_with_fetch(
             warmup_problem=warmup_data,
             timed_problem=timed_data,
             num_runs=num_runs,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
+            early_exit_on_timeout=early_exit_on_timeout
         )
     
     def _run_with_manager_fetch(ctx):
@@ -1035,15 +1161,21 @@ def run_isolated_benchmark_with_fetch(
         run_results: List[Dict[str, float]] = []
         last_result = None
         
-        # Load manager refresh interval from config
+        # Load configuration
         try:
-            from AlgoTuner.config.config import load_config
+            from AlgoTuner.config.loader import load_config
             config = load_config()
             MANAGER_REFRESH_INTERVAL = config.get("benchmark", {}).get("manager_refresh_interval", 50)
+            cleanup_config = config.get("benchmark", {}).get("tempdir_cleanup", {})
+            cleanup_retries = cleanup_config.get("retries", 3)
+            cleanup_delays = tuple(cleanup_config.get("delays", [0.5, 1.0, 2.0]))
             logger.debug(f"[isolated_benchmark_fetch] Using manager_refresh_interval={MANAGER_REFRESH_INTERVAL} from config")
+            logger.debug(f"[isolated_benchmark_fetch] Using tempdir cleanup retries={cleanup_retries}, delays={cleanup_delays}")
         except Exception as e:
             MANAGER_REFRESH_INTERVAL = 50
-            logger.debug(f"[isolated_benchmark_fetch] Failed to load manager_refresh_interval from config: {e}. Using default: {MANAGER_REFRESH_INTERVAL}")
+            cleanup_retries = 3
+            cleanup_delays = (0.5, 1.0, 2.0)
+            logger.debug(f"[isolated_benchmark_fetch] Failed to load config: {e}. Using defaults")
         
         # Track Manager usage
         manager_usage = 0
@@ -1065,7 +1197,7 @@ def run_isolated_benchmark_with_fetch(
                     logger.debug(f"[isolated_benchmark_fetch] Creating new Manager for run {idx+1}/{num_runs}")
                     mgr = ctx.Manager()
                     manager_usage = 0
-                with tempfile.TemporaryDirectory() as tmp_dir:
+                with robust_tempdir(cleanup_retries=cleanup_retries, cleanup_delays=cleanup_delays) as tmp_dir:
                     ret = mgr.dict()
                     proc = ctx.Process(
                         target=_fork_run_worker_with_fetch,
@@ -1080,13 +1212,16 @@ def run_isolated_benchmark_with_fetch(
                         logger.warning(f"[isolated_benchmark_fetch] Run {idx+1}/{num_runs} timed out")
                         proc.kill()
                         proc.join()
+                        if early_exit_on_timeout:
+                            logger.warning(f"[isolated_benchmark_fetch] Early exit enabled - treating all runs as timeout")
                         return {
                             "success": False,
-                            "error": timeout_error,
+                            "error": f"Run {idx+1} timed out" + (" - early exit enabled" if early_exit_on_timeout else ""),
                             "timeout_occurred": True,
                             "error_type": "timeout",
                             "runs": num_runs,
                             "num_runs_executed": idx,
+                            "early_exit": early_exit_on_timeout,
                         }
 
                     if not ret.get("success", False):
@@ -1125,6 +1260,7 @@ def run_isolated_benchmark_with_fetch(
                     
                     # Clear the manager dict to free memory
                     ret.clear()
+                    del ret  # CRITICAL: Also delete the reference
                     
                     # Increment manager usage counter
                     manager_usage += 1
@@ -1475,7 +1611,8 @@ def _is_manager_error(exception: Exception) -> bool:
         "OSError",
         "IOError",
         "RemoteError",
-        "ChildProcessError"  # treat child process errors as retryable
+        "ChildProcessError",  # treat child process errors as retryable
+        "FileNotFoundError"  # cleanup race conditions after process termination
     ]
     
     # Check if error message contains retryable patterns
