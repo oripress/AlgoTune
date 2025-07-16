@@ -11,7 +11,7 @@ from pathlib import Path
 
 from AlgoTuner.config.model_config import GlobalConfig, GenericAPIModelConfig
 from AlgoTuner.utils.file_helpers import load_file_content
-from editor.editor_functions import Editor, EditorState, reload_all_llm_src
+from AlgoTuner.editor.editor_functions import Editor, EditorState, reload_all_llm_src
 from AlgoTuner.utils.message_writer import MessageWriter
 from AlgoTuner.utils.error_helpers import get_error_messages_cached
 from AlgoTuneTasks.base import Task
