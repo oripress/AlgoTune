@@ -129,12 +129,22 @@ class EvaluationOrchestrator:
             )
             
             # Check for critical errors that should stop evaluation
-            if result.execution.error_type in [
+            # Check both execution and validation errors
+            execution_is_critical = result.execution.error_type in [
                 ErrorType.MEMORY_ERROR,
                 ErrorType.IMPORT_ERROR,
                 ErrorType.EXECUTION_ERROR,
-            ]:
-                self.logger.error(f"Critical error encountered, stopping evaluation: {result.execution.error_type.value}")
+            ]
+            validation_is_critical = (
+                result.validation and 
+                result.validation.error_type == ErrorType.VALIDATION_ERROR
+            )
+            
+            if execution_is_critical or validation_is_critical:
+                error_source = "execution" if execution_is_critical else "validation"
+                error_type = (result.execution.error_type.value if execution_is_critical 
+                             else result.validation.error_type.value)
+                self.logger.error(f"Critical {error_source} error encountered, stopping evaluation: {error_type}")
                 # Create a special result that indicates early exit
                 return DatasetResults(
                     task_name=task_name,

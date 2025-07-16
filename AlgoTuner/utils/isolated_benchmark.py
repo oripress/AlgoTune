@@ -252,10 +252,13 @@ def _fork_run_worker(
     import traceback  # Local import – tiny overhead but avoids fork safety issues.
     import os  # Local import needed since there's a later local import that shadows the module-level import
     os.environ["ALGOTUNER_SOLVER_WORKER"] = "1"  # Mark this process as a solver worker
+    # Set numba to use fork-safe threading layer to prevent crashes in forked processes
+    os.environ["NUMBA_THREADING_LAYER"] = "workqueue"  # Fork-safe threading for numba
     import sys  # For debug output
     
     # Fix for pysat threading issues in multiprocessing workers
     worker_logger = logging.getLogger("isolated_worker")
+    worker_logger.debug(f"Set NUMBA_THREADING_LAYER=workqueue for fork safety in worker {os.getpid()}")
 
     # ------------------------------------------------------------------
     # Memory safety: cap RLIMIT_AS inside every isolated benchmark worker
@@ -803,6 +806,12 @@ def run_isolated_benchmark(
     # Normal (non-daemon) path – spawn one process per measurement
     # ------------------------------------------------------------------
 
+    # Ensure numba uses fork-safe threading before creating forkserver
+    # This must be set in the parent process before the forkserver is created
+    if "NUMBA_THREADING_LAYER" not in os.environ:
+        os.environ["NUMBA_THREADING_LAYER"] = "workqueue"
+        logger.debug("[isolated_benchmark] Set NUMBA_THREADING_LAYER=workqueue for fork safety")
+
     # Use 'forkserver' for thread-safe process creation - each run gets its own process
     ctx = mp.get_context("forkserver")
     logging.debug(f"[isolated_benchmark] Using 'forkserver' multiprocessing context for thread-safe per-run isolation")
@@ -1336,9 +1345,12 @@ def _fork_run_worker_with_fetch(
     import traceback
     import os
     os.environ["ALGOTUNER_SOLVER_WORKER"] = "1"  # mark as solver worker
+    # Set numba to use fork-safe threading layer to prevent crashes in forked processes
+    os.environ["NUMBA_THREADING_LAYER"] = "workqueue"  # Fork-safe threading for numba
     import sys
     
     worker_logger = logging.getLogger("isolated_worker_fetch")
+    worker_logger.debug(f"Set NUMBA_THREADING_LAYER=workqueue for fork safety in worker {os.getpid()}")
 
     # ------------------------------------------------------------------
     # Memory safety identical to _fork_run_worker – cap RLIMIT_AS to 14 GB.
@@ -1642,6 +1654,11 @@ def _run_with_manager_retry(
     Returns:
         Result from manager_func or error dict if all retries failed
     """
+    # Ensure numba uses fork-safe threading before creating forkserver
+    if "NUMBA_THREADING_LAYER" not in os.environ:
+        os.environ["NUMBA_THREADING_LAYER"] = "workqueue"
+        logging.debug("[isolated_benchmark] Set NUMBA_THREADING_LAYER=workqueue for fork safety in retry wrapper")
+    
     ctx = mp.get_context("forkserver")
     
     for attempt in range(max_retries):
