@@ -258,6 +258,10 @@ class ValidationPipeline:
         traceback_str: str
     ) -> ValidationContext:
         """Create context from a validation exception."""
+        # Clean the traceback to remove full paths
+        from AlgoTuner.utils.trace_cleaner import clean_traceback
+        cleaned_tb = clean_traceback(traceback_str)
+        
         # Extract the line number from traceback if possible
         failure_line = None
         lines = traceback_str.split('\n')
@@ -278,7 +282,7 @@ class ValidationPipeline:
             failure_line=failure_line,
             failure_reason=f"Exception in validation: {type(exception).__name__}",
             code_snippet=None,
-            full_context=f"Validation exception:\n{traceback_str}"
+            full_context=f"Validation exception:\n{cleaned_tb}"
         )
     
     def clear_context_cache(self):
