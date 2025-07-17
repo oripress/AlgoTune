@@ -577,6 +577,47 @@ def _fork_run_worker(
         except Exception:
             pass
         
+        # ------------------------------------------------------------------
+        # Validate cache protection: ensure warmup and timed problems are different
+        # ------------------------------------------------------------------
+        def validate_problem_isolation(warmup_problem, timed_problem):
+            """Ensure warmup and timed problems are different."""
+            # Object identity check
+            if warmup_problem is timed_problem:
+                raise ValueError("CACHE_PROTECTION_VIOLATION: Warmup and timed problems are identical objects")
+            
+            # Content equality check for dict problems
+            if isinstance(warmup_problem, dict) and isinstance(timed_problem, dict):
+                import json
+                try:
+                    warmup_str = json.dumps(warmup_problem, sort_keys=True)
+                    timed_str = json.dumps(timed_problem, sort_keys=True)
+                    if warmup_str == timed_str:
+                        raise ValueError("CACHE_PROTECTION_VIOLATION: Warmup and timed problems have identical content")
+                except (TypeError, ValueError):
+                    # Fallback to key-by-key comparison for non-JSON-serializable objects
+                    if warmup_problem.keys() == timed_problem.keys():
+                        import numpy as np
+                        identical_keys = 0
+                        for key in warmup_problem.keys():
+                            warmup_val = warmup_problem[key]
+                            timed_val = timed_problem[key]
+                            try:
+                                if np.array_equal(warmup_val, timed_val):
+                                    identical_keys += 1
+                                else:
+                                    break  # Found difference, problems are different
+                            except Exception:
+                                # If comparison fails, assume they're different
+                                break
+                        else:
+                            # All keys were identical
+                            if identical_keys == len(warmup_problem.keys()):
+                                raise ValueError("CACHE_PROTECTION_VIOLATION: Warmup and timed problems are identical")
+        
+        validate_problem_isolation(warmup_problem, timed_problem)
+        logging.debug(f"[isolated_bm child] Problem isolation validated: warmup != timed")
+        
         total_warmup_ns = 0
         warmup_result = None
         
@@ -600,9 +641,34 @@ def _fork_run_worker(
             logging.debug(f"[isolated_bm child] Warmup total cost: {warmup_result['total_cost']}")
 
         # ------------------------------------------------------------------
-        # 5) Light cache clearing between warmup and timed
+        # 5) Aggressive cache clearing between warmup and timed
         # ------------------------------------------------------------------
-        gc.collect()
+        def clear_solver_caches():
+            """Clear all solver-level caches between warmup and timed runs."""
+            # Clear class-level caches by finding all Solver classes
+            import sys
+            cleared_caches = []
+            for module_name, module in sys.modules.items():
+                if hasattr(module, 'Solver'):
+                    solver_class = getattr(module, 'Solver')
+                    # Clear common cache attribute names
+                    for cache_attr in ['_cache', 'cache', '_memo', '_results']:
+                        if hasattr(solver_class, cache_attr):
+                            cache = getattr(solver_class, cache_attr)
+                            if isinstance(cache, dict):
+                                cache_size = len(cache)
+                                cache.clear()
+                                cleared_caches.append(f"{module_name}.Solver.{cache_attr} ({cache_size} entries)")
+            
+            # Force garbage collection
+            gc.collect()
+            return cleared_caches
+        
+        cleared_caches = clear_solver_caches()
+        if cleared_caches:
+            logging.info(f"[isolated_bm child] Cleared solver caches: {cleared_caches}")
+        else:
+            logging.debug(f"[isolated_bm child] No solver caches found to clear")
         
         logging.debug(f"[isolated_bm child] Cache clearing completed")
         
