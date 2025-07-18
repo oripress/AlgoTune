@@ -141,8 +141,8 @@ class BaselineManager:
             # Get the problem data
             problem_data = item.get('problem', item) if isinstance(item, dict) else item
             
-            # Get warmup problem (use previous problem in dataset, or same problem for first)
-            warmup_idx = (i - 1) % problem_count if i > 0 else i
+            # Get warmup problem (use next problem in dataset, wrapping around)
+            warmup_idx = (i + 1) % problem_count
             warmup_item = dataset_list[warmup_idx]
             warmup_problem_data = warmup_item.get('problem', warmup_item) if isinstance(warmup_item, dict) else warmup_item
             

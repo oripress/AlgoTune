@@ -1,0 +1,2068 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – rocket_landing_optimization – Claude Opus 4</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">rocket_landing_optimization</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="rocket_landing_optimization_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (1.63x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="rocket_landing_optimization_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (1.03x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="rocket_landing_optimization_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #D2691E; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (0.99x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="rocket_landing_optimization_o4-mini.html">
+                        <div class="run-score" style="background-color: #D2691E; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (0.63x)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">rocket_landing_optimization</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Claude Opus 4</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #D2691E; font-weight: 600;">0.993x</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">6</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">0</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">97.9 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+Rocket Landing Optimization Task
+
+Based on: https://github.com/cvxpy/cvxkerb/blob/main/notebooks/solving_the_problem_solution.ipynb
+
+This task involves finding the optimal trajectory for a rocket to land at a target position while minimizing fuel consumption. The problem is formulated as a convex optimization problem where the goal is to compute the sequence of thrust vectors that will guide the rocket from its initial state to the target landing site with zero final velocity, subject to physical constraints.
+
+The dynamics of the rocket are modeled using discretized Newtonian mechanics, where the rocket&#x27;s position and velocity are updated based on the applied thrust and gravitational forces. The problem incorporates constraints on maximum thrust, maintains a non-negative height, and ensures the rocket reaches the target position with zero velocity.
+
+Problem Formulation:
+
+    minimize          gamma * sum(||F_t||)
+    subject to        V[0] = v0
+                      P[0] = p0
+                      V[K] = 0
+                      P[K] = p_target
+                      P[:, 2] &gt;= 0
+                      V[t+1, :2] = V[t, :2] + h * (F[t, :2] / m)
+                      V[t+1, 2] = V[t, 2] + h * (F[t, 2] / m - g)
+                      P[t+1] = P[t] + h/2 * (V[t] + V[t+1])
+                      ||F[t]|| &lt;= F_max
+
+where:
+- V[t] is the velocity vector at time step t (3D)
+- P[t] is the position vector at time step t (3D)
+- F[t] is the thrust vector at time step t (3D)
+- v0 is the initial velocity
+- p0 is the initial position
+- p_target is the target landing position
+- g is the gravitational acceleration
+- m is the mass of the rocket
+- h is the time step for discretization
+- K is the number of time steps
+- F_max is the maximum allowable thrust magnitude
+- gamma is the fuel consumption coefficient
+
+The objective is to minimize the total fuel consumption, which is proportional to the sum of thrust magnitudes over all time steps.
+
+Input: A dictionary with keys:
+- &quot;p0&quot;: A list of 3 floats representing the initial position [x, y, z].
+- &quot;v0&quot;: A list of 3 floats representing the initial velocity [vx, vy, vz].
+- &quot;p_target&quot;: A list of 3 floats representing the target landing position [x, y, z].
+- &quot;g&quot;: A float representing gravitational acceleration.
+- &quot;m&quot;: A float representing the mass of the rocket.
+- &quot;h&quot;: A float representing the time step for discretization.
+- &quot;K&quot;: An integer representing the number of time steps.
+- &quot;F_max&quot;: A float representing the maximum allowable thrust magnitude.
+- &quot;gamma&quot;: A float representing the fuel consumption coefficient.
+
+Example input:
+{
+  &quot;p0&quot;: [50.0, 50.0, 100.0],
+  &quot;v0&quot;: [-10.0, 0.0, -10.0],
+  &quot;p_target&quot;: [0.0, 0.0, 0.0],
+  &quot;g&quot;: 0.1,
+  &quot;m&quot;: 10.0,
+  &quot;h&quot;: 1.0,
+  &quot;K&quot;: 35,
+  &quot;F_max&quot;: 10.0,
+  &quot;gamma&quot;: 1.0
+}
+
+Output: A dictionary with keys:
+- &quot;position&quot;: A list of K+1 lists, each inner list containing 3 floats representing the position [x, y, z] at each time step.
+- &quot;velocity&quot;: A list of K+1 lists, each inner list containing 3 floats representing the velocity [vx, vy, vz] at each time step.
+- &quot;thrust&quot;: A list of K lists, each inner list containing 3 floats representing the thrust [Fx, Fy, Fz] at each time step.
+- &quot;fuel_consumption&quot;: A float representing the total fuel consumed.
+
+Example output:
+{
+  &quot;position&quot;: [[50.0, 50.0, 100.0], [45.0, 50.0, 95.0], ... , [0.0, 0.0, 0.0]],
+  &quot;velocity&quot;: [[-10.0, 0.0, -10.0], [-10.0, 0.0, -10.0], ... , [0.0, 0.0, 0.0]],
+  &quot;thrust&quot;: [[1.0, 0.0, 4.0], [2.0, 0.0, 5.0], ... , [3.0, 0.0, 6.0]],
+  &quot;fuel_consumption&quot;: 150.5
+}
+
+Category: convex_optimization
+
+Below is the reference implementation. Your function should run much quicker.
+
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+| 01: def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+| 02:     &quot;&quot;&quot;
+| 03:     Solve the rocket landing optimization problem using CVXPY.
+| 04: 
+| 05:     :param problem: Dictionary with problem parameters
+| 06:     :return: Dictionary with position, velocity, and thrust trajectories
+| 07:     
+| 08: 
+| 09:     NOTE: Your solution must pass validation by:
+| 10:     1. Returning correctly formatted output
+| 11:     2. Having no NaN or infinity values
+| 12:     3. Matching expected results within numerical tolerance
+| 13:     &quot;&quot;&quot;
+| 14:     # Extract problem parameters
+| 15:     p0 = np.array(problem[&quot;p0&quot;])
+| 16:     v0 = np.array(problem[&quot;v0&quot;])
+| 17:     p_target = np.array(problem[&quot;p_target&quot;])
+| 18:     g = float(problem[&quot;g&quot;])
+| 19:     m = float(problem[&quot;m&quot;])
+| 20:     h = float(problem[&quot;h&quot;])
+| 21:     K = int(problem[&quot;K&quot;])
+| 22:     F_max = float(problem[&quot;F_max&quot;])
+| 23:     gamma = float(problem[&quot;gamma&quot;])
+| 24: 
+| 25:     # Variables
+| 26:     V = cp.Variable((K + 1, 3))  # Velocity
+| 27:     P = cp.Variable((K + 1, 3))  # Position
+| 28:     F = cp.Variable((K, 3))  # Thrust
+| 29: 
+| 30:     # Constraints
+| 31:     constraints = []
+| 32: 
+| 33:     # Initial conditions
+| 34:     constraints.append(V[0] == v0)
+| 35:     constraints.append(P[0] == p0)
+| 36: 
+| 37:     # Terminal conditions
+| 38:     constraints.append(V[K] == np.zeros(3))  # Zero final velocity
+| 39:     constraints.append(P[K] == p_target)  # Target position
+| 40: 
+| 41:     # Height constraint (always positive)
+| 42:     constraints.append(P[:, 2] &gt;= 0)
+| 43: 
+| 44:     # Dynamics for velocity
+| 45:     constraints.append(V[1:, :2] == V[:-1, :2] + h * (F[:, :2] / m))
+| 46:     constraints.append(V[1:, 2] == V[:-1, 2] + h * (F[:, 2] / m - g))
+| 47: 
+| 48:     # Dynamics for position
+| 49:     constraints.append(P[1:] == P[:-1] + h / 2 * (V[:-1] + V[1:]))
+| 50: 
+| 51:     # Maximum thrust constraint
+| 52:     constraints.append(cp.norm(F, 2, axis=1) &lt;= F_max)
+| 53: 
+| 54:     # Objective: minimize fuel consumption
+| 55:     fuel_consumption = gamma * cp.sum(cp.norm(F, axis=1))
+| 56:     objective = cp.Minimize(fuel_consumption)
+| 57: 
+| 58:     # Solve the problem
+| 59:     prob = cp.Problem(objective, constraints)
+| 60:     try:
+| 61:         prob.solve()
+| 62:     except cp.SolverError as e:
+| 63:         return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+| 64:     except Exception as e:
+| 65:         return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+| 66: 
+| 67:     if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or P.value is None:
+| 68:         return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+| 69: 
+| 70:     # Return solution
+| 71:     return {
+| 72:         &quot;position&quot;: P.value.tolist(),
+| 73:         &quot;velocity&quot;: V.value.tolist(),
+| 74:         &quot;thrust&quot;: F.value.tolist(),
+| 75:         &quot;fuel_consumption&quot;: float(prob.value),
+| 76:     }
+| 77: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+| 001: def is_solution( problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+| 002:     &quot;&quot;&quot;
+| 003:     Verify that the solution is valid and optimal.
+| 004: 
+| 005:     Checks:
+| 006:     - Solution contains position, velocity, thrust trajectories
+| 007:     - Initial and final conditions are satisfied
+| 008:     - Dynamics constraints are satisfied
+| 009:     - Maximum thrust constraint is satisfied
+| 010:     - Optimality by comparing to reference solution
+| 011: 
+| 012:     :param problem: Dictionary with problem parameters
+| 013:     :param solution: Dictionary with proposed solution
+| 014:     :return: True if solution is valid and optimal, False otherwise
+| 015:     &quot;&quot;&quot;
+| 016:     required_keys = {&quot;position&quot;, &quot;velocity&quot;, &quot;thrust&quot;}
+| 017:     if not required_keys.issubset(solution):
+| 018:         logging.error(&quot;Solution missing required keys.&quot;)
+| 019:         return False
+| 020: 
+| 021:     try:
+| 022:         position = np.array(solution[&quot;position&quot;])
+| 023:         velocity = np.array(solution[&quot;velocity&quot;])
+| 024:         thrust = np.array(solution[&quot;thrust&quot;])
+| 025:     except Exception as e:
+| 026:         logging.error(f&quot;Error converting solution to arrays: {e}&quot;)
+| 027:         return False
+| 028: 
+| 029:     # Extract problem parameters
+| 030:     p0 = np.array(problem[&quot;p0&quot;])
+| 031:     v0 = np.array(problem[&quot;v0&quot;])
+| 032:     p_target = np.array(problem[&quot;p_target&quot;])
+| 033:     g = float(problem[&quot;g&quot;])
+| 034:     m = float(problem[&quot;m&quot;])
+| 035:     h = float(problem[&quot;h&quot;])
+| 036:     K = int(problem[&quot;K&quot;])
+| 037:     F_max = float(problem[&quot;F_max&quot;])
+| 038:     gamma = float(problem[&quot;gamma&quot;])
+| 039: 
+| 040:     # Check dimensions
+| 041:     if position.shape != (K + 1, 3) or velocity.shape != (K + 1, 3) or thrust.shape != (K, 3):
+| 042:         logging.error(&quot;Solution has incorrect dimensions.&quot;)
+| 043:         return False
+| 044: 
+| 045:     # Check initial conditions
+| 046:     eps = 1e-5
+| 047:     if np.linalg.norm(position[0] - p0) &gt; eps:
+| 048:         logging.error(&quot;Initial position constraint violated.&quot;)
+| 049:         return False
+| 050: 
+| 051:     if np.linalg.norm(velocity[0] - v0) &gt; eps:
+| 052:         logging.error(&quot;Initial velocity constraint violated.&quot;)
+| 053:         return False
+| 054: 
+| 055:     # Check terminal conditions
+| 056:     if np.linalg.norm(position[K] - p_target) &gt; eps:
+| 057:         logging.error(&quot;Target position constraint violated.&quot;)
+| 058:         return False
+| 059: 
+| 060:     if np.linalg.norm(velocity[K]) &gt; eps:
+| 061:         logging.error(&quot;Final velocity constraint violated.&quot;)
+| 062:         return False
+| 063: 
+| 064:     # Check height constraint
+| 065:     if np.any(position[:, 2] &lt; -eps):
+| 066:         logging.error(&quot;Height constraint violated.&quot;)
+| 067:         return False
+| 068: 
+| 069:     # Check maximum thrust constraint
+| 070:     thrust_norms = np.linalg.norm(thrust, axis=1)
+| 071:     if np.any(thrust_norms &gt; F_max + eps):
+| 072:         logging.error(&quot;Maximum thrust constraint violated.&quot;)
+| 073:         return False
+| 074: 
+| 075:     # Check dynamics
+| 076:     for t in range(K):
+| 077:         # Velocity dynamics
+| 078:         v_next_xy_expected = velocity[t, :2] + h * (thrust[t, :2] / m)
+| 079:         v_next_z_expected = velocity[t, 2] + h * (thrust[t, 2] / m - g)
+| 080:         v_next_expected = np.concatenate([v_next_xy_expected, [v_next_z_expected]])
+| 081: 
+| 082:         if np.linalg.norm(velocity[t + 1] - v_next_expected) &gt; eps:
+| 083:             logging.error(f&quot;Velocity dynamics constraint violated at t={t}.&quot;)
+| 084:             return False
+| 085: 
+| 086:         # Position dynamics
+| 087:         p_next_expected = position[t] + h / 2 * (velocity[t] + velocity[t + 1])
+| 088:         if np.linalg.norm(position[t + 1] - p_next_expected) &gt; eps:
+| 089:             logging.error(f&quot;Position dynamics constraint violated at t={t}.&quot;)
+| 090:             return False
+| 091: 
+| 092:     # Calculate fuel consumption
+| 093:     fuel_consumption = gamma * np.sum(np.linalg.norm(thrust, axis=1))
+| 094: 
+| 095:     # If a reference fuel consumption was provided, check optimality
+| 096:     if &quot;fuel_consumption&quot; in solution:
+| 097:         proposed_fuel = float(solution[&quot;fuel_consumption&quot;])
+| 098:         if abs(proposed_fuel - fuel_consumption) &gt; eps * max(1, abs(fuel_consumption)):
+| 099:             logging.error(
+| 100:                 f&quot;Reported fuel consumption {proposed_fuel} doesn&#x27;t match calculated value {fuel_consumption}.&quot;
+| 101:             )
+| 102:             return False
+| 103: 
+| 104:     # Compare with reference solution
+| 105:     ref_solution = solve(problem)
+| 106:     if not ref_solution[&quot;position&quot;]:  # Solver failed
+| 107:         logging.warning(&quot;Reference solution failed; skipping optimality check.&quot;)
+| 108:         return True
+| 109: 
+| 110:     ref_fuel = float(ref_solution[&quot;fuel_consumption&quot;])
+| 111: 
+| 112:     # Allow 1% tolerance for optimality
+| 113:     if fuel_consumption &gt; ref_fuel * 1.01:
+| 114:         logging.error(
+| 115:             f&quot;Sub-optimal solution: {fuel_consumption:.6g} &gt; {ref_fuel:.6g} (1% tolerance).&quot;
+| 116:         )
+| 117:         return False
+| 118: 
+| 119:     return True
+| 120:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>Rocket Landing Optimization Task
+
+Based on: https://github.com/cvxpy/cvxkerb/blob/main/notebooks/solving_the_problem_solution.ipynb
+
+This task involves finding the optimal trajectory for a rocket to land at a target position while minimizing fuel consumption. The problem is formulated as a convex optimization problem where the goal is to compute the sequence of thrust vectors that will guide the rocket from its initial state to the target landing site with zero final velocity, subject to physical constraints.
+
+The dynamics of the rocket are modeled using discretized Newtonian mechanics, where the rocket&#x27;s position and velocity are updated based on the applied thrust and gravitational forces. The problem incorporates constraints on maximum thrust, maintains a non-negative height, and ensures the rocket reaches the target position with zero velocity.
+
+Problem Formulation:
+
+    minimize          gamma * sum(||F_t||)
+    subject to        V[0] = v0
+                      P[0] = p0
+                      V[K] = 0
+                      P[K] = p_target
+                      P[:, 2] &gt;= 0
+                      V[t+1, :2] = V[t, :2] + h * (F[t, :2] / m)
+                      V[t+1, 2] = V[t, 2] + h * (F[t, 2] / m - g)
+                      P[t+1] = P[t] + h/2 * (V[t] + V[t+1])
+                      ||F[t]|| &lt;= F_max
+
+where:
+- V[t] is the velocity vector at time step t (3D)
+- P[t] is the position vector at time step t (3D)
+- F[t] is the thrust vector at time step t (3D)
+- v0 is the initial velocity
+- p0 is the initial position
+- p_target is the target landing position
+- g is the gravitational acceleration
+- m is the mass of the rocket
+- h is the time step for discretization
+- K is the number of time steps
+- F_max is the maximum allowable thrust magnitude
+- gamma is the fuel consumption coefficient
+
+The objective is to minimize the total fuel consumption, which is proportional to the sum of thrust magnitudes over all time steps.
+
+Input: A dictionary with keys:
+- &quot;p0&quot;: A list of 3 floats representing the initial position [x, y, z].
+- &quot;v0&quot;: A list of 3 floats representing the initial velocity [vx, vy, vz].
+- &quot;p_target&quot;: A list of 3 floats representing the target landing position [x, y, z].
+- &quot;g&quot;: A float representing gravitational acceleration.
+- &quot;m&quot;: A float representing the mass of the rocket.
+- &quot;h&quot;: A float representing the time step for discretization.
+- &quot;K&quot;: An integer representing the number of time steps.
+- &quot;F_max&quot;: A float representing the maximum allowable thrust magnitude.
+- &quot;gamma&quot;: A float representing the fuel consumption coefficient.
+
+Example input:
+{
+  &quot;p0&quot;: [50.0, 50.0, 100.0],
+  &quot;v0&quot;: [-10.0, 0.0, -10.0],
+  &quot;p_target&quot;: [0.0, 0.0, 0.0],
+  &quot;g&quot;: 0.1,
+  &quot;m&quot;: 10.0,
+  &quot;h&quot;: 1.0,
+  &quot;K&quot;: 35,
+  &quot;F_max&quot;: 10.0,
+  &quot;gamma&quot;: 1.0
+}
+
+Output: A dictionary with keys:
+- &quot;position&quot;: A list of K+1 lists, each inner list containing 3 floats representing the position [x, y, z] at each time step.
+- &quot;velocity&quot;: A list of K+1 lists, each inner list containing 3 floats representing the velocity [vx, vy, vz] at each time step.
+- &quot;thrust&quot;: A list of K lists, each inner list containing 3 floats representing the thrust [Fx, Fy, Fz] at each time step.
+- &quot;fuel_consumption&quot;: A float representing the total fuel consumed.
+
+Example output:
+{
+  &quot;position&quot;: [[50.0, 50.0, 100.0], [45.0, 50.0, 95.0], ... , [0.0, 0.0, 0.0]],
+  &quot;velocity&quot;: [[-10.0, 0.0, -10.0], [-10.0, 0.0, -10.0], ... , [0.0, 0.0, 0.0]],
+  &quot;thrust&quot;: [[1.0, 0.0, 4.0], [2.0, 0.0, 5.0], ... , [3.0, 0.0, 6.0]],
+  &quot;fuel_consumption&quot;: 150.5
+}
+
+Category: convex_optimization</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">from typing import Any
+import cvxpy as cp
+import numpy as np
+
+ def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+     &quot;&quot;&quot;
+     Solve the rocket landing optimization problem using CVXPY.
+ 
+     :param problem: Dictionary with problem parameters
+     :return: Dictionary with position, velocity, and thrust trajectories
+     
+ 
+     NOTE: Your solution must pass validation by:
+     1. Returning correctly formatted output
+     2. Having no NaN or infinity values
+     3. Matching expected results within numerical tolerance
+     &quot;&quot;&quot;
+     # Extract problem parameters
+     p0 = np.array(problem[&quot;p0&quot;])
+     v0 = np.array(problem[&quot;v0&quot;])
+     p_target = np.array(problem[&quot;p_target&quot;])
+     g = float(problem[&quot;g&quot;])
+     m = float(problem[&quot;m&quot;])
+     h = float(problem[&quot;h&quot;])
+     K = int(problem[&quot;K&quot;])
+     F_max = float(problem[&quot;F_max&quot;])
+     gamma = float(problem[&quot;gamma&quot;])
+ 
+     # Variables
+     V = cp.Variable((K + 1, 3))  # Velocity
+     P = cp.Variable((K + 1, 3))  # Position
+     F = cp.Variable((K, 3))  # Thrust
+ 
+     # Constraints
+     constraints = []
+ 
+     # Initial conditions
+     constraints.append(V[0] == v0)
+     constraints.append(P[0] == p0)
+ 
+     # Terminal conditions
+     constraints.append(V[K] == np.zeros(3))  # Zero final velocity
+     constraints.append(P[K] == p_target)  # Target position
+ 
+     # Height constraint (always positive)
+     constraints.append(P[:, 2] &gt;= 0)
+ 
+     # Dynamics for velocity
+     constraints.append(V[1:, :2] == V[:-1, :2] + h * (F[:, :2] / m))
+     constraints.append(V[1:, 2] == V[:-1, 2] + h * (F[:, 2] / m - g))
+ 
+     # Dynamics for position
+     constraints.append(P[1:] == P[:-1] + h / 2 * (V[:-1] + V[1:]))
+ 
+     # Maximum thrust constraint
+     constraints.append(cp.norm(F, 2, axis=1) &lt;= F_max)
+ 
+     # Objective: minimize fuel consumption
+     fuel_consumption = gamma * cp.sum(cp.norm(F, axis=1))
+     objective = cp.Minimize(fuel_consumption)
+ 
+     # Solve the problem
+     prob = cp.Problem(objective, constraints)
+     try:
+         prob.solve()
+     except cp.SolverError as e:
+         return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+     except Exception as e:
+         return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+ 
+     if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or P.value is None:
+         return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+ 
+     # Return solution
+     return {
+         &quot;position&quot;: P.value.tolist(),
+         &quot;velocity&quot;: V.value.tolist(),
+         &quot;thrust&quot;: F.value.tolist(),
+         &quot;fuel_consumption&quot;: float(prob.value),
+     }</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">from typing import Any
+import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the rocket landing optimization problem using CVXPY.
+        
+        :param problem: Dictionary with problem parameters
+        :return: Dictionary with position, velocity, and thrust trajectories
+        &quot;&quot;&quot;
+        # Extract problem parameters
+        p0 = np.array(problem[&quot;p0&quot;])
+        v0 = np.array(problem[&quot;v0&quot;])
+        p_target = np.array(problem[&quot;p_target&quot;])
+        g = float(problem[&quot;g&quot;])
+        m = float(problem[&quot;m&quot;])
+        h = float(problem[&quot;h&quot;])
+        K = int(problem[&quot;K&quot;])
+        F_max = float(problem[&quot;F_max&quot;])
+        gamma = float(problem[&quot;gamma&quot;])
+
+        # Variables
+        V = cp.Variable((K + 1, 3))  # Velocity
+        P = cp.Variable((K + 1, 3))  # Position
+        F = cp.Variable((K, 3))  # Thrust
+
+        # Constraints
+        constraints = []
+
+        # Initial conditions
+        constraints.append(V[0] == v0)
+        constraints.append(P[0] == p0)
+
+        # Terminal conditions
+        constraints.append(V[K] == np.zeros(3))  # Zero final velocity
+        constraints.append(P[K] == p_target)  # Target position
+
+        # Height constraint (always positive)
+        constraints.append(P[:, 2] &gt;= 0)
+
+        # Dynamics for velocity
+        constraints.append(V[1:, :2] == V[:-1, :2] + h * (F[:, :2] / m))
+        constraints.append(V[1:, 2] == V[:-1, 2] + h * (F[:, 2] / m - g))
+
+        # Dynamics for position
+        constraints.append(P[1:] == P[:-1] + h / 2 * (V[:-1] + V[1:]))
+
+        # Maximum thrust constraint
+        constraints.append(cp.norm(F, 2, axis=1) &lt;= F_max)
+
+        # Objective: minimize fuel consumption
+        fuel_consumption = gamma * cp.sum(cp.norm(F, axis=1))
+        objective = cp.Minimize(fuel_consumption)
+
+        # Solve the problem
+        prob = cp.Problem(objective, constraints)
+        try:
+            prob.solve()
+        except cp.SolverError as e:
+            return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+        except Exception as e:
+            return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+
+        if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or P.value is None:
+            return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+
+        # Return solution
+        return {
+            &quot;position&quot;: P.value.tolist(),
+            &quot;velocity&quot;: V.value.tolist(),
+            &quot;thrust&quot;: F.value.tolist(),
+            &quot;fuel_consumption&quot;: float(prob.value),
+        }</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/rocket_landing_optimization_claude-opus-4-20250514_20250625_150046_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/rocket_landing_optimization_claude-opus-4-20250514_20250625_150046_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge view_file">👁️ View File</span>
+            </div>
+            <div class="message-content">
+                I need to analyze the rocket landing optimization problem and create an optimized solver. Let me start by examining the reference implementation to understand the problem structure.<br><br><pre><code class="language-python">view_file solver.py</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.1109. You have $0.8891 remaining.<br><br>File: solver.py (lines 0-0 out of 0)
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I need to create the solver.py file. Let me start with the reference implementation and then optimize it.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 0-0
+---
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the rocket landing optimization problem using CVXPY.
+        
+        :param problem: Dictionary with problem parameters
+        :return: Dictionary with position, velocity, and thrust trajectories
+        &quot;&quot;&quot;
+        # Extract problem parameters
+        p0 = np.array(problem[&quot;p0&quot;])
+        v0 = np.array(problem[&quot;v0&quot;])
+        p_target = np.array(problem[&quot;p_target&quot;])
+        g = float(problem[&quot;g&quot;])
+        m = float(problem[&quot;m&quot;])
+        h = float(problem[&quot;h&quot;])
+        K = int(problem[&quot;K&quot;])
+        F_max = float(problem[&quot;F_max&quot;])
+        gamma = float(problem[&quot;gamma&quot;])
+
+        # Variables
+        V = cp.Variable((K + 1, 3))  # Velocity
+        P = cp.Variable((K + 1, 3))  # Position
+        F = cp.Variable((K, 3))  # Thrust
+
+        # Constraints
+        constraints = []
+
+        # Initial conditions
+        constraints.append(V[0] == v0)
+        constraints.append(P[0] == p0)
+
+        # Terminal conditions
+        constraints.append(V[K] == np.zeros(3))  # Zero final velocity
+        constraints.append(P[K] == p_target)  # Target position
+
+        # Height constraint (always positive)
+        constraints.append(P[:, 2] &gt;= 0)
+
+        # Dynamics for velocity
+        constraints.append(V[1:, :2] == V[:-1, :2] + h * (F[:, :2] / m))
+        constraints.append(V[1:, 2] == V[:-1, 2] + h * (F[:, 2] / m - g))
+
+        # Dynamics for position
+        constraints.append(P[1:] == P[:-1] + h / 2 * (V[:-1] + V[1:]))
+
+        # Maximum thrust constraint
+        constraints.append(cp.norm(F, 2, axis=1) &lt;= F_max)
+
+        # Objective: minimize fuel consumption
+        fuel_consumption = gamma * cp.sum(cp.norm(F, axis=1))
+        objective = cp.Minimize(fuel_consumption)
+
+        # Solve the problem
+        prob = cp.Problem(objective, constraints)
+        try:
+            prob.solve()
+        except cp.SolverError as e:
+            return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+        except Exception as e:
+            return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+
+        if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or P.value is None:
+            return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+
+        # Return solution
+        return {
+            &quot;position&quot;: P.value.tolist(),
+            &quot;velocity&quot;: V.value.tolist(),
+            &quot;thrust&quot;: F.value.tolist(),
+            &quot;fuel_consumption&quot;: float(prob.value),
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.2681. You have $0.7319 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 75)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import cvxpy as cp
+&gt; 03: import numpy as np
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solve the rocket landing optimization problem using CVXPY.
+&gt; 09:         
+&gt; 10:         :param problem: Dictionary with problem parameters
+&gt; 11:         :return: Dictionary with position, velocity, and thrust trajectories
+&gt; 12:         &quot;&quot;&quot;
+&gt; 13:         # Extract problem parameters
+&gt; 14:         p0 = np.array(problem[&quot;p0&quot;])
+&gt; 15:         v0 = np.array(problem[&quot;v0&quot;])
+&gt; 16:         p_target = np.array(problem[&quot;p_target&quot;])
+&gt; 17:         g = float(problem[&quot;g&quot;])
+&gt; 18:         m = float(problem[&quot;m&quot;])
+&gt; 19:         h = float(problem[&quot;h&quot;])
+&gt; 20:         K = int(problem[&quot;K&quot;])
+&gt; 21:         F_max = float(problem[&quot;F_max&quot;])
+&gt; 22:         gamma = float(problem[&quot;gamma&quot;])
+&gt; 23: 
+&gt; 24:         # Variables
+&gt; 25:         V = cp.Variable((K + 1, 3))  # Velocity
+&gt; 26:         P = cp.Variable((K + 1, 3))  # Position
+&gt; 27:         F = cp.Variable((K, 3))  # Thrust
+&gt; 28: 
+&gt; 29:         # Constraints
+&gt; 30:         constraints = []
+&gt; 31: 
+&gt; 32:         # Initial conditions
+&gt; 33:         constraints.append(V[0] == v0)
+&gt; 34:         constraints.append(P[0] == p0)
+&gt; 35: 
+&gt; 36:         # Terminal conditions
+&gt; 37:         constraints.append(V[K] == np.zeros(3))  # Zero final velocity
+&gt; 38:         constraints.append(P[K] == p_target)  # Target position
+&gt; 39: 
+&gt; 40:         # Height constraint (always positive)
+&gt; 41:         constraints.append(P[:, 2] &gt;= 0)
+&gt; 42: 
+&gt; 43:         # Dynamics for velocity
+&gt; 44:         constraints.append(V[1:, :2] == V[:-1, :2] + h * (F[:, :2] / m))
+&gt; 45:         constraints.append(V[1:, 2] == V[:-1, 2] + h * (F[:, 2] / m - g))
+&gt; 46: 
+&gt; 47:         # Dynamics for position
+&gt; 48:         constraints.append(P[1:] == P[:-1] + h / 2 * (V[:-1] + V[1:]))
+&gt; 49: 
+&gt; 50:         # Maximum thrust constraint
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#D2691E; font-weight:600;">0.99</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge eval_input">🧪 Input Eval</span>
+            </div>
+            <div class="message-content">
+                I need to optimize the solver significantly. Let me first test the current implementation to understand its performance, then try different optimization strategies.<br><br><pre><code class="language-python">eval_input {&quot;p0&quot;: [50.0, 50.0, 100.0], &quot;v0&quot;: [-10.0, 0.0, -10.0], &quot;p_target&quot;: [0.0, 0.0, 0.0], &quot;g&quot;: 0.1, &quot;m&quot;: 10.0, &quot;h&quot;: 1.0, &quot;K&quot;: 35, &quot;F_max&quot;: 10.0, &quot;gamma&quot;: 1.0}</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.4113. You have $0.5887 remaining.<br><br>Starting evaluation...<br><br>Output: {&#x27;position&#x27;: [[49.99999999999999, 49.99999999999999, 99.99999999999999], [40.383975034723, 49.88241065992253, 90.24788575299681], [31.532564922525772, 49.53549343691204, 80.99800546258042], [23.438731382588227, 48.97137638367555, 72.26359489857938], [16.09465558813331, 48.20308083506111, 64.05851871340492], [9.49163922277123, 47.244605131640824, 56.39728551521399], [3.619988741030294, 46.11101498884726, 49.29506043821144], [-1.5311164828709687, 44.8185411761048, 42.76766997362193], [-5.973774001717068, 43.38468427798297, 36.83159619962624], [-9.721527748353102, 41.82832574450308, 31.503956538340283], [-12.789558371121027, 40.16984367101978, 26.802464215167678], [-15.194895143913227, 38.431230779183736, 22.745363604572134], [-16.956649304808504, 36.636210932941474, 19.351333744979], [-18.096267774639337, 34.81034917525717, 16.639352779046693], [-18.637804307699355, 32.98114810212248, 14.628515330482077], [-18.608202163891804, 31.17812067264607, 13.337794362936442], [-18.03755939213142, 29.432821377675335, 12.78572824050125], [-17.108792610144274, 27.745704723944236, 12.7262251683032], [-16.084487997819483, 26.07976258067947, 12.73539987274552], [-15.060183350461209, 24.413820449679818, 12.644574648398326], [-14.035878684927289, 22.74787832772614, 12.453749466303183], [-13.011574007668504, 21.081936213803807, 12.162924315658548], [-11.987269322222259, 19.415994107619348, 11.77209919104565], [-10.962964630933964, 17.750052009227247, 11.281274089356334], [-9.938659935554249, 16.08410991893032, 10.690449008778172], [-8.914355237524617, 14.418167837263919, 9.999623948370775], [-7.8900505381497075, 12.752225765026955, 9.208798907888744], [-6.865745838730967, 11.086283703360845, 8.317973887750012], [-5.841441140707937, 9.420341653903417, 7.3271488891383765], [-4.8171364458634285, 7.7543996190924895, 6.236323914305959], [-3.792831756719794, 6.088457602829844, 5.045498967303023], [-2.768527077535323, 4.422515612176941, 3.7546740558333256], [-1.7442224151848775, 2.7565736578378326, 2.3638491907789314], [-0.8274311773592744, 1.2839511619862547, 1.0903578504687235], [-0.21139613273395766, 0.3221498163535355, 0.2686394648182713], [5.324687516457015e-16, -3.2763520234651154e-16, 3.898357274155181e-14]], &#x27;velocity&#x27;: [[-10.000000000000014, 4.304267726884976e-15, -10.00000000000001], [-9.232049930553979, -0.23517868015494242, -9.50422849400637], [-8.470770293840479, -0.45865576586601986, -8.995532086826406], [-7.716896786034613, -0.6695783406069736, -8.47328904117562], [-6.9712548028752135, -0.8670127566219097, -7.936863329173328], [-6.234777927848947, -1.0499386502186647, -7.385603067208551], [-5.508523035632921, -1.2172416353684659, -6.818847086796522], [-4.793687412169606, -1.3677059901164494, -6.235933842382582], [-4.091627625522585, -1.5000078061272382, -5.636213705608793], [-3.403879867749481, -1.612709260832516, -5.019065616963146], [-2.7321813777863615, -1.7042548861341027, -4.383919029382057], [-2.078492167798045, -1.772970897538, -3.73028219180904], [-1.4450161539924986, -1.8170687949465247, -3.0577775273772168], [-0.8342207856691621, -1.8346547204220809, -2.366184404487375], [-0.24885228045087426, -1.823747425847288, -1.6554904926418554], [0.3080565680659824, -1.782307433105545, -0.9259514424494015], [0.8332289754547918, -1.708291156835925, -0.17818080242098416], [1.024304588519498, -1.6659421506262722, 0.05917465802486391], [1.0243046361300914, -1.665942135903259, -0.04082524914022603], [1.0243046585864528, -1.665942126096053, -0.14082519955413456], [1.024304672481389, -1.6659421178112976, -0.240825164636154], [1.0243046820361859, -1.6659421100333736, -0.34082513665309216], [1.0243046888563077, -1.665942102335548, -0.44082511257270285], [1.024304693720279, -1.6659420944486523, -0.5408250908059291], [1.0243046970391574, -1.6659420861452112, -0.6408250703503916], [1.0243046990201046, -1.6659420771875915, -0.740825050464401], [1.0243046997297232, -1.6659420672863414, -0.8408250304996657], [1.0243046991077598, -1.66594205604588, -0.9408250097777731], [1.024304696938296, -1.6659420428689453, -1.0408249874455018], [1.0243046927507253, -1.6659420267529128, -1.1408249622193132], [1.0243046855365483, -1.6659420057723635, -1.240824931786559], [1.0243046728323946, -1.6659419755334466, -1.3408248911528209], [1.0243046518684997, -1.6659419331447696, -1.4408248389559675], [0.8092778237827062, -1.2793030585583873, -1.1061578416644327], [0.42279226546792137, -0.644299632707079, -0.5372789296364713], [-4.864440764366498e-15, 7.170844343364374e-15, 6.875975398281335e-15]], &#x27;thrust&#x27;: [[7.679500694460359, -2.351786801549456, 5.957715059936455], [7.612796367135229, -2.2347708571110267, 6.086964071799652], [7.5387350780587905, -2.109225747409529, 6.222430456508091], [7.456419831594112, -1.9743441601494818, 6.3642571200237406], [7.364768750262781, -1.829258935967508, 6.512602619647896], [7.2625489221603665, -1.6730298514980746, 6.667559804120156], [7.148356234633243, -1.5046435474798046, 6.829132444139378], [7.0205978664703155, -1.323018160107918, 6.997201367738301], [6.877477577731131, -1.1270145470527744, 7.171480886456536], [6.716984899631284, -0.9154562530158732, 7.351465875810966], [6.536892099883245, -0.6871601140389785, 7.536368375730478], [6.334760138055542, -0.4409789740852487, 7.72504664431849], [6.107953683233435, -0.17585925475556438, 7.915931228898458], [5.853685052182945, 0.10907294574793601, 8.106939118455365], [5.569088485168628, 0.41439992741743625, 8.29539050192463], [5.251724073888149, 0.740162762696207, 8.477706400284056], [1.9107561306471101, 0.42349006209655915, 3.373554604458808], [4.761059807845713e-07, 1.4723011179173714e-07, 9.283490095938897e-07], [2.245636535632248e-07, 9.807212122958285e-08, 4.95861176096166e-07], [1.3894939527238948e-07, 8.284757854167232e-08, 3.491803337188181e-07], [9.554799705837945e-08, 7.777928467290244e-08, 2.7983074027093166e-07], [6.820124167310239e-08, 7.697815523131526e-08, 2.40804146237005e-07], [4.863973358579424e-08, 7.886909622268515e-08, 2.1766771836844819e-07], [3.318879500201706e-08, 8.303440093048305e-08, 2.0455550209329868e-07], [1.98094793894542e-08, 8.95761499339159e-08, 1.9886003500512414e-07], [7.096186421274722e-09, 9.901253718986671e-08, 1.9964734392766473e-07], [-6.2196342352435186e-09, 1.1240463043531186e-07, 2.0721889606175044e-07], [-2.169464772101808e-08, 1.3176936274777147e-07, 2.2332297534559276e-07], [-4.1875721570217926e-08, 1.6116041476120092e-07, 2.52261801732755e-07], [-7.21417879330666e-08, 2.0980562692225028e-07, 3.043279871613866e-07], [-1.2704156234189747e-07, 3.023892743705473e-07, 4.063375175243124e-07], [-2.096389789390157e-07, 4.238867786035685e-07, 5.219685809139873e-07], [-2.150268280857968, 3.8663887458639796, 4.346669972915526], [-3.8648555831478766, 6.35003425851312, 6.688789120279659], [-4.227922654679314, 6.442996327070891, 6.372789296364851]], &#x27;fuel_consumption&#x27;: 190.10225969112184}<br>Runtime: 12.439048 ms<br>Output is valid: Yes
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Now let me optimize the solver. First, I&#x27;ll try using a specific solver backend and optimize the problem formulation:<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-75
+---
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the rocket landing optimization problem using CVXPY with OSQP solver.
+        
+        :param problem: Dictionary with problem parameters
+        :return: Dictionary with position, velocity, and thrust trajectories
+        &quot;&quot;&quot;
+        # Extract problem parameters
+        p0 = np.array(problem[&quot;p0&quot;], dtype=np.float64)
+        v0 = np.array(problem[&quot;v0&quot;], dtype=np.float64)
+        p_target = np.array(problem[&quot;p_target&quot;], dtype=np.float64)
+        g = float(problem[&quot;g&quot;])
+        m = float(problem[&quot;m&quot;])
+        h = float(problem[&quot;h&quot;])
+        K = int(problem[&quot;K&quot;])
+        F_max = float(problem[&quot;F_max&quot;])
+        gamma = float(problem[&quot;gamma&quot;])
+
+        # Variables
+        V = cp.Variable((K + 1, 3))  # Velocity
+        P = cp.Variable((K + 1, 3))  # Position
+        F = cp.Variable((K, 3))  # Thrust
+        # Add auxiliary variable for thrust norms to avoid repeated computation
+        F_norms = cp.Variable(K)
+
+        # Constraints
+        constraints = []
+
+        # Initial conditions
+        constraints.append(V[0] == v0)
+        constraints.append(P[0] == p0)
+
+        # Terminal conditions
+        constraints.append(V[K] == 0)  # Zero final velocity
+        constraints.append(P[K] == p_target)  # Target position
+
+        # Height constraint (always positive)
+        constraints.append(P[:, 2] &gt;= 0)
+
+        # Dynamics for velocity
+        constraints.append(V[1:, :2] == V[:-1, :2] + h * (F[:, :2] / m))
+        constraints.append(V[1:, 2] == V[:-1, 2] + h * (F[:, 2] / m - g))
+
+        # Dynamics for position
+        constraints.append(P[1:] == P[:-1] + h / 2 * (V[:-1] + V[1:]))
+
+        # Maximum thrust constraint with auxiliary variable
+        for t in range(K):
+            constraints.append(cp.norm(F[t]) &lt;= F_norms[t])
+            constraints.append(F_norms[t] &lt;= F_max)
+
+        # Objective: minimize fuel consumption
+        fuel_consumption = gamma * cp.sum(F_norms)
+        objective = cp.Minimize(fuel_consumption)
+
+        # Solve the problem with OSQP solver
+        prob = cp.Problem(objective, constraints)
+        try:
+            # Use OSQP which is typically faster for QP problems
+            prob.solve(solver=cp.OSQP, verbose=False, eps_abs=1e-5, eps_rel=1e-5)
+        except:
+            try:
+                # Fallback to ECOS if OSQP fails
+                prob.solve(solver=cp.ECOS, verbose=False)
+            except:
+                return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+
+        if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or P.value is None:
+            return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+
+        # Return solution
+        return {
+            &quot;position&quot;: P.value.tolist(),
+            &quot;velocity&quot;: V.value.tolist(),
+            &quot;thrust&quot;: F.value.tolist(),
+            &quot;fuel_consumption&quot;: float(prob.value),
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.6674. You have $0.3326 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 82)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import cvxpy as cp
+&gt; 03: import numpy as np
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solve the rocket landing optimization problem using CVXPY with OSQP solver.
+&gt; 09:         
+&gt; 10:         :param problem: Dictionary with problem parameters
+&gt; 11:         :return: Dictionary with position, velocity, and thrust trajectories
+&gt; 12:         &quot;&quot;&quot;
+&gt; 13:         # Extract problem parameters
+&gt; 14:         p0 = np.array(problem[&quot;p0&quot;], dtype=np.float64)
+&gt; 15:         v0 = np.array(problem[&quot;v0&quot;], dtype=np.float64)
+&gt; 16:         p_target = np.array(problem[&quot;p_target&quot;], dtype=np.float64)
+&gt; 17:         g = float(problem[&quot;g&quot;])
+&gt; 18:         m = float(problem[&quot;m&quot;])
+&gt; 19:         h = float(problem[&quot;h&quot;])
+&gt; 20:         K = int(problem[&quot;K&quot;])
+&gt; 21:         F_max = float(problem[&quot;F_max&quot;])
+&gt; 22:         gamma = float(problem[&quot;gamma&quot;])
+&gt; 23: 
+&gt; 24:         # Variables
+&gt; 25:         V = cp.Variable((K + 1, 3))  # Velocity
+&gt; 26:         P = cp.Variable((K + 1, 3))  # Position
+&gt; 27:         F = cp.Variable((K, 3))  # Thrust
+&gt; 28:         # Add auxiliary variable for thrust norms to avoid repeated computation
+&gt; 29:         F_norms = cp.Variable(K)
+&gt; 30: 
+&gt; 31:         # Constraints
+&gt; 32:         constraints = []
+&gt; 33: 
+&gt; 34:         # Initial conditions
+&gt; 35:         constraints.append(V[0] == v0)
+&gt; 36:         constraints.append(P[0] == p0)
+&gt; 37: 
+&gt; 38:         # Terminal conditions
+&gt; 39:         constraints.append(V[K] == 0)  # Zero final velocity
+&gt; 40:         constraints.append(P[K] == p_target)  # Target position
+&gt; 41: 
+&gt; 42:         # Height constraint (always positive)
+&gt; 43:         constraints.append(P[:, 2] &gt;= 0)
+&gt; 44: 
+&gt; 45:         # Dynamics for velocity
+&gt; 46:         constraints.append(V[1:, :2] == V[:-1, :2] + h * (F[:, :2] / m))
+&gt; 47:         constraints.append(V[1:, 2] == V[:-1, 2] + h * (F[:, 2] / m - g))
+&gt; 48: 
+&gt; 49:         # Dynamics for position
+&gt; 50:         constraints.append(P[1:] == P[:-1] + h / 2 * (V[:-1] + V[1:]))
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 1%<br>  Invalid Solutions: 0%<br>  Timeouts: 99%<br><br><br>Snapshot not saved - invalid solutions present
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge revert">↩️ Revert Changes</span>
+            </div>
+            <div class="message-content">
+                I see the issue - the individual norm constraints are causing timeouts. Let me revert and try a different optimization approach:<br><br><pre><code class="language-python">revert</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.8666. You have $0.1334 remaining.<br><br>Successfully reverted to last saved state.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Let me try a more efficient optimization using the SCS solver and simplified constraints:<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-75
+---
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the rocket landing optimization problem using CVXPY with SCS solver.
+        
+        :param problem: Dictionary with problem parameters
+        :return: Dictionary with position, velocity, and thrust trajectories
+        &quot;&quot;&quot;
+        # Extract problem parameters
+        p0 = np.array(problem[&quot;p0&quot;], dtype=np.float64)
+        v0 = np.array(problem[&quot;v0&quot;], dtype=np.float64)
+        p_target = np.array(problem[&quot;p_target&quot;], dtype=np.float64)
+        g = float(problem[&quot;g&quot;])
+        m = float(problem[&quot;m&quot;])
+        h = float(problem[&quot;h&quot;])
+        K = int(problem[&quot;K&quot;])
+        F_max = float(problem[&quot;F_max&quot;])
+        gamma = float(problem[&quot;gamma&quot;])
+
+        # Pre-compute constants
+        h_over_m = h / m
+        h_over_2 = h / 2
+
+        # Variables
+        V = cp.Variable((K + 1, 3))  # Velocity
+        P = cp.Variable((K + 1, 3))  # Position
+        F = cp.Variable((K, 3))  # Thrust
+
+        # Constraints
+        constraints = []
+
+        # Initial conditions
+        constraints.append(V[0] == v0)
+        constraints.append(P[0] == p0)
+
+        # Terminal conditions
+        constraints.append(V[K] == 0)  # Zero final velocity
+        constraints.append(P[K] == p_target)  # Target position
+
+        # Height constraint (always positive)
+        constraints.append(P[:, 2] &gt;= 0)
+
+        # Dynamics for velocity
+        constraints.append(V[1:, :2] == V[:-1, :2] + h_over_m * F[:, :2])
+        constraints.append(V[1:, 2] == V[:-1, 2] + h_over_m * F[:, 2] - h * g)
+
+        # Dynamics for position
+        constraints.append(P[1:] == P[:-1] + h_over_2 * (V[:-1] + V[1:]))
+
+        # Maximum thrust constraint
+        constraints.append(cp.norm(F, 2, axis=1) &lt;= F_max)
+
+        # Objective: minimize fuel consumption
+        fuel_consumption = gamma * cp.sum(cp.norm(F, axis=1))
+        objective = cp.Minimize(fuel_consumption)
+
+        # Solve the problem with SCS solver
+        prob = cp.Problem(objective, constraints)
+        try:
+            # Use SCS which is often faster for conic problems
+            prob.solve(solver=cp.SCS, verbose=False, normalize=True, eps=1e-5, max_iters=5000)
+        except:
+            try:
+                # Fallback to ECOS
+                prob.solve(solver=cp.ECOS, verbose=False)
+            except:
+                return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+
+        if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or P.value is None:
+            return {&quot;position&quot;: [], &quot;velocity&quot;: [], &quot;thrust&quot;: []}
+
+        # Return solution
+        return {
+            &quot;position&quot;: P.value.tolist(),
+            &quot;velocity&quot;: V.value.tolist(),
+            &quot;thrust&quot;: F.value.tolist(),
+            &quot;fuel_consumption&quot;: float(prob.value),
+        }
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

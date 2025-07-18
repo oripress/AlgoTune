@@ -1,0 +1,2555 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – rectanglepacking – Claude Opus 4</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">rectanglepacking</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="rectanglepacking_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (2.29x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="rectanglepacking_o4-mini.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (1.47x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="rectanglepacking_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #B22222; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (Fail)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="rectanglepacking_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #B22222; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (Fail)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">rectanglepacking</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Claude Opus 4</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #B22222; font-weight: 600;">Fail</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">5</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">0</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">25.6 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+Rectangle Packing  
+
+Given a rectangular container and a list of rectangles, each defined by its width, height, and a boolean indicating whether it can be rotated by 90 degrees, the task is to pack as many rectangles as possible into the container without overlapping.  
+
+The output should be a dictionary where the key is the index of a packed rectangle from the input list, and the value is a triple containing the coordinates of the lower-left corner of the rectangle and a boolean indicating whether it was rotated.  
+
+Input:  
+A tuple (W, H, rectangles), where:  
+- W is an integer representing the width of the container.  
+- H is an integer representing the height of the container.  
+- rectangles is a list of tuples (w, h, r), where:  
+  - w is the width of a rectangle,  
+  - h is the height of a rectangle,  
+  - r is a boolean indicating whether the rectangle can be rotated by 90 degrees.  
+
+Example Input:  
+(25, 20, [(17, 11, False), (23, 12, True), (8, 20, False), (17, 9, True), (25, 19, True)])
+
+Output:  
+A list of rectangle placements where a rectangle placement consists of
+- the index of the packed rectangle
+- the x coordinate
+- the y coordinate
+- a boolean indicating if the rectangle was rotated
+
+Example Output:  
+[(0, 8, 0, False), (2, 0, 0, False), (3, 8, 11, False)]
+
+Category: discrete_optimization
+
+
+Below is the reference implementation. Your function should run much quicker.
+
+import itertools
+import math
+import random
+from typing import NamedTuple
+from ortools.sat.python import cp_model
+
+| 001: def _typesafe_instance( instance) -&gt; Instance:
+| 002:     if isinstance(instance, Instance):
+| 003:         return instance
+| 004:     return Instance(instance[0], instance[1], [Rectangle(*r) for r in instance[2]])
+| 005: 
+| 006: 
+| 007: def solve(self, problem: Instance) -&gt; list[RectanglePlacement]:
+| 008:     problem = self._typesafe_instance(problem)
+| 009:     from ortools.sat.python import cp_model
+| 010: 
+| 011:     class RectangleKnapsackWithRotationsModel:
+| 012:         def __init__(self, instance: Instance):
+| 013:             self.instance = instance
+| 014:             self.model = cp_model.CpModel()
+| 015: 
+| 016:             # Create coordinates for the placement
+| 017:             self.bottom_left_x_vars = [
+| 018:                 self.model.new_int_var(0, instance.container_width, name=f&quot;x1_{i}&quot;)
+| 019:                 for i, box in enumerate(instance.rectangles)
+| 020:             ]
+| 021:             self.bottom_left_y_vars = [
+| 022:                 self.model.new_int_var(0, instance.container_height, name=f&quot;y1_{i}&quot;)
+| 023:                 for i, box in enumerate(instance.rectangles)
+| 024:             ]
+| 025:             self.upper_right_x_vars = [
+| 026:                 self.model.new_int_var(0, instance.container_width, name=f&quot;x2_{i}&quot;)
+| 027:                 for i, box in enumerate(instance.rectangles)
+| 028:             ]
+| 029:             self.upper_right_y_vars = [
+| 030:                 self.model.new_int_var(0, instance.container_height, name=f&quot;y2_{i}&quot;)
+| 031:                 for i, box in enumerate(instance.rectangles)
+| 032:             ]
+| 033:             self.rotated_vars = [
+| 034:                 self.model.new_bool_var(f&quot;rotated_{i}&quot;) for i in range(len(instance.rectangles))
+| 035:             ]
+| 036:             self.placed_vars = [
+| 037:                 self.model.new_bool_var(f&quot;placed_{i}&quot;) for i in range(len(instance.rectangles))
+| 038:             ]
+| 039: 
+| 040:             # Add constraints for the dimensions of each rectangle
+| 041:             for i, rect in enumerate(instance.rectangles):
+| 042:                 # If the rectangle is placed
+| 043:                 # If not rotated: x2 = x1 + width, y2 = y1 + height
+| 044:                 # If rotated: x2 = x1 + height, y2 = y1 + width
+| 045:                 if rect.rotatable:
+| 046:                     # Not rotated
+| 047:                     self.model.add(
+| 048:                         self.upper_right_x_vars[i] == self.bottom_left_x_vars[i] + rect.width
+| 049:                     ).only_enforce_if([self.placed_vars[i], self.rotated_vars[i].Not()])
+| 050:                     self.model.add(
+| 051:                         self.upper_right_y_vars[i] == self.bottom_left_y_vars[i] + rect.height
+| 052:                     ).only_enforce_if([self.placed_vars[i], self.rotated_vars[i].Not()])
+| 053: 
+| 054:                     # Rotated
+| 055:                     self.model.add(
+| 056:                         self.upper_right_x_vars[i] == self.bottom_left_x_vars[i] + rect.height
+| 057:                     ).only_enforce_if([self.placed_vars[i], self.rotated_vars[i]])
+| 058:                     self.model.add(
+| 059:                         self.upper_right_y_vars[i] == self.bottom_left_y_vars[i] + rect.width
+| 060:                     ).only_enforce_if([self.placed_vars[i], self.rotated_vars[i]])
+| 061:                 else:
+| 062:                     # Not rotatable
+| 063:                     self.model.add(
+| 064:                         self.upper_right_x_vars[i] == self.bottom_left_x_vars[i] + rect.width
+| 065:                     ).only_enforce_if(self.placed_vars[i])
+| 066:                     self.model.add(
+| 067:                         self.upper_right_y_vars[i] == self.bottom_left_y_vars[i] + rect.height
+| 068:                     ).only_enforce_if(self.placed_vars[i])
+| 069:                     # Force rotated to be false
+| 070:                     self.model.add(self.rotated_vars[i] == 0)
+| 071: 
+| 072:                 # If not placed, set coordinates to 0
+| 073:                 self.model.add(self.bottom_left_x_vars[i] == 0).only_enforce_if(
+| 074:                     self.placed_vars[i].Not()
+| 075:                 )
+| 076:                 self.model.add(self.bottom_left_y_vars[i] == 0).only_enforce_if(
+| 077:                     self.placed_vars[i].Not()
+| 078:                 )
+| 079:                 self.model.add(self.upper_right_x_vars[i] == 0).only_enforce_if(
+| 080:                     self.placed_vars[i].Not()
+| 081:                 )
+| 082:                 self.model.add(self.upper_right_y_vars[i] == 0).only_enforce_if(
+| 083:                     self.placed_vars[i].Not()
+| 084:                 )
+| 085: 
+| 086:             # Add non-overlapping constraints for placed rectangles
+| 087:             for i, j in itertools.combinations(range(len(instance.rectangles)), 2):
+| 088:                 # If both rectangles are placed, they must not overlap
+| 089:                 # Rectangle i is to the left of rectangle j
+| 090:                 b_i_left_of_j = self.model.new_bool_var(f&quot;{i}_left_of_{j}&quot;)
+| 091:                 self.model.add(
+| 092:                     self.upper_right_x_vars[i] &lt;= self.bottom_left_x_vars[j]
+| 093:                 ).only_enforce_if([self.placed_vars[i], self.placed_vars[j], b_i_left_of_j])
+| 094: 
+| 095:                 # Rectangle i is to the right of rectangle j
+| 096:                 b_i_right_of_j = self.model.new_bool_var(f&quot;{i}_right_of_{j}&quot;)
+| 097:                 self.model.add(
+| 098:                     self.bottom_left_x_vars[i] &gt;= self.upper_right_x_vars[j]
+| 099:                 ).only_enforce_if([self.placed_vars[i], self.placed_vars[j], b_i_right_of_j])
+| 100: 
+| 101:                 # Rectangle i is below rectangle j
+| 102:                 b_i_below_j = self.model.new_bool_var(f&quot;{i}_below_{j}&quot;)
+| 103:                 self.model.add(
+| 104:                     self.upper_right_y_vars[i] &lt;= self.bottom_left_y_vars[j]
+| 105:                 ).only_enforce_if([self.placed_vars[i], self.placed_vars[j], b_i_below_j])
+| 106: 
+| 107:                 # Rectangle i is above rectangle j
+| 108:                 b_i_above_j = self.model.new_bool_var(f&quot;{i}_above_{j}&quot;)
+| 109:                 self.model.add(
+| 110:                     self.bottom_left_y_vars[i] &gt;= self.upper_right_y_vars[j]
+| 111:                 ).only_enforce_if([self.placed_vars[i], self.placed_vars[j], b_i_above_j])
+| 112: 
+| 113:                 # At least one of these must be true if both rectangles are placed
+| 114:                 self.model.add(
+| 115:                     b_i_left_of_j + b_i_right_of_j + b_i_below_j + b_i_above_j &gt;= 1
+| 116:                 ).only_enforce_if([self.placed_vars[i], self.placed_vars[j]])
+| 117: 
+| 118:             # Objective: maximize the number of placed rectangles
+| 119:             self.model.maximize(sum(self.placed_vars))
+| 120: 
+| 121:         def _extract_solution(self, solver: cp_model.CpSolver) -&gt; list[RectanglePlacement]:
+| 122:             &quot;&quot;&quot;Extract the solution from the solver.
+| 123: 
+| 124:     NOTE: Your solution must pass validation by:
+| 125:     1. Returning correctly formatted output
+| 126:     2. Having no NaN or infinity values
+| 127:     3. Matching expected results within numerical tolerance
+| 128:     &quot;&quot;&quot;
+| 129:             solution = []
+| 130:             for i in range(len(self.instance.rectangles)):
+| 131:                 if solver.Value(self.placed_vars[i]):
+| 132:                     x = solver.Value(self.bottom_left_x_vars[i])
+| 133:                     y = solver.Value(self.bottom_left_y_vars[i])
+| 134:                     rotated = solver.Value(self.rotated_vars[i]) == 1
+| 135:                     solution.append(RectanglePlacement(i, x, y, rotated))
+| 136:             return solution
+| 137: 
+| 138:         def solve(self, time_limit: float = 900.0):
+| 139:             &quot;&quot;&quot;Solve the model and return the solution.&quot;&quot;&quot;
+| 140:             solver = cp_model.CpSolver()
+| 141:             solver.parameters.max_time_in_seconds = time_limit
+| 142:             solver.parameters.log_search_progress = True
+| 143:             status = solver.Solve(self.model)
+| 144:             if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+| 145:                 return self._extract_solution(solver)
+| 146:             return []
+| 147: 
+| 148:     model = RectangleKnapsackWithRotationsModel(problem)
+| 149:     return model.solve()
+| 150: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+import itertools
+import math
+import random
+from typing import NamedTuple
+from ortools.sat.python import cp_model
+
+| 01: def _typesafe_solution( solution) -&gt; Solution:
+| 02:     return [RectanglePlacement(*r_p) for r_p in solution]
+| 03: 
+| 04: 
+| 05: def is_solution( problem: Instance, solution: list[RectanglePlacement]) -&gt; bool:
+| 06:     def do_overlap(
+| 07:         r1: Rectangle, r1_p: RectanglePlacement, r2: Rectangle, r2_p: RectanglePlacement
+| 08:     ):
+| 09:         x1, y1 = r1_p.x, r1_p.y
+| 10:         w1, h1 = (r1.width, r1.height) if not r1_p.rotated else (r1.height, r1.width)
+| 11:         x2, y2 = r2_p.x, r2_p.y
+| 12:         w2, h2 = (r2.width, r2.height) if not r2_p.rotated else (r2.height, r2.width)
+| 13:         return not (x1 + w1 &lt;= x2 or x2 + w2 &lt;= x1 or y1 + h1 &lt;= y2 or y2 + h2 &lt;= y1)
+| 14: 
+| 15:     problem = _typesafe_instance(problem)
+| 16:     solution = _typesafe_solution(solution)
+| 17: 
+| 18:     # check if the indices are valid
+| 19:     if any(r_p[0] &gt;= len(problem.rectangles) for r_p in solution):
+| 20:         return False  # Check if all indices are within the range
+| 21:     if any(r_p[0] &lt; 0 for r_p in solution):
+| 22:         return False  # Check if all indices are non-negative
+| 23:     if len({r_p[0] for r_p in solution}) != len(solution):
+| 24:         return False  # Check if all indices are unique
+| 25: 
+| 26:     # check that only valid rotations are used
+| 27:     if any(r_p.rotated and not problem.rectangles[r_p[0]].rotatable for r_p in solution):
+| 28:         return False
+| 29: 
+| 30:     # Check if any rectangles overlap
+| 31:     for r1_p, r2_p in itertools.combinations(solution, 2):
+| 32:         r1 = problem.rectangles[r1_p[0]]
+| 33:         r2 = problem.rectangles[r2_p[0]]
+| 34:         if do_overlap(r1, r1_p, r2, r2_p):
+| 35:             return False
+| 36: 
+| 37:     # Check if all rectangles are within the container
+| 38:     for r_p in solution:
+| 39:         _, x, y, rotated = r_p
+| 40:         r = problem.rectangles[r_p[0]]
+| 41:         w, h = (r.width, r.height) if not rotated else (r.height, r.width)
+| 42:         if (
+| 43:             x &lt; 0
+| 44:             or y &lt; 0
+| 45:             or x + w &gt; problem.container_width
+| 46:             or y + h &gt; problem.container_height
+| 47:         ):
+| 48:             return False
+| 49: 
+| 50:     # Check if the dimensions match the original rectangles
+| 51:     original_rects = set()
+| 52:     for rect in problem.rectangles:
+| 53:         if rect.rotatable:
+| 54:             original_rects.add((rect.width, rect.height))
+| 55:             original_rects.add((rect.height, rect.width))
+| 56:         else:
+| 57:             original_rects.add((rect.width, rect.height))
+| 58: 
+| 59:     # check if solution is optimal
+| 60:     optimal_solution = solve(problem)
+| 61:     optimal_value = len(optimal_solution)
+| 62:     if len(solution) &lt; optimal_value:
+| 63:         return False
+| 64:     return True
+| 65:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>Rectangle Packing  
+
+Given a rectangular container and a list of rectangles, each defined by its width, height, and a boolean indicating whether it can be rotated by 90 degrees, the task is to pack as many rectangles as possible into the container without overlapping.  
+
+The output should be a dictionary where the key is the index of a packed rectangle from the input list, and the value is a triple containing the coordinates of the lower-left corner of the rectangle and a boolean indicating whether it was rotated.  
+
+Input:  
+A tuple (W, H, rectangles), where:  
+- W is an integer representing the width of the container.  
+- H is an integer representing the height of the container.  
+- rectangles is a list of tuples (w, h, r), where:  
+  - w is the width of a rectangle,  
+  - h is the height of a rectangle,  
+  - r is a boolean indicating whether the rectangle can be rotated by 90 degrees.  
+
+Example Input:  
+(25, 20, [(17, 11, False), (23, 12, True), (8, 20, False), (17, 9, True), (25, 19, True)])
+
+Output:  
+A list of rectangle placements where a rectangle placement consists of
+- the index of the packed rectangle
+- the x coordinate
+- the y coordinate
+- a boolean indicating if the rectangle was rotated
+
+Example Output:  
+[(0, 8, 0, False), (2, 0, 0, False), (3, 8, 11, False)]
+
+Category: discrete_optimization</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">import itertools
+import math
+import random
+from typing import NamedTuple
+from ortools.sat.python import cp_model
+
+ def _typesafe_instance( instance) -&gt; Instance:
+     if isinstance(instance, Instance):
+         return instance
+     return Instance(instance[0], instance[1], [Rectangle(*r) for r in instance[2]])
+ 
+ 
+ def solve(self, problem: Instance) -&gt; list[RectanglePlacement]:
+     problem = self._typesafe_instance(problem)
+     from ortools.sat.python import cp_model
+ 
+     class RectangleKnapsackWithRotationsModel:
+         def __init__(self, instance: Instance):
+             self.instance = instance
+             self.model = cp_model.CpModel()
+ 
+             # Create coordinates for the placement
+             self.bottom_left_x_vars = [
+                 self.model.new_int_var(0, instance.container_width, name=f&quot;x1_{i}&quot;)
+                 for i, box in enumerate(instance.rectangles)
+             ]
+             self.bottom_left_y_vars = [
+                 self.model.new_int_var(0, instance.container_height, name=f&quot;y1_{i}&quot;)
+                 for i, box in enumerate(instance.rectangles)
+             ]
+             self.upper_right_x_vars = [
+                 self.model.new_int_var(0, instance.container_width, name=f&quot;x2_{i}&quot;)
+                 for i, box in enumerate(instance.rectangles)
+             ]
+             self.upper_right_y_vars = [
+                 self.model.new_int_var(0, instance.container_height, name=f&quot;y2_{i}&quot;)
+                 for i, box in enumerate(instance.rectangles)
+             ]
+             self.rotated_vars = [
+                 self.model.new_bool_var(f&quot;rotated_{i}&quot;) for i in range(len(instance.rectangles))
+             ]
+             self.placed_vars = [
+                 self.model.new_bool_var(f&quot;placed_{i}&quot;) for i in range(len(instance.rectangles))
+             ]
+ 
+             # Add constraints for the dimensions of each rectangle
+             for i, rect in enumerate(instance.rectangles):
+                 # If the rectangle is placed
+                 # If not rotated: x2 = x1 + width, y2 = y1 + height
+                 # If rotated: x2 = x1 + height, y2 = y1 + width
+                 if rect.rotatable:
+                     # Not rotated
+                     self.model.add(
+                         self.upper_right_x_vars[i] == self.bottom_left_x_vars[i] + rect.width
+                     ).only_enforce_if([self.placed_vars[i], self.rotated_vars[i].Not()])
+                     self.model.add(
+                         self.upper_right_y_vars[i] == self.bottom_left_y_vars[i] + rect.height
+                     ).only_enforce_if([self.placed_vars[i], self.rotated_vars[i].Not()])
+ 
+                     # Rotated
+                     self.model.add(
+                         self.upper_right_x_vars[i] == self.bottom_left_x_vars[i] + rect.height
+                     ).only_enforce_if([self.placed_vars[i], self.rotated_vars[i]])
+                     self.model.add(
+                         self.upper_right_y_vars[i] == self.bottom_left_y_vars[i] + rect.width
+                     ).only_enforce_if([self.placed_vars[i], self.rotated_vars[i]])
+                 else:
+                     # Not rotatable
+                     self.model.add(
+                         self.upper_right_x_vars[i] == self.bottom_left_x_vars[i] + rect.width
+                     ).only_enforce_if(self.placed_vars[i])
+                     self.model.add(
+                         self.upper_right_y_vars[i] == self.bottom_left_y_vars[i] + rect.height
+                     ).only_enforce_if(self.placed_vars[i])
+                     # Force rotated to be false
+                     self.model.add(self.rotated_vars[i] == 0)
+ 
+                 # If not placed, set coordinates to 0
+                 self.model.add(self.bottom_left_x_vars[i] == 0).only_enforce_if(
+                     self.placed_vars[i].Not()
+                 )
+                 self.model.add(self.bottom_left_y_vars[i] == 0).only_enforce_if(
+                     self.placed_vars[i].Not()
+                 )
+                 self.model.add(self.upper_right_x_vars[i] == 0).only_enforce_if(
+                     self.placed_vars[i].Not()
+                 )
+                 self.model.add(self.upper_right_y_vars[i] == 0).only_enforce_if(
+                     self.placed_vars[i].Not()
+                 )
+ 
+             # Add non-overlapping constraints for placed rectangles
+             for i, j in itertools.combinations(range(len(instance.rectangles)), 2):
+                 # If both rectangles are placed, they must not overlap
+                 # Rectangle i is to the left of rectangle j
+                 b_i_left_of_j = self.model.new_bool_var(f&quot;{i}_left_of_{j}&quot;)
+                 self.model.add(
+                     self.upper_right_x_vars[i] &lt;= self.bottom_left_x_vars[j]
+                 ).only_enforce_if([self.placed_vars[i], self.placed_vars[j], b_i_left_of_j])
+ 
+                 # Rectangle i is to the right of rectangle j
+                 b_i_right_of_j = self.model.new_bool_var(f&quot;{i}_right_of_{j}&quot;)
+                 self.model.add(
+                     self.bottom_left_x_vars[i] &gt;= self.upper_right_x_vars[j]
+                 ).only_enforce_if([self.placed_vars[i], self.placed_vars[j], b_i_right_of_j])
+ 
+                 # Rectangle i is below rectangle j
+                 b_i_below_j = self.model.new_bool_var(f&quot;{i}_below_{j}&quot;)
+                 self.model.add(
+                     self.upper_right_y_vars[i] &lt;= self.bottom_left_y_vars[j]
+                 ).only_enforce_if([self.placed_vars[i], self.placed_vars[j], b_i_below_j])
+ 
+                 # Rectangle i is above rectangle j
+                 b_i_above_j = self.model.new_bool_var(f&quot;{i}_above_{j}&quot;)
+                 self.model.add(
+                     self.bottom_left_y_vars[i] &gt;= self.upper_right_y_vars[j]
+                 ).only_enforce_if([self.placed_vars[i], self.placed_vars[j], b_i_above_j])
+ 
+                 # At least one of these must be true if both rectangles are placed
+                 self.model.add(
+                     b_i_left_of_j + b_i_right_of_j + b_i_below_j + b_i_above_j &gt;= 1
+                 ).only_enforce_if([self.placed_vars[i], self.placed_vars[j]])
+ 
+             # Objective: maximize the number of placed rectangles
+             self.model.maximize(sum(self.placed_vars))
+ 
+         def _extract_solution(self, solver: cp_model.CpSolver) -&gt; list[RectanglePlacement]:
+             &quot;&quot;&quot;Extract the solution from the solver.
+ 
+     NOTE: Your solution must pass validation by:
+     1. Returning correctly formatted output
+     2. Having no NaN or infinity values
+     3. Matching expected results within numerical tolerance
+     &quot;&quot;&quot;
+             solution = []
+             for i in range(len(self.instance.rectangles)):
+                 if solver.Value(self.placed_vars[i]):
+                     x = solver.Value(self.bottom_left_x_vars[i])
+                     y = solver.Value(self.bottom_left_y_vars[i])
+                     rotated = solver.Value(self.rotated_vars[i]) == 1
+                     solution.append(RectanglePlacement(i, x, y, rotated))
+             return solution
+ 
+         def solve(self, time_limit: float = 900.0):
+             &quot;&quot;&quot;Solve the model and return the solution.&quot;&quot;&quot;
+             solver = cp_model.CpSolver()
+             solver.parameters.max_time_in_seconds = time_limit
+             solver.parameters.log_search_progress = True
+             status = solver.Solve(self.model)
+             if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+                 return self._extract_solution(solver)
+             return []
+ 
+     model = RectangleKnapsackWithRotationsModel(problem)
+     return model.solve()</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">from typing import NamedTuple, Any, List, Tuple, Set
+import itertools
+
+class Rectangle(NamedTuple):
+    width: int
+    height: int
+    rotatable: bool
+
+class Instance(NamedTuple):
+    container_width: int
+    container_height: int
+    rectangles: list[Rectangle]
+
+class RectanglePlacement(NamedTuple):
+    index: int
+    x: int
+    y: int
+    rotated: bool
+
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Fast rectangle packing solver using branch and bound.&quot;&quot;&quot;
+        # Convert to typed instance
+        if isinstance(problem, Instance):
+            instance = problem
+        else:
+            instance = Instance(problem[0], problem[1], [Rectangle(*r) for r in problem[2]])
+        
+        n = len(instance.rectangles)
+        
+        # For very small instances, try exact solution
+        if n &lt;= 7:
+            return self._solve_exact(instance)
+        else:
+            # For larger instances, use fast heuristic with local search
+            return self._solve_heuristic(instance)
+    
+    def _solve_exact(self, instance: Instance) -&gt; List[RectanglePlacement]:
+        &quot;&quot;&quot;Solve small instances using branch and bound.&quot;&quot;&quot;
+        n = len(instance.rectangles)
+        best_solution = []
+        best_count = 0
+        
+        # Pre-compute all valid positions for each rectangle
+        valid_positions = []
+        for i, rect in enumerate(instance.rectangles):
+            positions = []
+            orientations = [(rect.width, rect.height, False)]
+            if rect.rotatable:
+                orientations.append((rect.height, rect.width, True))
+            
+            for w, h, rot in orientations:
+                if w &lt;= instance.container_width and h &lt;= instance.container_height:
+                    # Only consider a subset of positions to reduce search space
+                    for y in range(0, instance.container_height - h + 1, max(1, h // 4)):
+                        for x in range(0, instance.container_width - w + 1, max(1, w // 4)):
+                            positions.append((i, x, y, w, h, rot))
+            valid_positions.append(positions)
+        
+        # Branch and bound search
+        def search(level: int, placed: List[RectanglePlacement], occupied: Set[Tuple[int, int]]):
+            nonlocal best_solution, best_count
+            
+            if len(placed) &gt; best_count:
+                best_count = len(placed)
+                best_solution = placed[:]
+            
+            if level &gt;= n or len(placed) + (n - level) &lt;= best_count:
+                return
+            
+            # Try placing current rectangle
+            for i, x, y, w, h, rot in valid_positions[level]:
+                # Check if position is valid
+                valid = True
+                for dx in range(w):
+                    for dy in range(h):
+                        if (x + dx, y + dy) in occupied:
+                            valid = False
+                            break
+                    if not valid:
+                        break
+                
+                if valid:
+                    # Place rectangle
+                    new_occupied = set()
+                    for dx in range(w):
+                        for dy in range(h):
+                            new_occupied.add((x + dx, y + dy))
+                    
+                    placed.append(RectanglePlacement(i, x, y, rot))
+                    occupied.update(new_occupied)
+                    
+                    search(level + 1, placed, occupied)
+                    
+                    placed.pop()
+                    occupied.difference_update(new_occupied)
+            
+            # Try not placing current rectangle
+            search(level + 1, placed, occupied)
+        
+        search(0, [], set())
+        return best_solution
+    
+    def _solve_heuristic(self, instance: Instance) -&gt; List[RectanglePlacement]:
+        &quot;&quot;&quot;Fast heuristic for larger instances.&quot;&quot;&quot;
+        # Sort rectangles by different criteria and pick best
+        indexed_rects = [(i, rect) for i, rect in enumerate(instance.rectangles)]
+        
+        # Try different sorting strategies
+        strategies = [
+            # Area descending
+            lambda x: -x[1].width * x[1].height,
+            # Max dimension descending  
+            lambda x: -max(x[1].width, x[1].height),
+            # Width descending
+            lambda x: -x[1].width,
+            # Perimeter descending
+            lambda x: -(x[1].width + x[1].height),
+        ]
+        
+        best_solution = []
+        
+        for key_func in strategies:
+            sorted_rects = sorted(indexed_rects, key=key_func)
+            solution = self._fast_pack(instance, sorted_rects)
+            if len(solution) &gt; len(best_solution):
+                best_solution = solution
+        
+        # Try to improve solution with local search
+        improved = self._local_search(instance, best_solution)
+        if len(improved) &gt; len(best_solution):
+            best_solution = improved
+        
+        return best_solution
+    
+    def _fast_pack(self, instance: Instance, sorted_rects: List[Tuple[int, Rectangle]]) -&gt; List[RectanglePlacement]:
+        &quot;&quot;&quot;Fast greedy packing using skyline algorithm.&quot;&quot;&quot;
+        # Skyline representation: list of (x, y) points representing the skyline
+        skyline = [(0, 0), (instance.container_width, 0)]
+        solution = []
+        
+        for idx, rect in sorted_rects:
+            best_fit = None
+            best_waste = float(&#x27;inf&#x27;)
+            
+            # Try both orientations
+            orientations = [(rect.width, rect.height, False)]
+            if rect.rotatable:
+                orientations.append((rect.height, rect.width, True))
+            
+            for width, height, rotated in orientations:
+                # Try to fit at each skyline position
+                for i in range(len(skyline) - 1):
+                    x = skyline[i][0]
+                    y = skyline[i][1]
+                    
+                    # Check if rectangle fits
+                    if x + width &gt; instance.container_width:
+                        continue
+                    if y + height &gt; instance.container_height:
+                        continue
+                    
+                    # Find the highest point in the range [x, x+width]
+                    max_y = y
+                    j = i
+                    while j &lt; len(skyline) - 1 and skyline[j][0] &lt; x + width:
+                        max_y = max(max_y, skyline[j][1])
+                        j += 1
+                    
+                    if max_y + height &gt; instance.container_height:
+                        continue
+                    
+                    # Calculate wasted area
+                    waste = 0
+                    j = i
+                    while j &lt; len(skyline) - 1 and skyline[j][0] &lt; x + width:
+                        w = min(skyline[j+1][0], x + width) - max(skyline[j][0], x)
+                        waste += w * (max_y - skyline[j][1])
+                        j += 1
+                    
+                    if waste &lt; best_waste:
+                        best_waste = waste
+                        best_fit = (x, max_y, width, height, rotated, i)
+            
+            if best_fit:
+                x, y, width, height, rotated, start_idx = best_fit
+                solution.append(RectanglePlacement(idx, x, y, rotated))
+                
+                # Update skyline
+                new_skyline = []
+                i = 0
+                
+                # Add points before the rectangle
+                while i &lt; len(skyline) and skyline[i][0] &lt; x:
+                    new_skyline.append(skyline[i])
+                    i += 1
+                
+                # Add the rectangle&#x27;s skyline
+                if len(new_skyline) == 0 or new_skyline[-1][0] &lt; x:
+                    new_skyline.append((x, y + height))
+                else:
+                    new_skyline[-1] = (x, y + height)
+                
+                # Skip points covered by the rectangle
+                while i &lt; len(skyline) and skyline[i][0] &lt; x + width:
+                    i += 1
+                
+                # Add the right edge of the rectangle
+                if x + width &lt; instance.container_width:
+                    new_skyline.append((x + width, y + height))
+                
+                # Add remaining points
+                while i &lt; len(skyline):
+                    if skyline[i][0] &gt;= x + width:
+                        new_skyline.append(skyline[i])
+                    i += 1
+                
+                # Merge consecutive points with same height
+                merged = []
+                for point in new_skyline:
+                    if len(merged) == 0 or merged[-1][1] != point[1]:
+                        merged.append(point)
+                
+                skyline = merged
+        
+        return solution
+    
+    def _local_search(self, instance: Instance, initial_solution: List[RectanglePlacement]) -&gt; List[RectanglePlacement]:
+        &quot;&quot;&quot;Try to improve solution by adding more rectangles.&quot;&quot;&quot;
+        placed_indices = {p.index for p in initial_solution}
+        unplaced = [i for i in range(len(instance.rectangles)) if i not in placed_indices]
+        
+        if not unplaced:
+            return initial_solution
+        
+        # Build occupied grid
+        grid = [[False] * instance.container_width for _ in range(instance.container_height)]
+        for p in initial_solution:
+            rect = instance.rectangles[p.index]
+            w, h = (rect.height, rect.width) if p.rotated else (rect.width, rect.height)
+            for dy in range(h):
+                for dx in range(w):
+                    if p.y + dy &lt; instance.container_height and p.x + dx &lt; instance.container_width:
+                        grid[p.y + dy][p.x + dx] = True
+        
+        solution = initial_solution[:]
+        
+        # Try to place remaining rectangles
+        for idx in unplaced:
+            rect = instance.rectangles[idx]
+            placed = False
+            
+            orientations = [(rect.width, rect.height, False)]
+            if rect.rotatable:
+                orientations.append((rect.height, rect.width, True))
+            
+            for w, h, rot in orientations:
+                if w &gt; instance.container_width or h &gt; instance.container_height:
+                    continue
+                
+                for y in range(instance.container_height - h + 1):
+                    for x in range(instance.container_width - w + 1):
+                        # Check if position is free
+                        valid = True
+                        for dy in range(h):
+                            for dx in range(w):
+                                if grid[y + dy][x + dx]:
+                                    valid = False
+                                    break
+                            if not valid:
+                                break
+                        
+                        if valid:
+                            # Place rectangle
+                            solution.append(RectanglePlacement(idx, x, y, rot))
+                            for dy in range(h):
+                                for dx in range(w):
+                                    grid[y + dy][x + dx] = True
+                            placed = True
+                            break
+                    if placed:
+                        break
+                if placed:
+                    break
+        
+        return solution</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <div class="no-plot">No performance data available for plotting</div>
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/rectanglepacking_claude-opus-4-20250514_20250701_201436_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge ls">📄 List Files</span>
+            </div>
+            <div class="message-content">
+                I need to understand the problem better and create an optimized solution for rectangle packing. Let me start by examining the expected structure.<br><br><pre><code class="language-python">ls</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.1173. You have $0.8827 remaining.<br><br>File list:<br>solver.py
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge view_file">👁️ View File</span>
+            </div>
+            <div class="message-content">
+                Let me first look at the current solver.py file to understand its structure.<br><br><pre><code class="language-python">view_file solver.py</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.2339. You have $0.7661 remaining.<br><br>File: solver.py (lines 0-0 out of 0)
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Let me create an initial solver implementation using a greedy approach which should be faster than the constraint programming method used in the reference.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 0-0
+---
+from typing import NamedTuple, Any
+
+class Rectangle(NamedTuple):
+    width: int
+    height: int
+    rotatable: bool
+
+class Instance(NamedTuple):
+    container_width: int
+    container_height: int
+    rectangles: list[Rectangle]
+
+class RectanglePlacement(NamedTuple):
+    index: int
+    x: int
+    y: int
+    rotated: bool
+
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Greedy rectangle packing solver.&quot;&quot;&quot;
+        # Convert to typed instance
+        if isinstance(problem, Instance):
+            instance = problem
+        else:
+            instance = Instance(problem[0], problem[1], [Rectangle(*r) for r in problem[2]])
+        
+        # Sort rectangles by area (largest first)
+        indexed_rects = [(i, rect) for i, rect in enumerate(instance.rectangles)]
+        indexed_rects.sort(key=lambda x: x[1].width * x[1].height, reverse=True)
+        
+        # Track occupied spaces
+        occupied = []
+        solution = []
+        
+        for idx, rect in indexed_rects:
+            # Try both orientations if rotatable
+            orientations = [(rect.width, rect.height, False)]
+            if rect.rotatable:
+                orientations.append((rect.height, rect.width, True))
+            
+            placed = False
+            for width, height, rotated in orientations:
+                # Try to place at each position
+                for y in range(instance.container_height - height + 1):
+                    for x in range(instance.container_width - width + 1):
+                        # Check if position is valid
+                        if self._can_place(x, y, width, height, occupied):
+                            occupied.append((x, y, width, height))
+                            solution.append(RectanglePlacement(idx, x, y, rotated))
+                            placed = True
+                            break
+                    if placed:
+                        break
+                if placed:
+                    break
+        
+        return solution
+    
+    def _can_place(self, x, y, width, height, occupied):
+        &quot;&quot;&quot;Check if a rectangle can be placed at the given position.&quot;&quot;&quot;
+        for ox, oy, ow, oh in occupied:
+            # Check for overlap
+            if not (x + width &lt;= ox or ox + ow &lt;= x or y + height &lt;= oy or oy + oh &lt;= y):
+                return False
+        return True
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.3933. You have $0.6067 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 66)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import NamedTuple, Any
+&gt; 02: 
+&gt; 03: class Rectangle(NamedTuple):
+&gt; 04:     width: int
+&gt; 05:     height: int
+&gt; 06:     rotatable: bool
+&gt; 07: 
+&gt; 08: class Instance(NamedTuple):
+&gt; 09:     container_width: int
+&gt; 10:     container_height: int
+&gt; 11:     rectangles: list[Rectangle]
+&gt; 12: 
+&gt; 13: class RectanglePlacement(NamedTuple):
+&gt; 14:     index: int
+&gt; 15:     x: int
+&gt; 16:     y: int
+&gt; 17:     rotated: bool
+&gt; 18: 
+&gt; 19: class Solver:
+&gt; 20:     def solve(self, problem, **kwargs) -&gt; Any:
+&gt; 21:         &quot;&quot;&quot;Greedy rectangle packing solver.&quot;&quot;&quot;
+&gt; 22:         # Convert to typed instance
+&gt; 23:         if isinstance(problem, Instance):
+&gt; 24:             instance = problem
+&gt; 25:         else:
+&gt; 26:             instance = Instance(problem[0], problem[1], [Rectangle(*r) for r in problem[2]])
+&gt; 27:         
+&gt; 28:         # Sort rectangles by area (largest first)
+&gt; 29:         indexed_rects = [(i, rect) for i, rect in enumerate(instance.rectangles)]
+&gt; 30:         indexed_rects.sort(key=lambda x: x[1].width * x[1].height, reverse=True)
+&gt; 31:         
+&gt; 32:         # Track occupied spaces
+&gt; 33:         occupied = []
+&gt; 34:         solution = []
+&gt; 35:         
+&gt; 36:         for idx, rect in indexed_rects:
+&gt; 37:             # Try both orientations if rotatable
+&gt; 38:             orientations = [(rect.width, rect.height, False)]
+&gt; 39:             if rect.rotatable:
+&gt; 40:                 orientations.append((rect.height, rect.width, True))
+&gt; 41:             
+&gt; 42:             placed = False
+&gt; 43:             for width, height, rotated in orientations:
+&gt; 44:                 # Try to place at each position
+&gt; 45:                 for y in range(instance.container_height - height + 1):
+&gt; 46:                     for x in range(instance.container_width - width + 1):
+&gt; 47:                         # Check if position is valid
+&gt; 48:                         if self._can_place(x, y, width, height, occupied):
+&gt; 49:                             occupied.append((x, y, width, height))
+&gt; 50:                             solution.append(RectanglePlacement(idx, x, y, rotated))
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 2%<br>  Invalid Solutions: 98%<br>  Timeouts: 0%<br><br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  282:                 return False
+  283: 
+  284:         # Check if the dimensions match the original rectangles
+  285:         original_rects = set()
+  286:         for rect in problem.rectangles:
+  287:             if rect.rotatable:
+  288:                 original_rects.add((rect.width, rect.height))
+  289:                 original_rects.add((rect.height, rect.width))
+  290:             else:
+  291:                 original_rects.add((rect.width, rect.height))
+  292: 
+  293:         # check if solution is optimal
+  294:         optimal_solution = self.solve(problem)
+  295:         optimal_value = len(optimal_solution)
+  296:         if len(solution) &lt; optimal_value:
+&gt; 297:             return False</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  282:                 return False
+  283: 
+  284:         # Check if the dimensions match the original rectangles
+  285:         original_rects = set()
+  286:         for rect in problem.rectangles:
+  287:             if rect.rotatable:
+  288:                 original_rects.add((rect.width, rect.height))
+  289:                 original_rects.add((rect.height, rect.width))
+  290:             else:
+  291:                 original_rects.add((rect.width, rect.height))
+  292: 
+  293:         # check if solution is optimal
+  294:         optimal_solution = self.solve(problem)
+  295:         optimal_value = len(optimal_solution)
+  296:         if len(solution) &lt; optimal_value:
+&gt; 297:             return False</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  282:                 return False
+  283: 
+  284:         # Check if the dimensions match the original rectangles
+  285:         original_rects = set()
+  286:         for rect in problem.rectangles:
+  287:             if rect.rotatable:
+  288:                 original_rects.add((rect.width, rect.height))
+  289:                 original_rects.add((rect.height, rect.width))
+  290:             else:
+  291:                 original_rects.add((rect.width, rect.height))
+  292: 
+  293:         # check if solution is optimal
+  294:         optimal_solution = self.solve(problem)
+  295:         optimal_value = len(optimal_solution)
+  296:         if len(solution) &lt; optimal_value:
+&gt; 297:             return False</code></pre><br><br><br>Snapshot not saved - invalid solutions present
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I see the issue - my solution is not finding optimal packings. The validation checks if the solution is optimal by comparing with the reference solver. Let me implement a more sophisticated algorithm that can find better solutions while still being faster than the constraint programming approach.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-66
+---
+from typing import NamedTuple, Any, List, Tuple
+import itertools
+
+class Rectangle(NamedTuple):
+    width: int
+    height: int
+    rotatable: bool
+
+class Instance(NamedTuple):
+    container_width: int
+    container_height: int
+    rectangles: list[Rectangle]
+
+class RectanglePlacement(NamedTuple):
+    index: int
+    x: int
+    y: int
+    rotated: bool
+
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Optimized rectangle packing solver using dynamic programming approach.&quot;&quot;&quot;
+        # Convert to typed instance
+        if isinstance(problem, Instance):
+            instance = problem
+        else:
+            instance = Instance(problem[0], problem[1], [Rectangle(*r) for r in problem[2]])
+        
+        n = len(instance.rectangles)
+        
+        # For small instances, try all combinations
+        if n &lt;= 10:
+            return self._solve_small(instance)
+        else:
+            # For larger instances, use advanced heuristic
+            return self._solve_large(instance)
+    
+    def _solve_small(self, instance: Instance) -&gt; List[RectanglePlacement]:
+        &quot;&quot;&quot;Solve small instances by trying different combinations.&quot;&quot;&quot;
+        n = len(instance.rectangles)
+        best_solution = []
+        
+        # Try different orderings
+        for perm in itertools.permutations(range(n)):
+            solution = self._greedy_pack(instance, list(perm))
+            if len(solution) &gt; len(best_solution):
+                best_solution = solution
+                # Early termination if we packed all rectangles
+                if len(best_solution) == n:
+                    break
+        
+        return best_solution
+    
+    def _solve_large(self, instance: Instance) -&gt; List[RectanglePlacement]:
+        &quot;&quot;&quot;Solve large instances using advanced heuristics.&quot;&quot;&quot;
+        n = len(instance.rectangles)
+        
+        # Try multiple strategies and pick the best
+        strategies = [
+            # Sort by area descending
+            lambda rects: sorted(rects, key=lambda x: x[1].width * x[1].height, reverse=True),
+            # Sort by max dimension descending
+            lambda rects: sorted(rects, key=lambda x: max(x[1].width, x[1].height), reverse=True),
+            # Sort by perimeter descending
+            lambda rects: sorted(rects, key=lambda x: x[1].width + x[1].height, reverse=True),
+            # Sort by width descending
+            lambda rects: sorted(rects, key=lambda x: x[1].width, reverse=True),
+        ]
+        
+        best_solution = []
+        indexed_rects = [(i, rect) for i, rect in enumerate(instance.rectangles)]
+        
+        for strategy in strategies:
+            sorted_rects = strategy(indexed_rects)
+            order = [idx for idx, _ in sorted_rects]
+            solution = self._greedy_pack(instance, order)
+            if len(solution) &gt; len(best_solution):
+                best_solution = solution
+        
+        return best_solution
+    
+    def _greedy_pack(self, instance: Instance, order: List[int]) -&gt; List[RectanglePlacement]:
+        &quot;&quot;&quot;Pack rectangles in the given order using bottom-left heuristic.&quot;&quot;&quot;
+        # Use a 2D grid to track occupied cells for faster collision detection
+        grid = [[False] * instance.container_width for _ in range(instance.container_height)]
+        solution = []
+        
+        for idx in order:
+            rect = instance.rectangles[idx]
+            
+            # Try both orientations
+            orientations = [(rect.width, rect.height, False)]
+            if rect.rotatable:
+                orientations.append((rect.height, rect.width, True))
+            
+            best_pos = None
+            best_score = float(&#x27;inf&#x27;)
+            
+            for width, height, rotated in orientations:
+                # Skip if rectangle doesn&#x27;t fit
+                if width &gt; instance.container_width or height &gt; instance.container_height:
+                    continue
+                
+                # Try all valid positions using bottom-left strategy
+                for y in range(instance.container_height - height + 1):
+                    for x in range(instance.container_width - width + 1):
+                        if self._can_place_grid(grid, x, y, width, height):
+                            # Score position (prefer bottom-left)
+                            score = y * instance.container_width + x
+                            if score &lt; best_score:
+                                best_score = score
+                                best_pos = (x, y, width, height, rotated)
+            
+            if best_pos:
+                x, y, width, height, rotated = best_pos
+                # Mark cells as occupied
+                for dy in range(height):
+                    for dx in range(width):
+                        grid[y + dy][x + dx] = True
+                solution.append(RectanglePlacement(idx, x, y, rotated))
+        
+        return solution
+    
+    def _can_place_grid(self, grid: List[List[bool]], x: int, y: int, width: int, height: int) -&gt; bool:
+        &quot;&quot;&quot;Check if rectangle can be placed at position using grid.&quot;&quot;&quot;
+        for dy in range(height):
+            for dx in range(width):
+                if grid[y + dy][x + dx]:
+                    return False
+        return True
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.6469. You have $0.3531 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 130)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: from typing import NamedTuple, Any, List, Tuple
+&gt; 002: import itertools
+&gt; 003: 
+&gt; 004: class Rectangle(NamedTuple):
+&gt; 005:     width: int
+&gt; 006:     height: int
+&gt; 007:     rotatable: bool
+&gt; 008: 
+&gt; 009: class Instance(NamedTuple):
+&gt; 010:     container_width: int
+&gt; 011:     container_height: int
+&gt; 012:     rectangles: list[Rectangle]
+&gt; 013: 
+&gt; 014: class RectanglePlacement(NamedTuple):
+&gt; 015:     index: int
+&gt; 016:     x: int
+&gt; 017:     y: int
+&gt; 018:     rotated: bool
+&gt; 019: 
+&gt; 020: class Solver:
+&gt; 021:     def solve(self, problem, **kwargs) -&gt; Any:
+&gt; 022:         &quot;&quot;&quot;Optimized rectangle packing solver using dynamic programming approach.&quot;&quot;&quot;
+&gt; 023:         # Convert to typed instance
+&gt; 024:         if isinstance(problem, Instance):
+&gt; 025:             instance = problem
+&gt; 026:         else:
+&gt; 027:             instance = Instance(problem[0], problem[1], [Rectangle(*r) for r in problem[2]])
+&gt; 028:         
+&gt; 029:         n = len(instance.rectangles)
+&gt; 030:         
+&gt; 031:         # For small instances, try all combinations
+&gt; 032:         if n &lt;= 10:
+&gt; 033:             return self._solve_small(instance)
+&gt; 034:         else:
+&gt; 035:             # For larger instances, use advanced heuristic
+&gt; 036:             return self._solve_large(instance)
+&gt; 037:     
+&gt; 038:     def _solve_small(self, instance: Instance) -&gt; List[RectanglePlacement]:
+&gt; 039:         &quot;&quot;&quot;Solve small instances by trying different combinations.&quot;&quot;&quot;
+&gt; 040:         n = len(instance.rectangles)
+&gt; 041:         best_solution = []
+&gt; 042:         
+&gt; 043:         # Try different orderings
+&gt; 044:         for perm in itertools.permutations(range(n)):
+&gt; 045:             solution = self._greedy_pack(instance, list(perm))
+&gt; 046:             if len(solution) &gt; len(best_solution):
+&gt; 047:                 best_solution = solution
+&gt; 048:                 # Early termination if we packed all rectangles
+&gt; 049:                 if len(best_solution) == n:
+&gt; 050:                     break
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 2%<br>  Invalid Solutions: 0%<br>  Timeouts: 98%<br><br><br>Snapshot not saved - invalid solutions present
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My solution is timing out on most instances. The issue is that trying all permutations even for n=10 is too expensive (10! = 3.6M permutations). Let me optimize the algorithm to be much faster.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-130
+---
+from typing import NamedTuple, Any, List, Tuple, Set
+import itertools
+
+class Rectangle(NamedTuple):
+    width: int
+    height: int
+    rotatable: bool
+
+class Instance(NamedTuple):
+    container_width: int
+    container_height: int
+    rectangles: list[Rectangle]
+
+class RectanglePlacement(NamedTuple):
+    index: int
+    x: int
+    y: int
+    rotated: bool
+
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Fast rectangle packing solver using branch and bound.&quot;&quot;&quot;
+        # Convert to typed instance
+        if isinstance(problem, Instance):
+            instance = problem
+        else:
+            instance = Instance(problem[0], problem[1], [Rectangle(*r) for r in problem[2]])
+        
+        n = len(instance.rectangles)
+        
+        # For very small instances, try exact solution
+        if n &lt;= 7:
+            return self._solve_exact(instance)
+        else:
+            # For larger instances, use fast heuristic with local search
+            return self._solve_heuristic(instance)
+    
+    def _solve_exact(self, instance: Instance) -&gt; List[RectanglePlacement]:
+        &quot;&quot;&quot;Solve small instances using branch and bound.&quot;&quot;&quot;
+        n = len(instance.rectangles)
+        best_solution = []
+        best_count = 0
+        
+        # Pre-compute all valid positions for each rectangle
+        valid_positions = []
+        for i, rect in enumerate(instance.rectangles):
+            positions = []
+            orientations = [(rect.width, rect.height, False)]
+            if rect.rotatable:
+                orientations.append((rect.height, rect.width, True))
+            
+            for w, h, rot in orientations:
+                if w &lt;= instance.container_width and h &lt;= instance.container_height:
+                    # Only consider a subset of positions to reduce search space
+                    for y in range(0, instance.container_height - h + 1, max(1, h // 4)):
+                        for x in range(0, instance.container_width - w + 1, max(1, w // 4)):
+                            positions.append((i, x, y, w, h, rot))
+            valid_positions.append(positions)
+        
+        # Branch and bound search
+        def search(level: int, placed: List[RectanglePlacement], occupied: Set[Tuple[int, int]]):
+            nonlocal best_solution, best_count
+            
+            if len(placed) &gt; best_count:
+                best_count = len(placed)
+                best_solution = placed[:]
+            
+            if level &gt;= n or len(placed) + (n - level) &lt;= best_count:
+                return
+            
+            # Try placing current rectangle
+            for i, x, y, w, h, rot in valid_positions[level]:
+                # Check if position is valid
+                valid = True
+                for dx in range(w):
+                    for dy in range(h):
+                        if (x + dx, y + dy) in occupied:
+                            valid = False
+                            break
+                    if not valid:
+                        break
+                
+                if valid:
+                    # Place rectangle
+                    new_occupied = set()
+                    for dx in range(w):
+                        for dy in range(h):
+                            new_occupied.add((x + dx, y + dy))
+                    
+                    placed.append(RectanglePlacement(i, x, y, rot))
+                    occupied.update(new_occupied)
+                    
+                    search(level + 1, placed, occupied)
+                    
+                    placed.pop()
+                    occupied.difference_update(new_occupied)
+            
+            # Try not placing current rectangle
+            search(level + 1, placed, occupied)
+        
+        search(0, [], set())
+        return best_solution
+    
+    def _solve_heuristic(self, instance: Instance) -&gt; List[RectanglePlacement]:
+        &quot;&quot;&quot;Fast heuristic for larger instances.&quot;&quot;&quot;
+        # Sort rectangles by different criteria and pick best
+        indexed_rects = [(i, rect) for i, rect in enumerate(instance.rectangles)]
+        
+        # Try different sorting strategies
+        strategies = [
+            # Area descending
+            lambda x: -x[1].width * x[1].height,
+            # Max dimension descending  
+            lambda x: -max(x[1].width, x[1].height),
+            # Width descending
+            lambda x: -x[1].width,
+            # Perimeter descending
+            lambda x: -(x[1].width + x[1].height),
+        ]
+        
+        best_solution = []
+        
+        for key_func in strategies:
+            sorted_rects = sorted(indexed_rects, key=key_func)
+            solution = self._fast_pack(instance, sorted_rects)
+            if len(solution) &gt; len(best_solution):
+                best_solution = solution
+        
+        # Try to improve solution with local search
+        improved = self._local_search(instance, best_solution)
+        if len(improved) &gt; len(best_solution):
+            best_solution = improved
+        
+        return best_solution
+    
+    def _fast_pack(self, instance: Instance, sorted_rects: List[Tuple[int, Rectangle]]) -&gt; List[RectanglePlacement]:
+        &quot;&quot;&quot;Fast greedy packing using skyline algorithm.&quot;&quot;&quot;
+        # Skyline representation: list of (x, y) points representing the skyline
+        skyline = [(0, 0), (instance.container_width, 0)]
+        solution = []
+        
+        for idx, rect in sorted_rects:
+            best_fit = None
+            best_waste = float(&#x27;inf&#x27;)
+            
+            # Try both orientations
+            orientations = [(rect.width, rect.height, False)]
+            if rect.rotatable:
+                orientations.append((rect.height, rect.width, True))
+            
+            for width, height, rotated in orientations:
+                # Try to fit at each skyline position
+                for i in range(len(skyline) - 1):
+                    x = skyline[i][0]
+                    y = skyline[i][1]
+                    
+                    # Check if rectangle fits
+                    if x + width &gt; instance.container_width:
+                        continue
+                    if y + height &gt; instance.container_height:
+                        continue
+                    
+                    # Find the highest point in the range [x, x+width]
+                    max_y = y
+                    j = i
+                    while j &lt; len(skyline) - 1 and skyline[j][0] &lt; x + width:
+                        max_y = max(max_y, skyline[j][1])
+                        j += 1
+                    
+                    if max_y + height &gt; instance.container_height:
+                        continue
+                    
+                    # Calculate wasted area
+                    waste = 0
+                    j = i
+                    while j &lt; len(skyline) - 1 and skyline[j][0] &lt; x + width:
+                        w = min(skyline[j+1][0], x + width) - max(skyline[j][0], x)
+                        waste += w * (max_y - skyline[j][1])
+                        j += 1
+                    
+                    if waste &lt; best_waste:
+                        best_waste = waste
+                        best_fit = (x, max_y, width, height, rotated, i)
+            
+            if best_fit:
+                x, y, width, height, rotated, start_idx = best_fit
+                solution.append(RectanglePlacement(idx, x, y, rotated))
+                
+                # Update skyline
+                new_skyline = []
+                i = 0
+                
+                # Add points before the rectangle
+                while i &lt; len(skyline) and skyline[i][0] &lt; x:
+                    new_skyline.append(skyline[i])
+                    i += 1
+                
+                # Add the rectangle&#x27;s skyline
+                if len(new_skyline) == 0 or new_skyline[-1][0] &lt; x:
+                    new_skyline.append((x, y + height))
+                else:
+                    new_skyline[-1] = (x, y + height)
+                
+                # Skip points covered by the rectangle
+                while i &lt; len(skyline) and skyline[i][0] &lt; x + width:
+                    i += 1
+                
+                # Add the right edge of the rectangle
+                if x + width &lt; instance.container_width:
+                    new_skyline.append((x + width, y + height))
+                
+                # Add remaining points
+                while i &lt; len(skyline):
+                    if skyline[i][0] &gt;= x + width:
+                        new_skyline.append(skyline[i])
+                    i += 1
+                
+                # Merge consecutive points with same height
+                merged = []
+                for point in new_skyline:
+                    if len(merged) == 0 or merged[-1][1] != point[1]:
+                        merged.append(point)
+                
+                skyline = merged
+        
+        return solution
+    
+    def _local_search(self, instance: Instance, initial_solution: List[RectanglePlacement]) -&gt; List[RectanglePlacement]:
+        &quot;&quot;&quot;Try to improve solution by adding more rectangles.&quot;&quot;&quot;
+        placed_indices = {p.index for p in initial_solution}
+        unplaced = [i for i in range(len(instance.rectangles)) if i not in placed_indices]
+        
+        if not unplaced:
+            return initial_solution
+        
+        # Build occupied grid
+        grid = [[False] * instance.container_width for _ in range(instance.container_height)]
+        for p in initial_solution:
+            rect = instance.rectangles[p.index]
+            w, h = (rect.height, rect.width) if p.rotated else (rect.width, rect.height)
+            for dy in range(h):
+                for dx in range(w):
+                    if p.y + dy &lt; instance.container_height and p.x + dx &lt; instance.container_width:
+                        grid[p.y + dy][p.x + dx] = True
+        
+        solution = initial_solution[:]
+        
+        # Try to place remaining rectangles
+        for idx in unplaced:
+            rect = instance.rectangles[idx]
+            placed = False
+            
+            orientations = [(rect.width, rect.height, False)]
+            if rect.rotatable:
+                orientations.append((rect.height, rect.width, True))
+            
+            for w, h, rot in orientations:
+                if w &gt; instance.container_width or h &gt; instance.container_height:
+                    continue
+                
+                for y in range(instance.container_height - h + 1):
+                    for x in range(instance.container_width - w + 1):
+                        # Check if position is free
+                        valid = True
+                        for dy in range(h):
+                            for dx in range(w):
+                                if grid[y + dy][x + dx]:
+                                    valid = False
+                                    break
+                            if not valid:
+                                break
+                        
+                        if valid:
+                            # Place rectangle
+                            solution.append(RectanglePlacement(idx, x, y, rot))
+                            for dy in range(h):
+                                for dx in range(w):
+                                    grid[y + dy][x + dx] = True
+                            placed = True
+                            break
+                    if placed:
+                        break
+                if placed:
+                    break
+        
+        return solution
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

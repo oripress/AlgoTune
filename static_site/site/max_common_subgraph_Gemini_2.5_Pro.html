@@ -1,0 +1,3528 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – max_common_subgraph – Gemini 2.5 Pro</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">max_common_subgraph</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="max_common_subgraph_o4-mini.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (16.67x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="max_common_subgraph_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (9.09x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="max_common_subgraph_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (2.15x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="max_common_subgraph_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (1.28x)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">max_common_subgraph</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Gemini 2.5 Pro</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #006400; font-weight: 600;">9.090x</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">12</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">1</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">28.5 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+Maximum Common Subgraph
+Given two undirected graphs G and H, find the largest subgraph common to both.
+i.e, select a set of nodes in G and a set of nodes in H of the same size, and a one‑to‑one mapping between them so that there is an edge between any two selected node in G exactly when there is an edge between their mapped nodes in H
+
+Input: A dict containing two 2d arrays (2 dim list) A and B with value 0/1 representing the adjacency matrices
+        A[i][j] = 0 : there is no edge between i, j in G
+        A[i][j] = 1 : there is an edge between i, j in G
+        B[p][q] = 0 : there is no edge between p, q in H
+        B[p][q] = 1 : there is an edge between p, q in H
+        Both inputs should be symmetric
+
+Example input: { A = [ [0,1,0,1], [1,0,1,0], [0,1,0,1], [1,0,1,0] ],
+                 B = [ [0,1,1,0], [1,0,0,1], [1,0,0,1], [0,1,1,0] ] }
+
+Output: A list of pairs showing the indices of the selected nodes in G and H
+
+Example output: [(0,0), (1,1), (2,3), (3,2)]
+
+Category: graph
+
+Below is the reference implementation. Your function should run much quicker.
+
+import random
+from ortools.sat.python import cp_model
+
+| 01: def solve(self, problem: dict[str, list[list[int]]]) -&gt; list[tuple[int, int]]:
+| 02:     A = problem[&quot;A&quot;]
+| 03:     B = problem[&quot;B&quot;]
+| 04:     n, m = len(A), len(B)
+| 05:     model = cp_model.CpModel()
+| 06: 
+| 07:     # x[i][p] = 1 if node i in G is mapped to node p in H
+| 08:     x = [[model.NewBoolVar(f&quot;x_{i}_{p}&quot;) for p in range(m)] for i in range(n)]
+| 09: 
+| 10:     # One‑to‑one mapping constraints
+| 11:     for i in range(n):
+| 12:         model.Add(sum(x[i][p] for p in range(m)) &lt;= 1)
+| 13:     for p in range(m):
+| 14:         model.Add(sum(x[i][p] for i in range(n)) &lt;= 1)
+| 15: 
+| 16:     # Edge consistency constraints (cover all p != q)
+| 17:     for i in range(n):
+| 18:         for j in range(i + 1, n):
+| 19:             for p in range(m):
+| 20:                 for q in range(m):
+| 21:                     if p == q:
+| 22:                         continue
+| 23:                     if A[i][j] != B[p][q]:
+| 24:                         model.Add(x[i][p] + x[j][q] &lt;= 1)
+| 25: 
+| 26:     # Objective: maximize size of the mapping
+| 27:     model.Maximize(sum(x[i][p] for i in range(n) for p in range(m)))
+| 28: 
+| 29:     solver = cp_model.CpSolver()
+| 30:     status = solver.Solve(model)
+| 31: 
+| 32:     if status == cp_model.OPTIMAL:
+| 33:         return [(i, p) for i in range(n) for p in range(m) if solver.Value(x[i][p]) == 1]
+| 34:     else:
+| 35:         return []
+| 36: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+import random
+from ortools.sat.python import cp_model
+
+| 01: def is_solution(
+| 02:     self, problem: dict[str, list[list[int]]], solution: list[tuple[int, int]]
+| 03: ) -&gt; bool:
+| 04:     A = problem[&quot;A&quot;]
+| 05:     B = problem[&quot;B&quot;]
+| 06: 
+| 07:     # Check one-to-one
+| 08:     gs = [i for i, _ in solution]
+| 09:     hs = [p for _, p in solution]
+| 10:     if len(set(gs)) != len(gs) or len(set(hs)) != len(hs):
+| 11:         return False
+| 12: 
+| 13:     # Check edge consistency
+| 14:     for idx1 in range(len(solution)):
+| 15:         for idx2 in range(idx1 + 1, len(solution)):
+| 16:             i, p = solution[idx1]
+| 17:             j, q = solution[idx2]
+| 18:             if A[i][j] != B[p][q]:
+| 19:                 return False
+| 20: 
+| 21:     # Check maximality
+| 22:     optimal = solve(problem)
+| 23:     return len(solution) == len(optimal)
+| 24:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>Maximum Common Subgraph
+Given two undirected graphs G and H, find the largest subgraph common to both.
+i.e, select a set of nodes in G and a set of nodes in H of the same size, and a one‑to‑one mapping between them so that there is an edge between any two selected node in G exactly when there is an edge between their mapped nodes in H
+
+Input: A dict containing two 2d arrays (2 dim list) A and B with value 0/1 representing the adjacency matrices
+        A[i][j] = 0 : there is no edge between i, j in G
+        A[i][j] = 1 : there is an edge between i, j in G
+        B[p][q] = 0 : there is no edge between p, q in H
+        B[p][q] = 1 : there is an edge between p, q in H
+        Both inputs should be symmetric
+
+Example input: { A = [ [0,1,0,1], [1,0,1,0], [0,1,0,1], [1,0,1,0] ],
+                 B = [ [0,1,1,0], [1,0,0,1], [1,0,0,1], [0,1,1,0] ] }
+
+Output: A list of pairs showing the indices of the selected nodes in G and H
+
+Example output: [(0,0), (1,1), (2,3), (3,2)]
+
+Category: graph</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">import random
+from ortools.sat.python import cp_model
+
+ def solve(self, problem: dict[str, list[list[int]]]) -&gt; list[tuple[int, int]]:
+     A = problem[&quot;A&quot;]
+     B = problem[&quot;B&quot;]
+     n, m = len(A), len(B)
+     model = cp_model.CpModel()
+ 
+     # x[i][p] = 1 if node i in G is mapped to node p in H
+     x = [[model.NewBoolVar(f&quot;x_{i}_{p}&quot;) for p in range(m)] for i in range(n)]
+ 
+     # One‑to‑one mapping constraints
+     for i in range(n):
+         model.Add(sum(x[i][p] for p in range(m)) &lt;= 1)
+     for p in range(m):
+         model.Add(sum(x[i][p] for i in range(n)) &lt;= 1)
+ 
+     # Edge consistency constraints (cover all p != q)
+     for i in range(n):
+         for j in range(i + 1, n):
+             for p in range(m):
+                 for q in range(m):
+                     if p == q:
+                         continue
+                     if A[i][j] != B[p][q]:
+                         model.Add(x[i][p] + x[j][q] &lt;= 1)
+ 
+     # Objective: maximize size of the mapping
+     model.Maximize(sum(x[i][p] for i in range(n) for p in range(m)))
+ 
+     solver = cp_model.CpSolver()
+     status = solver.Solve(model)
+ 
+     if status == cp_model.OPTIMAL:
+         return [(i, p) for i in range(n) for p in range(m) if solver.Value(x[i][p]) == 1]
+     else:
+         return []</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">import networkx as nx
+import numpy as np
+from typing import Any, List, Tuple, Dict
+
+class Solver:
+    def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+        &quot;&quot;&quot;
+        Solves the Maximum Common Subgraph problem by reducing it to the Maximum Clique problem.
+
+        This implementation uses an optimized construction of the compatibility graph&#x27;s
+        adjacency matrix. It leverages NumPy&#x27;s broadcasting on 4D arrays to avoid creating
+        large intermediate matrices, leading to better memory usage and performance.
+
+        The overall approach remains:
+        1. Construct a compatibility graph where nodes are pairs of vertices (one from each
+           graph G and H). An edge exists between ((i, p), (j, q)) if the mapping is
+           consistent (i.e., A[i,j] == B[p,q]) and injective (i!=j, p!=q).
+        2. Find the maximum clique in this compatibility graph using NetworkX.
+        3. The nodes in the maximum clique correspond to the vertex mappings of the
+           maximum common subgraph.
+        &quot;&quot;&quot;
+        A_list = problem[&quot;A&quot;]
+        B_list = problem[&quot;B&quot;]
+
+        # Handle empty or malformed input graphs
+        if not A_list or not B_list or not A_list[0] or not B_list[0]:
+            return []
+
+        A = np.array(A_list, dtype=bool)
+        B = np.array(B_list, dtype=bool)
+        n, m = A.shape[0], B.shape[0]
+        
+        if n == 0 or m == 0:
+            return []
+
+        # --- Optimized construction of the compatibility graph&#x27;s adjacency matrix ---
+        
+        # Use 4D broadcasting to compute compatibility.
+        # C_4d[i, p, j, q] is True if mapping i-&gt;p and j-&gt;q is compatible.
+        # Compatibility means the edge relationship is preserved: A[i, j] == B[p, q].
+        C_4d = (A.reshape((n, 1, n, 1)) == B.reshape((1, m, 1, m)))
+
+        # Enforce injectivity constraints (i != j and p != q) using broadcasting.
+        # This is faster and more memory-efficient than creating N*N masks.
+        
+        # Mask for i != j:
+        # Create an (n,n) mask where diagonal is False, and broadcast it to (n,m,n,m).
+        if n &gt; 0:
+            i_neq_j_mask = ~np.eye(n, dtype=bool)
+            C_4d &amp;= i_neq_j_mask.reshape((n, 1, n, 1))
+
+        # Mask for p != q:
+        # Create an (m,m) mask where diagonal is False, and broadcast it to (n,m,n,m).
+        if m &gt; 0:
+            p_neq_q_mask = ~np.eye(m, dtype=bool)
+            C_4d &amp;= p_neq_q_mask.reshape((1, m, 1, m))
+
+        # Reshape the 4D matrix into a 2D adjacency matrix for the compatibility graph.
+        N = n * m
+        C_adj = C_4d.reshape((N, N))
+        
+        # --- End of optimized construction ---
+
+        # Create graph from the adjacency matrix.
+        # networkx can handle boolean numpy arrays directly, interpreting True as an edge.
+        G_comp = nx.from_numpy_array(C_adj)
+
+        # Find the maximum clique. weight=None means unweighted (largest number of nodes).
+        # nx.max_weight_clique returns a tuple (clique_nodes, weight).
+        max_clique_nodes, _ = nx.max_weight_clique(G_comp, weight=None)
+
+        # Convert clique node indices back to (graph_A_node, graph_B_node) pairs.
+        if not max_clique_nodes:
+            return []
+        
+        result = [(idx // m, idx % m) for idx in max_clique_nodes]
+
+        return result</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/max_common_subgraph_gemini-2.5-pro_20250701_041015_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/max_common_subgraph_gemini-2.5-pro_20250701_041015_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I will solve the Maximum Common Subgraph problem by reducing it to the Maximum Clique problem. This is a standard approach. I&#x27;ll construct a compatibility graph where nodes represent potential mappings of vertices from the input graphs. An edge will exist between two nodes in this compatibility graph if their corresponding mappings are consistent. The maximum common subgraph is then equivalent to the maximum clique in this compatibility graph.<br><br>To make this efficient, I&#x27;ll use `numpy` for vectorized construction of the compatibility graph&#x27;s adjacency matrix, which should be significantly faster than nested Python loops. Then, I&#x27;ll use `networkx.max_weight_clique` to find the maximum clique. This leverages a well-tested library function for a hard problem, which is likely more optimized than a custom implementation.<br><br>My plan is:<br>1. Create `solver.py`.<br>2. Implement the `solve` method within the `Solver` class.<br>3. The method will first convert the input lists to `numpy` arrays.<br>4. It will then construct the adjacency matrix of the compatibility graph using `numpy` array manipulations.<br>5. A `networkx` graph will be created from this matrix.<br>6. `networkx.max_weight_clique` will be called on this graph.<br>7. The resulting clique (a set of node indices) will be converted back to the required output format of `list[tuple[int, int]]`.<br><br>This approach trades potentially high memory usage for a significant speedup in construction time. I believe this is a good trade-off for the performance requirements.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import networkx as nx
+import numpy as np
+from typing import Any, List, Tuple, Dict
+
+class Solver:
+    def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+        &quot;&quot;&quot;
+        Solves the Maximum Common Subgraph problem by reducing it to the Maximum Clique problem.
+
+        The method constructs a compatibility graph where nodes are pairs of vertices
+        (one from each graph G and H), and an edge exists between two pairs 
+        ((i, p), (j, q)) if the mapping i-&gt;p and j-&gt;q is consistent. Consistency means
+        that the edge (i, j) exists in G if and only if the edge (p, q) exists in H.
+        The maximum common subgraph is then equivalent to the maximum clique in this
+        compatibility graph.
+
+        The construction of the compatibility graph&#x27;s adjacency matrix is vectorized
+        using NumPy for efficiency. The maximum clique is found using the NetworkX
+        library&#x27;s `max_weight_clique` function.
+        &quot;&quot;&quot;
+        A_list = problem[&quot;A&quot;]
+        B_list = problem[&quot;B&quot;]
+
+        if not A_list or not A_list[0]:
+            return []
+        if not B_list or not B_list[0]:
+            return []
+
+        A = np.array(A_list, dtype=np.int8)
+        B = np.array(B_list, dtype=np.int8)
+        n, m = A.shape[0], B.shape[0]
+        
+        if n == 0 or m == 0:
+            return []
+
+        N = n * m
+
+        # Vectorized construction of the compatibility graph&#x27;s adjacency matrix.
+        # This can be memory-intensive for large n and m.
+        
+        # AA is an N*N matrix where AA[i*m+p, j*m+q] = A[i,j]
+        AA = np.repeat(np.repeat(A, m, axis=0), m, axis=1)
+        
+        # BB is an N*N matrix where BB[i*m+p, j*m+q] = B[p,q]
+        BB = np.tile(B, (n, n))
+
+        # Adjacency matrix C where C[u,v]=1 if edge relation is compatible
+        C_adj = (AA == BB).astype(np.int8)
+
+        # We need to enforce that the nodes from G are distinct (i != j)
+        # and nodes from H are distinct (p != q).
+        # A node u in the compatibility graph corresponds to (i, p) where i=u//m, p=u%m.
+        
+        # Mask for i != j
+        i_coords = np.arange(N) // m
+        i_neq_j_mask = (i_coords[:, None] != i_coords[None, :])
+
+        # Mask for p != q
+        p_coords = np.arange(N) % m
+        p_neq_q_mask = (p_coords[:, None] != p_coords[None, :])
+
+        # Combine all conditions for an edge to exist in the compatibility graph
+        C_adj *= i_neq_j_mask
+        C_adj *= p_neq_q_mask
+        
+        # Create graph from the adjacency matrix
+        G_comp = nx.from_numpy_array(C_adj)
+
+        # Find the maximum clique. The nodes are integers 0..N-1.
+        # weight=None means unweighted, i.e., find largest clique by node count.
+        # nx.max_weight_clique returns a tuple (clique_nodes, weight)
+        max_clique_nodes, _ = nx.max_weight_clique(G_comp, weight=None)
+
+        # Convert clique node indices back to (g_node, h_node) pairs
+        result = []
+        for idx in max_clique_nodes:
+            i = idx // m
+            p = idx % m
+            result.append((i, p))
+
+        return result
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.1320. You have $0.8680 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 81)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import networkx as nx
+&gt; 02: import numpy as np
+&gt; 03: from typing import Any, List, Tuple, Dict
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solves the Maximum Common Subgraph problem by reducing it to the Maximum Clique problem.
+&gt; 09: 
+&gt; 10:         The method constructs a compatibility graph where nodes are pairs of vertices
+&gt; 11:         (one from each graph G and H), and an edge exists between two pairs 
+&gt; 12:         ((i, p), (j, q)) if the mapping i-&gt;p and j-&gt;q is consistent. Consistency means
+&gt; 13:         that the edge (i, j) exists in G if and only if the edge (p, q) exists in H.
+&gt; 14:         The maximum common subgraph is then equivalent to the maximum clique in this
+&gt; 15:         compatibility graph.
+&gt; 16: 
+&gt; 17:         The construction of the compatibility graph&#x27;s adjacency matrix is vectorized
+&gt; 18:         using NumPy for efficiency. The maximum clique is found using the NetworkX
+&gt; 19:         library&#x27;s `max_weight_clique` function.
+&gt; 20:         &quot;&quot;&quot;
+&gt; 21:         A_list = problem[&quot;A&quot;]
+&gt; 22:         B_list = problem[&quot;B&quot;]
+&gt; 23: 
+&gt; 24:         if not A_list or not A_list[0]:
+&gt; 25:             return []
+&gt; 26:         if not B_list or not B_list[0]:
+&gt; 27:             return []
+&gt; 28: 
+&gt; 29:         A = np.array(A_list, dtype=np.int8)
+&gt; 30:         B = np.array(B_list, dtype=np.int8)
+&gt; 31:         n, m = A.shape[0], B.shape[0]
+&gt; 32:         
+&gt; 33:         if n == 0 or m == 0:
+&gt; 34:             return []
+&gt; 35: 
+&gt; 36:         N = n * m
+&gt; 37: 
+&gt; 38:         # Vectorized construction of the compatibility graph&#x27;s adjacency matrix.
+&gt; 39:         # This can be memory-intensive for large n and m.
+&gt; 40:         
+&gt; 41:         # AA is an N*N matrix where AA[i*m+p, j*m+q] = A[i,j]
+&gt; 42:         AA = np.repeat(np.repeat(A, m, axis=0), m, axis=1)
+&gt; 43:         
+&gt; 44:         # BB is an N*N matrix where BB[i*m+p, j*m+q] = B[p,q]
+&gt; 45:         BB = np.tile(B, (n, n))
+&gt; 46: 
+&gt; 47:         # Adjacency matrix C where C[u,v]=1 if edge relation is compatible
+&gt; 48:         C_adj = (AA == BB).astype(np.int8)
+&gt; 49: 
+&gt; 50:         # We need to enforce that the nodes from G are distinct (i != j)
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">9.11</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge other"> Invalid Command</span>
+            </div>
+            <div class="message-content">
+                This is a solid approach, but the performance can be significantly improved by optimizing the construction of the compatibility graph&#x27;s adjacency matrix. The current method using `np.repeat` and `np.tile` creates very large intermediate matrices (`N*N`, where `N = n*m`), which is both time-consuming and memory-intensive.<br><br>My improved strategy focuses on a more efficient, memory-savvy construction using NumPy&#x27;s broadcasting capabilities with higher-dimensional arrays. This avoids the explicit creation of massive intermediate matrices.<br><br>### Plan for Optimization:<br><br>1.  **Data Types**: I&#x27;ll use `numpy.bool_` for the adjacency matrices `A` and `B`. Since the values are only 0 or 1, boolean arrays are more memory-efficient and can lead to faster logical operations.<br><br>2.  **4D Broadcasting for Compatibility**: Instead of creating `N*N` matrices `AA` and `BB`, I will reshape `A` to `(n, 1, n, 1)` and `B` to `(1, m, 1, m)`. A single broadcasting operation `A_reshaped == B_reshaped` will then compute the entire four-dimensional compatibility result `C_4d[i, p, j, q] = (A[i, j] == B[p, q])` very efficiently.<br><br>3.  **Efficient Masking for Injectivity**: The constraints `i != j` and `p != q` will also be applied using broadcasting. I&#x27;ll create small `(n, n)` and `(m, m)` anti-identity matrices (`~np.eye(...)`) and broadcast them over the 4D compatibility matrix. This is much faster and uses significantly less memory than creating full `N*N` masks.<br><br>4.  **Final Assembly**: The resulting 4D boolean matrix `C_4d` will be reshaped into the final 2D adjacency matrix `C_adj` of size `N*N`.<br><br>This revised construction process minimizes peak memory usage and leverages highly optimized low-level NumPy routines for broadcasting, which should provide a substantial speedup. The rest of the algorithm, which correctly reduces the problem to maximum clique and uses the robust `networkx` solver, will remain.<br><br><pre><code class="language-python">import networkx as nx
+import numpy as np
+from typing import Any, List, Tuple, Dict
+
+class Solver:
+    def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+        &quot;&quot;&quot;
+        Solves the Maximum Common Subgraph problem by reducing it to the Maximum Clique problem.
+
+        This implementation uses an optimized construction of the compatibility graph&#x27;s
+        adjacency matrix. It leverages NumPy&#x27;s broadcasting on 4D arrays to avoid creating
+        large intermediate matrices, leading to better memory usage and performance.
+
+        The overall approach remains:
+        1. Construct a compatibility graph where nodes are pairs of vertices (one from each
+           graph G and H). An edge exists between ((i, p), (j, q)) if the mapping is
+           consistent (i.e., A[i,j] == B[p,q]) and injective (i!=j, p!=q).
+        2. Find the maximum clique in this compatibility graph using NetworkX.
+        3. The nodes in the maximum clique correspond to the vertex mappings of the
+           maximum common subgraph.
+        &quot;&quot;&quot;
+        A_list = problem[&quot;A&quot;]
+        B_list = problem[&quot;B&quot;]
+
+        # Handle empty or malformed input graphs
+        if not A_list or not B_list or not A_list[0] or not B_list[0]:
+            return []
+
+        A = np.array(A_list, dtype=bool)
+        B = np.array(B_list, dtype=bool)
+        n, m = A.shape[0], B.shape[0]
+        
+        if n == 0 or m == 0:
+            return []
+
+        # --- Optimized construction of the compatibility graph&#x27;s adjacency matrix ---
+        
+        # Use 4D broadcasting to compute compatibility.
+        # C_4d[i, p, j, q] is True if mapping i-&gt;p and j-&gt;q is compatible.
+        # Compatibility means the edge relationship is preserved: A[i, j] == B[p, q].
+        C_4d = (A.reshape(n, 1, n, 1) == B.reshape(1, m, 1, m))
+
+        # Enforce injectivity constraints (i != j and p != q) using broadcasting.
+        # This is faster and more memory-efficient than creating N*N masks.
+        
+        # Mask for i != j:
+        # Create an (n,n) mask where diagonal is False, and broadcast it to (n,m,n,m).
+        if n &gt; 0:
+            i_neq_j_mask = ~np.eye(n, dtype=bool)
+            C_4d &amp;= i_neq_j_mask.reshape(n, 1, n, 1)
+
+        # Mask for p != q:
+        # Create an (m,m) mask where diagonal is False, and broadcast it to (n,m,n,m).
+        if m &gt; 0:
+            p_neq_q_mask = ~np.eye(m, dtype=bool)
+            C_4d &amp;= p_neq_q_mask.reshape(1, m, 1, m)
+
+        # Reshape the 4D matrix into a 2D adjacency matrix for the compatibility graph.
+        N = n * m
+        C_adj = C_4d.reshape(N, N)
+        
+        # --- End of optimized construction ---
+
+        # Create graph from the adjacency matrix.
+        # networkx can handle boolean numpy arrays directly, interpreting True as an edge.
+        G_comp = nx.from_numpy_array(C_adj)
+
+        # Find the maximum clique. weight=None means unweighted (largest number of nodes).
+        # nx.max_weight_clique returns a tuple (clique_nodes, weight).
+        max_clique_nodes, _ = nx.max_weight_clique(G_comp, weight=None)
+
+        # Convert clique node indices back to (graph_A_node, graph_B_node) pairs.
+        if not max_clique_nodes:
+            return []
+        
+        result = [(idx // m, idx % m) for idx in max_clique_nodes]
+
+        return result</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.2398. You have $0.7602 remaining.<br><br>Error: Command parsing failed<br>Command parsing failed. <br>Remember to include one and only one command in each message. Important: remember to include all arguments for each command.<br>Remember to sandwich your command in between ``` and ```. <br>IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.<br><br>Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:<br>- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:<br>  ```<br>  edit <br>  file: &lt;file_name&gt;<br>  lines: &lt;start_line&gt;-&lt;end_line&gt;<br>  ---<br>  &lt;new_content&gt;<br>  ---<br>  ```<br><br>  The command will:<br>  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)<br>  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;<br>  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file<br>  <br>  Example:<br>  edit<br>  file: solver.py<br>  lines: 5-7<br>  ---<br>  def improved_function():<br>      print(&quot;Optimized solution&quot;)<br>  ---<br>- `ls`: List all files in the current working directory.<br>- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).<br>- `revert`: Revert the code to the best-performing version thus far.<br>- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: <br>  ```<br>  reference [1,2,3,4]<br>  ```<br>- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: <br>  ```<br>  eval_input [1,2,3,4]<br>  ```<br>- `eval`: Run evaluation on the current solution and report the results.<br>- `delete`: Delete a range of lines from a file using the format:<br>  ```<br>  delete<br>  file: &lt;file_name&gt;<br>  lines: &lt;start_line&gt;-&lt;end_line&gt;<br><br>  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)<br>  <br>  Example:<br>  ```<br>  delete<br>  file: solver.py<br>  lines: 5-10<br>  ```<br>- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.<br>  Example:<br>  ```<br>  profile solver.py [1, 2, 3]<br>  ```<br>- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.<br>  Example: <br>  ```<br>  profile_lines solver.py 1,2,3 [1, 2, 3]<br>  ```
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I apologize for the formatting error. I will now resubmit my optimized code using the correct `edit` command format.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import networkx as nx
+import numpy as np
+from typing import Any, List, Tuple, Dict
+
+class Solver:
+    def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+        &quot;&quot;&quot;
+        Solves the Maximum Common Subgraph problem by reducing it to the Maximum Clique problem.
+
+        This implementation uses an optimized construction of the compatibility graph&#x27;s
+        adjacency matrix. It leverages NumPy&#x27;s broadcasting on 4D arrays to avoid creating
+        large intermediate matrices, leading to better memory usage and performance.
+
+        The overall approach remains:
+        1. Construct a compatibility graph where nodes are pairs of vertices (one from each
+           graph G and H). An edge exists between ((i, p), (j, q)) if the mapping is
+           consistent (i.e., A[i,j] == B[p,q]) and injective (i!=j, p!=q).
+        2. Find the maximum clique in this compatibility graph using NetworkX.
+        3. The nodes in the maximum clique correspond to the vertex mappings of the
+           maximum common subgraph.
+        &quot;&quot;&quot;
+        A_list = problem[&quot;A&quot;]
+        B_list = problem[&quot;B&quot;]
+
+        # Handle empty or malformed input graphs
+        if not A_list or not B_list or not A_list[0] or not B_list[0]:
+            return []
+
+        A = np.array(A_list, dtype=bool)
+        B = np.array(B_list, dtype=bool)
+        n, m = A.shape[0], B.shape[0]
+        
+        if n == 0 or m == 0:
+            return []
+
+        # --- Optimized construction of the compatibility graph&#x27;s adjacency matrix ---
+        
+        # Use 4D broadcasting to compute compatibility.
+        # C_4d[i, p, j, q] is True if mapping i-&gt;p and j-&gt;q is compatible.
+        # Compatibility means the edge relationship is preserved: A[i, j] == B[p, q].
+        C_4d = (A.reshape(n, 1, n, 1) == B.reshape(1, m, 1, m))
+
+        # Enforce injectivity constraints (i != j and p != q) using broadcasting.
+        # This is faster and more memory-efficient than creating N*N masks.
+        
+        # Mask for i != j:
+        # Create an (n,n) mask where diagonal is False, and broadcast it to (n,m,n,m).
+        if n &gt; 0:
+            i_neq_j_mask = ~np.eye(n, dtype=bool)
+            C_4d &amp;= i_neq_j_mask.reshape(n, 1, n, 1)
+
+        # Mask for p != q:
+        # Create an (m,m) mask where diagonal is False, and broadcast it to (n,m,n,m).
+        if m &gt; 0:
+            p_neq_q_mask = ~np.eye(m, dtype=bool)
+            C_4d &amp;= p_neq_q_mask.reshape(1, m, 1, m)
+
+        # Reshape the 4D matrix into a 2D adjacency matrix for the compatibility graph.
+        N = n * m
+        C_adj = C_4d.reshape(N, N)
+        
+        # --- End of optimized construction ---
+
+        # Create graph from the adjacency matrix.
+        # networkx can handle boolean numpy arrays directly, interpreting True as an edge.
+        G_comp = nx.from_numpy_array(C_adj)
+
+        # Find the maximum clique. weight=None means unweighted (largest number of nodes).
+        # nx.max_weight_clique returns a tuple (clique_nodes, weight).
+        max_clique_nodes, _ = nx.max_weight_clique(G_comp, weight=None)
+
+        # Convert clique node indices back to (graph_A_node, graph_B_node) pairs.
+        if not max_clique_nodes:
+            return []
+        
+        result = [(idx // m, idx % m) for idx in max_clique_nodes]
+
+        return result
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.2574. You have $0.7426 remaining.<br><br>Edit failed (and thus not applied) for solver.py: Line 41: Too many positional arguments for method call (too-many-function-args)<br>Line 41: Too many positional arguments for method call (too-many-function-args)<br><br>Proposed changes - This is what you tried to apply (lines 16-65 out of 78):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">...
+&gt; 16:            graph G and H). An edge exists between ((i, p), (j, q)) if the mapping is
+&gt; 17:            consistent (i.e., A[i,j] == B[p,q]) and injective (i!=j, p!=q).
+&gt; 18:         2. Find the maximum clique in this compatibility graph using NetworkX.
+&gt; 19:         3. The nodes in the maximum clique correspond to the vertex mappings of the
+&gt; 20:            maximum common subgraph.
+&gt; 21:         &quot;&quot;&quot;
+&gt; 22:         A_list = problem[&quot;A&quot;]
+&gt; 23:         B_list = problem[&quot;B&quot;]
+&gt; 24: 
+&gt; 25:         # Handle empty or malformed input graphs
+&gt; 26:         if not A_list or not B_list or not A_list[0] or not B_list[0]:
+&gt; 27:             return []
+&gt; 28: 
+&gt; 29:         A = np.array(A_list, dtype=bool)
+&gt; 30:         B = np.array(B_list, dtype=bool)
+&gt; 31:         n, m = A.shape[0], B.shape[0]
+&gt; 32:         
+&gt; 33:         if n == 0 or m == 0:
+&gt; 34:             return []
+&gt; 35: 
+&gt; 36:         # --- Optimized construction of the compatibility graph&#x27;s adjacency matrix ---
+&gt; 37:         
+&gt; 38:         # Use 4D broadcasting to compute compatibility.
+&gt; 39:         # C_4d[i, p, j, q] is True if mapping i-&gt;p and j-&gt;q is compatible.
+&gt; 40:         # Compatibility means the edge relationship is preserved: A[i, j] == B[p, q].
+&gt; 41:         C_4d = (A.reshape(n, 1, n, 1) == B.reshape(1, m, 1, m))
+&gt; 42: 
+&gt; 43:         # Enforce injectivity constraints (i != j and p != q) using broadcasting.
+&gt; 44:         # This is faster and more memory-efficient than creating N*N masks.
+&gt; 45:         
+&gt; 46:         # Mask for i != j:
+&gt; 47:         # Create an (n,n) mask where diagonal is False, and broadcast it to (n,m,n,m).
+&gt; 48:         if n &gt; 0:
+&gt; 49:             i_neq_j_mask = ~np.eye(n, dtype=bool)
+&gt; 50:             C_4d &amp;= i_neq_j_mask.reshape(n, 1, n, 1)
+&gt; 51: 
+&gt; 52:         # Mask for p != q:
+&gt; 53:         # Create an (m,m) mask where diagonal is False, and broadcast it to (n,m,n,m).
+&gt; 54:         if m &gt; 0:
+&gt; 55:             p_neq_q_mask = ~np.eye(m, dtype=bool)
+&gt; 56:             C_4d &amp;= p_neq_q_mask.reshape(1, m, 1, m)
+&gt; 57: 
+&gt; 58:         # Reshape the 4D matrix into a 2D adjacency matrix for the compatibility graph.
+&gt; 59:         N = n * m
+&gt; 60:         C_adj = C_4d.reshape(N, N)
+&gt; 61:         
+&gt; 62:         # --- End of optimized construction ---
+&gt; 63: 
+&gt; 64:         # Create graph from the adjacency matrix.
+&gt; 65:         # networkx can handle boolean numpy arrays directly, interpreting True as an edge.
+...</code></pre><br><br>CURRENT FILE - This is what&#x27;s actually in the file (lines 1-50 out of 81):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">| 01: import networkx as nx
+| 02: import numpy as np
+| 03: from typing import Any, List, Tuple, Dict
+| 04: 
+| 05: class Solver:
+| 06:     def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+| 07:         &quot;&quot;&quot;
+| 08:         Solves the Maximum Common Subgraph problem by reducing it to the Maximum Clique problem.
+| 09: 
+| 10:         The method constructs a compatibility graph where nodes are pairs of vertices
+| 11:         (one from each graph G and H), and an edge exists between two pairs 
+| 12:         ((i, p), (j, q)) if the mapping i-&gt;p and j-&gt;q is consistent. Consistency means
+| 13:         that the edge (i, j) exists in G if and only if the edge (p, q) exists in H.
+| 14:         The maximum common subgraph is then equivalent to the maximum clique in this
+| 15:         compatibility graph.
+| 16: 
+| 17:         The construction of the compatibility graph&#x27;s adjacency matrix is vectorized
+| 18:         using NumPy for efficiency. The maximum clique is found using the NetworkX
+| 19:         library&#x27;s `max_weight_clique` function.
+| 20:         &quot;&quot;&quot;
+| 21:         A_list = problem[&quot;A&quot;]
+| 22:         B_list = problem[&quot;B&quot;]
+| 23: 
+| 24:         if not A_list or not A_list[0]:
+| 25:             return []
+| 26:         if not B_list or not B_list[0]:
+| 27:             return []
+| 28: 
+| 29:         A = np.array(A_list, dtype=np.int8)
+| 30:         B = np.array(B_list, dtype=np.int8)
+| 31:         n, m = A.shape[0], B.shape[0]
+| 32:         
+| 33:         if n == 0 or m == 0:
+| 34:             return []
+| 35: 
+| 36:         N = n * m
+| 37: 
+| 38:         # Vectorized construction of the compatibility graph&#x27;s adjacency matrix.
+| 39:         # This can be memory-intensive for large n and m.
+| 40:         
+| 41:         # AA is an N*N matrix where AA[i*m+p, j*m+q] = A[i,j]
+| 42:         AA = np.repeat(np.repeat(A, m, axis=0), m, axis=1)
+| 43:         
+| 44:         # BB is an N*N matrix where BB[i*m+p, j*m+q] = B[p,q]
+| 45:         BB = np.tile(B, (n, n))
+| 46: 
+| 47:         # Adjacency matrix C where C[u,v]=1 if edge relation is compatible
+| 48:         C_adj = (AA == BB).astype(np.int8)
+| 49: 
+| 50:         # We need to enforce that the nodes from G are distinct (i != j)
+...</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My apologies. The linter seems to be overly strict and prefers the shape argument for `reshape` to be passed as a single tuple rather than multiple arguments. I will correct this syntactic issue. The logic of the optimization remains the same.<br><br>I will change `A.reshape(n, 1, n, 1)` to `A.reshape((n, 1, n, 1))` and apply this correction to all `reshape` calls.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import networkx as nx
+import numpy as np
+from typing import Any, List, Tuple, Dict
+
+class Solver:
+    def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+        &quot;&quot;&quot;
+        Solves the Maximum Common Subgraph problem by reducing it to the Maximum Clique problem.
+
+        This implementation uses an optimized construction of the compatibility graph&#x27;s
+        adjacency matrix. It leverages NumPy&#x27;s broadcasting on 4D arrays to avoid creating
+        large intermediate matrices, leading to better memory usage and performance.
+
+        The overall approach remains:
+        1. Construct a compatibility graph where nodes are pairs of vertices (one from each
+           graph G and H). An edge exists between ((i, p), (j, q)) if the mapping is
+           consistent (i.e., A[i,j] == B[p,q]) and injective (i!=j, p!=q).
+        2. Find the maximum clique in this compatibility graph using NetworkX.
+        3. The nodes in the maximum clique correspond to the vertex mappings of the
+           maximum common subgraph.
+        &quot;&quot;&quot;
+        A_list = problem[&quot;A&quot;]
+        B_list = problem[&quot;B&quot;]
+
+        # Handle empty or malformed input graphs
+        if not A_list or not B_list or not A_list[0] or not B_list[0]:
+            return []
+
+        A = np.array(A_list, dtype=bool)
+        B = np.array(B_list, dtype=bool)
+        n, m = A.shape[0], B.shape[0]
+        
+        if n == 0 or m == 0:
+            return []
+
+        # --- Optimized construction of the compatibility graph&#x27;s adjacency matrix ---
+        
+        # Use 4D broadcasting to compute compatibility.
+        # C_4d[i, p, j, q] is True if mapping i-&gt;p and j-&gt;q is compatible.
+        # Compatibility means the edge relationship is preserved: A[i, j] == B[p, q].
+        C_4d = (A.reshape((n, 1, n, 1)) == B.reshape((1, m, 1, m)))
+
+        # Enforce injectivity constraints (i != j and p != q) using broadcasting.
+        # This is faster and more memory-efficient than creating N*N masks.
+        
+        # Mask for i != j:
+        # Create an (n,n) mask where diagonal is False, and broadcast it to (n,m,n,m).
+        if n &gt; 0:
+            i_neq_j_mask = ~np.eye(n, dtype=bool)
+            C_4d &amp;= i_neq_j_mask.reshape((n, 1, n, 1))
+
+        # Mask for p != q:
+        # Create an (m,m) mask where diagonal is False, and broadcast it to (n,m,n,m).
+        if m &gt; 0:
+            p_neq_q_mask = ~np.eye(m, dtype=bool)
+            C_4d &amp;= p_neq_q_mask.reshape((1, m, 1, m))
+
+        # Reshape the 4D matrix into a 2D adjacency matrix for the compatibility graph.
+        N = n * m
+        C_adj = C_4d.reshape((N, N))
+        
+        # --- End of optimized construction ---
+
+        # Create graph from the adjacency matrix.
+        # networkx can handle boolean numpy arrays directly, interpreting True as an edge.
+        G_comp = nx.from_numpy_array(C_adj)
+
+        # Find the maximum clique. weight=None means unweighted (largest number of nodes).
+        # nx.max_weight_clique returns a tuple (clique_nodes, weight).
+        max_clique_nodes, _ = nx.max_weight_clique(G_comp, weight=None)
+
+        # Convert clique node indices back to (graph_A_node, graph_B_node) pairs.
+        if not max_clique_nodes:
+            return []
+        
+        result = [(idx // m, idx % m) for idx in max_clique_nodes]
+
+        return result
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.2826. You have $0.7174 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 78)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import networkx as nx
+&gt; 02: import numpy as np
+&gt; 03: from typing import Any, List, Tuple, Dict
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solves the Maximum Common Subgraph problem by reducing it to the Maximum Clique problem.
+&gt; 09: 
+&gt; 10:         This implementation uses an optimized construction of the compatibility graph&#x27;s
+&gt; 11:         adjacency matrix. It leverages NumPy&#x27;s broadcasting on 4D arrays to avoid creating
+&gt; 12:         large intermediate matrices, leading to better memory usage and performance.
+&gt; 13: 
+&gt; 14:         The overall approach remains:
+&gt; 15:         1. Construct a compatibility graph where nodes are pairs of vertices (one from each
+&gt; 16:            graph G and H). An edge exists between ((i, p), (j, q)) if the mapping is
+&gt; 17:            consistent (i.e., A[i,j] == B[p,q]) and injective (i!=j, p!=q).
+&gt; 18:         2. Find the maximum clique in this compatibility graph using NetworkX.
+&gt; 19:         3. The nodes in the maximum clique correspond to the vertex mappings of the
+&gt; 20:            maximum common subgraph.
+&gt; 21:         &quot;&quot;&quot;
+&gt; 22:         A_list = problem[&quot;A&quot;]
+&gt; 23:         B_list = problem[&quot;B&quot;]
+&gt; 24: 
+&gt; 25:         # Handle empty or malformed input graphs
+&gt; 26:         if not A_list or not B_list or not A_list[0] or not B_list[0]:
+&gt; 27:             return []
+&gt; 28: 
+&gt; 29:         A = np.array(A_list, dtype=bool)
+&gt; 30:         B = np.array(B_list, dtype=bool)
+&gt; 31:         n, m = A.shape[0], B.shape[0]
+&gt; 32:         
+&gt; 33:         if n == 0 or m == 0:
+&gt; 34:             return []
+&gt; 35: 
+&gt; 36:         # --- Optimized construction of the compatibility graph&#x27;s adjacency matrix ---
+&gt; 37:         
+&gt; 38:         # Use 4D broadcasting to compute compatibility.
+&gt; 39:         # C_4d[i, p, j, q] is True if mapping i-&gt;p and j-&gt;q is compatible.
+&gt; 40:         # Compatibility means the edge relationship is preserved: A[i, j] == B[p, q].
+&gt; 41:         C_4d = (A.reshape((n, 1, n, 1)) == B.reshape((1, m, 1, m)))
+&gt; 42: 
+&gt; 43:         # Enforce injectivity constraints (i != j and p != q) using broadcasting.
+&gt; 44:         # This is faster and more memory-efficient than creating N*N masks.
+&gt; 45:         
+&gt; 46:         # Mask for i != j:
+&gt; 47:         # Create an (n,n) mask where diagonal is False, and broadcast it to (n,m,n,m).
+&gt; 48:         if n &gt; 0:
+&gt; 49:             i_neq_j_mask = ~np.eye(n, dtype=bool)
+&gt; 50:             C_4d &amp;= i_neq_j_mask.reshape((n, 1, n, 1))
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">9.37</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                After observing that the clique-reduction approach with 4D broadcasting still wasn&#x27;t top-tier, I&#x27;ve concluded that the bottleneck is likely the creation and handling of the large compatibility graph itself, especially the `networkx.max_weight_clique` call on a graph with up to `70*70 = 4900` vertices.<br><br>My new strategy abandons the clique reduction entirely in favor of a direct **backtracking search** for the maximum common subgraph. This avoids the high memory and computational overhead of the compatibility graph.<br><br>### The Backtracking Algorithm:<br><br>1.  **Heuristics for Efficiency**:<br>    *   To minimize the search space, I&#x27;ll always map vertices from the smaller graph to the larger one.<br>    *   I&#x27;ll process the vertices of the smaller graph in descending order of their degree. This is a powerful heuristic that prioritizes more constrained vertices, leading to earlier pruning of search branches.<br><br>2.  **Recursive Search**:<br>    *   A recursive function, `_backtrack`, will explore possible mappings. It takes the current partial mapping and the sets of remaining/available vertices as input.<br>    *   At each step, it tries to map the next vertex from the smaller graph (`u`) to each available vertex in the larger graph (`v`).<br><br>3.  **Consistency Check**:<br>    *   Before adding a pair `(u, v)` to the mapping, it checks for consistency: for every already-mapped pair `(u_mapped, v_mapped)`, the edge relationship `(u, u_mapped)` in graph A must be the same as the edge relationship `(v, v_mapped)` in graph B.<br><br>4.  **Aggressive Pruning**:<br>    *   The core of the optimization is a pruning rule: if the size of the current mapping plus the number of remaining mappable vertices is not greater than the size of the best solution found so far, that entire branch of the search is abandoned. This check is performed at the start of the function and inside the main loop to cut off fruitless exploration as early as possible.<br><br>This approach trades the deterministic, high-memory construction of the clique method for a search-based algorithm whose performance is highly dependent on the structure of the input graphs and the effectiveness of the heuristics and pruning. For many graph types, this can be significantly faster.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+from typing import List, Tuple, Dict
+
+class Solver:
+    def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+        &quot;&quot;&quot;
+        Solves the Maximum Common Subgraph problem using a backtracking search
+        algorithm with pruning. This avoids building the large compatibility graph.
+
+        The algorithm works as follows:
+        1. The smaller graph (A) is mapped to the larger graph (B) to reduce
+           the search space.
+        2. Vertices of graph A are sorted by degree (descending) as a heuristic
+           to handle highly constrained vertices first, enabling faster pruning.
+        3. A recursive backtracking function searches for consistent mappings.
+        4. Pruning: A search branch is abandoned if it cannot possibly yield a
+           larger common subgraph than the best one found so far.
+        &quot;&quot;&quot;
+        A_list = problem[&quot;A&quot;]
+        B_list = problem[&quot;B&quot;]
+
+        if not A_list or not B_list or not A_list[0] or not B_list[0]:
+            return []
+
+        A = np.array(A_list, dtype=bool)
+        B = np.array(B_list, dtype=bool)
+        n, m = A.shape[0], B.shape[0]
+
+        if n == 0 or m == 0:
+            return []
+
+        swapped = False
+        if n &gt; m:
+            A, B = B, A
+            n, m = m, n
+            swapped = True
+
+        # Use a mutable list to store the best mapping found across recursive calls.
+        best_solution = [[]]
+
+        # Heuristic: Sort vertices of A by degree (descending).
+        degrees_A = np.sum(A, axis=1)
+        a_vertices_ordered = np.argsort(degrees_A)[::-1].tolist()
+
+        def _backtrack(current_mapping: List[Tuple[int, int]], a_vertices: List[int], b_candidates: List[int]):
+            # Pruning: if current path can&#x27;t beat the best found solution, backtrack.
+            if len(current_mapping) + len(a_vertices) &lt;= len(best_solution[0]):
+                return
+
+            # Update the best solution if the current one is better.
+            if len(current_mapping) &gt; len(best_solution[0]):
+                best_solution[0] = current_mapping
+
+            if not a_vertices:
+                return
+
+            u = a_vertices[0]
+            remaining_a = a_vertices[1:]
+
+            for i in range(len(b_candidates)):
+                # Pruning check inside the loop for early exit.
+                if len(current_mapping) + len(a_vertices) &lt;= len(best_solution[0]):
+                    return
+
+                v = b_candidates[i]
+                
+                # Check for consistency with the current partial mapping.
+                is_consistent = all(A[u, u_mapped] == B[v, v_mapped] for u_mapped, v_mapped in current_mapping)
+                
+                if is_consistent:
+                    # Recurse with the new mapping and reduced candidate sets.
+                    new_b_candidates = b_candidates[:i] + b_candidates[i+1:]
+                    _backtrack(current_mapping + [(u, v)], remaining_a, new_b_candidates)
+
+        # Initial call to start the search.
+        _backtrack([], a_vertices_ordered, list(range(m)))
+        
+        final_mapping = best_solution[0]
+        
+        # If graphs were swapped, un-swap the pairs in the final result.
+        if swapped:
+            return [(v, u) for u, v in final_mapping]
+        else:
+            return final_mapping
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.3589. You have $0.6411 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 84)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from typing import List, Tuple, Dict
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solves the Maximum Common Subgraph problem using a backtracking search
+&gt; 08:         algorithm with pruning. This avoids building the large compatibility graph.
+&gt; 09: 
+&gt; 10:         The algorithm works as follows:
+&gt; 11:         1. The smaller graph (A) is mapped to the larger graph (B) to reduce
+&gt; 12:            the search space.
+&gt; 13:         2. Vertices of graph A are sorted by degree (descending) as a heuristic
+&gt; 14:            to handle highly constrained vertices first, enabling faster pruning.
+&gt; 15:         3. A recursive backtracking function searches for consistent mappings.
+&gt; 16:         4. Pruning: A search branch is abandoned if it cannot possibly yield a
+&gt; 17:            larger common subgraph than the best one found so far.
+&gt; 18:         &quot;&quot;&quot;
+&gt; 19:         A_list = problem[&quot;A&quot;]
+&gt; 20:         B_list = problem[&quot;B&quot;]
+&gt; 21: 
+&gt; 22:         if not A_list or not B_list or not A_list[0] or not B_list[0]:
+&gt; 23:             return []
+&gt; 24: 
+&gt; 25:         A = np.array(A_list, dtype=bool)
+&gt; 26:         B = np.array(B_list, dtype=bool)
+&gt; 27:         n, m = A.shape[0], B.shape[0]
+&gt; 28: 
+&gt; 29:         if n == 0 or m == 0:
+&gt; 30:             return []
+&gt; 31: 
+&gt; 32:         swapped = False
+&gt; 33:         if n &gt; m:
+&gt; 34:             A, B = B, A
+&gt; 35:             n, m = m, n
+&gt; 36:             swapped = True
+&gt; 37: 
+&gt; 38:         # Use a mutable list to store the best mapping found across recursive calls.
+&gt; 39:         best_solution = [[]]
+&gt; 40: 
+&gt; 41:         # Heuristic: Sort vertices of A by degree (descending).
+&gt; 42:         degrees_A = np.sum(A, axis=1)
+&gt; 43:         a_vertices_ordered = np.argsort(degrees_A)[::-1].tolist()
+&gt; 44: 
+&gt; 45:         def _backtrack(current_mapping: List[Tuple[int, int]], a_vertices: List[int], b_candidates: List[int]):
+&gt; 46:             # Pruning: if current path can&#x27;t beat the best found solution, backtrack.
+&gt; 47:             if len(current_mapping) + len(a_vertices) &lt;= len(best_solution[0]):
+&gt; 48:                 return
+&gt; 49: 
+&gt; 50:             # Update the best solution if the current one is better.
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 19%<br>  Invalid Solutions: 81%<br>  Timeouts: 0%<br><br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  109:         gs = [i for i, _ in solution]
+  110:         hs = [p for _, p in solution]
+  111:         if len(set(gs)) != len(gs) or len(set(hs)) != len(hs):
+  112:             return False
+  113: 
+  114:         # Check edge consistency
+  115:         for idx1 in range(len(solution)):
+  116:             for idx2 in range(idx1 + 1, len(solution)):
+  117:                 i, p = solution[idx1]
+  118:                 j, q = solution[idx2]
+  119:                 if A[i][j] != B[p][q]:
+  120:                     return False
+  121: 
+  122:         # Check maximality
+  123:         optimal = self.solve(problem)
+&gt; 124:         return len(solution) == len(optimal)</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  109:         gs = [i for i, _ in solution]
+  110:         hs = [p for _, p in solution]
+  111:         if len(set(gs)) != len(gs) or len(set(hs)) != len(hs):
+  112:             return False
+  113: 
+  114:         # Check edge consistency
+  115:         for idx1 in range(len(solution)):
+  116:             for idx2 in range(idx1 + 1, len(solution)):
+  117:                 i, p = solution[idx1]
+  118:                 j, q = solution[idx2]
+  119:                 if A[i][j] != B[p][q]:
+  120:                     return False
+  121: 
+  122:         # Check maximality
+  123:         optimal = self.solve(problem)
+&gt; 124:         return len(solution) == len(optimal)</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  109:         gs = [i for i, _ in solution]
+  110:         hs = [p for _, p in solution]
+  111:         if len(set(gs)) != len(gs) or len(set(hs)) != len(hs):
+  112:             return False
+  113: 
+  114:         # Check edge consistency
+  115:         for idx1 in range(len(solution)):
+  116:             for idx2 in range(idx1 + 1, len(solution)):
+  117:                 i, p = solution[idx1]
+  118:                 j, q = solution[idx2]
+  119:                 if A[i][j] != B[p][q]:
+  120:                     return False
+  121: 
+  122:         # Check maximality
+  123:         optimal = self.solve(problem)
+&gt; 124:         return len(solution) == len(optimal)</code></pre><br><br><br>Snapshot not saved - no valid solutions
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The previous backtracking implementation was flawed because it failed to find the *maximum* common subgraph. It only found common subgraphs that were prefixes of the sorted vertex list. The error arose from not considering the case where a vertex from the smaller graph is *not* part of the optimal mapping.<br><br>To fix this, I have restructured the backtracking algorithm to explore two distinct branches at each step for a given vertex `u`:<br>1.  **Skip `u`**: The algorithm first makes a recursive call that completely ignores `u`, exploring all possible common subgraphs that can be formed from the remaining vertices.<br>2.  **Map `u`**: The algorithm then iterates through all available vertices `v` in the other graph. For each consistent mapping `u -&gt; v`, it makes a recursive call to explore solutions that extend this new mapping.<br><br>This ensures that all possible subsets of vertices are considered, guaranteeing that the largest valid common subgraph is found.<br><br>To improve performance and code clarity, I&#x27;ve refactored the implementation to use instance variables (`self.A`, `self.B`, `self.mapping`, etc.) to maintain the state of the search. This avoids passing multiple large data structures through the recursion stack. The current mapping is now modified in place using `append` and `pop`, which is more efficient than creating new lists for each recursive call.<br><br>The core logic is now correct and exhaustive, while the pruning condition remains to keep the search tractable.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+from typing import List, Tuple, Dict
+
+class Solver:
+    def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+        &quot;&quot;&quot;
+        Solves the Maximum Common Subgraph problem using a backtracking search
+        algorithm with pruning. This version corrects a flaw in the previous
+        backtracking logic to ensure maximality.
+
+        The algorithm explores two branches for each vertex `u` from the smaller graph:
+        1. Solutions that DO NOT include `u`.
+        2. Solutions that DO include `u`, by mapping it to a consistent vertex `v`.
+        This guarantees an exhaustive search for the true maximum.
+        &quot;&quot;&quot;
+        A_list = problem[&quot;A&quot;]
+        B_list = problem[&quot;B&quot;]
+
+        if not A_list or not B_list or not A_list[0] or not B_list[0]:
+            return []
+
+        A = np.array(A_list, dtype=bool)
+        B = np.array(B_list, dtype=bool)
+        n, m = A.shape[0], B.shape[0]
+
+        if n == 0 or m == 0:
+            return []
+
+        swapped = False
+        if n &gt; m:
+            A, B = B, A
+            n, m = m, n
+            swapped = True
+
+        # Store state on the instance for cleaner recursive calls
+        self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+        self.best_mapping = []
+        self.mapping = []  # Current mapping being built
+        self.b_is_available = np.full(m, True, dtype=bool)
+
+        # Heuristic: Sort vertices of A by degree (descending) for faster pruning.
+        degrees_A = np.sum(A, axis=1)
+        self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+
+        self._backtrack(0)
+        
+        final_mapping = self.best_mapping
+        
+        if self.swapped:
+            return [(v, u) for u, v in final_mapping]
+        else:
+            return final_mapping
+
+    def _backtrack(self, a_idx: int):
+        # A valid common subgraph is formed by the current mapping.
+        # Check if it&#x27;s the best one found so far.
+        if len(self.mapping) &gt; len(self.best_mapping):
+            self.best_mapping = list(self.mapping)  # Store a copy
+
+        # Pruning: if the current path cannot possibly beat the best solution, stop.
+        if len(self.mapping) + (self.n - a_idx) &lt;= len(self.best_mapping):
+            return
+
+        # Base case: we have considered all vertices from A.
+        if a_idx == self.n:
+            return
+
+        u = self.a_vertices_ordered[a_idx]
+
+        # --- Branch 1: Explore solutions that DO NOT include u ---
+        # We simply move to the next vertex in A without changing the mapping.
+        self._backtrack(a_idx + 1)
+
+        # --- Branch 2: Explore solutions that DO include u ---
+        # Try to map u to each available vertex v in B.
+        for v_idx in range(self.m):
+            if self.b_is_available[v_idx]:
+                # Check for edge consistency with the current partial mapping.
+                is_consistent = all(self.A[u, u_mapped] == self.B[v_idx, v_mapped] for u_mapped, v_mapped in self.mapping)
+                
+                if is_consistent:
+                    # Add the new pair to the mapping
+                    self.mapping.append((u, v_idx))
+                    self.b_is_available[v_idx] = False
+                    
+                    # Recurse
+                    self._backtrack(a_idx + 1)
+                    
+                    # Backtrack: undo the changes for the next iteration
+                    self.b_is_available[v_idx] = True
+                    self.mapping.pop()
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 6 messages and have used up $0.4376. You have $0.5624 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 91)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from typing import List, Tuple, Dict
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solves the Maximum Common Subgraph problem using a backtracking search
+&gt; 08:         algorithm with pruning. This version corrects a flaw in the previous
+&gt; 09:         backtracking logic to ensure maximality.
+&gt; 10: 
+&gt; 11:         The algorithm explores two branches for each vertex `u` from the smaller graph:
+&gt; 12:         1. Solutions that DO NOT include `u`.
+&gt; 13:         2. Solutions that DO include `u`, by mapping it to a consistent vertex `v`.
+&gt; 14:         This guarantees an exhaustive search for the true maximum.
+&gt; 15:         &quot;&quot;&quot;
+&gt; 16:         A_list = problem[&quot;A&quot;]
+&gt; 17:         B_list = problem[&quot;B&quot;]
+&gt; 18: 
+&gt; 19:         if not A_list or not B_list or not A_list[0] or not B_list[0]:
+&gt; 20:             return []
+&gt; 21: 
+&gt; 22:         A = np.array(A_list, dtype=bool)
+&gt; 23:         B = np.array(B_list, dtype=bool)
+&gt; 24:         n, m = A.shape[0], B.shape[0]
+&gt; 25: 
+&gt; 26:         if n == 0 or m == 0:
+&gt; 27:             return []
+&gt; 28: 
+&gt; 29:         swapped = False
+&gt; 30:         if n &gt; m:
+&gt; 31:             A, B = B, A
+&gt; 32:             n, m = m, n
+&gt; 33:             swapped = True
+&gt; 34: 
+&gt; 35:         # Store state on the instance for cleaner recursive calls
+&gt; 36:         self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+&gt; 37:         self.best_mapping = []
+&gt; 38:         self.mapping = []  # Current mapping being built
+&gt; 39:         self.b_is_available = np.full(m, True, dtype=bool)
+&gt; 40: 
+&gt; 41:         # Heuristic: Sort vertices of A by degree (descending) for faster pruning.
+&gt; 42:         degrees_A = np.sum(A, axis=1)
+&gt; 43:         self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+&gt; 44: 
+&gt; 45:         self._backtrack(0)
+&gt; 46:         
+&gt; 47:         final_mapping = self.best_mapping
+&gt; 48:         
+&gt; 49:         if self.swapped:
+&gt; 50:             return [(v, u) for u, v in final_mapping]
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 100%<br>  Timeouts: 0%<br><br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;:<br>Validation exception:<br>Traceback (most recent call last):<br>  File &quot;/app/AlgoTuner/utils/evaluator/validation_pipeline.py&quot;, line 81, in validate<br>    is_valid = task_instance.is_solution(problem, solution)<br>  File &quot;/app/AlgoTuneTasks/max_common_subgraph/max_common_subgraph.py&quot;, line 111, in is_solution<br>    if len(set(gs)) != len(gs) or len(set(hs)) != len(hs):<br>TypeError: unhashable type: &#x27;numpy.ndarray&#x27;<br><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;:<br>Validation exception:<br>Traceback (most recent call last):<br>  File &quot;/app/AlgoTuner/utils/evaluator/validation_pipeline.py&quot;, line 81, in validate<br>    is_valid = task_instance.is_solution(problem, solution)<br>  File &quot;/app/AlgoTuneTasks/max_common_subgraph/max_common_subgraph.py&quot;, line 111, in is_solution<br>    if len(set(gs)) != len(gs) or len(set(hs)) != len(hs):<br>TypeError: unhashable type: &#x27;numpy.ndarray&#x27;<br><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;:<br>Validation exception:<br>Traceback (most recent call last):<br>  File &quot;/app/AlgoTuner/utils/evaluator/validation_pipeline.py&quot;, line 81, in validate<br>    is_valid = task_instance.is_solution(problem, solution)<br>  File &quot;/app/AlgoTuneTasks/max_common_subgraph/max_common_subgraph.py&quot;, line 111, in is_solution<br>    if len(set(gs)) != len(gs) or len(set(hs)) != len(hs):<br>TypeError: unhashable type: &#x27;numpy.ndarray&#x27;<br><br><br><br>Snapshot not saved - all solutions had errors
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The `TypeError: unhashable type: &#x27;numpy.ndarray&#x27;` indicates that the vertex indices in the solution are NumPy integer types (e.g., `np.int64`) instead of standard Python `int`s. The validation script fails when it tries to create a set from these NumPy types.<br><br>This happened because `np.argsort` returns an array of NumPy integers, and these were used directly to build the mapping.<br><br>My plan is to fix this by explicitly casting the vertex indices to Python `int`s before returning the final solution. This will resolve the type error.<br><br>Additionally, I will optimize the consistency check within the backtracking loop. The current `all(...)` with a generator expression can be slow. I will replace it with a vectorized NumPy operation, `np.all()`, which should provide a noticeable speedup by leveraging low-level C implementations instead of a Python loop.<br><br>These two changes—a bug fix and a performance enhancement—should lead to a correct and faster solution.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+from typing import List, Tuple, Dict
+
+class Solver:
+    def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+        &quot;&quot;&quot;
+        Solves the Maximum Common Subgraph problem using a backtracking search
+        algorithm with pruning. This version ensures maximality by exploring
+        branches both with and without the current vertex.
+
+        Key optimizations:
+        - The consistency check is vectorized with NumPy for speed.
+        - Output vertex indices are cast to standard Python `int`s to avoid type errors.
+        - Vertices of the smaller graph are sorted by degree to prune search branches earlier.
+        &quot;&quot;&quot;
+        A_list = problem[&quot;A&quot;]
+        B_list = problem[&quot;B&quot;]
+
+        if not A_list or not B_list or not A_list[0] or not B_list[0]:
+            return []
+
+        A = np.array(A_list, dtype=bool)
+        B = np.array(B_list, dtype=bool)
+        n, m = A.shape[0], B.shape[0]
+
+        if n == 0 or m == 0:
+            return []
+
+        swapped = False
+        if n &gt; m:
+            A, B = B, A
+            n, m = m, n
+            swapped = True
+
+        # Store state on the instance for cleaner recursive calls
+        self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+        self.best_mapping = []
+        self.mapping = []  # Current mapping being built
+        self.b_is_available = np.full(m, True, dtype=bool)
+
+        # Heuristic: Sort vertices of A by degree (descending).
+        degrees_A = np.sum(A, axis=1)
+        self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+
+        self._backtrack(0)
+        
+        final_mapping = self.best_mapping
+        
+        # Cast to standard Python int to prevent downstream type errors.
+        if self.swapped:
+            return [(int(v), int(u)) for u, v in final_mapping]
+        else:
+            return [(int(u), int(v)) for u, v in final_mapping]
+
+    def _backtrack(self, a_idx: int):
+        if len(self.mapping) &gt; len(self.best_mapping):
+            self.best_mapping = list(self.mapping)
+
+        if len(self.mapping) + (self.n - a_idx) &lt;= len(self.best_mapping):
+            return
+
+        if a_idx == self.n:
+            return
+
+        u = self.a_vertices_ordered[a_idx]
+
+        # --- Branch 1: Explore solutions that DO NOT include u ---
+        self._backtrack(a_idx + 1)
+
+        # --- Branch 2: Explore solutions that DO include u ---
+        # Pre-calculate mapped indices for vectorized check
+        if self.mapping:
+            mapped_u, mapped_v = zip(*self.mapping)
+        else:
+            mapped_u, mapped_v = [], []
+
+        for v_idx in range(self.m):
+            if self.b_is_available[v_idx]:
+                # Vectorized consistency check. Vacuously true if mapping is empty.
+                if np.all(self.A[u, mapped_u] == self.B[v_idx, mapped_v]):
+                    self.mapping.append((u, v_idx))
+                    self.b_is_available[v_idx] = False
+                    
+                    self._backtrack(a_idx + 1)
+                    
+                    self.b_is_available[v_idx] = True
+                    self.mapping.pop()
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 7 messages and have used up $0.5057. You have $0.4943 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 87)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from typing import List, Tuple, Dict
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solves the Maximum Common Subgraph problem using a backtracking search
+&gt; 08:         algorithm with pruning. This version ensures maximality by exploring
+&gt; 09:         branches both with and without the current vertex.
+&gt; 10: 
+&gt; 11:         Key optimizations:
+&gt; 12:         - The consistency check is vectorized with NumPy for speed.
+&gt; 13:         - Output vertex indices are cast to standard Python `int`s to avoid type errors.
+&gt; 14:         - Vertices of the smaller graph are sorted by degree to prune search branches earlier.
+&gt; 15:         &quot;&quot;&quot;
+&gt; 16:         A_list = problem[&quot;A&quot;]
+&gt; 17:         B_list = problem[&quot;B&quot;]
+&gt; 18: 
+&gt; 19:         if not A_list or not B_list or not A_list[0] or not B_list[0]:
+&gt; 20:             return []
+&gt; 21: 
+&gt; 22:         A = np.array(A_list, dtype=bool)
+&gt; 23:         B = np.array(B_list, dtype=bool)
+&gt; 24:         n, m = A.shape[0], B.shape[0]
+&gt; 25: 
+&gt; 26:         if n == 0 or m == 0:
+&gt; 27:             return []
+&gt; 28: 
+&gt; 29:         swapped = False
+&gt; 30:         if n &gt; m:
+&gt; 31:             A, B = B, A
+&gt; 32:             n, m = m, n
+&gt; 33:             swapped = True
+&gt; 34: 
+&gt; 35:         # Store state on the instance for cleaner recursive calls
+&gt; 36:         self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+&gt; 37:         self.best_mapping = []
+&gt; 38:         self.mapping = []  # Current mapping being built
+&gt; 39:         self.b_is_available = np.full(m, True, dtype=bool)
+&gt; 40: 
+&gt; 41:         # Heuristic: Sort vertices of A by degree (descending).
+&gt; 42:         degrees_A = np.sum(A, axis=1)
+&gt; 43:         self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+&gt; 44: 
+&gt; 45:         self._backtrack(0)
+&gt; 46:         
+&gt; 47:         final_mapping = self.best_mapping
+&gt; 48:         
+&gt; 49:         # Cast to standard Python int to prevent downstream type errors.
+&gt; 50:         if self.swapped:
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">1.47</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The previous backtracking solution was correct but too slow. The key to improving performance in search algorithms is more aggressive and intelligent pruning of the search space.<br><br>My new approach introduces two major optimizations to the backtracking algorithm:<br><br>1.  **Candidate Pre-filtering**: Before the search begins, I pre-process the graphs. For each vertex `u` in the smaller graph, I create a list of potential candidate vertices `v` from the larger graph. A vertex `v` is only considered a candidate if its degree is greater than or equal to the degree of `u`. This is a powerful heuristic because a vertex cannot be part of a common subgraph if its corresponding vertex in the other graph doesn&#x27;t have at least as many connections. This dramatically reduces the number of vertices to check at each step of the recursion, significantly cutting down the branching factor of the search.<br><br>2.  **Efficient State Management**: In the previous version, I used `zip(*self.mapping)` inside the recursive function to prepare data for the consistency check. This operation, while convenient, creates new lists on every call. I have now refactored the state to maintain separate lists of the mapped vertices (`self.mapped_u` and `self.mapped_v`). These lists are updated with simple `append` and `pop` operations, which is more efficient than repeatedly unzipping the main mapping list.<br><br>These changes transform the naive backtracking search into a more structured and efficient algorithm, similar to those used in state-of-the-art subgraph isomorphism solvers, while retaining the core logic that correctly finds the *maximum* common subgraph.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+from typing import List, Tuple, Dict
+
+class Solver:
+    def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+        &quot;&quot;&quot;
+        Solves the Maximum Common Subgraph problem using a highly optimized
+        backtracking search algorithm.
+
+        Key optimizations:
+        1. Candidate Pre-filtering: For each vertex `u`, the search is restricted
+           to candidate vertices `v` where degree(v) &gt;= degree(u). This drastically
+           prunes the search space.
+        2. Efficient State Management: Avoids repeated `zip` operations by maintaining
+           separate lists of mapped vertices, updated with efficient append/pop.
+        3. Heuristics: Processes vertices of the smaller graph in descending order
+           of degree to encourage earlier pruning.
+        &quot;&quot;&quot;
+        A_list = problem[&quot;A&quot;]
+        B_list = problem[&quot;B&quot;]
+
+        if not A_list or not B_list or not A_list[0] or not B_list[0]:
+            return []
+
+        A = np.array(A_list, dtype=bool)
+        B = np.array(B_list, dtype=bool)
+        n, m = A.shape[0], B.shape[0]
+
+        if n == 0 or m == 0:
+            return []
+
+        swapped = False
+        if n &gt; m:
+            A, B = B, A
+            n, m = m, n
+            swapped = True
+
+        self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+        
+        # --- Optimizations Setup ---
+        degrees_A = np.sum(A, axis=1)
+        degrees_B = np.sum(B, axis=1)
+        self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+        
+        self.candidates = {
+            u: [v for v in range(m) if degrees_B[v] &gt;= degrees_A[u]]
+            for u in range(n)
+        }
+        
+        # --- State for backtracking ---
+        self.best_mapping = []
+        self.mapping = []
+        self.mapped_u = []
+        self.mapped_v = []
+        self.b_is_available = np.full(m, True, dtype=bool)
+
+        self._backtrack(0)
+        
+        final_mapping = self.best_mapping
+        
+        if self.swapped:
+            return [(int(v), int(u)) for u, v in final_mapping]
+        else:
+            return [(int(u), int(v)) for u, v in final_mapping]
+
+    def _backtrack(self, a_idx: int):
+        if len(self.mapping) &gt; len(self.best_mapping):
+            self.best_mapping = list(self.mapping)
+
+        if len(self.mapping) + (self.n - a_idx) &lt;= len(self.best_mapping):
+            return
+
+        if a_idx == self.n:
+            return
+
+        u = self.a_vertices_ordered[a_idx]
+
+        # Branch 1: Explore solutions that DO NOT include u.
+        self._backtrack(a_idx + 1)
+
+        # Branch 2: Explore solutions that DO include u.
+        # Iterate only over pre-filtered candidates for u.
+        for v in self.candidates[u]:
+            if self.b_is_available[v]:
+                if np.all(self.A[u, self.mapped_u] == self.B[v, self.mapped_v]):
+                    self.mapping.append((u, v))
+                    self.mapped_u.append(u)
+                    self.mapped_v.append(v)
+                    self.b_is_available[v] = False
+                    
+                    self._backtrack(a_idx + 1)
+                    
+                    self.b_is_available[v] = True
+                    self.mapped_v.pop()
+                    self.mapped_u.pop()
+                    self.mapping.pop()
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 8 messages and have used up $0.5667. You have $0.4333 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 96)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from typing import List, Tuple, Dict
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solves the Maximum Common Subgraph problem using a highly optimized
+&gt; 08:         backtracking search algorithm.
+&gt; 09: 
+&gt; 10:         Key optimizations:
+&gt; 11:         1. Candidate Pre-filtering: For each vertex `u`, the search is restricted
+&gt; 12:            to candidate vertices `v` where degree(v) &gt;= degree(u). This drastically
+&gt; 13:            prunes the search space.
+&gt; 14:         2. Efficient State Management: Avoids repeated `zip` operations by maintaining
+&gt; 15:            separate lists of mapped vertices, updated with efficient append/pop.
+&gt; 16:         3. Heuristics: Processes vertices of the smaller graph in descending order
+&gt; 17:            of degree to encourage earlier pruning.
+&gt; 18:         &quot;&quot;&quot;
+&gt; 19:         A_list = problem[&quot;A&quot;]
+&gt; 20:         B_list = problem[&quot;B&quot;]
+&gt; 21: 
+&gt; 22:         if not A_list or not B_list or not A_list[0] or not B_list[0]:
+&gt; 23:             return []
+&gt; 24: 
+&gt; 25:         A = np.array(A_list, dtype=bool)
+&gt; 26:         B = np.array(B_list, dtype=bool)
+&gt; 27:         n, m = A.shape[0], B.shape[0]
+&gt; 28: 
+&gt; 29:         if n == 0 or m == 0:
+&gt; 30:             return []
+&gt; 31: 
+&gt; 32:         swapped = False
+&gt; 33:         if n &gt; m:
+&gt; 34:             A, B = B, A
+&gt; 35:             n, m = m, n
+&gt; 36:             swapped = True
+&gt; 37: 
+&gt; 38:         self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+&gt; 39:         
+&gt; 40:         # --- Optimizations Setup ---
+&gt; 41:         degrees_A = np.sum(A, axis=1)
+&gt; 42:         degrees_B = np.sum(B, axis=1)
+&gt; 43:         self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+&gt; 44:         
+&gt; 45:         self.candidates = {
+&gt; 46:             u: [v for v in range(m) if degrees_B[v] &gt;= degrees_A[u]]
+&gt; 47:             for u in range(n)
+&gt; 48:         }
+&gt; 49:         
+&gt; 50:         # --- State for backtracking ---
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 36%<br>  Invalid Solutions: 64%<br>  Timeouts: 0%<br><br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  109:         gs = [i for i, _ in solution]
+  110:         hs = [p for _, p in solution]
+  111:         if len(set(gs)) != len(gs) or len(set(hs)) != len(hs):
+  112:             return False
+  113: 
+  114:         # Check edge consistency
+  115:         for idx1 in range(len(solution)):
+  116:             for idx2 in range(idx1 + 1, len(solution)):
+  117:                 i, p = solution[idx1]
+  118:                 j, q = solution[idx2]
+  119:                 if A[i][j] != B[p][q]:
+  120:                     return False
+  121: 
+  122:         # Check maximality
+  123:         optimal = self.solve(problem)
+&gt; 124:         return len(solution) == len(optimal)</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  109:         gs = [i for i, _ in solution]
+  110:         hs = [p for _, p in solution]
+  111:         if len(set(gs)) != len(gs) or len(set(hs)) != len(hs):
+  112:             return False
+  113: 
+  114:         # Check edge consistency
+  115:         for idx1 in range(len(solution)):
+  116:             for idx2 in range(idx1 + 1, len(solution)):
+  117:                 i, p = solution[idx1]
+  118:                 j, q = solution[idx2]
+  119:                 if A[i][j] != B[p][q]:
+  120:                     return False
+  121: 
+  122:         # Check maximality
+  123:         optimal = self.solve(problem)
+&gt; 124:         return len(solution) == len(optimal)</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  109:         gs = [i for i, _ in solution]
+  110:         hs = [p for _, p in solution]
+  111:         if len(set(gs)) != len(gs) or len(set(hs)) != len(hs):
+  112:             return False
+  113: 
+  114:         # Check edge consistency
+  115:         for idx1 in range(len(solution)):
+  116:             for idx2 in range(idx1 + 1, len(solution)):
+  117:                 i, p = solution[idx1]
+  118:                 j, q = solution[idx2]
+  119:                 if A[i][j] != B[p][q]:
+  120:                     return False
+  121: 
+  122:         # Check maximality
+  123:         optimal = self.solve(problem)
+&gt; 124:         return len(solution) == len(optimal)</code></pre><br><br><br>Snapshot not saved - no valid solutions
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My apologies. The invalid solutions were caused by an incorrect pruning strategy. The assumption that a vertex `u` can only be mapped to a vertex `v` if `degree(v) &gt;= degree(u)` is valid for the subgraph isomorphism problem, but it is **not** correct for the more general Maximum Common Subgraph (MCS) problem. This overly aggressive pruning removed valid candidates from the search, leading to non-maximal solutions.<br><br>I will correct this by removing the faulty degree-based candidate filtering. The search will now correctly consider all available vertices in the target graph for mapping.<br><br>However, I will retain the other performance improvements:<br>1.  **Efficient State Management**: I will continue to use dedicated lists (`self.mapped_u`, `self.mapped_v`) to track the mapping, as this is more efficient than repeatedly using `zip`.<br>2.  **Degree-Sort Heuristic**: Sorting the vertices of the smaller graph by degree remains a very effective heuristic for finding good solutions early and enabling better pruning, so I will keep it.<br><br>This change reverts the logic to a correct, exhaustive search while keeping the valid micro-optimizations for state handling.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+from typing import List, Tuple, Dict
+
+class Solver:
+    def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+        &quot;&quot;&quot;
+        Solves the Maximum Common Subgraph problem using an optimized backtracking
+        search algorithm.
+
+        This version corrects a faulty pruning rule from the previous attempt. The
+        degree-based candidate filtering, while valid for subgraph isomorphism, is
+        incorrect for the general MCS problem and has been removed.
+
+        Key optimizations retained:
+        1. Efficient State Management: Uses dedicated lists for mapped vertices to
+           avoid repeated expensive operations inside the recursive loop.
+        2. Heuristics: Processes vertices of the smaller graph in descending order
+           of degree to encourage earlier pruning.
+        &quot;&quot;&quot;
+        A_list = problem[&quot;A&quot;]
+        B_list = problem[&quot;B&quot;]
+
+        if not A_list or not B_list or not A_list[0] or not B_list[0]:
+            return []
+
+        A = np.array(A_list, dtype=bool)
+        B = np.array(B_list, dtype=bool)
+        n, m = A.shape[0], B.shape[0]
+
+        if n == 0 or m == 0:
+            return []
+
+        swapped = False
+        if n &gt; m:
+            A, B = B, A
+            n, m = m, n
+            swapped = True
+
+        self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+        
+        # Heuristic: Sort vertices of A by degree (descending).
+        degrees_A = np.sum(A, axis=1)
+        self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+        
+        # State for backtracking
+        self.best_mapping = []
+        self.mapping = []
+        self.mapped_u = []  # For efficient consistency checks
+        self.mapped_v = []  # For efficient consistency checks
+        self.b_is_available = np.full(m, True, dtype=bool)
+
+        self._backtrack(0)
+        
+        final_mapping = self.best_mapping
+        
+        if self.swapped:
+            return [(int(v), int(u)) for u, v in final_mapping]
+        else:
+            return [(int(u), int(v)) for u, v in final_mapping]
+
+    def _backtrack(self, a_idx: int):
+        if len(self.mapping) &gt; len(self.best_mapping):
+            self.best_mapping = list(self.mapping)
+
+        if len(self.mapping) + (self.n - a_idx) &lt;= len(self.best_mapping):
+            return
+
+        if a_idx == self.n:
+            return
+
+        u = self.a_vertices_ordered[a_idx]
+
+        # Branch 1: Explore solutions that DO NOT include u.
+        self._backtrack(a_idx + 1)
+
+        # Branch 2: Explore solutions that DO include u.
+        # Iterate over all available vertices in B. The incorrect degree-based
+        # filtering has been removed.
+        for v in range(self.m):
+            if self.b_is_available[v]:
+                if np.all(self.A[u, self.mapped_u] == self.B[v, self.mapped_v]):
+                    self.mapping.append((u, v))
+                    self.mapped_u.append(u)
+                    self.mapped_v.append(v)
+                    self.b_is_available[v] = False
+                    
+                    self._backtrack(a_idx + 1)
+                    
+                    self.b_is_available[v] = True
+                    self.mapped_v.pop()
+                    self.mapped_u.pop()
+                    self.mapping.pop()
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 9 messages and have used up $0.6363. You have $0.3637 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 92)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from typing import List, Tuple, Dict
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solves the Maximum Common Subgraph problem using an optimized backtracking
+&gt; 08:         search algorithm.
+&gt; 09: 
+&gt; 10:         This version corrects a faulty pruning rule from the previous attempt. The
+&gt; 11:         degree-based candidate filtering, while valid for subgraph isomorphism, is
+&gt; 12:         incorrect for the general MCS problem and has been removed.
+&gt; 13: 
+&gt; 14:         Key optimizations retained:
+&gt; 15:         1. Efficient State Management: Uses dedicated lists for mapped vertices to
+&gt; 16:            avoid repeated expensive operations inside the recursive loop.
+&gt; 17:         2. Heuristics: Processes vertices of the smaller graph in descending order
+&gt; 18:            of degree to encourage earlier pruning.
+&gt; 19:         &quot;&quot;&quot;
+&gt; 20:         A_list = problem[&quot;A&quot;]
+&gt; 21:         B_list = problem[&quot;B&quot;]
+&gt; 22: 
+&gt; 23:         if not A_list or not B_list or not A_list[0] or not B_list[0]:
+&gt; 24:             return []
+&gt; 25: 
+&gt; 26:         A = np.array(A_list, dtype=bool)
+&gt; 27:         B = np.array(B_list, dtype=bool)
+&gt; 28:         n, m = A.shape[0], B.shape[0]
+&gt; 29: 
+&gt; 30:         if n == 0 or m == 0:
+&gt; 31:             return []
+&gt; 32: 
+&gt; 33:         swapped = False
+&gt; 34:         if n &gt; m:
+&gt; 35:             A, B = B, A
+&gt; 36:             n, m = m, n
+&gt; 37:             swapped = True
+&gt; 38: 
+&gt; 39:         self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+&gt; 40:         
+&gt; 41:         # Heuristic: Sort vertices of A by degree (descending).
+&gt; 42:         degrees_A = np.sum(A, axis=1)
+&gt; 43:         self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+&gt; 44:         
+&gt; 45:         # State for backtracking
+&gt; 46:         self.best_mapping = []
+&gt; 47:         self.mapping = []
+&gt; 48:         self.mapped_u = []  # For efficient consistency checks
+&gt; 49:         self.mapped_v = []  # For efficient consistency checks
+&gt; 50:         self.b_is_available = np.full(m, True, dtype=bool)
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">1.48</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The current backtracking solution is correct but not fast enough. The primary bottleneck is the vast search space, and the existing pruning rule (`len(mapping) + remaining_nodes &lt;= best_len`) is not strong enough on its own.<br><br>To achieve a significant speedup, I am introducing a more powerful pruning technique known as **lookahead** or **forward checking**.<br><br>### The Lookahead Pruning Strategy:<br><br>The core idea is to check for future viability *before* committing to a mapping and recursing. When considering mapping a vertex `u` from graph A to a vertex `v` from graph B, we can ask: &quot;Does `v` have enough potential neighbors in the rest of B to accommodate `u`&#x27;s neighbors in the rest of A?&quot;<br><br>1.  **Future Degrees**: For the current vertex `u`, we calculate its &quot;future degree&quot;: the number of neighbors it has among the yet-to-be-processed vertices of graph A.<br>2.  **Available Neighbors**: For a candidate vertex `v`, we need its &quot;available degree&quot;: the number of neighbors it has among the currently available (unmapped) vertices of graph B.<br>3.  **The Pruning Rule**: If `u`&#x27;s future degree is greater than `v`&#x27;s available degree, then it&#x27;s impossible to find a valid mapping for `u`&#x27;s neighbors, so the `(u, v)` mapping is invalid. We can prune this entire branch of the search tree immediately.<br><br>To implement this efficiently, I will maintain an array, `self.b_future_degrees`, that stores the available degree for every vertex in graph B. This array is initialized with the full degrees. When a vertex `v` is used in a mapping, I perform a fast vectorized update: for every neighbor of `v`, its available degree is decremented. This state is reverted upon backtracking.<br><br>This lookahead check is performed *before* the more expensive consistency check, allowing the algorithm to fail faster and explore far fewer dead-end paths.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+from typing import List, Tuple, Dict
+
+class Solver:
+    def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+        &quot;&quot;&quot;
+        Solves the Maximum Common Subgraph problem using a backtracking search
+        with an aggressive lookahead pruning strategy.
+
+        Key optimizations:
+        1. Lookahead Pruning: Before attempting to map a vertex `u` to `v`, the
+           algorithm checks if `v` has enough available neighbors to satisfy the
+           future neighborhood of `u`. This is a form of forward checking.
+        2. Efficient State Updates: The &quot;future degrees&quot; of vertices in graph B
+           are maintained in an array and updated/reverted efficiently during
+           recursion, avoiding costly recalculations.
+        3. Heuristics: Vertices of the smaller graph are processed in descending
+           order of degree to find large mappings early and prune more effectively.
+        &quot;&quot;&quot;
+        A_list = problem[&quot;A&quot;]
+        B_list = problem[&quot;B&quot;]
+
+        if not A_list or not B_list or not A_list[0] or not B_list[0]:
+            return []
+
+        A = np.array(A_list, dtype=bool)
+        B = np.array(B_list, dtype=bool)
+        n, m = A.shape[0], B.shape[0]
+
+        if n == 0 or m == 0:
+            return []
+
+        swapped = False
+        if n &gt; m:
+            A, B = B, A
+            n, m = m, n
+            swapped = True
+
+        self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+        
+        degrees_A = np.sum(A, axis=1)
+        self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+        
+        # --- State for backtracking ---
+        self.best_mapping = []
+        self.mapping = []
+        self.mapped_u = []
+        self.mapped_v = []
+        self.b_is_available = np.full(m, True, dtype=bool)
+        # New state for lookahead pruning: degree of each B-vertex w.r.t. available B-vertices
+        self.b_future_degrees = np.sum(B, axis=1).astype(np.int32)
+
+        self._backtrack(0)
+        
+        final_mapping = self.best_mapping
+        
+        if self.swapped:
+            return [(int(v), int(u)) for u, v in final_mapping]
+        else:
+            return [(int(u), int(v)) for u, v in final_mapping]
+
+    def _backtrack(self, a_idx: int):
+        if len(self.mapping) &gt; len(self.best_mapping):
+            self.best_mapping = list(self.mapping)
+
+        if len(self.mapping) + (self.n - a_idx) &lt;= len(self.best_mapping):
+            return
+
+        if a_idx == self.n:
+            return
+
+        u = self.a_vertices_ordered[a_idx]
+        
+        # --- Branch 1: Explore solutions that DO NOT include u ---
+        self._backtrack(a_idx + 1)
+
+        # --- Branch 2: Explore solutions that DO include u ---
+        a_rem_indices = self.a_vertices_ordered[a_idx+1:]
+        u_future_degree = np.sum(self.A[u, a_rem_indices])
+
+        for v in range(self.m):
+            if self.b_is_available[v]:
+                # Pruning 1: Lookahead degree check.
+                if u_future_degree &lt;= self.b_future_degrees[v]:
+                    # Pruning 2: Standard consistency check with past mappings.
+                    if np.all(self.A[u, self.mapped_u] == self.B[v, self.mapped_v]):
+                        
+                        v_neighbors = self.B[v]
+                        
+                        self.mapping.append((u, v))
+                        self.mapped_u.append(u)
+                        self.mapped_v.append(v)
+                        self.b_is_available[v] = False
+                        self.b_future_degrees -= v_neighbors
+
+                        self._backtrack(a_idx + 1)
+                        
+                        self.b_future_degrees += v_neighbors
+                        self.b_is_available[v] = True
+                        self.mapped_v.pop()
+                        self.mapped_u.pop()
+                        self.mapping.pop()
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 10 messages and have used up $0.7313. You have $0.2687 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 102)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import List, Tuple, Dict
+&gt; 003: 
+&gt; 004: class Solver:
+&gt; 005:     def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+&gt; 006:         &quot;&quot;&quot;
+&gt; 007:         Solves the Maximum Common Subgraph problem using a backtracking search
+&gt; 008:         with an aggressive lookahead pruning strategy.
+&gt; 009: 
+&gt; 010:         Key optimizations:
+&gt; 011:         1. Lookahead Pruning: Before attempting to map a vertex `u` to `v`, the
+&gt; 012:            algorithm checks if `v` has enough available neighbors to satisfy the
+&gt; 013:            future neighborhood of `u`. This is a form of forward checking.
+&gt; 014:         2. Efficient State Updates: The &quot;future degrees&quot; of vertices in graph B
+&gt; 015:            are maintained in an array and updated/reverted efficiently during
+&gt; 016:            recursion, avoiding costly recalculations.
+&gt; 017:         3. Heuristics: Vertices of the smaller graph are processed in descending
+&gt; 018:            order of degree to find large mappings early and prune more effectively.
+&gt; 019:         &quot;&quot;&quot;
+&gt; 020:         A_list = problem[&quot;A&quot;]
+&gt; 021:         B_list = problem[&quot;B&quot;]
+&gt; 022: 
+&gt; 023:         if not A_list or not B_list or not A_list[0] or not B_list[0]:
+&gt; 024:             return []
+&gt; 025: 
+&gt; 026:         A = np.array(A_list, dtype=bool)
+&gt; 027:         B = np.array(B_list, dtype=bool)
+&gt; 028:         n, m = A.shape[0], B.shape[0]
+&gt; 029: 
+&gt; 030:         if n == 0 or m == 0:
+&gt; 031:             return []
+&gt; 032: 
+&gt; 033:         swapped = False
+&gt; 034:         if n &gt; m:
+&gt; 035:             A, B = B, A
+&gt; 036:             n, m = m, n
+&gt; 037:             swapped = True
+&gt; 038: 
+&gt; 039:         self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+&gt; 040:         
+&gt; 041:         degrees_A = np.sum(A, axis=1)
+&gt; 042:         self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+&gt; 043:         
+&gt; 044:         # --- State for backtracking ---
+&gt; 045:         self.best_mapping = []
+&gt; 046:         self.mapping = []
+&gt; 047:         self.mapped_u = []
+&gt; 048:         self.mapped_v = []
+&gt; 049:         self.b_is_available = np.full(m, True, dtype=bool)
+&gt; 050:         # New state for lookahead pruning: degree of each B-vertex w.r.t. available B-vertices
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 84%<br>  Invalid Solutions: 16%<br>  Timeouts: 0%<br><br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  109:         gs = [i for i, _ in solution]
+  110:         hs = [p for _, p in solution]
+  111:         if len(set(gs)) != len(gs) or len(set(hs)) != len(hs):
+  112:             return False
+  113: 
+  114:         # Check edge consistency
+  115:         for idx1 in range(len(solution)):
+  116:             for idx2 in range(idx1 + 1, len(solution)):
+  117:                 i, p = solution[idx1]
+  118:                 j, q = solution[idx2]
+  119:                 if A[i][j] != B[p][q]:
+  120:                     return False
+  121: 
+  122:         # Check maximality
+  123:         optimal = self.solve(problem)
+&gt; 124:         return len(solution) == len(optimal)</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  109:         gs = [i for i, _ in solution]
+  110:         hs = [p for _, p in solution]
+  111:         if len(set(gs)) != len(gs) or len(set(hs)) != len(hs):
+  112:             return False
+  113: 
+  114:         # Check edge consistency
+  115:         for idx1 in range(len(solution)):
+  116:             for idx2 in range(idx1 + 1, len(solution)):
+  117:                 i, p = solution[idx1]
+  118:                 j, q = solution[idx2]
+  119:                 if A[i][j] != B[p][q]:
+  120:                     return False
+  121: 
+  122:         # Check maximality
+  123:         optimal = self.solve(problem)
+&gt; 124:         return len(solution) == len(optimal)</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  109:         gs = [i for i, _ in solution]
+  110:         hs = [p for _, p in solution]
+  111:         if len(set(gs)) != len(gs) or len(set(hs)) != len(hs):
+  112:             return False
+  113: 
+  114:         # Check edge consistency
+  115:         for idx1 in range(len(solution)):
+  116:             for idx2 in range(idx1 + 1, len(solution)):
+  117:                 i, p = solution[idx1]
+  118:                 j, q = solution[idx2]
+  119:                 if A[i][j] != B[p][q]:
+  120:                     return False
+  121: 
+  122:         # Check maximality
+  123:         optimal = self.solve(problem)
+&gt; 124:         return len(solution) == len(optimal)</code></pre><br><br><br>Snapshot not saved - no valid solutions
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My apologies. The lookahead pruning I implemented was flawed. It was based on a principle from the subgraph isomorphism problem (`|Future_A(u)| &lt;= |Available_B(v)|`) which is too strict for the Maximum Common Subgraph (MCS) problem. In MCS, we are allowed to *not* map all of `u`&#x27;s neighbors, so a candidate `v` might be valid even if it has fewer available neighbors than `u` has future neighbors. This overly aggressive pruning caused the algorithm to miss the true maximal solutions.<br><br>I will now correct this by removing the faulty lookahead logic.<br><br>To regain and improve performance, I am introducing a new, correct heuristic. The key to faster backtracking is finding a large common subgraph as early as possible. A larger `best_mapping` value leads to more aggressive and effective pruning in later stages of the search.<br><br>My new strategy is to reorder the search within the inner loop. When considering a vertex `u` from graph A, instead of iterating through candidate vertices `v` from graph B in an arbitrary order (e.g., `0, 1, 2, ...`), I will iterate through them in **descending order of their degree**.<br><br>The intuition is that high-degree vertices in B are more &quot;promising&quot; candidates because they have more connections, increasing the chance they can satisfy the edge constraints of `u` with respect to already-mapped vertices and leaving more options open for future mappings. By trying these promising candidates first, the algorithm is more likely to find larger common subgraphs earlier, thus improving the effectiveness of the main pruning condition.<br><br>This change fixes the maximality bug while introducing a powerful search-ordering heuristic to accelerate the discovery of the optimal solution.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+from typing import List, Tuple, Dict
+
+class Solver:
+    def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+        &quot;&quot;&quot;
+        Solves the Maximum Common Subgraph problem using an optimized backtracking
+        search algorithm.
+
+        This version fixes a bug in a previous lookahead strategy that was too
+        aggressive for MCS and led to non-maximal solutions.
+
+        Key optimizations:
+        1. Heuristic Search Order: When mapping a vertex `u`, candidate vertices `v`
+           from the larger graph are tried in descending order of degree. This
+           helps find large subgraphs faster, improving pruning effectiveness.
+        2. Efficient State Management: Uses dedicated lists for mapped vertices to
+           avoid repeated expensive operations inside the recursive loop.
+        3. Heuristics: Processes vertices of the smaller graph in descending order
+           of degree to encourage earlier pruning.
+        &quot;&quot;&quot;
+        A_list = problem[&quot;A&quot;]
+        B_list = problem[&quot;B&quot;]
+
+        if not A_list or not B_list or not A_list[0] or not B_list[0]:
+            return []
+
+        A = np.array(A_list, dtype=bool)
+        B = np.array(B_list, dtype=bool)
+        n, m = A.shape[0], B.shape[0]
+
+        if n == 0 or m == 0:
+            return []
+
+        swapped = False
+        if n &gt; m:
+            A, B = B, A
+            n, m = m, n
+            swapped = True
+
+        self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+        
+        # Heuristics: Sort vertices by degree (descending) to guide the search.
+        degrees_A = np.sum(A, axis=1)
+        self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+        degrees_B = np.sum(B, axis=1)
+        self.b_vertices_ordered_by_deg = np.argsort(degrees_B)[::-1]
+        
+        # State for backtracking
+        self.best_mapping = []
+        self.mapping = []
+        self.mapped_u = []
+        self.mapped_v = []
+        self.b_is_available = np.full(m, True, dtype=bool)
+
+        self._backtrack(0)
+        
+        final_mapping = self.best_mapping
+        
+        if self.swapped:
+            return [(int(v), int(u)) for u, v in final_mapping]
+        else:
+            return [(int(u), int(v)) for u, v in final_mapping]
+
+    def _backtrack(self, a_idx: int):
+        if len(self.mapping) &gt; len(self.best_mapping):
+            self.best_mapping = list(self.mapping)
+
+        if len(self.mapping) + (self.n - a_idx) &lt;= len(self.best_mapping):
+            return
+
+        if a_idx == self.n:
+            return
+
+        u = self.a_vertices_ordered[a_idx]
+
+        # Branch 1: Explore solutions that DO NOT include u.
+        self._backtrack(a_idx + 1)
+
+        # Branch 2: Explore solutions that DO include u.
+        # Iterate through B&#x27;s vertices ordered by degree (heuristic).
+        for v in self.b_vertices_ordered_by_deg:
+            if self.b_is_available[v]:
+                # The faulty lookahead pruning has been removed.
+                if np.all(self.A[u, self.mapped_u] == self.B[v, self.mapped_v]):
+                    self.mapping.append((u, v))
+                    self.mapped_u.append(u)
+                    self.mapped_v.append(v)
+                    self.b_is_available[v] = False
+                    
+                    self._backtrack(a_idx + 1)
+                    
+                    self.b_is_available[v] = True
+                    self.mapped_v.pop()
+                    self.mapped_u.pop()
+                    self.mapping.pop()
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 11 messages and have used up $0.8336. You have $0.1664 remaining.<br><br>Edit failed (and thus not applied) for solver.py: Syntax error: unexpected indent (line 97)<br><br>Proposed changes - This is what you tried to apply (lines 49-98 out of 98):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">...
+&gt; 49:         # State for backtracking
+&gt; 50:         self.best_mapping = []
+&gt; 51:         self.mapping = []
+&gt; 52:         self.mapped_u = []
+&gt; 53:         self.mapped_v = []
+&gt; 54:         self.b_is_available = np.full(m, True, dtype=bool)
+&gt; 55: 
+&gt; 56:         self._backtrack(0)
+&gt; 57:         
+&gt; 58:         final_mapping = self.best_mapping
+&gt; 59:         
+&gt; 60:         if self.swapped:
+&gt; 61:             return [(int(v), int(u)) for u, v in final_mapping]
+&gt; 62:         else:
+&gt; 63:             return [(int(u), int(v)) for u, v in final_mapping]
+&gt; 64: 
+&gt; 65:     def _backtrack(self, a_idx: int):
+&gt; 66:         if len(self.mapping) &gt; len(self.best_mapping):
+&gt; 67:             self.best_mapping = list(self.mapping)
+&gt; 68: 
+&gt; 69:         if len(self.mapping) + (self.n - a_idx) &lt;= len(self.best_mapping):
+&gt; 70:             return
+&gt; 71: 
+&gt; 72:         if a_idx == self.n:
+&gt; 73:             return
+&gt; 74: 
+&gt; 75:         u = self.a_vertices_ordered[a_idx]
+&gt; 76: 
+&gt; 77:         # Branch 1: Explore solutions that DO NOT include u.
+&gt; 78:         self._backtrack(a_idx + 1)
+&gt; 79: 
+&gt; 80:         # Branch 2: Explore solutions that DO include u.
+&gt; 81:         # Iterate through B&#x27;s vertices ordered by degree (heuristic).
+&gt; 82:         for v in self.b_vertices_ordered_by_deg:
+&gt; 83:             if self.b_is_available[v]:
+&gt; 84:                 # The faulty lookahead pruning has been removed.
+&gt; 85:                 if np.all(self.A[u, self.mapped_u] == self.B[v, self.mapped_v]):
+&gt; 86:                     self.mapping.append((u, v))
+&gt; 87:                     self.mapped_u.append(u)
+&gt; 88:                     self.mapped_v.append(v)
+&gt; 89:                     self.b_is_available[v] = False
+&gt; 90:                     
+&gt; 91:                     self._backtrack(a_idx + 1)
+&gt; 92:                     
+&gt; 93:                     self.b_is_available[v] = True
+&gt; 94:                     self.mapped_v.pop()
+&gt; 95:                     self.mapped_u.pop()
+&gt; 96:                     self.mapping.pop()
+| 97:                         self.mapped_u.pop()
+| 98:                         self.mapping.pop()</code></pre><br><br>CURRENT FILE - This is what&#x27;s actually in the file (lines 1-50 out of 102):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">| 001: import numpy as np
+| 002: from typing import List, Tuple, Dict
+| 003: 
+| 004: class Solver:
+| 005:     def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+| 006:         &quot;&quot;&quot;
+| 007:         Solves the Maximum Common Subgraph problem using a backtracking search
+| 008:         with an aggressive lookahead pruning strategy.
+| 009: 
+| 010:         Key optimizations:
+| 011:         1. Lookahead Pruning: Before attempting to map a vertex `u` to `v`, the
+| 012:            algorithm checks if `v` has enough available neighbors to satisfy the
+| 013:            future neighborhood of `u`. This is a form of forward checking.
+| 014:         2. Efficient State Updates: The &quot;future degrees&quot; of vertices in graph B
+| 015:            are maintained in an array and updated/reverted efficiently during
+| 016:            recursion, avoiding costly recalculations.
+| 017:         3. Heuristics: Vertices of the smaller graph are processed in descending
+| 018:            order of degree to find large mappings early and prune more effectively.
+| 019:         &quot;&quot;&quot;
+| 020:         A_list = problem[&quot;A&quot;]
+| 021:         B_list = problem[&quot;B&quot;]
+| 022: 
+| 023:         if not A_list or not B_list or not A_list[0] or not B_list[0]:
+| 024:             return []
+| 025: 
+| 026:         A = np.array(A_list, dtype=bool)
+| 027:         B = np.array(B_list, dtype=bool)
+| 028:         n, m = A.shape[0], B.shape[0]
+| 029: 
+| 030:         if n == 0 or m == 0:
+| 031:             return []
+| 032: 
+| 033:         swapped = False
+| 034:         if n &gt; m:
+| 035:             A, B = B, A
+| 036:             n, m = m, n
+| 037:             swapped = True
+| 038: 
+| 039:         self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+| 040:         
+| 041:         degrees_A = np.sum(A, axis=1)
+| 042:         self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+| 043:         
+| 044:         # --- State for backtracking ---
+| 045:         self.best_mapping = []
+| 046:         self.mapping = []
+| 047:         self.mapped_u = []
+| 048:         self.mapped_v = []
+| 049:         self.b_is_available = np.full(m, True, dtype=bool)
+| 050:         # New state for lookahead pruning: degree of each B-vertex w.r.t. available B-vertices
+...</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My apologies for the syntax error. It was caused by an incorrect `edit` command that only replaced the first 100 lines of the file, leaving orphaned lines from the previous version at the end, which resulted in an invalid indentation structure.<br><br>I will now resubmit the same logical fix—removing the faulty lookahead pruning and introducing a degree-based sorting heuristic for the inner loop—but this time I will ensure the entire file is replaced to prevent any syntax errors.<br><br>The strategy remains:<br>1.  **Fix the Bug**: Remove the incorrect lookahead pruning that was causing non-maximal solutions.<br>2.  **Improve Performance**: Order the search for candidate vertices `v` in the inner loop by their degree in descending order. This heuristic helps the algorithm find larger common subgraphs earlier, which makes the primary pruning condition (`len(mapping) + remaining_nodes &lt;= best_len`) more effective sooner.<br><br>This approach will produce correct solutions and should provide a significant performance boost over the simple backtracking algorithm.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-200
+---
+import numpy as np
+from typing import List, Tuple, Dict
+
+class Solver:
+    def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+        &quot;&quot;&quot;
+        Solves the Maximum Common Subgraph problem using an optimized backtracking
+        search algorithm.
+
+        This version fixes a bug in a previous lookahead strategy that was too
+        aggressive for MCS and led to non-maximal solutions.
+
+        Key optimizations:
+        1. Heuristic Search Order: When mapping a vertex `u`, candidate vertices `v`
+           from the larger graph are tried in descending order of degree. This
+           helps find large subgraphs faster, improving pruning effectiveness.
+        2. Efficient State Management: Uses dedicated lists for mapped vertices to
+           avoid repeated expensive operations inside the recursive loop.
+        3. Heuristics: Processes vertices of the smaller graph in descending order
+           of degree to encourage earlier pruning.
+        &quot;&quot;&quot;
+        A_list = problem[&quot;A&quot;]
+        B_list = problem[&quot;B&quot;]
+
+        if not A_list or not B_list or not A_list[0] or not B_list[0]:
+            return []
+
+        A = np.array(A_list, dtype=bool)
+        B = np.array(B_list, dtype=bool)
+        n, m = A.shape[0], B.shape[0]
+
+        if n == 0 or m == 0:
+            return []
+
+        swapped = False
+        if n &gt; m:
+            A, B = B, A
+            n, m = m, n
+            swapped = True
+
+        self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+        
+        # Heuristics: Sort vertices by degree (descending) to guide the search.
+        degrees_A = np.sum(A, axis=1)
+        self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+        degrees_B = np.sum(B, axis=1)
+        self.b_vertices_ordered_by_deg = np.argsort(degrees_B)[::-1]
+        
+        # State for backtracking
+        self.best_mapping = []
+        self.mapping = []
+        self.mapped_u = []
+        self.mapped_v = []
+        self.b_is_available = np.full(m, True, dtype=bool)
+
+        self._backtrack(0)
+        
+        final_mapping = self.best_mapping
+        
+        if self.swapped:
+            return [(int(v), int(u)) for u, v in final_mapping]
+        else:
+            return [(int(u), int(v)) for u, v in final_mapping]
+
+    def _backtrack(self, a_idx: int):
+        if len(self.mapping) &gt; len(self.best_mapping):
+            self.best_mapping = list(self.mapping)
+
+        if len(self.mapping) + (self.n - a_idx) &lt;= len(self.best_mapping):
+            return
+
+        if a_idx == self.n:
+            return
+
+        u = self.a_vertices_ordered[a_idx]
+
+        # Branch 1: Explore solutions that DO NOT include u.
+        self._backtrack(a_idx + 1)
+
+        # Branch 2: Explore solutions that DO include u.
+        # Iterate through B&#x27;s vertices ordered by degree (heuristic).
+        for v in self.b_vertices_ordered_by_deg:
+            if self.b_is_available[v]:
+                # The faulty lookahead pruning has been removed.
+                if np.all(self.A[u, self.mapped_u] == self.B[v, self.mapped_v]):
+                    self.mapping.append((u, v))
+                    self.mapped_u.append(u)
+                    self.mapped_v.append(v)
+                    self.b_is_available[v] = False
+                    
+                    self._backtrack(a_idx + 1)
+                    
+                    self.b_is_available[v] = True
+                    self.mapped_v.pop()
+                    self.mapped_u.pop()
+                    self.mapping.pop()
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 12 messages and have used up $0.9207. You have $0.0793 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 96)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from typing import List, Tuple, Dict
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solves the Maximum Common Subgraph problem using an optimized backtracking
+&gt; 08:         search algorithm.
+&gt; 09: 
+&gt; 10:         This version fixes a bug in a previous lookahead strategy that was too
+&gt; 11:         aggressive for MCS and led to non-maximal solutions.
+&gt; 12: 
+&gt; 13:         Key optimizations:
+&gt; 14:         1. Heuristic Search Order: When mapping a vertex `u`, candidate vertices `v`
+&gt; 15:            from the larger graph are tried in descending order of degree. This
+&gt; 16:            helps find large subgraphs faster, improving pruning effectiveness.
+&gt; 17:         2. Efficient State Management: Uses dedicated lists for mapped vertices to
+&gt; 18:            avoid repeated expensive operations inside the recursive loop.
+&gt; 19:         3. Heuristics: Processes vertices of the smaller graph in descending order
+&gt; 20:            of degree to encourage earlier pruning.
+&gt; 21:         &quot;&quot;&quot;
+&gt; 22:         A_list = problem[&quot;A&quot;]
+&gt; 23:         B_list = problem[&quot;B&quot;]
+&gt; 24: 
+&gt; 25:         if not A_list or not B_list or not A_list[0] or not B_list[0]:
+&gt; 26:             return []
+&gt; 27: 
+&gt; 28:         A = np.array(A_list, dtype=bool)
+&gt; 29:         B = np.array(B_list, dtype=bool)
+&gt; 30:         n, m = A.shape[0], B.shape[0]
+&gt; 31: 
+&gt; 32:         if n == 0 or m == 0:
+&gt; 33:             return []
+&gt; 34: 
+&gt; 35:         swapped = False
+&gt; 36:         if n &gt; m:
+&gt; 37:             A, B = B, A
+&gt; 38:             n, m = m, n
+&gt; 39:             swapped = True
+&gt; 40: 
+&gt; 41:         self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+&gt; 42:         
+&gt; 43:         # Heuristics: Sort vertices by degree (descending) to guide the search.
+&gt; 44:         degrees_A = np.sum(A, axis=1)
+&gt; 45:         self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+&gt; 46:         degrees_B = np.sum(B, axis=1)
+&gt; 47:         self.b_vertices_ordered_by_deg = np.argsort(degrees_B)[::-1]
+&gt; 48:         
+&gt; 49:         # State for backtracking
+&gt; 50:         self.best_mapping = []
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">1.51</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The current solution is correct, but its performance is hampered by a key operation in the innermost loop of the backtracking search. The line `np.all(self.A[u, self.mapped_u] == self.B[v, self.mapped_v])` is executed for almost every combination of nodes, and it&#x27;s inefficient for this specific use case.<br><br>While `numpy` is generally fast, this particular operation involves several hidden costs:<br>1.  `self.mapped_u` and `self.mapped_v` are Python lists. Using them to index a numpy array is called &quot;fancy indexing.&quot;<br>2.  Fancy indexing creates a *new temporary numpy array* in memory. This happens twice (for `A` and `B`).<br>3.  The comparison `==` creates a *third* temporary boolean array.<br>4.  `np.all()` then iterates over this third array.<br><br>For small mappings (which is the case for most of the search), the overhead of allocating these three temporary arrays for every single check is significant and outweighs the benefits of numpy&#x27;s C-level loops.<br><br>My optimization replaces this single line with a pure Python `for` loop. The new code iterates through the existing mapping and compares edge relations one by one. This avoids all temporary array allocations. For the small mapping sizes encountered in this problem (at most 50), this direct loop is substantially faster because it eliminates the memory allocation and setup overhead, allowing the processor to stay focused on the simple comparisons.<br><br>This is a targeted micro-optimization applied to the most critical bottleneck of the algorithm, which should yield a significant speedup.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-200
+---
+import numpy as np
+from typing import List, Tuple, Dict
+
+class Solver:
+    def solve(self, problem: Dict[str, List[List[int]]], **kwargs) -&gt; List[Tuple[int, int]]:
+        &quot;&quot;&quot;
+        Solves the Maximum Common Subgraph problem using an optimized backtracking
+        search algorithm.
+
+        Key optimizations:
+        1. Fast Consistency Check: The core edge-consistency check inside the
+           search loop is implemented as a direct Python loop. This avoids the
+           overhead of creating temporary numpy arrays for each check, which is
+           faster for the small array sizes typical in this problem.
+        2. Heuristic Search Order: Vertices of both graphs are processed in
+           descending order of degree. This heuristic guides the search towards
+           promising candidates first, helping to find large subgraphs earlier
+           and enabling more effective pruning.
+        3. Efficient State Management: The current mapping is maintained in simple
+           lists, allowing for fast O(1) updates (append/pop) during recursion.
+        &quot;&quot;&quot;
+        A_list = problem[&quot;A&quot;]
+        B_list = problem[&quot;B&quot;]
+
+        if not A_list or not B_list or not A_list[0] or not B_list[0]:
+            return []
+
+        A = np.array(A_list, dtype=bool)
+        B = np.array(B_list, dtype=bool)
+        n, m = A.shape[0], B.shape[0]
+
+        if n == 0 or m == 0:
+            return []
+
+        swapped = False
+        if n &gt; m:
+            A, B = B, A
+            n, m = m, n
+            swapped = True
+
+        self.A, self.B, self.n, self.m, self.swapped = A, B, n, m, swapped
+        
+        degrees_A = np.sum(A, axis=1)
+        self.a_vertices_ordered = np.argsort(degrees_A)[::-1]
+        degrees_B = np.sum(B, axis=1)
+        self.b_vertices_ordered_by_deg = np.argsort(degrees_B)[::-1]
+        
+        self.best_mapping = []
+        self.mapping = []
+        self.mapped_u = []
+        self.mapped_v = []
+        self.b_is_available = np.full(m, True, dtype=bool)
+
+        self._backtrack(0)
+        
+        final_mapping = self.best_mapping
+        
+        if self.swapped:
+            return [(int(v), int(u)) for u, v in final_mapping]
+        else:
+            return [(int(u), int(v)) for u, v in final_mapping]
+
+    def _backtrack(self, a_idx: int):
+        if len(self.mapping) &gt; len(self.best_mapping):
+            self.best_mapping = list(self.mapping)
+
+        if len(self.mapping) + (self.n - a_idx) &lt;= len(self.best_mapping):
+            return
+
+        if a_idx == self.n:
+            return
+
+        u = self.a_vertices_ordered[a_idx]
+
+        # Branch 1: Explore solutions that DO NOT include u.
+        self._backtrack(a_idx + 1)
+
+        # Branch 2: Explore solutions that DO include u.
+        for v in self.b_vertices_ordered_by_deg:
+            if self.b_is_available[v]:
+                # Fast consistency check in a Python loop to avoid numpy overhead.
+                is_consistent = True
+                for i in range(len(self.mapped_u)):
+                    if self.A[u, self.mapped_u[i]] != self.B[v, self.mapped_v[i]]:
+                        is_consistent = False
+                        break
+                
+                if is_consistent:
+                    self.mapping.append((u, v))
+                    self.mapped_u.append(u)
+                    self.mapped_v.append(v)
+                    self.b_is_available[v] = False
+                    
+                    self._backtrack(a_idx + 1)
+                    
+                    self.b_is_available[v] = True
+                    self.mapped_v.pop()
+                    self.mapped_u.pop()
+                    self.mapping.pop()
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

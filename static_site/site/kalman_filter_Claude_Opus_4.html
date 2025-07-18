@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – kalman_filter – Claude Opus 4</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">kalman_filter</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="kalman_filter_o4-mini.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (40.56x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="kalman_filter_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (15.76x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="kalman_filter_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (9.93x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="kalman_filter_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #D2691E; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (0.99x)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">kalman_filter</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Claude Opus 4</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #D2691E; font-weight: 600;">0.992x</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">6</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">0</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">100.2 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+Kalman Filter Task (Optimization Formulation)
+
+This task solves a Kalman filtering/smoothing problem by formulating it as a convex optimization problem (Quadratic Program).
+
+Given a linear dynamical system with process noise w and measurement noise v:
+  x_{t+1} = A * x_t + B * w_t   (State dynamics)
+  y_t     = C * x_t + v_t       (Measurements)
+
+The goal is to find the state sequence x = [x_0, ..., x_N] and the noise sequences w = [w_0, ..., w_{N-1}], v = [v_0, ..., v_{N-1}] that best explain the observed measurements y = [y_0, ..., y_{N-1}], assuming a known initial state x_0.
+
+Problem Formulation:
+
+    minimize_{x, w, v}   sum_{t=0}^{N-1} ( ||w_t||_2^2 + tau * ||v_t||_2^2 )
+    subject to           x_{t+1} = A*x_t + B*w_t,    for t = 0, ..., N-1
+                         y_t     = C*x_t + v_t,       for t = 0, ..., N-1
+                         x_0 = x_initial
+
+where:
+    x_t is the state vector at time t (size n).
+    w_t is the process noise vector at time t (size p).
+    v_t is the measurement noise vector at time t (size m).
+    y_t is the measurement vector at time t (size m).
+    A is the state transition matrix (n x n).
+    B is the process noise input matrix (n x p).
+    C is the measurement matrix (m x n).
+    tau &gt; 0 is a parameter weighting the measurement noise cost relative to the process noise cost.
+    N is the number of time steps.
+    x_initial is the known initial state.
+    The optimization variables are the sequences x = [x_1,...,x_N], w = [w_0,...,w_{N-1}], v = [v_0,...,v_{N-1}].
+
+This QP formulation finds the maximum a posteriori (MAP) estimate of the state trajectory assuming Gaussian noise.
+
+Input: A dictionary with keys:
+- &quot;A&quot;: A list of n lists of floats (state transition matrix).
+- &quot;B&quot;: A list of n lists of p floats (process noise input matrix).
+- &quot;C&quot;: A list of m lists of n floats (measurement matrix).
+- &quot;y&quot;: A list of N lists (measurements), each inner list has m floats.
+- &quot;x_initial&quot;: A list of n floats (initial state).
+- &quot;tau&quot;: A positive float (noise weighting parameter).
+
+Example input:
+{
+  &quot;A&quot;: [[0.9]],
+  &quot;B&quot;: [[0.5]],
+  &quot;C&quot;: [[1.0]],
+  &quot;y&quot;: [[1.1], [0.8], [1.2]],
+  &quot;x_initial&quot;: [1.0],
+  &quot;tau&quot;: 2.0
+}
+
+Output: A dictionary with keys:
+- &quot;x_hat&quot;: The estimated state sequence [x_0, x_1, ..., x_N] (list of N+1 lists of n floats).
+- &quot;w_hat&quot;: The estimated process noise sequence [w_0, ..., w_{N-1}] (list of N lists of p floats).
+- &quot;v_hat&quot;: The estimated measurement noise sequence [v_0, ..., v_{N-1}] (list of N lists of m floats).
+
+Example output:
+{
+  &quot;x_hat&quot;: [[1.0], [0.98...], [0.90...], [0.85...]],
+  &quot;w_hat&quot;: [[0.16...], [0.03...], [-0.01...]],
+  &quot;v_hat&quot;: [[0.11...], [-0.10...], [0.34...]]
+}
+
+Category: convex_optimization
+
+Below is the reference implementation. Your function should run much quicker.
+
+import cvxpy as cp
+import numpy as np
+
+| 01: def solve(self, problem: dict) -&gt; dict:
+| 02:     A = np.array(problem[&quot;A&quot;])
+| 03:     B = np.array(problem[&quot;B&quot;])
+| 04:     C = np.array(problem[&quot;C&quot;])
+| 05:     y = np.array(problem[&quot;y&quot;])
+| 06:     x0 = np.array(problem[&quot;x_initial&quot;])
+| 07:     tau = float(problem[&quot;tau&quot;])
+| 08: 
+| 09:     N, m = y.shape
+| 10:     n = A.shape[1]
+| 11:     p = B.shape[1]
+| 12: 
+| 13:     # variables: x₀…x_N, w₀…w_{N−1}, v₀…v_{N−1}
+| 14:     x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+| 15:     w = cp.Variable((N, p), name=&quot;w&quot;)
+| 16:     v = cp.Variable((N, m), name=&quot;v&quot;)
+| 17: 
+| 18:     obj = cp.Minimize(cp.sum_squares(w) + tau * cp.sum_squares(v))
+| 19: 
+| 20:     cons = []
+| 21:     # initial state
+| 22:     cons.append(x[0] == x0)
+| 23:     # dynamics
+| 24:     for t in range(N):
+| 25:         cons.append(x[t + 1] == A @ x[t] + B @ w[t])
+| 26:     # measurements
+| 27:     for t in range(N):
+| 28:         cons.append(y[t] == C @ x[t] + v[t])
+| 29: 
+| 30:     prob = cp.Problem(obj, cons)
+| 31:     try:
+| 32:         prob.solve()
+| 33:     except cp.SolverError as e:
+| 34:         return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+| 35:     except Exception as e:
+| 36:         return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+| 37: 
+| 38:     if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+| 39:         return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+| 40: 
+| 41:     # prepend x0 -- no longer needed
+| 42:     # x_full = np.vstack((x0, x.value))
+| 43:     return {
+| 44:         &quot;x_hat&quot;: x.value.tolist(),
+| 45:         &quot;w_hat&quot;: w.value.tolist(),
+| 46:         &quot;v_hat&quot;: v.value.tolist(),
+| 47:     }
+| 48: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+import cvxpy as cp
+import numpy as np
+
+| 01: def is_solution( problem: dict, solution: dict) -&gt; bool:
+| 02:     &quot;&quot;&quot;
+| 03:     Verifies feasibility and (near-)optimality of a Kalman-filter solution.
+| 04: 
+| 05:     Feasibility checks
+| 06:     ------------------
+| 07:     • Keys ``x_hat, w_hat, v_hat`` present.
+| 08:     • Correct shapes: x̂ ∈ ℝ^{N+1×n}, ŵ,v̂ ∈ ℝ^{N×p/m}.
+| 09:     • Dynamics, measurement and initial constraints satisfied to 1e-5.
+| 10:     • All values finite.
+| 11: 
+| 12:     Optimality check
+| 13:     ----------------
+| 14:     • Computes the objective value
+| 15:           J = Σ ||ŵ_t||² + τ Σ ||v̂_t||²
+| 16:       and compares it to the value from this task&#x27;s own solver.  Passes if
+| 17:       ``J ≤ J_opt ·(1+1e-5)``.
+| 18:     &quot;&quot;&quot;
+| 19:     required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+| 20:     if not required.issubset(solution):
+| 21:         logging.error(&quot;Solution missing required keys.&quot;)
+| 22:         return False
+| 23: 
+| 24:     A = np.asarray(problem[&quot;A&quot;])
+| 25:     B = np.asarray(problem[&quot;B&quot;])
+| 26:     C = np.asarray(problem[&quot;C&quot;])
+| 27:     y = np.asarray(problem[&quot;y&quot;])
+| 28:     x0 = np.asarray(problem[&quot;x_initial&quot;])
+| 29:     tau = float(problem[&quot;tau&quot;])
+| 30: 
+| 31:     N, m = y.shape
+| 32:     n = A.shape[1]
+| 33:     p = B.shape[1]
+| 34: 
+| 35:     try:
+| 36:         x_hat = np.asarray(solution[&quot;x_hat&quot;], dtype=float)
+| 37:         w_hat = np.asarray(solution[&quot;w_hat&quot;], dtype=float)
+| 38:         v_hat = np.asarray(solution[&quot;v_hat&quot;], dtype=float)
+| 39:     except Exception as e:
+| 40:         logging.error(&quot;Non-numeric entries in solution: %s&quot;, e)
+| 41:         return False
+| 42: 
+| 43:     # shape checks ---------------------------------------------------
+| 44:     if x_hat.shape != (N + 1, n) or w_hat.shape != (N, p) or v_hat.shape != (N, m):
+| 45:         logging.error(&quot;Solution arrays have incorrect shapes.&quot;)
+| 46:         return False
+| 47: 
+| 48:     if not (np.isfinite(x_hat).all() and np.isfinite(w_hat).all() and np.isfinite(v_hat).all()):
+| 49:         logging.error(&quot;Solution contains non-finite numbers.&quot;)
+| 50:         return False
+| 51: 
+| 52:     # dynamics &amp; measurement constraints -----------------------------
+| 53:     eps = 1e-5
+| 54:     if np.linalg.norm(x_hat[0] - x0) &gt; eps:
+| 55:         logging.error(&quot;x̂₀ ≠ x₀.&quot;)
+| 56:         return False
+| 57: 
+| 58:     for t in range(N):
+| 59:         if np.linalg.norm(x_hat[t + 1] - (A @ x_hat[t] + B @ w_hat[t])) &gt; eps:
+| 60:             logging.error(&quot;Dynamics violated at t=%d.&quot;, t)
+| 61:             return False
+| 62: 
+| 63:     for t in range(N):
+| 64:         if np.linalg.norm(y[t] - (C @ x_hat[t] + v_hat[t])) &gt; eps:
+| 65:             logging.error(&quot;Measurement violated at t=%d.&quot;, t)
+| 66:             return False
+| 67: 
+| 68:     # objective value ------------------------------------------------
+| 69:     J_cand = float(np.sum(w_hat**2) + tau * np.sum(v_hat**2))
+| 70: 
+| 71:     # reference optimum
+| 72:     ref = solve(problem)
+| 73:     if not ref[&quot;x_hat&quot;]:  # solver failed – accept feasibility only
+| 74:         logging.warning(&quot;Reference solve failed; skipping optimality test.&quot;)
+| 75:         return True
+| 76: 
+| 77:     w_opt = np.asarray(ref[&quot;w_hat&quot;])
+| 78:     v_opt = np.asarray(ref[&quot;v_hat&quot;])
+| 79:     J_opt = float(np.sum(w_opt**2) + tau * np.sum(v_opt**2))
+| 80: 
+| 81:     if J_cand &gt; J_opt * (1 + 1e-5):
+| 82:         logging.error(&quot;Sub-optimal: J=%.6g &gt; J_opt=%.6g&quot;, J_cand, J_opt)
+| 83:         return False
+| 84: 
+| 85:     return True
+| 86:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>Kalman Filter Task (Optimization Formulation)
+
+This task solves a Kalman filtering/smoothing problem by formulating it as a convex optimization problem (Quadratic Program).
+
+Given a linear dynamical system with process noise w and measurement noise v:
+  x_{t+1} = A * x_t + B * w_t   (State dynamics)
+  y_t     = C * x_t + v_t       (Measurements)
+
+The goal is to find the state sequence x = [x_0, ..., x_N] and the noise sequences w = [w_0, ..., w_{N-1}], v = [v_0, ..., v_{N-1}] that best explain the observed measurements y = [y_0, ..., y_{N-1}], assuming a known initial state x_0.
+
+Problem Formulation:
+
+    minimize_{x, w, v}   sum_{t=0}^{N-1} ( ||w_t||_2^2 + tau * ||v_t||_2^2 )
+    subject to           x_{t+1} = A*x_t + B*w_t,    for t = 0, ..., N-1
+                         y_t     = C*x_t + v_t,       for t = 0, ..., N-1
+                         x_0 = x_initial
+
+where:
+    x_t is the state vector at time t (size n).
+    w_t is the process noise vector at time t (size p).
+    v_t is the measurement noise vector at time t (size m).
+    y_t is the measurement vector at time t (size m).
+    A is the state transition matrix (n x n).
+    B is the process noise input matrix (n x p).
+    C is the measurement matrix (m x n).
+    tau &gt; 0 is a parameter weighting the measurement noise cost relative to the process noise cost.
+    N is the number of time steps.
+    x_initial is the known initial state.
+    The optimization variables are the sequences x = [x_1,...,x_N], w = [w_0,...,w_{N-1}], v = [v_0,...,v_{N-1}].
+
+This QP formulation finds the maximum a posteriori (MAP) estimate of the state trajectory assuming Gaussian noise.
+
+Input: A dictionary with keys:
+- &quot;A&quot;: A list of n lists of floats (state transition matrix).
+- &quot;B&quot;: A list of n lists of p floats (process noise input matrix).
+- &quot;C&quot;: A list of m lists of n floats (measurement matrix).
+- &quot;y&quot;: A list of N lists (measurements), each inner list has m floats.
+- &quot;x_initial&quot;: A list of n floats (initial state).
+- &quot;tau&quot;: A positive float (noise weighting parameter).
+
+Example input:
+{
+  &quot;A&quot;: [[0.9]],
+  &quot;B&quot;: [[0.5]],
+  &quot;C&quot;: [[1.0]],
+  &quot;y&quot;: [[1.1], [0.8], [1.2]],
+  &quot;x_initial&quot;: [1.0],
+  &quot;tau&quot;: 2.0
+}
+
+Output: A dictionary with keys:
+- &quot;x_hat&quot;: The estimated state sequence [x_0, x_1, ..., x_N] (list of N+1 lists of n floats).
+- &quot;w_hat&quot;: The estimated process noise sequence [w_0, ..., w_{N-1}] (list of N lists of p floats).
+- &quot;v_hat&quot;: The estimated measurement noise sequence [v_0, ..., v_{N-1}] (list of N lists of m floats).
+
+Example output:
+{
+  &quot;x_hat&quot;: [[1.0], [0.98...], [0.90...], [0.85...]],
+  &quot;w_hat&quot;: [[0.16...], [0.03...], [-0.01...]],
+  &quot;v_hat&quot;: [[0.11...], [-0.10...], [0.34...]]
+}
+
+Category: convex_optimization</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">import cvxpy as cp
+import numpy as np
+
+ def solve(self, problem: dict) -&gt; dict:
+     A = np.array(problem[&quot;A&quot;])
+     B = np.array(problem[&quot;B&quot;])
+     C = np.array(problem[&quot;C&quot;])
+     y = np.array(problem[&quot;y&quot;])
+     x0 = np.array(problem[&quot;x_initial&quot;])
+     tau = float(problem[&quot;tau&quot;])
+ 
+     N, m = y.shape
+     n = A.shape[1]
+     p = B.shape[1]
+ 
+     # variables: x₀…x_N, w₀…w_{N−1}, v₀…v_{N−1}
+     x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+     w = cp.Variable((N, p), name=&quot;w&quot;)
+     v = cp.Variable((N, m), name=&quot;v&quot;)
+ 
+     obj = cp.Minimize(cp.sum_squares(w) + tau * cp.sum_squares(v))
+ 
+     cons = []
+     # initial state
+     cons.append(x[0] == x0)
+     # dynamics
+     for t in range(N):
+         cons.append(x[t + 1] == A @ x[t] + B @ w[t])
+     # measurements
+     for t in range(N):
+         cons.append(y[t] == C @ x[t] + v[t])
+ 
+     prob = cp.Problem(obj, cons)
+     try:
+         prob.solve()
+     except cp.SolverError as e:
+         return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+     except Exception as e:
+         return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+ 
+     if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+         return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+ 
+     # prepend x0 -- no longer needed
+     # x_full = np.vstack((x0, x.value))
+     return {
+         &quot;x_hat&quot;: x.value.tolist(),
+         &quot;w_hat&quot;: w.value.tolist(),
+         &quot;v_hat&quot;: v.value.tolist(),
+     }</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict) -&gt; dict:
+        A = np.array(problem[&quot;A&quot;])
+        B = np.array(problem[&quot;B&quot;])
+        C = np.array(problem[&quot;C&quot;])
+        y = np.array(problem[&quot;y&quot;])
+        x0 = np.array(problem[&quot;x_initial&quot;])
+        tau = float(problem[&quot;tau&quot;])
+        
+        N, m = y.shape
+        n = A.shape[1]
+        p = B.shape[1]
+        
+        # variables: x₀…x_N, w₀…w_{N−1}, v₀…v_{N−1}
+        x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+        w = cp.Variable((N, p), name=&quot;w&quot;)
+        v = cp.Variable((N, m), name=&quot;v&quot;)
+        
+        obj = cp.Minimize(cp.sum_squares(w) + tau * cp.sum_squares(v))
+        
+        cons = []
+        # initial state
+        cons.append(x[0] == x0)
+        # dynamics
+        for t in range(N):
+            cons.append(x[t + 1] == A @ x[t] + B @ w[t])
+        # measurements
+        for t in range(N):
+            cons.append(y[t] == C @ x[t] + v[t])
+        
+        prob = cp.Problem(obj, cons)
+        try:
+            prob.solve()
+        except cp.SolverError as e:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+        except Exception as e:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+        
+        if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+        
+        return {
+            &quot;x_hat&quot;: x.value.tolist(),
+            &quot;w_hat&quot;: w.value.tolist(),
+            &quot;v_hat&quot;: v.value.tolist(),
+        }</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/kalman_filter_claude-opus-4-20250514_20250626_134211_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/kalman_filter_claude-opus-4-20250514_20250626_134211_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge ls">📄 List Files</span>
+            </div>
+            <div class="message-content">
+                I need to solve a Kalman filtering problem formulated as a convex optimization problem. The reference implementation uses cvxpy, but I need to make it faster. Let me start by examining what files exist and create an initial solver.<br><br><pre><code class="language-python">ls</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.0999. You have $0.9001 remaining.<br><br>File list:<br>solver.py
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge view_file">👁️ View File</span>
+            </div>
+            <div class="message-content">
+                Let me check if there&#x27;s already a solver.py file.<br><br><pre><code class="language-python">view_file solver.py</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.2086. You have $0.7914 remaining.<br><br>File: solver.py (lines 0-0 out of 0)
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I need to create a Solver class with a solve method. Let me start with a basic implementation based on the reference code.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-1
+---
+import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict) -&gt; dict:
+        A = np.array(problem[&quot;A&quot;])
+        B = np.array(problem[&quot;B&quot;])
+        C = np.array(problem[&quot;C&quot;])
+        y = np.array(problem[&quot;y&quot;])
+        x0 = np.array(problem[&quot;x_initial&quot;])
+        tau = float(problem[&quot;tau&quot;])
+        
+        N, m = y.shape
+        n = A.shape[1]
+        p = B.shape[1]
+        
+        # variables: x₀…x_N, w₀…w_{N−1}, v₀…v_{N−1}
+        x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+        w = cp.Variable((N, p), name=&quot;w&quot;)
+        v = cp.Variable((N, m), name=&quot;v&quot;)
+        
+        obj = cp.Minimize(cp.sum_squares(w) + tau * cp.sum_squares(v))
+        
+        cons = []
+        # initial state
+        cons.append(x[0] == x0)
+        # dynamics
+        for t in range(N):
+            cons.append(x[t + 1] == A @ x[t] + B @ w[t])
+        # measurements
+        for t in range(N):
+            cons.append(y[t] == C @ x[t] + v[t])
+        
+        prob = cp.Problem(obj, cons)
+        try:
+            prob.solve()
+        except cp.SolverError as e:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+        except Exception as e:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+        
+        if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+        
+        return {
+            &quot;x_hat&quot;: x.value.tolist(),
+            &quot;w_hat&quot;: w.value.tolist(),
+            &quot;v_hat&quot;: v.value.tolist(),
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.3480. You have $0.6520 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-49 out of 49)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import cvxpy as cp
+&gt; 02: import numpy as np
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: dict) -&gt; dict:
+&gt; 06:         A = np.array(problem[&quot;A&quot;])
+&gt; 07:         B = np.array(problem[&quot;B&quot;])
+&gt; 08:         C = np.array(problem[&quot;C&quot;])
+&gt; 09:         y = np.array(problem[&quot;y&quot;])
+&gt; 10:         x0 = np.array(problem[&quot;x_initial&quot;])
+&gt; 11:         tau = float(problem[&quot;tau&quot;])
+&gt; 12:         
+&gt; 13:         N, m = y.shape
+&gt; 14:         n = A.shape[1]
+&gt; 15:         p = B.shape[1]
+&gt; 16:         
+&gt; 17:         # variables: x₀…x_N, w₀…w_{N−1}, v₀…v_{N−1}
+&gt; 18:         x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+&gt; 19:         w = cp.Variable((N, p), name=&quot;w&quot;)
+&gt; 20:         v = cp.Variable((N, m), name=&quot;v&quot;)
+&gt; 21:         
+&gt; 22:         obj = cp.Minimize(cp.sum_squares(w) + tau * cp.sum_squares(v))
+&gt; 23:         
+&gt; 24:         cons = []
+&gt; 25:         # initial state
+&gt; 26:         cons.append(x[0] == x0)
+&gt; 27:         # dynamics
+&gt; 28:         for t in range(N):
+&gt; 29:             cons.append(x[t + 1] == A @ x[t] + B @ w[t])
+&gt; 30:         # measurements
+&gt; 31:         for t in range(N):
+&gt; 32:             cons.append(y[t] == C @ x[t] + v[t])
+&gt; 33:         
+&gt; 34:         prob = cp.Problem(obj, cons)
+&gt; 35:         try:
+&gt; 36:             prob.solve()
+&gt; 37:         except cp.SolverError as e:
+&gt; 38:             return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+&gt; 39:         except Exception as e:
+&gt; 40:             return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+&gt; 41:         
+&gt; 42:         if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+&gt; 43:             return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+&gt; 44:         
+&gt; 45:         return {
+&gt; 46:             &quot;x_hat&quot;: x.value.tolist(),
+&gt; 47:             &quot;w_hat&quot;: w.value.tolist(),
+&gt; 48:             &quot;v_hat&quot;: v.value.tolist(),
+&gt; 49:         }</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#D2691E; font-weight:600;">0.99</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Now I need to optimize this implementation. The reference uses cvxpy which is flexible but not the fastest. Let me first try using a specific fast solver for quadratic programs.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-49
+---
+import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict) -&gt; dict:
+        A = np.array(problem[&quot;A&quot;])
+        B = np.array(problem[&quot;B&quot;])
+        C = np.array(problem[&quot;C&quot;])
+        y = np.array(problem[&quot;y&quot;])
+        x0 = np.array(problem[&quot;x_initial&quot;])
+        tau = float(problem[&quot;tau&quot;])
+        
+        N, m = y.shape
+        n = A.shape[1]
+        p = B.shape[1]
+        
+        # variables: x₀…x_N, w₀…w_{N−1}, v₀…v_{N−1}
+        x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+        w = cp.Variable((N, p), name=&quot;w&quot;)
+        v = cp.Variable((N, m), name=&quot;v&quot;)
+        
+        obj = cp.Minimize(cp.sum_squares(w) + tau * cp.sum_squares(v))
+        
+        cons = []
+        # initial state
+        cons.append(x[0] == x0)
+        # dynamics
+        for t in range(N):
+            cons.append(x[t + 1] == A @ x[t] + B @ w[t])
+        # measurements
+        for t in range(N):
+            cons.append(y[t] == C @ x[t] + v[t])
+        
+        prob = cp.Problem(obj, cons)
+        try:
+            # Use OSQP solver which is faster for QPs
+            prob.solve(solver=cp.OSQP, verbose=False)
+        except cp.SolverError as e:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+        except Exception as e:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+        
+        if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+        
+        return {
+            &quot;x_hat&quot;: x.value.tolist(),
+            &quot;w_hat&quot;: w.value.tolist(),
+            &quot;v_hat&quot;: v.value.tolist(),
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.5136. You have $0.4864 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 50)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import cvxpy as cp
+&gt; 02: import numpy as np
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: dict) -&gt; dict:
+&gt; 06:         A = np.array(problem[&quot;A&quot;])
+&gt; 07:         B = np.array(problem[&quot;B&quot;])
+&gt; 08:         C = np.array(problem[&quot;C&quot;])
+&gt; 09:         y = np.array(problem[&quot;y&quot;])
+&gt; 10:         x0 = np.array(problem[&quot;x_initial&quot;])
+&gt; 11:         tau = float(problem[&quot;tau&quot;])
+&gt; 12:         
+&gt; 13:         N, m = y.shape
+&gt; 14:         n = A.shape[1]
+&gt; 15:         p = B.shape[1]
+&gt; 16:         
+&gt; 17:         # variables: x₀…x_N, w₀…w_{N−1}, v₀…v_{N−1}
+&gt; 18:         x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+&gt; 19:         w = cp.Variable((N, p), name=&quot;w&quot;)
+&gt; 20:         v = cp.Variable((N, m), name=&quot;v&quot;)
+&gt; 21:         
+&gt; 22:         obj = cp.Minimize(cp.sum_squares(w) + tau * cp.sum_squares(v))
+&gt; 23:         
+&gt; 24:         cons = []
+&gt; 25:         # initial state
+&gt; 26:         cons.append(x[0] == x0)
+&gt; 27:         # dynamics
+&gt; 28:         for t in range(N):
+&gt; 29:             cons.append(x[t + 1] == A @ x[t] + B @ w[t])
+&gt; 30:         # measurements
+&gt; 31:         for t in range(N):
+&gt; 32:             cons.append(y[t] == C @ x[t] + v[t])
+&gt; 33:         
+&gt; 34:         prob = cp.Problem(obj, cons)
+&gt; 35:         try:
+&gt; 36:             # Use OSQP solver which is faster for QPs
+&gt; 37:             prob.solve(solver=cp.OSQP, verbose=False)
+&gt; 38:         except cp.SolverError as e:
+&gt; 39:             return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+&gt; 40:         except Exception as e:
+&gt; 41:             return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+&gt; 42:         
+&gt; 43:         if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+&gt; 44:             return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+&gt; 45:         
+&gt; 46:         return {
+&gt; 47:             &quot;x_hat&quot;: x.value.tolist(),
+&gt; 48:             &quot;w_hat&quot;: w.value.tolist(),
+&gt; 49:             &quot;v_hat&quot;: v.value.tolist(),
+&gt; 50:         }</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#D2691E; font-weight:600;">0.99</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Let me try a more efficient approach by formulating this as a standard quadratic program and using a faster solver. I&#x27;ll eliminate the measurement noise variable v to reduce the problem size.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-50
+---
+import numpy as np
+from scipy import sparse
+from scipy.sparse import linalg as splinalg
+import cvxpy as cp
+
+class Solver:
+    def solve(self, problem: dict) -&gt; dict:
+        A = np.array(problem[&quot;A&quot;])
+        B = np.array(problem[&quot;B&quot;])
+        C = np.array(problem[&quot;C&quot;])
+        y = np.array(problem[&quot;y&quot;])
+        x0 = np.array(problem[&quot;x_initial&quot;])
+        tau = float(problem[&quot;tau&quot;])
+        
+        N, m = y.shape
+        n = A.shape[1]
+        p = B.shape[1]
+        
+        # We can eliminate v from the problem by substituting v_t = y_t - C*x_t
+        # This reduces the number of variables significantly
+        
+        # Variables: x_1, ..., x_N, w_0, ..., w_{N-1}
+        # (x_0 is fixed to x_initial)
+        x = cp.Variable((N, n))
+        w = cp.Variable((N, p))
+        
+        # Compute v_t = y_t - C*x_t for the objective
+        v_list = []
+        v_list.append(y[0] - C @ x0)  # v_0 = y_0 - C*x_0
+        for t in range(1, N):
+            v_list.append(y[t] - C @ x[t-1])  # v_t = y_t - C*x_t
+        
+        # Objective: sum ||w_t||^2 + tau * sum ||v_t||^2
+        obj = cp.sum_squares(w) + tau * cp.sum_squares(v_list[0])
+        for t in range(1, N):
+            obj += tau * cp.sum_squares(v_list[t])
+        
+        # Constraints: dynamics
+        cons = []
+        cons.append(x[0] == A @ x0 + B @ w[0])  # x_1 = A*x_0 + B*w_0
+        for t in range(1, N):
+            cons.append(x[t] == A @ x[t-1] + B @ w[t])
+        
+        prob = cp.Problem(cp.Minimize(obj), cons)
+        
+        try:
+            prob.solve(solver=cp.CLARABEL, verbose=False)
+        except:
+            try:
+                prob.solve(solver=cp.OSQP, verbose=False)
+            except:
+                return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+        
+        if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+        
+        # Reconstruct full solution
+        x_full = np.zeros((N+1, n))
+        x_full[0] = x0
+        x_full[1:] = x.value
+        
+        w_hat = w.value
+        
+        # Compute v_hat
+        v_hat = np.zeros((N, m))
+        for t in range(N):
+            v_hat[t] = y[t] - C @ x_full[t]
+        
+        return {
+            &quot;x_hat&quot;: x_full.tolist(),
+            &quot;w_hat&quot;: w_hat.tolist(),
+            &quot;v_hat&quot;: v_hat.tolist(),
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.7360. You have $0.2640 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 73)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from scipy import sparse
+&gt; 03: from scipy.sparse import linalg as splinalg
+&gt; 04: import cvxpy as cp
+&gt; 05: 
+&gt; 06: class Solver:
+&gt; 07:     def solve(self, problem: dict) -&gt; dict:
+&gt; 08:         A = np.array(problem[&quot;A&quot;])
+&gt; 09:         B = np.array(problem[&quot;B&quot;])
+&gt; 10:         C = np.array(problem[&quot;C&quot;])
+&gt; 11:         y = np.array(problem[&quot;y&quot;])
+&gt; 12:         x0 = np.array(problem[&quot;x_initial&quot;])
+&gt; 13:         tau = float(problem[&quot;tau&quot;])
+&gt; 14:         
+&gt; 15:         N, m = y.shape
+&gt; 16:         n = A.shape[1]
+&gt; 17:         p = B.shape[1]
+&gt; 18:         
+&gt; 19:         # We can eliminate v from the problem by substituting v_t = y_t - C*x_t
+&gt; 20:         # This reduces the number of variables significantly
+&gt; 21:         
+&gt; 22:         # Variables: x_1, ..., x_N, w_0, ..., w_{N-1}
+&gt; 23:         # (x_0 is fixed to x_initial)
+&gt; 24:         x = cp.Variable((N, n))
+&gt; 25:         w = cp.Variable((N, p))
+&gt; 26:         
+&gt; 27:         # Compute v_t = y_t - C*x_t for the objective
+&gt; 28:         v_list = []
+&gt; 29:         v_list.append(y[0] - C @ x0)  # v_0 = y_0 - C*x_0
+&gt; 30:         for t in range(1, N):
+&gt; 31:             v_list.append(y[t] - C @ x[t-1])  # v_t = y_t - C*x_t
+&gt; 32:         
+&gt; 33:         # Objective: sum ||w_t||^2 + tau * sum ||v_t||^2
+&gt; 34:         obj = cp.sum_squares(w) + tau * cp.sum_squares(v_list[0])
+&gt; 35:         for t in range(1, N):
+&gt; 36:             obj += tau * cp.sum_squares(v_list[t])
+&gt; 37:         
+&gt; 38:         # Constraints: dynamics
+&gt; 39:         cons = []
+&gt; 40:         cons.append(x[0] == A @ x0 + B @ w[0])  # x_1 = A*x_0 + B*w_0
+&gt; 41:         for t in range(1, N):
+&gt; 42:             cons.append(x[t] == A @ x[t-1] + B @ w[t])
+&gt; 43:         
+&gt; 44:         prob = cp.Problem(cp.Minimize(obj), cons)
+&gt; 45:         
+&gt; 46:         try:
+&gt; 47:             prob.solve(solver=cp.CLARABEL, verbose=False)
+&gt; 48:         except:
+&gt; 49:             try:
+&gt; 50:                 prob.solve(solver=cp.OSQP, verbose=False)
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#D2691E; font-weight:600;">0.86</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Let me implement a direct formulation of the QP without using cvxpy, which should be much faster.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-73
+---
+import numpy as np
+import osqp
+from scipy import sparse
+
+class Solver:
+    def solve(self, problem: dict) -&gt; dict:
+        A = np.array(problem[&quot;A&quot;], dtype=np.float64)
+        B = np.array(problem[&quot;B&quot;], dtype=np.float64)
+        C = np.array(problem[&quot;C&quot;], dtype=np.float64)
+        y = np.array(problem[&quot;y&quot;], dtype=np.float64)
+        x0 = np.array(problem[&quot;x_initial&quot;], dtype=np.float64)
+        tau = float(problem[&quot;tau&quot;])
+        
+        N, m = y.shape
+        n = A.shape[0]
+        p = B.shape[1]
+        
+        # We&#x27;ll eliminate v by using v_t = y_t - C*x_t
+        # Variables: [x_1, ..., x_N, w_0, ..., w_{N-1}]
+        # Total variables: N*n + N*p
+        
+        num_vars = N * n + N * p
+        
+        # Build the quadratic objective matrix P
+        # Objective: sum ||w_t||^2 + tau * sum ||y_t - C*x_t||^2
+        P = sparse.lil_matrix((num_vars, num_vars))
+        
+        # w terms: sum w_t^T * w_t
+        for t in range(N):
+            w_start = N * n + t * p
+            for i in range(p):
+                P[w_start + i, w_start + i] = 2.0
+        
+        # v terms: tau * sum (y_t - C*x_t)^T * (y_t - C*x_t)
+        # Expand: tau * sum (y_t^T*y_t - 2*y_t^T*C*x_t + x_t^T*C^T*C*x_t)
+        # The quadratic part is: tau * x_t^T * C^T * C * x_t
+        CTC = C.T @ C
+        
+        # For x_0 (which is fixed), we have tau * x_0^T * C^T * C * x_0 (constant, ignore)
+        # and -2 * tau * y_0^T * C * x_0 (linear term)
+        
+        for t in range(1, N+1):
+            x_start = (t-1) * n
+            for i in range(n):
+                for j in range(n):
+                    P[x_start + i, x_start + j] += 2.0 * tau * CTC[i, j]
+        
+        P = P.tocsr()
+        
+        # Build the linear objective vector q
+        q = np.zeros(num_vars)
+        
+        # Linear terms from v: -2 * tau * sum y_t^T * C * x_t
+        # For t=0: -2 * tau * y_0^T * C * x_0 (constant, but x_0 is fixed)
+        # For t=1..N-1: -2 * tau * y_t^T * C * x_t
+        for t in range(1, N+1):
+            x_start = (t-1) * n
+            q[x_start:x_start + n] = -2.0 * tau * C.T @ y[t-1]
+        
+        # Build equality constraints Aeq * z = beq
+        # Constraints: x_{t+1} = A*x_t + B*w_t
+        # For t=0: x_1 = A*x_0 + B*w_0
+        # For t=1..N-1: x_{t+1} = A*x_t + B*w_t
+        
+        num_eq = (N-1) * n + n  # N dynamics constraints
+        Aeq = sparse.lil_matrix((num_eq, num_vars))
+        beq = np.zeros(num_eq)
+        
+        # First constraint: x_1 = A*x_0 + B*w_0
+        row = 0
+        for i in range(n):
+            Aeq[row + i, i] = 1.0  # x_1
+            for j in range(p):
+                Aeq[row + i, N * n + j] = -B[i, j]  # -B*w_0
+        beq[row:row + n] = A @ x0
+        row += n
+        
+        # Remaining constraints: x_{t+1} = A*x_t + B*w_t for t=1..N-1
+        for t in range(1, N):
+            for i in range(n):
+                Aeq[row + i, t * n + i] = 1.0  # x_{t+1}
+                for j in range(n):
+                    Aeq[row + i, (t-1) * n + j] = -A[i, j]  # -A*x_t
+                for j in range(p):
+                    Aeq[row + i, N * n + t * p + j] = -B[i, j]  # -B*w_t
+            row += n
+        
+        Aeq = Aeq.tocsr()
+        
+        # Set up OSQP
+        osqp_instance = osqp.OSQP()
+        osqp_instance.setup(P=P, q=q, A=Aeq, l=beq, u=beq, 
+                           verbose=False, eps_abs=1e-8, eps_rel=1e-8)
+        
+        # Solve
+        results = osqp_instance.solve()
+        
+        if results.info.status != &#x27;solved&#x27;:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+        
+        z = results.x
+        
+        # Extract solution
+        x_full = np.zeros((N+1, n))
+        x_full[0] = x0
+        for t in range(1, N+1):
+            x_full[t] = z[(t-1)*n:t*n]
+        
+        w_hat = np.zeros((N, p))
+        for t in range(N):
+            w_hat[t] = z[N*n + t*p:N*n + (t+1)*p]
+        
+        # Compute v_hat = y - C*x
+        v_hat = np.zeros((N, m))
+        for t in range(N):
+            v_hat[t] = y[t] - C @ x_full[t]
+        
+        return {
+            &quot;x_hat&quot;: x_full.tolist(),
+            &quot;w_hat&quot;: w_hat.tolist(),
+            &quot;v_hat&quot;: v_hat.tolist(),
+        }
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -505,7 +505,7 @@ for i in "${TASK_INDICES_TO_RUN[@]}"; do
     JOB_ID=$(sbatch --parsable \
                     --job-name="${JOB_NAME}" \
                     --partition="${SLURM_PARTITIONS_DEFAULT}" \
-                    --time=48:00:00 \
+                    --time=72:00:00 \
                     --output="${PROJECT_ROOT}/slurm/outputs/${LOG_PREFIX}%j.out" \
                     --error="${PROJECT_ROOT}/slurm/errors/${LOG_PREFIX}%j.err" \
                     --export=ALL,TASK_NAME="${TASK_NAME}",MODEL="${MODEL_NAME}",TASK_N="${TASK_N}",TASK_DATASET_SIZE="${TASK_DATASET_SIZE}",TASK_TARGET_TIME_MS="${TASK_TARGET_TIME_MS}",DATASET_PATH="${RESOLVED_DATASET_PATH}",REPORTS_DIR="${REPORTS_DIR}",SUMMARY_FILE="${SUMMARY_FILE}" \

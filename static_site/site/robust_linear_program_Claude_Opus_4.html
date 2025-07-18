@@ -1,0 +1,2162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – robust_linear_program – Claude Opus 4</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">robust_linear_program</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="robust_linear_program_o4-mini.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (6.51x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="robust_linear_program_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (6.51x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="robust_linear_program_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (1.06x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="robust_linear_program_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #D2691E; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (1.00x)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">robust_linear_program</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Claude Opus 4</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #006400; font-weight: 600;">1.056x</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">7</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">0</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">104.9 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+Robust Linear Program Problem
+
+
+This task involves solving the Robust Linear Program (LP), whose goal is to find the solution to the given LP which is robust to the LP parameter uncertainty, which is ellipsoidal uncertainty.
+
+The robust LP (with ellipsoidal uncertainty) can be formulated into the following optimization problem:
+
+    minimize    c^T * x
+    subject to  a_i^T * x &lt;= b_i    for all a_i in E_i, all i in I
+
+with variables:
+- x is an n-dimensional vector,
+
+and with parameters to be given:
+- c is an n-dimensional vector in LP objective,
+- a_i is an n-dimensional vector and b_i is a scalar in LP constraint, defined for all i in I,
+- E_i is an ellipsoid, which is defined as a set of vectors y = P_i * v + q_i with vector v such that |v| &lt;= 1. Here, P_i is some symmetric positive (semi-)definite matrix and q_i is a vector defined for all i in I,
+- I is a set of indices i.
+
+In order to solve the problem above, we consider an alternative problem as below:
+
+    minimize    c^T * x
+    subject to  q_i^T * x + |P_i^T * x| &lt;= b_i  for all i in I
+
+Note that |v| refers to the euclidean norm of vector v, therefore this problem becomes a second-order cone program (SOCP).
+
+
+
+
+
+Input: A dictionary of keys:
+- &quot;c&quot;: list of n floats, which defines the linear objective of LP,
+- &quot;b&quot;: list of m floats, which defines the right-hand side scalars of linear constraint of LP,
+- &quot;P&quot;: list of m matrices, where each matrix is a list of n lists consisting of n floats.
+- &quot;q&quot;: list of m lists, where each list is a list of n floats.
+Note that the i-th element of P and q are P_i and q_i in the problem definition above, respectively.
+
+
+Example input:
+{
+    &quot;c&quot;: [4.0, -3.0],
+    &quot;b&quot;: [5.0],
+    &quot;P&quot;: [
+        [[1.0, 0.0], [0.0, 1.0]]
+    ],
+    &quot;q&quot;: [
+        [0.0, 0.0],
+    ]
+}
+
+
+Output: A dictionary of keys:
+- &quot;objective_value&quot;: A float representing the optimal objective value.
+- &quot;x&quot;: A list of n floats representing the optimal solution x of robust LP.
+
+Example output:
+{
+    &quot;objective_value&quot;: -25.0,
+    &quot;x&quot;: [-4.0, 3.0]
+}
+
+Category: convex_optimization
+
+Below is the reference implementation. Your function should run much quicker.
+
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+| 01: def solve(self, problem: dict[str, np.ndarray]) -&gt; dict[str, Any]:
+| 02:     &quot;&quot;&quot;
+| 03:     Solves a given robust LP using CVXPY.
+| 04: 
+| 05:     Args:
+| 06:         problem: A dictionary with problem parameter:
+| 07:             - c: vector defining linear objective of LP,
+| 08:             - b: right-hand side scalars of linear constraint of LP,
+| 09:             - P: list of m [n-by-n symmetric positive (semi-)definite matrices],
+| 10:             - q: list of m [n-dimensional vectors]
+| 11: 
+| 12:     Returns:
+| 13:         A dictionary containing the problem solution:
+| 14:             - objective_value: the optimal objective value of robust LP,
+| 15:             - x: the optimal solution.
+| 16:     
+| 17: 
+| 18:     NOTE: Your solution must pass validation by:
+| 19:     1. Returning correctly formatted output
+| 20:     2. Having no NaN or infinity values
+| 21:     3. Matching expected results within numerical tolerance
+| 22:     &quot;&quot;&quot;
+| 23:     c = np.array(problem[&quot;c&quot;])
+| 24:     b = np.array(problem[&quot;b&quot;])
+| 25:     P = np.array(problem[&quot;P&quot;])
+| 26:     q = np.array(problem[&quot;q&quot;])
+| 27:     m = len(P)
+| 28:     n = len(c)
+| 29: 
+| 30:     x = cp.Variable(n)
+| 31: 
+| 32:     constraint = []
+| 33:     for i in range(m):
+| 34:         constraint += [cp.SOC(b[i] - q[i].T @ x, P[i].T @ x)]
+| 35: 
+| 36:     problem = cp.Problem(cp.Minimize(c.T @ x), constraint)
+| 37: 
+| 38:     try:
+| 39:         problem.solve(solver=cp.CLARABEL, verbose=False)
+| 40: 
+| 41:         # Check if a solution was found
+| 42:         if problem.status not in [&quot;optimal&quot;, &quot;optimal_inaccurate&quot;]:
+| 43:             return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+| 44: 
+| 45:         return {&quot;objective_value&quot;: problem.value, &quot;x&quot;: x.value}
+| 46: 
+| 47:     except Exception as e:
+| 48:         return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+| 49: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+| 01: def is_solution( problem: dict[str, np.ndarray], solution: dict[str, Any]) -&gt; bool:
+| 02:     &quot;&quot;&quot;
+| 03:     Check if the obtained solution is valid for the given problem.
+| 04: 
+| 05:     Args:
+| 06:         problem: a dictionary of problem instance containing parameters.
+| 07:         solution: proposed solution to the problem.
+| 08: 
+| 09:     Returns: a boolean indicating whether the given solution is actually the solution.
+| 10:     &quot;&quot;&quot;
+| 11: 
+| 12:     # Check if solution contains required keys
+| 13:     if not all(key in solution for key in [&quot;objective_value&quot;, &quot;x&quot;]):
+| 14:         logging.error(&quot;Solution missing required keys.&quot;)
+| 15:         return False
+| 16: 
+| 17:     # Solve the problem with numerical solver
+| 18:     reference_solution = solve(problem)
+| 19:     reference_objective = reference_solution[&quot;objective_value&quot;]
+| 20:     reference_x = np.array(reference_solution[&quot;x&quot;])
+| 21: 
+| 22:     # Extract the problem data
+| 23:     c = np.array(problem[&quot;c&quot;])
+| 24:     b = np.array(problem[&quot;b&quot;])
+| 25:     P = np.array(problem[&quot;P&quot;])
+| 26:     q = np.array(problem[&quot;q&quot;])
+| 27:     m = len(P)
+| 28: 
+| 29:     # Extract the given solution
+| 30:     proposed_objective = solution[&quot;objective_value&quot;]
+| 31:     proposed_x = solution[&quot;x&quot;]
+| 32: 
+| 33:     # 1. Check the solution structure
+| 34:     if proposed_x.shape != reference_x.shape:
+| 35:         logging.error(&quot;The ellipsoid has wrong dimension.&quot;)
+| 36:         return False
+| 37: 
+| 38:     # 2-0. See if the problem was initially unbounded
+| 39:     if not np.isinf(proposed_objective) and np.isinf(reference_objective):
+| 40:         logging.error(&quot;The problem was unbounded, but solution didn&#x27;t catch that.&quot;)
+| 41:         return False
+| 42: 
+| 43:     if np.isinf(proposed_objective) and np.isinf(reference_objective):
+| 44:         logging.info(&quot;The problem was unbounded, and returned the same conclusion&quot;)
+| 45:         return True
+| 46: 
+| 47:     # 2. Test if the proposed solution yields proposed objective value correctly
+| 48:     if not np.isclose(proposed_objective, c.T @ proposed_x, rtol=1e-5, atol=1e-8):
+| 49:         logging.error(&quot;The proposed solution does not match the proposed objective value.&quot;)
+| 50:         return False
+| 51: 
+| 52:     # 3. Check the feasibility of the proposed solution
+| 53:     # Add a small tolerance (atol=1e-8) to account for floating-point inaccuracies
+| 54:     if not np.all(
+| 55:         [
+| 56:             np.linalg.norm(P[i].T @ proposed_x, 2) &lt;= b[i] - q[i].T @ proposed_x + 1e-8
+| 57:             for i in range(m)
+| 58:         ]
+| 59:     ):
+| 60:         logging.error(&quot;The proposed solution is not feasible.&quot;)
+| 61:         return False
+| 62: 
+| 63:     # 4. Test the optimality of objective value
+| 64:     if not np.isclose(proposed_objective, reference_objective, rtol=1e-2):
+| 65:         logging.error(&quot;The proposed solution is not optimal.&quot;)
+| 66:         return False
+| 67: 
+| 68:     # All checks passed
+| 69:     return True
+| 70:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>Robust Linear Program Problem
+
+
+This task involves solving the Robust Linear Program (LP), whose goal is to find the solution to the given LP which is robust to the LP parameter uncertainty, which is ellipsoidal uncertainty.
+
+The robust LP (with ellipsoidal uncertainty) can be formulated into the following optimization problem:
+
+    minimize    c^T * x
+    subject to  a_i^T * x &lt;= b_i    for all a_i in E_i, all i in I
+
+with variables:
+- x is an n-dimensional vector,
+
+and with parameters to be given:
+- c is an n-dimensional vector in LP objective,
+- a_i is an n-dimensional vector and b_i is a scalar in LP constraint, defined for all i in I,
+- E_i is an ellipsoid, which is defined as a set of vectors y = P_i * v + q_i with vector v such that |v| &lt;= 1. Here, P_i is some symmetric positive (semi-)definite matrix and q_i is a vector defined for all i in I,
+- I is a set of indices i.
+
+In order to solve the problem above, we consider an alternative problem as below:
+
+    minimize    c^T * x
+    subject to  q_i^T * x + |P_i^T * x| &lt;= b_i  for all i in I
+
+Note that |v| refers to the euclidean norm of vector v, therefore this problem becomes a second-order cone program (SOCP).
+
+
+
+
+
+Input: A dictionary of keys:
+- &quot;c&quot;: list of n floats, which defines the linear objective of LP,
+- &quot;b&quot;: list of m floats, which defines the right-hand side scalars of linear constraint of LP,
+- &quot;P&quot;: list of m matrices, where each matrix is a list of n lists consisting of n floats.
+- &quot;q&quot;: list of m lists, where each list is a list of n floats.
+Note that the i-th element of P and q are P_i and q_i in the problem definition above, respectively.
+
+
+Example input:
+{
+    &quot;c&quot;: [4.0, -3.0],
+    &quot;b&quot;: [5.0],
+    &quot;P&quot;: [
+        [[1.0, 0.0], [0.0, 1.0]]
+    ],
+    &quot;q&quot;: [
+        [0.0, 0.0],
+    ]
+}
+
+
+Output: A dictionary of keys:
+- &quot;objective_value&quot;: A float representing the optimal objective value.
+- &quot;x&quot;: A list of n floats representing the optimal solution x of robust LP.
+
+Example output:
+{
+    &quot;objective_value&quot;: -25.0,
+    &quot;x&quot;: [-4.0, 3.0]
+}
+
+Category: convex_optimization</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">from typing import Any
+import cvxpy as cp
+import numpy as np
+
+ def solve(self, problem: dict[str, np.ndarray]) -&gt; dict[str, Any]:
+     &quot;&quot;&quot;
+     Solves a given robust LP using CVXPY.
+ 
+     Args:
+         problem: A dictionary with problem parameter:
+             - c: vector defining linear objective of LP,
+             - b: right-hand side scalars of linear constraint of LP,
+             - P: list of m [n-by-n symmetric positive (semi-)definite matrices],
+             - q: list of m [n-dimensional vectors]
+ 
+     Returns:
+         A dictionary containing the problem solution:
+             - objective_value: the optimal objective value of robust LP,
+             - x: the optimal solution.
+     
+ 
+     NOTE: Your solution must pass validation by:
+     1. Returning correctly formatted output
+     2. Having no NaN or infinity values
+     3. Matching expected results within numerical tolerance
+     &quot;&quot;&quot;
+     c = np.array(problem[&quot;c&quot;])
+     b = np.array(problem[&quot;b&quot;])
+     P = np.array(problem[&quot;P&quot;])
+     q = np.array(problem[&quot;q&quot;])
+     m = len(P)
+     n = len(c)
+ 
+     x = cp.Variable(n)
+ 
+     constraint = []
+     for i in range(m):
+         constraint += [cp.SOC(b[i] - q[i].T @ x, P[i].T @ x)]
+ 
+     problem = cp.Problem(cp.Minimize(c.T @ x), constraint)
+ 
+     try:
+         problem.solve(solver=cp.CLARABEL, verbose=False)
+ 
+         # Check if a solution was found
+         if problem.status not in [&quot;optimal&quot;, &quot;optimal_inaccurate&quot;]:
+             return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+ 
+         return {&quot;objective_value&quot;: problem.value, &quot;x&quot;: x.value}
+ 
+     except Exception as e:
+         return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">from typing import Any
+import numpy as np
+import cvxpy as cp
+
+class Solver:
+    def solve(self, problem: dict[str, np.ndarray], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solves a given robust LP using CVXPY with ECOS solver.
+        &quot;&quot;&quot;
+        c = np.array(problem[&quot;c&quot;])
+        b = np.array(problem[&quot;b&quot;])
+        P = np.array(problem[&quot;P&quot;])
+        q = np.array(problem[&quot;q&quot;])
+        m = len(P)
+        n = len(c)
+
+        x = cp.Variable(n)
+
+        constraints = []
+        for i in range(m):
+            constraints.append(cp.SOC(b[i] - q[i].T @ x, P[i].T @ x))
+
+        cvx_problem = cp.Problem(cp.Minimize(c.T @ x), constraints)
+
+        try:
+            # Try ECOS which is typically fast for SOCP
+            cvx_problem.solve(solver=cp.ECOS, verbose=False)
+
+            # Check if a solution was found
+            if cvx_problem.status not in [&quot;optimal&quot;, &quot;optimal_inaccurate&quot;]:
+                return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+
+            return {&quot;objective_value&quot;: cvx_problem.value, &quot;x&quot;: x.value}
+
+        except Exception:
+            return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/robust_linear_program_claude-opus-4-20250514_20250626_011752_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/robust_linear_program_claude-opus-4-20250514_20250626_011752_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I need to understand the problem first. Let me examine what the reference implementation does and create an initial solver.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 0-0
+---
+from typing import Any
+import numpy as np
+import cvxpy as cp
+
+class Solver:
+    def solve(self, problem: dict[str, np.ndarray], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solves a given robust LP using CVXPY.
+        &quot;&quot;&quot;
+        c = np.array(problem[&quot;c&quot;])
+        b = np.array(problem[&quot;b&quot;])
+        P = np.array(problem[&quot;P&quot;])
+        q = np.array(problem[&quot;q&quot;])
+        m = len(P)
+        n = len(c)
+
+        x = cp.Variable(n)
+
+        constraint = []
+        for i in range(m):
+            constraint += [cp.SOC(b[i] - q[i].T @ x, P[i].T @ x)]
+
+        problem = cp.Problem(cp.Minimize(c.T @ x), constraint)
+
+        try:
+            problem.solve(solver=cp.CLARABEL, verbose=False)
+
+            # Check if a solution was found
+            if problem.status not in [&quot;optimal&quot;, &quot;optimal_inaccurate&quot;]:
+                return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+
+            return {&quot;objective_value&quot;: problem.value, &quot;x&quot;: x.value}
+
+        except Exception as e:
+            return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.1149. You have $0.8851 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-35 out of 35)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import cvxpy as cp
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, np.ndarray], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solves a given robust LP using CVXPY.
+&gt; 09:         &quot;&quot;&quot;
+&gt; 10:         c = np.array(problem[&quot;c&quot;])
+&gt; 11:         b = np.array(problem[&quot;b&quot;])
+&gt; 12:         P = np.array(problem[&quot;P&quot;])
+&gt; 13:         q = np.array(problem[&quot;q&quot;])
+&gt; 14:         m = len(P)
+&gt; 15:         n = len(c)
+&gt; 16: 
+&gt; 17:         x = cp.Variable(n)
+&gt; 18: 
+&gt; 19:         constraint = []
+&gt; 20:         for i in range(m):
+&gt; 21:             constraint += [cp.SOC(b[i] - q[i].T @ x, P[i].T @ x)]
+&gt; 22: 
+&gt; 23:         problem = cp.Problem(cp.Minimize(c.T @ x), constraint)
+&gt; 24: 
+&gt; 25:         try:
+&gt; 26:             problem.solve(solver=cp.CLARABEL, verbose=False)
+&gt; 27: 
+&gt; 28:             # Check if a solution was found
+&gt; 29:             if problem.status not in [&quot;optimal&quot;, &quot;optimal_inaccurate&quot;]:
+&gt; 30:                 return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+&gt; 31: 
+&gt; 32:             return {&quot;objective_value&quot;: problem.value, &quot;x&quot;: x.value}
+&gt; 33: 
+&gt; 34:         except Exception as e:
+&gt; 35:             return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#D2691E; font-weight:600;">1.00</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I need to optimize the solver. Let me first test different solvers available in CVXPY to see which one is fastest for SOCP problems.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-35
+---
+from typing import Any
+import numpy as np
+import cvxpy as cp
+
+class Solver:
+    def solve(self, problem: dict[str, np.ndarray], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solves a given robust LP using CVXPY with ECOS solver.
+        &quot;&quot;&quot;
+        c = np.array(problem[&quot;c&quot;])
+        b = np.array(problem[&quot;b&quot;])
+        P = np.array(problem[&quot;P&quot;])
+        q = np.array(problem[&quot;q&quot;])
+        m = len(P)
+        n = len(c)
+
+        x = cp.Variable(n)
+
+        constraints = []
+        for i in range(m):
+            constraints.append(cp.SOC(b[i] - q[i].T @ x, P[i].T @ x))
+
+        cvx_problem = cp.Problem(cp.Minimize(c.T @ x), constraints)
+
+        try:
+            # Try ECOS which is typically fast for SOCP
+            cvx_problem.solve(solver=cp.ECOS, verbose=False)
+
+            # Check if a solution was found
+            if cvx_problem.status not in [&quot;optimal&quot;, &quot;optimal_inaccurate&quot;]:
+                return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+
+            return {&quot;objective_value&quot;: cvx_problem.value, &quot;x&quot;: x.value}
+
+        except Exception:
+            return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.2400. You have $0.7600 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-36 out of 36)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import cvxpy as cp
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, np.ndarray], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solves a given robust LP using CVXPY with ECOS solver.
+&gt; 09:         &quot;&quot;&quot;
+&gt; 10:         c = np.array(problem[&quot;c&quot;])
+&gt; 11:         b = np.array(problem[&quot;b&quot;])
+&gt; 12:         P = np.array(problem[&quot;P&quot;])
+&gt; 13:         q = np.array(problem[&quot;q&quot;])
+&gt; 14:         m = len(P)
+&gt; 15:         n = len(c)
+&gt; 16: 
+&gt; 17:         x = cp.Variable(n)
+&gt; 18: 
+&gt; 19:         constraints = []
+&gt; 20:         for i in range(m):
+&gt; 21:             constraints.append(cp.SOC(b[i] - q[i].T @ x, P[i].T @ x))
+&gt; 22: 
+&gt; 23:         cvx_problem = cp.Problem(cp.Minimize(c.T @ x), constraints)
+&gt; 24: 
+&gt; 25:         try:
+&gt; 26:             # Try ECOS which is typically fast for SOCP
+&gt; 27:             cvx_problem.solve(solver=cp.ECOS, verbose=False)
+&gt; 28: 
+&gt; 29:             # Check if a solution was found
+&gt; 30:             if cvx_problem.status not in [&quot;optimal&quot;, &quot;optimal_inaccurate&quot;]:
+&gt; 31:                 return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+&gt; 32: 
+&gt; 33:             return {&quot;objective_value&quot;: cvx_problem.value, &quot;x&quot;: x.value}
+&gt; 34: 
+&gt; 35:         except Exception:
+&gt; 36:             return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">1.06</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Let me try to use ECOS directly without the CVXPY overhead, which should be significantly faster.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-36
+---
+from typing import Any
+import numpy as np
+import ecos
+
+class Solver:
+    def solve(self, problem: dict[str, np.ndarray], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solves a given robust LP using ECOS directly.
+        &quot;&quot;&quot;
+        c = np.array(problem[&quot;c&quot;], dtype=np.float64)
+        b = np.array(problem[&quot;b&quot;], dtype=np.float64)
+        P = np.array(problem[&quot;P&quot;], dtype=np.float64)
+        q = np.array(problem[&quot;q&quot;], dtype=np.float64)
+        m = len(P)
+        n = len(c)
+        
+        # ECOS solves: min c&#x27;x s.t. Ax=b, Gx&lt;=h, x in K
+        # where K is a product of cones
+        
+        # For SOCP constraint: ||P_i&#x27;x||_2 &lt;= b_i - q_i&#x27;x
+        # We rewrite as: ||(P_i&#x27;x, 0)||_2 &lt;= (b_i - q_i&#x27;x)
+        # Which is: (b_i - q_i&#x27;x, P_i&#x27;x) in SOC
+        
+        # Build matrices for ECOS
+        # We need to stack constraints for each cone
+        G_rows = []
+        h_rows = []
+        
+        for i in range(m):
+            # First row: -q_i&#x27;x + s_i = b_i  =&gt;  [-q_i&#x27;, -1] * [x; s_i] &lt;= -b_i
+            G_rows.append(np.concatenate([q[i], [0]]))
+            h_rows.append(-b[i])
+            
+            # Next n rows: -P_i&#x27;x = -y_i  =&gt;  [-P_i&#x27;, 0] * [x; s_i] &lt;= 0
+            for j in range(n):
+                row = np.zeros(n + 1)
+                row[:n] = -P[i][j, :]
+                G_rows.append(row)
+                h_rows.append(0.0)
+        
+        # Stack all rows
+        G = -np.vstack(G_rows)  # Negative because ECOS uses Gx + s = h with s in K
+        h = np.array(h_rows)
+        
+        # Objective: minimize c&#x27;x (we add a 0 for the slack variable)
+        c_ecos = np.concatenate([c, [0]])
+        
+        # Cone dimensions: each constraint gives a cone of size n+1
+        q_dims = [n + 1] * m
+        
+        # No equality constraints
+        A = None
+        b_eq = None
+        
+        # Solve with ECOS
+        solution = ecos.solve(c_ecos, G, h, {&#x27;q&#x27;: q_dims}, A, b_eq, verbose=False)
+        
+        if solution[&#x27;info&#x27;][&#x27;exitFlag&#x27;] == 0:  # Optimal
+            x_opt = solution[&#x27;x&#x27;][:n]
+            obj_val = c.T @ x_opt
+            return {&quot;objective_value&quot;: obj_val, &quot;x&quot;: x_opt}
+        else:
+            return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.4210. You have $0.5790 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 63)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import ecos
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, np.ndarray], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solves a given robust LP using ECOS directly.
+&gt; 09:         &quot;&quot;&quot;
+&gt; 10:         c = np.array(problem[&quot;c&quot;], dtype=np.float64)
+&gt; 11:         b = np.array(problem[&quot;b&quot;], dtype=np.float64)
+&gt; 12:         P = np.array(problem[&quot;P&quot;], dtype=np.float64)
+&gt; 13:         q = np.array(problem[&quot;q&quot;], dtype=np.float64)
+&gt; 14:         m = len(P)
+&gt; 15:         n = len(c)
+&gt; 16:         
+&gt; 17:         # ECOS solves: min c&#x27;x s.t. Ax=b, Gx&lt;=h, x in K
+&gt; 18:         # where K is a product of cones
+&gt; 19:         
+&gt; 20:         # For SOCP constraint: ||P_i&#x27;x||_2 &lt;= b_i - q_i&#x27;x
+&gt; 21:         # We rewrite as: ||(P_i&#x27;x, 0)||_2 &lt;= (b_i - q_i&#x27;x)
+&gt; 22:         # Which is: (b_i - q_i&#x27;x, P_i&#x27;x) in SOC
+&gt; 23:         
+&gt; 24:         # Build matrices for ECOS
+&gt; 25:         # We need to stack constraints for each cone
+&gt; 26:         G_rows = []
+&gt; 27:         h_rows = []
+&gt; 28:         
+&gt; 29:         for i in range(m):
+&gt; 30:             # First row: -q_i&#x27;x + s_i = b_i  =&gt;  [-q_i&#x27;, -1] * [x; s_i] &lt;= -b_i
+&gt; 31:             G_rows.append(np.concatenate([q[i], [0]]))
+&gt; 32:             h_rows.append(-b[i])
+&gt; 33:             
+&gt; 34:             # Next n rows: -P_i&#x27;x = -y_i  =&gt;  [-P_i&#x27;, 0] * [x; s_i] &lt;= 0
+&gt; 35:             for j in range(n):
+&gt; 36:                 row = np.zeros(n + 1)
+&gt; 37:                 row[:n] = -P[i][j, :]
+&gt; 38:                 G_rows.append(row)
+&gt; 39:                 h_rows.append(0.0)
+&gt; 40:         
+&gt; 41:         # Stack all rows
+&gt; 42:         G = -np.vstack(G_rows)  # Negative because ECOS uses Gx + s = h with s in K
+&gt; 43:         h = np.array(h_rows)
+&gt; 44:         
+&gt; 45:         # Objective: minimize c&#x27;x (we add a 0 for the slack variable)
+&gt; 46:         c_ecos = np.concatenate([c, [0]])
+&gt; 47:         
+&gt; 48:         # Cone dimensions: each constraint gives a cone of size n+1
+&gt; 49:         q_dims = [n + 1] * m
+&gt; 50:         
+...</code></pre><br><br>TypeError: G is required to be a sparse matrix in function &#x27;solve&#x27; at line 56 in solver.py<br><br>Code Context:<br><pre><code class="language-python">   46:         c_ecos = np.concatenate([c, [0]])
+   47: 
+   48:         # Cone dimensions: each constraint gives a cone of size n+1
+   49:         q_dims = [n + 1] * m
+   50: 
+   51:         # No equality constraints
+   52:         A = None
+   53:         b_eq = None
+   54: 
+   55:         # Solve with ECOS
+ ! 56:         solution = ecos.solve(c_ecos, G, h, {&#x27;q&#x27;: q_dims}, A, b_eq, verbose=False)
+   57: 
+   58:         if solution[&#x27;info&#x27;][&#x27;exitFlag&#x27;] == 0:  # Optimal
+   59:             x_opt = solution[&#x27;x&#x27;][:n]
+   60:             obj_val = c.T @ x_opt
+   61:             return {&quot;objective_value&quot;: obj_val, &quot;x&quot;: x_opt}
+   62:         else:
+   63:             return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I need to use sparse matrices for ECOS. Let me fix that.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-63
+---
+from typing import Any
+import numpy as np
+import scipy.sparse as sp
+import ecos
+
+class Solver:
+    def solve(self, problem: dict[str, np.ndarray], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solves a given robust LP using ECOS directly.
+        &quot;&quot;&quot;
+        c = np.array(problem[&quot;c&quot;], dtype=np.float64)
+        b = np.array(problem[&quot;b&quot;], dtype=np.float64)
+        P = np.array(problem[&quot;P&quot;], dtype=np.float64)
+        q = np.array(problem[&quot;q&quot;], dtype=np.float64)
+        m = len(P)
+        n = len(c)
+        
+        # ECOS solves: min c&#x27;x s.t. Ax=b, Gx&lt;=h, x in K
+        # For SOCP constraint: ||P_i&#x27;x||_2 &lt;= b_i - q_i&#x27;x
+        # We need (b_i - q_i&#x27;x, P_i&#x27;x) in second-order cone
+        
+        # Build G matrix and h vector
+        G_rows = []
+        h_vals = []
+        
+        for i in range(m):
+            # First component: b_i - q_i&#x27;x &gt;= 0
+            G_rows.append(-q[i])
+            h_vals.append(b[i])
+            
+            # Remaining components: P_i&#x27;x
+            for j in range(n):
+                G_rows.append(-P[i][j, :])
+                h_vals.append(0.0)
+        
+        # Convert to sparse matrix
+        G = sp.csc_matrix(-np.vstack(G_rows))
+        h = np.array(h_vals)
+        
+        # Cone dimensions
+        q_dims = [n + 1] * m
+        
+        # Solve with ECOS
+        solution = ecos.solve(c, G, h, {&#x27;q&#x27;: q_dims}, verbose=False)
+        
+        if solution[&#x27;info&#x27;][&#x27;exitFlag&#x27;] == 0:  # Optimal
+            x_opt = solution[&#x27;x&#x27;]
+            obj_val = c.T @ x_opt
+            return {&quot;objective_value&quot;: obj_val, &quot;x&quot;: x_opt}
+        else:
+            return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.6098. You have $0.3902 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 51)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import scipy.sparse as sp
+&gt; 04: import ecos
+&gt; 05: 
+&gt; 06: class Solver:
+&gt; 07:     def solve(self, problem: dict[str, np.ndarray], **kwargs) -&gt; dict[str, Any]:
+&gt; 08:         &quot;&quot;&quot;
+&gt; 09:         Solves a given robust LP using ECOS directly.
+&gt; 10:         &quot;&quot;&quot;
+&gt; 11:         c = np.array(problem[&quot;c&quot;], dtype=np.float64)
+&gt; 12:         b = np.array(problem[&quot;b&quot;], dtype=np.float64)
+&gt; 13:         P = np.array(problem[&quot;P&quot;], dtype=np.float64)
+&gt; 14:         q = np.array(problem[&quot;q&quot;], dtype=np.float64)
+&gt; 15:         m = len(P)
+&gt; 16:         n = len(c)
+&gt; 17:         
+&gt; 18:         # ECOS solves: min c&#x27;x s.t. Ax=b, Gx&lt;=h, x in K
+&gt; 19:         # For SOCP constraint: ||P_i&#x27;x||_2 &lt;= b_i - q_i&#x27;x
+&gt; 20:         # We need (b_i - q_i&#x27;x, P_i&#x27;x) in second-order cone
+&gt; 21:         
+&gt; 22:         # Build G matrix and h vector
+&gt; 23:         G_rows = []
+&gt; 24:         h_vals = []
+&gt; 25:         
+&gt; 26:         for i in range(m):
+&gt; 27:             # First component: b_i - q_i&#x27;x &gt;= 0
+&gt; 28:             G_rows.append(-q[i])
+&gt; 29:             h_vals.append(b[i])
+&gt; 30:             
+&gt; 31:             # Remaining components: P_i&#x27;x
+&gt; 32:             for j in range(n):
+&gt; 33:                 G_rows.append(-P[i][j, :])
+&gt; 34:                 h_vals.append(0.0)
+&gt; 35:         
+&gt; 36:         # Convert to sparse matrix
+&gt; 37:         G = sp.csc_matrix(-np.vstack(G_rows))
+&gt; 38:         h = np.array(h_vals)
+&gt; 39:         
+&gt; 40:         # Cone dimensions
+&gt; 41:         q_dims = [n + 1] * m
+&gt; 42:         
+&gt; 43:         # Solve with ECOS
+&gt; 44:         solution = ecos.solve(c, G, h, {&#x27;q&#x27;: q_dims}, verbose=False)
+&gt; 45:         
+&gt; 46:         if solution[&#x27;info&#x27;][&#x27;exitFlag&#x27;] == 0:  # Optimal
+&gt; 47:             x_opt = solution[&#x27;x&#x27;]
+&gt; 48:             obj_val = c.T @ x_opt
+&gt; 49:             return {&quot;objective_value&quot;: obj_val, &quot;x&quot;: x_opt}
+&gt; 50:         else:
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 100%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;&lt;genexpr&gt;&#x27; at line 128 in robust_linear_program.py<br><pre><code class="language-python">   118:         Check if the obtained solution is valid for the given problem.
+   119: 
+   120:         Args:
+   121:             problem: a dictionary of problem instance containing parameters.
+   122:             solution: proposed solution to the problem.
+   123: 
+   124:         Returns: a boolean indicating whether the given solution is actually the solution.
+   125:         &quot;&quot;&quot;
+   126: 
+   127:         # Check if solution contains required keys
+ ! 128:         if not all(key in solution for key in [&quot;objective_value&quot;, &quot;x&quot;]):
+   129:             logging.error(&quot;Solution missing required keys.&quot;)
+   130:             return False
+   131: 
+   132:         # Solve the problem with numerical solver
+   133:         reference_solution = self.solve(problem)
+   134:         reference_objective = reference_solution[&quot;objective_value&quot;]
+   135:         reference_x = np.array(reference_solution[&quot;x&quot;])
+   136: 
+   137:         # Extract the problem data
+   138:         c = np.array(problem[&quot;c&quot;])</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;&lt;genexpr&gt;&#x27; at line 128 in robust_linear_program.py<br><pre><code class="language-python">   118:         Check if the obtained solution is valid for the given problem.
+   119: 
+   120:         Args:
+   121:             problem: a dictionary of problem instance containing parameters.
+   122:             solution: proposed solution to the problem.
+   123: 
+   124:         Returns: a boolean indicating whether the given solution is actually the solution.
+   125:         &quot;&quot;&quot;
+   126: 
+   127:         # Check if solution contains required keys
+ ! 128:         if not all(key in solution for key in [&quot;objective_value&quot;, &quot;x&quot;]):
+   129:             logging.error(&quot;Solution missing required keys.&quot;)
+   130:             return False
+   131: 
+   132:         # Solve the problem with numerical solver
+   133:         reference_solution = self.solve(problem)
+   134:         reference_objective = reference_solution[&quot;objective_value&quot;]
+   135:         reference_x = np.array(reference_solution[&quot;x&quot;])
+   136: 
+   137:         # Extract the problem data
+   138:         c = np.array(problem[&quot;c&quot;])</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;&lt;genexpr&gt;&#x27; at line 128 in robust_linear_program.py<br><pre><code class="language-python">   118:         Check if the obtained solution is valid for the given problem.
+   119: 
+   120:         Args:
+   121:             problem: a dictionary of problem instance containing parameters.
+   122:             solution: proposed solution to the problem.
+   123: 
+   124:         Returns: a boolean indicating whether the given solution is actually the solution.
+   125:         &quot;&quot;&quot;
+   126: 
+   127:         # Check if solution contains required keys
+ ! 128:         if not all(key in solution for key in [&quot;objective_value&quot;, &quot;x&quot;]):
+   129:             logging.error(&quot;Solution missing required keys.&quot;)
+   130:             return False
+   131: 
+   132:         # Solve the problem with numerical solver
+   133:         reference_solution = self.solve(problem)
+   134:         reference_objective = reference_solution[&quot;objective_value&quot;]
+   135:         reference_x = np.array(reference_solution[&quot;x&quot;])
+   136: 
+   137:         # Extract the problem data
+   138:         c = np.array(problem[&quot;c&quot;])</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge revert">↩️ Revert Changes</span>
+            </div>
+            <div class="message-content">
+                I see the issue - my function is returning None in some cases. Let me revert to the best working version and then optimize more carefully.<br><br><pre><code class="language-python">revert</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.7817. You have $0.2183 remaining.<br><br>Successfully reverted to last saved state.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Let me try using the SCS solver which is often faster for SOCP problems and has less overhead than CLARABEL.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-36
+---
+from typing import Any
+import numpy as np
+import cvxpy as cp
+
+class Solver:
+    def __init__(self):
+        # Pre-set solver options for speed
+        self.solver_opts = {
+            &#x27;normalize&#x27;: False,
+            &#x27;eps&#x27;: 1e-5,
+            &#x27;max_iters&#x27;: 5000,
+            &#x27;acceleration_lookback&#x27;: 10,
+            &#x27;verbose&#x27;: False
+        }
+    
+    def solve(self, problem: dict[str, np.ndarray], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solves a given robust LP using CVXPY with SCS solver.
+        &quot;&quot;&quot;
+        c = np.array(problem[&quot;c&quot;], dtype=np.float64)
+        b = np.array(problem[&quot;b&quot;], dtype=np.float64)
+        P = np.array(problem[&quot;P&quot;], dtype=np.float64)
+        q = np.array(problem[&quot;q&quot;], dtype=np.float64)
+        m = len(P)
+        n = len(c)
+
+        x = cp.Variable(n)
+
+        constraints = []
+        for i in range(m):
+            constraints.append(cp.SOC(b[i] - q[i].T @ x, P[i].T @ x))
+
+        cvx_problem = cp.Problem(cp.Minimize(c.T @ x), constraints)
+
+        try:
+            # Use SCS which is typically faster for SOCP
+            cvx_problem.solve(solver=cp.SCS, **self.solver_opts)
+
+            # Check if a solution was found
+            if cvx_problem.status not in [&quot;optimal&quot;, &quot;optimal_inaccurate&quot;]:
+                return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+
+            return {&quot;objective_value&quot;: float(cvx_problem.value), &quot;x&quot;: np.array(x.value)}
+
+        except Exception:
+            return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 6 messages and have used up $0.9989. You have $0.0011 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-46 out of 46)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import cvxpy as cp
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def __init__(self):
+&gt; 07:         # Pre-set solver options for speed
+&gt; 08:         self.solver_opts = {
+&gt; 09:             &#x27;normalize&#x27;: False,
+&gt; 10:             &#x27;eps&#x27;: 1e-5,
+&gt; 11:             &#x27;max_iters&#x27;: 5000,
+&gt; 12:             &#x27;acceleration_lookback&#x27;: 10,
+&gt; 13:             &#x27;verbose&#x27;: False
+&gt; 14:         }
+&gt; 15:     
+&gt; 16:     def solve(self, problem: dict[str, np.ndarray], **kwargs) -&gt; dict[str, Any]:
+&gt; 17:         &quot;&quot;&quot;
+&gt; 18:         Solves a given robust LP using CVXPY with SCS solver.
+&gt; 19:         &quot;&quot;&quot;
+&gt; 20:         c = np.array(problem[&quot;c&quot;], dtype=np.float64)
+&gt; 21:         b = np.array(problem[&quot;b&quot;], dtype=np.float64)
+&gt; 22:         P = np.array(problem[&quot;P&quot;], dtype=np.float64)
+&gt; 23:         q = np.array(problem[&quot;q&quot;], dtype=np.float64)
+&gt; 24:         m = len(P)
+&gt; 25:         n = len(c)
+&gt; 26: 
+&gt; 27:         x = cp.Variable(n)
+&gt; 28: 
+&gt; 29:         constraints = []
+&gt; 30:         for i in range(m):
+&gt; 31:             constraints.append(cp.SOC(b[i] - q[i].T @ x, P[i].T @ x))
+&gt; 32: 
+&gt; 33:         cvx_problem = cp.Problem(cp.Minimize(c.T @ x), constraints)
+&gt; 34: 
+&gt; 35:         try:
+&gt; 36:             # Use SCS which is typically faster for SOCP
+&gt; 37:             cvx_problem.solve(solver=cp.SCS, **self.solver_opts)
+&gt; 38: 
+&gt; 39:             # Check if a solution was found
+&gt; 40:             if cvx_problem.status not in [&quot;optimal&quot;, &quot;optimal_inaccurate&quot;]:
+&gt; 41:                 return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}
+&gt; 42: 
+&gt; 43:             return {&quot;objective_value&quot;: float(cvx_problem.value), &quot;x&quot;: np.array(x.value)}
+&gt; 44: 
+&gt; 45:         except Exception:
+&gt; 46:             return {&quot;objective_value&quot;: float(&quot;inf&quot;), &quot;x&quot;: np.array([np.nan] * n)}</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 2%<br>  Invalid Solutions: 98%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;&lt;genexpr&gt;&#x27; at line 128 in robust_linear_program.py<br><pre><code class="language-python">   118:         Check if the obtained solution is valid for the given problem.
+   119: 
+   120:         Args:
+   121:             problem: a dictionary of problem instance containing parameters.
+   122:             solution: proposed solution to the problem.
+   123: 
+   124:         Returns: a boolean indicating whether the given solution is actually the solution.
+   125:         &quot;&quot;&quot;
+   126: 
+   127:         # Check if solution contains required keys
+ ! 128:         if not all(key in solution for key in [&quot;objective_value&quot;, &quot;x&quot;]):
+   129:             logging.error(&quot;Solution missing required keys.&quot;)
+   130:             return False
+   131: 
+   132:         # Solve the problem with numerical solver
+   133:         reference_solution = self.solve(problem)
+   134:         reference_objective = reference_solution[&quot;objective_value&quot;]
+   135:         reference_x = np.array(reference_solution[&quot;x&quot;])
+   136: 
+   137:         # Extract the problem data
+   138:         c = np.array(problem[&quot;c&quot;])</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;&lt;genexpr&gt;&#x27; at line 128 in robust_linear_program.py<br><pre><code class="language-python">   118:         Check if the obtained solution is valid for the given problem.
+   119: 
+   120:         Args:
+   121:             problem: a dictionary of problem instance containing parameters.
+   122:             solution: proposed solution to the problem.
+   123: 
+   124:         Returns: a boolean indicating whether the given solution is actually the solution.
+   125:         &quot;&quot;&quot;
+   126: 
+   127:         # Check if solution contains required keys
+ ! 128:         if not all(key in solution for key in [&quot;objective_value&quot;, &quot;x&quot;]):
+   129:             logging.error(&quot;Solution missing required keys.&quot;)
+   130:             return False
+   131: 
+   132:         # Solve the problem with numerical solver
+   133:         reference_solution = self.solve(problem)
+   134:         reference_objective = reference_solution[&quot;objective_value&quot;]
+   135:         reference_x = np.array(reference_solution[&quot;x&quot;])
+   136: 
+   137:         # Extract the problem data
+   138:         c = np.array(problem[&quot;c&quot;])</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;&lt;genexpr&gt;&#x27; at line 128 in robust_linear_program.py<br><pre><code class="language-python">   118:         Check if the obtained solution is valid for the given problem.
+   119: 
+   120:         Args:
+   121:             problem: a dictionary of problem instance containing parameters.
+   122:             solution: proposed solution to the problem.
+   123: 
+   124:         Returns: a boolean indicating whether the given solution is actually the solution.
+   125:         &quot;&quot;&quot;
+   126: 
+   127:         # Check if solution contains required keys
+ ! 128:         if not all(key in solution for key in [&quot;objective_value&quot;, &quot;x&quot;]):
+   129:             logging.error(&quot;Solution missing required keys.&quot;)
+   130:             return False
+   131: 
+   132:         # Solve the problem with numerical solver
+   133:         reference_solution = self.solve(problem)
+   134:         reference_objective = reference_solution[&quot;objective_value&quot;]
+   135:         reference_x = np.array(reference_solution[&quot;x&quot;])
+   136: 
+   137:         # Extract the problem data
+   138:         c = np.array(problem[&quot;c&quot;])</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge revert">↩️ Revert Changes</span>
+            </div>
+            <div class="message-content">
+                Let me revert to the best working version since I&#x27;m running out of budget.<br><br><pre><code class="language-python">revert</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

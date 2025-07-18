@@ -1,0 +1,1974 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – lyapunov_stability – Claude Opus 4</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">lyapunov_stability</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="lyapunov_stability_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (189.60x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="lyapunov_stability_o4-mini.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (157.47x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="lyapunov_stability_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (118.83x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="lyapunov_stability_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (82.78x)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">lyapunov_stability</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Claude Opus 4</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #006400; font-weight: 600;">118.825x</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">5</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">0</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">40.5 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+Lyapunov Stability Analysis for Discrete-Time Linear Time-Invariant Systems
+
+This task involves analyzing the stability of a discrete-time linear time-invariant (LTI) dynamical system using Lyapunov theory and semidefinite programming.
+
+Problem:
+Given a discrete-time dynamical system described by the difference equation:
+    x[k + 1] = A x[k]
+where A is an n×n matrix and x is the state vector, determine if the system is asymptotically stable by finding a positive definite matrix P that satisfies the discrete Lyapunov equation: A^T·P·A - P &lt; 0 (negative definite).
+
+A discrete-time system is asymptotically stable if and only if such a P exists. The matrix P defines a quadratic Lyapunov function V(x) = x^T·P·x that decreases along all system trajectories.
+
+Input: A dictionary with key:
+- &quot;A&quot;: An n×n numpy array representing the system matrix A.
+
+Example input:
+{
+  &quot;A&quot;: [[0.5, 0.2], [0.1, 0.3]]
+}
+
+Output: A dictionary with keys:
+- &quot;is_stable&quot;: A boolean indicating whether the system is asymptotically stable.
+- &quot;P&quot;: An n×n numpy array representing the Lyapunov matrix P (if the system is stable).
+
+Example output:
+{
+  &quot;is_stable&quot;: true,
+  &quot;P&quot;: [[2.60363268 0.20700167] [0.20700167 2.42984374]]
+}
+
+Note: For a discrete-time asymptotically stable system, all eigenvalues of A must have magnitude less than 1
+
+Category: control
+
+Below is the reference implementation. Your function should run much quicker.
+
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+| 01: def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+| 02:     &quot;&quot;&quot;
+| 03:     Solves the Lyapunov stability analysis problem using semidefinite programming.
+| 04: 
+| 05:     Args:
+| 06:         problem: A dictionary containing the system matrix A.
+| 07: 
+| 08:     Returns:
+| 09:         A dictionary containing:
+| 10:             - is_stable: Boolean indicating if the system is asymptotically stable
+| 11:             - P: The Lyapunov matrix P (if stable)
+| 12:     
+| 13: 
+| 14:     NOTE: Your solution must pass validation by:
+| 15:     1. Returning correctly formatted output
+| 16:     2. Having no NaN or infinity values
+| 17:     3. Matching expected results within numerical tolerance
+| 18:     &quot;&quot;&quot;
+| 19:     A = np.array(problem[&quot;A&quot;])
+| 20:     n = A.shape[0]
+| 21:     P = cp.Variable((n, n), symmetric=True)
+| 22:     constraints = [P &gt;&gt; np.eye(n), A.T @ P @ A - P &lt;&lt; -np.eye(n)]
+| 23:     prob = cp.Problem(cp.Minimize(0), constraints)
+| 24: 
+| 25:     try:
+| 26:         prob.solve(solver=cp.CLARABEL)
+| 27:         if prob.status in [&quot;optimal&quot;, &quot;optimal_inaccurate&quot;]:
+| 28:             return {&quot;is_stable&quot;: True, &quot;P&quot;: P.value.tolist()}
+| 29:         else:
+| 30:             return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+| 31: 
+| 32:     except Exception as e:
+| 33:         return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+| 34: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+| 01: def is_solution( problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+| 02:     &quot;&quot;&quot;
+| 03:     Validates the solution to the Lyapunov stability analysis problem.
+| 04: 
+| 05:     Args:
+| 06:         problem: A dictionary containing the system matrix A.
+| 07:         solution: A dictionary containing the proposed solution.
+| 08: 
+| 09:     Returns:
+| 10:         A boolean indicating whether the solution is valid.
+| 11:     &quot;&quot;&quot;
+| 12:     if not all(key in solution for key in [&quot;is_stable&quot;, &quot;P&quot;]):
+| 13:         logging.error(&quot;Solution missing required keys.&quot;)
+| 14:         return False
+| 15:     A = np.array(problem[&quot;A&quot;])
+| 16: 
+| 17:     # Extract system matrix and solution components
+| 18:     is_stable = solution[&quot;is_stable&quot;]
+| 19: 
+| 20:     # Get the reference solution by solving the problem
+| 21:     reference_solution = solve(problem)
+| 22:     true_is_stable = reference_solution[&quot;is_stable&quot;]
+| 23: 
+| 24:     # Verify stability assessment
+| 25:     if is_stable != true_is_stable:
+| 26:         logging.error(&quot;Stability assessment is incorrect.&quot;)
+| 27:         return False
+| 28: 
+| 29:     # If system is stable, verify the Lyapunov matrix P
+| 30:     if is_stable:
+| 31:         if solution[&quot;P&quot;] is None:
+| 32:             logging.error(&quot;P matrix missing for stable system.&quot;)
+| 33:             return False
+| 34: 
+| 35:         P = np.array(solution[&quot;P&quot;])
+| 36: 
+| 37:         # Check if P is symmetric
+| 38:         if not np.allclose(P, P.T, rtol=1e-5, atol=1e-8):
+| 39:             logging.error(&quot;P is not symmetric.&quot;)
+| 40:             return False
+| 41: 
+| 42:         # Check value function
+| 43:         eigenvalues_P = np.linalg.eigvals(P)
+| 44:         S = A.T @ P @ A - P
+| 45:         eigenvalues_S = np.linalg.eigvals(S)
+| 46:         if np.any(eigenvalues_P &lt; 1e-10) or np.any(eigenvalues_S &gt; 1e-10):
+| 47:             logging.error(&quot;Value function is not correct.&quot;)
+| 48:             return False
+| 49: 
+| 50:     return True
+| 51:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>Lyapunov Stability Analysis for Discrete-Time Linear Time-Invariant Systems
+
+This task involves analyzing the stability of a discrete-time linear time-invariant (LTI) dynamical system using Lyapunov theory and semidefinite programming.
+
+Problem:
+Given a discrete-time dynamical system described by the difference equation:
+    x[k + 1] = A x[k]
+where A is an n×n matrix and x is the state vector, determine if the system is asymptotically stable by finding a positive definite matrix P that satisfies the discrete Lyapunov equation: A^T·P·A - P &lt; 0 (negative definite).
+
+A discrete-time system is asymptotically stable if and only if such a P exists. The matrix P defines a quadratic Lyapunov function V(x) = x^T·P·x that decreases along all system trajectories.
+
+Input: A dictionary with key:
+- &quot;A&quot;: An n×n numpy array representing the system matrix A.
+
+Example input:
+{
+  &quot;A&quot;: [[0.5, 0.2], [0.1, 0.3]]
+}
+
+Output: A dictionary with keys:
+- &quot;is_stable&quot;: A boolean indicating whether the system is asymptotically stable.
+- &quot;P&quot;: An n×n numpy array representing the Lyapunov matrix P (if the system is stable).
+
+Example output:
+{
+  &quot;is_stable&quot;: true,
+  &quot;P&quot;: [[2.60363268 0.20700167] [0.20700167 2.42984374]]
+}
+
+Note: For a discrete-time asymptotically stable system, all eigenvalues of A must have magnitude less than 1
+
+Category: control</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">from typing import Any
+import cvxpy as cp
+import numpy as np
+
+ def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+     &quot;&quot;&quot;
+     Solves the Lyapunov stability analysis problem using semidefinite programming.
+ 
+     Args:
+         problem: A dictionary containing the system matrix A.
+ 
+     Returns:
+         A dictionary containing:
+             - is_stable: Boolean indicating if the system is asymptotically stable
+             - P: The Lyapunov matrix P (if stable)
+     
+ 
+     NOTE: Your solution must pass validation by:
+     1. Returning correctly formatted output
+     2. Having no NaN or infinity values
+     3. Matching expected results within numerical tolerance
+     &quot;&quot;&quot;
+     A = np.array(problem[&quot;A&quot;])
+     n = A.shape[0]
+     P = cp.Variable((n, n), symmetric=True)
+     constraints = [P &gt;&gt; np.eye(n), A.T @ P @ A - P &lt;&lt; -np.eye(n)]
+     prob = cp.Problem(cp.Minimize(0), constraints)
+ 
+     try:
+         prob.solve(solver=cp.CLARABEL)
+         if prob.status in [&quot;optimal&quot;, &quot;optimal_inaccurate&quot;]:
+             return {&quot;is_stable&quot;: True, &quot;P&quot;: P.value.tolist()}
+         else:
+             return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+ 
+     except Exception as e:
+         return {&quot;is_stable&quot;: False, &quot;P&quot;: None}</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">import numpy as np
+from scipy import linalg
+from typing import Any
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solves the Lyapunov stability analysis problem.
+        
+        For discrete-time systems, stability requires all eigenvalues 
+        of A to have magnitude less than 1.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;A&quot;])
+        
+        # Check stability via eigenvalues
+        eigenvalues = np.linalg.eigvals(A)
+        max_magnitude = np.max(np.abs(eigenvalues))
+        
+        if max_magnitude &gt;= 1.0 - 1e-10:
+            # System is not stable
+            return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+        
+        # System is stable, solve discrete Lyapunov equation
+        # A^T P A - P = -Q, where Q = I
+        # This gives us P such that A^T P A - P = -I &lt; 0
+        try:
+            Q = np.eye(A.shape[0])
+            P = linalg.solve_discrete_lyapunov(A.T, Q)
+            
+            # Verify P is positive definite
+            eigvals_P = np.linalg.eigvals(P)
+            if np.min(eigvals_P) &lt;= 1e-10:
+                return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+            
+            return {&quot;is_stable&quot;: True, &quot;P&quot;: P.tolist()}
+            
+        except Exception:
+            # If Lyapunov equation solving fails, system is not stable
+            return {&quot;is_stable&quot;: False, &quot;P&quot;: None}</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/lyapunov_stability_claude-opus-4-20250514_20250701_040815_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/lyapunov_stability_claude-opus-4-20250514_20250701_040815_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I need to analyze the task and create an optimized solver for Lyapunov stability analysis. The reference implementation uses semidefinite programming with cvxpy, but I can optimize this by:<br><br>1. First checking eigenvalues directly (for discrete-time stability, all eigenvalues must have magnitude &lt; 1)<br>2. If stable, solving the discrete Lyapunov equation directly using scipy<br><br>Let me start by creating the solver:<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 0-0
+---
+import numpy as np
+from scipy import linalg
+from typing import Any
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solves the Lyapunov stability analysis problem.
+        
+        For discrete-time systems, stability requires all eigenvalues 
+        of A to have magnitude less than 1.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;A&quot;])
+        
+        # Check stability via eigenvalues
+        eigenvalues = np.linalg.eigvals(A)
+        max_magnitude = np.max(np.abs(eigenvalues))
+        
+        if max_magnitude &gt;= 1.0 - 1e-10:
+            # System is not stable
+            return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+        
+        # System is stable, solve discrete Lyapunov equation
+        # A^T P A - P = -Q, where Q = I
+        # This gives us P such that A^T P A - P = -I &lt; 0
+        try:
+            Q = np.eye(A.shape[0])
+            P = linalg.solve_discrete_lyapunov(A.T, Q)
+            
+            # Verify P is positive definite
+            eigvals_P = np.linalg.eigvals(P)
+            if np.min(eigvals_P) &lt;= 1e-10:
+                return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+            
+            return {&quot;is_stable&quot;: True, &quot;P&quot;: P.tolist()}
+            
+        except Exception:
+            # If Lyapunov equation solving fails, system is not stable
+            return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.1186. You have $0.8814 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-39 out of 39)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from scipy import linalg
+&gt; 03: from typing import Any
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solves the Lyapunov stability analysis problem.
+&gt; 09:         
+&gt; 10:         For discrete-time systems, stability requires all eigenvalues 
+&gt; 11:         of A to have magnitude less than 1.
+&gt; 12:         &quot;&quot;&quot;
+&gt; 13:         A = np.array(problem[&quot;A&quot;])
+&gt; 14:         
+&gt; 15:         # Check stability via eigenvalues
+&gt; 16:         eigenvalues = np.linalg.eigvals(A)
+&gt; 17:         max_magnitude = np.max(np.abs(eigenvalues))
+&gt; 18:         
+&gt; 19:         if max_magnitude &gt;= 1.0 - 1e-10:
+&gt; 20:             # System is not stable
+&gt; 21:             return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+&gt; 22:         
+&gt; 23:         # System is stable, solve discrete Lyapunov equation
+&gt; 24:         # A^T P A - P = -Q, where Q = I
+&gt; 25:         # This gives us P such that A^T P A - P = -I &lt; 0
+&gt; 26:         try:
+&gt; 27:             Q = np.eye(A.shape[0])
+&gt; 28:             P = linalg.solve_discrete_lyapunov(A.T, Q)
+&gt; 29:             
+&gt; 30:             # Verify P is positive definite
+&gt; 31:             eigvals_P = np.linalg.eigvals(P)
+&gt; 32:             if np.min(eigvals_P) &lt;= 1e-10:
+&gt; 33:                 return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+&gt; 34:             
+&gt; 35:             return {&quot;is_stable&quot;: True, &quot;P&quot;: P.tolist()}
+&gt; 36:             
+&gt; 37:         except Exception:
+&gt; 38:             # If Lyapunov equation solving fails, system is not stable
+&gt; 39:             return {&quot;is_stable&quot;: False, &quot;P&quot;: None}</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">115.28</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge eval_input">🧪 Input Eval</span>
+            </div>
+            <div class="message-content">
+                I need to optimize further. Let me first test the current implementation to understand its behavior:<br><br><pre><code class="language-python">eval_input {&quot;A&quot;: [[0.5, 0.2], [0.1, 0.3]]}</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.2041. You have $0.7959 remaining.<br><br>Starting evaluation...<br><br>Output: {&#x27;is_stable&#x27;: True, &#x27;P&#x27;: [[1.3770003049974466, 0.20880594402123795], [0.20880594402123792, 1.1869634345960949]]}<br>Runtime: 0.346611 ms<br>Output is valid: Yes
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge other"> Invalid Command</span>
+            </div>
+            <div class="message-content">
+                Let me profile the code to see where the bottlenecks are:<br><br><pre><code class="language-python">profile solver.py {&quot;A&quot;: [[0.5, 0.2], [0.1, 0.3]]}</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.2868. You have $0.7132 remaining.<br><br>Profiling results:<br>=== Line-by-Line Timing ===<br><br>Timer unit: 1e-06 ms<br><br>Total time: 0.406781 ms<br>File: solver.py<br>Function: solve<br><br>Line #      Hits         Time  Per Hit   % Time  Line Contents<br>==============================================================<br>     6                                               def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:<br>     7                                                   &quot;&quot;&quot;<br>     8                                                   Solves the Lyapunov stability analysis problem.<br>     9                                                   <br>    10                                                   For discrete-time systems, stability requires all eigenvalues <br>    11                                                   of A to have magnitude less than 1.<br>    12                                                   &quot;&quot;&quot;<br>    13         1      14310.0  14310.0      3.5          A = np.array(problem[&quot;A&quot;])<br>    14                                                   <br>    15                                                   # Check stability via eigenvalues<br>    16         1     113000.0 113000.0     27.8          eigenvalues = np.linalg.eigvals(A)<br>    17         1      11670.0  11670.0      2.9          max_magnitude = np.max(np.abs(eigenvalues))<br>    18                                                   <br>    19         1        940.0    940.0      0.2          if max_magnitude &gt;= 1.0 - 1e-10:<br>    20                                                       # System is not stable<br>    21                                                       return {&quot;is_stable&quot;: False, &quot;P&quot;: None}<br>    22                                                   <br>    23                                                   # System is stable, solve discrete Lyapunov equation<br>    24                                                   # A^T P A - P = -Q, where Q = I<br>    26         1        110.0    110.0      0.0          try:<br>    27         1      11431.0  11431.0      2.8              Q = np.eye(A.shape[0])<br>    28         1     220230.0 220230.0     54.1              P = linalg.solve_discrete_lyapunov(A.T, Q)<br>    31         1      26890.0  26890.0      6.6              eigvals_P = np.linalg.eigvals(P)<br>    32         1       6650.0   6650.0      1.6              if np.min(eigvals_P) &lt;= 1e-10:<br>    35         1       1550.0   1550.0      0.4              return {&quot;is_stable&quot;: True, &quot;P&quot;: P.tolist()}<br><pre><code class="language-python">... (showing most time-consuming lines)</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I see the main bottlenecks are:<br>1. `solve_discrete_lyapunov` (54.1%)<br>2. Eigenvalue computation (27.8% + 6.6%)<br><br>Let me optimize by using analytical solutions for small matrices and avoiding redundant computations:<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-39
+---
+import numpy as np
+from scipy import linalg
+from typing import Any
+
+class Solver:
+    def __init__(self):
+        # Precompute for 2x2 case
+        self._eye2 = np.eye(2)
+        
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solves the Lyapunov stability analysis problem.
+        
+        For discrete-time systems, stability requires all eigenvalues 
+        of A to have magnitude less than 1.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;A&quot;])
+        n = A.shape[0]
+        
+        # Special case for 2x2 matrices - analytical solution
+        if n == 2:
+            a11, a12 = A[0, 0], A[0, 1]
+            a21, a22 = A[1, 0], A[1, 1]
+            
+            # Check stability via trace and determinant
+            trace = a11 + a22
+            det = a11 * a22 - a12 * a21
+            
+            # For 2x2, eigenvalues satisfy: λ² - trace*λ + det = 0
+            # Stability requires |λ| &lt; 1 for both eigenvalues
+            discriminant = trace * trace - 4 * det
+            
+            if discriminant &gt;= 0:
+                sqrt_disc = np.sqrt(discriminant)
+                lambda1 = (trace + sqrt_disc) / 2
+                lambda2 = (trace - sqrt_disc) / 2
+                if abs(lambda1) &gt;= 1 - 1e-10 or abs(lambda2) &gt;= 1 - 1e-10:
+                    return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+            else:
+                # Complex eigenvalues
+                real_part = trace / 2
+                imag_part = np.sqrt(-discriminant) / 2
+                magnitude_sq = real_part * real_part + imag_part * imag_part
+                if magnitude_sq &gt;= (1 - 1e-10) ** 2:
+                    return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+            
+            # Analytical solution for 2x2 discrete Lyapunov equation
+            # Vectorize: vec(P) = (I - A^T ⊗ A^T)^(-1) vec(Q)
+            # For Q = I, we can solve this directly
+            try:
+                # Build the system matrix
+                I4 = np.eye(4)
+                AT = A.T
+                kron_AT_AT = np.kron(AT, AT)
+                M = I4 - kron_AT_AT
+                
+                # vec(I) for 2x2
+                vec_I = np.array([1, 0, 0, 1])
+                
+                # Solve for vec(P)
+                vec_P = np.linalg.solve(M, vec_I)
+                
+                # Reshape to get P
+                P = vec_P.reshape(2, 2)
+                
+                # Make symmetric (due to numerical errors)
+                P = (P + P.T) / 2
+                
+                # Quick positive definite check
+                if P[0, 0] &lt;= 1e-10 or P[0, 0] * P[1, 1] - P[0, 1] * P[1, 0] &lt;= 1e-10:
+                    return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+                
+                return {&quot;is_stable&quot;: True, &quot;P&quot;: P.tolist()}
+            except:
+                return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+        
+        # For larger matrices, use the original approach
+        eigenvalues = np.linalg.eigvals(A)
+        max_magnitude = np.max(np.abs(eigenvalues))
+        
+        if max_magnitude &gt;= 1.0 - 1e-10:
+            return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+        
+        try:
+            Q = np.eye(n)
+            P = linalg.solve_discrete_lyapunov(A.T, Q)
+            
+            # Quick positive definite check using Cholesky
+            try:
+                np.linalg.cholesky(P)
+                return {&quot;is_stable&quot;: True, &quot;P&quot;: P.tolist()}
+            except:
+                return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+            
+        except:
+            return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.4715. You have $0.5285 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 96)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from scipy import linalg
+&gt; 03: from typing import Any
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def __init__(self):
+&gt; 07:         # Precompute for 2x2 case
+&gt; 08:         self._eye2 = np.eye(2)
+&gt; 09:         
+&gt; 10:     def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+&gt; 11:         &quot;&quot;&quot;
+&gt; 12:         Solves the Lyapunov stability analysis problem.
+&gt; 13:         
+&gt; 14:         For discrete-time systems, stability requires all eigenvalues 
+&gt; 15:         of A to have magnitude less than 1.
+&gt; 16:         &quot;&quot;&quot;
+&gt; 17:         A = np.array(problem[&quot;A&quot;])
+&gt; 18:         n = A.shape[0]
+&gt; 19:         
+&gt; 20:         # Special case for 2x2 matrices - analytical solution
+&gt; 21:         if n == 2:
+&gt; 22:             a11, a12 = A[0, 0], A[0, 1]
+&gt; 23:             a21, a22 = A[1, 0], A[1, 1]
+&gt; 24:             
+&gt; 25:             # Check stability via trace and determinant
+&gt; 26:             trace = a11 + a22
+&gt; 27:             det = a11 * a22 - a12 * a21
+&gt; 28:             
+&gt; 29:             # For 2x2, eigenvalues satisfy: λ² - trace*λ + det = 0
+&gt; 30:             # Stability requires |λ| &lt; 1 for both eigenvalues
+&gt; 31:             discriminant = trace * trace - 4 * det
+&gt; 32:             
+&gt; 33:             if discriminant &gt;= 0:
+&gt; 34:                 sqrt_disc = np.sqrt(discriminant)
+&gt; 35:                 lambda1 = (trace + sqrt_disc) / 2
+&gt; 36:                 lambda2 = (trace - sqrt_disc) / 2
+&gt; 37:                 if abs(lambda1) &gt;= 1 - 1e-10 or abs(lambda2) &gt;= 1 - 1e-10:
+&gt; 38:                     return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+&gt; 39:             else:
+&gt; 40:                 # Complex eigenvalues
+&gt; 41:                 real_part = trace / 2
+&gt; 42:                 imag_part = np.sqrt(-discriminant) / 2
+&gt; 43:                 magnitude_sq = real_part * real_part + imag_part * imag_part
+&gt; 44:                 if magnitude_sq &gt;= (1 - 1e-10) ** 2:
+&gt; 45:                     return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+&gt; 46:             
+&gt; 47:             # Analytical solution for 2x2 discrete Lyapunov equation
+&gt; 48:             # Vectorize: vec(P) = (I - A^T ⊗ A^T)^(-1) vec(Q)
+&gt; 49:             # For Q = I, we can solve this directly
+&gt; 50:             try:
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">114.98</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Let me try a different approach using numba for JIT compilation to speed up the critical paths:<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-96
+---
+import numpy as np
+from scipy import linalg
+from typing import Any
+import numba
+
+@numba.jit(nopython=True, cache=True)
+def check_2x2_stability(a11, a12, a21, a22):
+    &quot;&quot;&quot;Check stability of 2x2 matrix via eigenvalues.&quot;&quot;&quot;
+    trace = a11 + a22
+    det = a11 * a22 - a12 * a21
+    discriminant = trace * trace - 4 * det
+    
+    if discriminant &gt;= 0:
+        sqrt_disc = np.sqrt(discriminant)
+        lambda1 = (trace + sqrt_disc) / 2
+        lambda2 = (trace - sqrt_disc) / 2
+        return abs(lambda1) &lt; 1 - 1e-10 and abs(lambda2) &lt; 1 - 1e-10
+    else:
+        # Complex eigenvalues
+        real_part = trace / 2
+        imag_part = np.sqrt(-discriminant) / 2
+        magnitude_sq = real_part * real_part + imag_part * imag_part
+        return magnitude_sq &lt; (1 - 1e-10) ** 2
+
+@numba.jit(nopython=True, cache=True)
+def solve_2x2_lyapunov(a11, a12, a21, a22):
+    &quot;&quot;&quot;Analytical solution for 2x2 discrete Lyapunov equation A^T P A - P = -I.&quot;&quot;&quot;
+    # Direct formula for 2x2 case
+    # Build coefficient matrix for vectorized equation
+    c11 = 1 - a11 * a11 - a21 * a21
+    c12 = -a11 * a12 - a21 * a22
+    c21 = -a11 * a21 - a12 * a21
+    c22 = 1 - a12 * a12 - a22 * a22
+    c33 = 1 - a11 * a11 - a12 * a12
+    c34 = -a11 * a21 - a12 * a22
+    c44 = 1 - a21 * a21 - a22 * a22
+    
+    # Solve for P elements
+    # P is symmetric, so p12 = p21
+    det = c11 * c22 - c12 * c21
+    if abs(det) &lt; 1e-15:
+        return None, None, None
+    
+    p11 = c22 / det
+    p12 = -c12 / det
+    
+    # For p22, use the fact that A^T P A - P = -I
+    # This gives us p22 from the (2,2) element
+    p22 = (1 + a21 * a21 * p11 + 2 * a21 * a22 * p12) / c44
+    
+    return p11, p12, p22
+
+class Solver:
+    def __init__(self):
+        # Force JIT compilation
+        _ = check_2x2_stability(0.5, 0.2, 0.1, 0.3)
+        _ = solve_2x2_lyapunov(0.5, 0.2, 0.1, 0.3)
+        
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solves the Lyapunov stability analysis problem.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;A&quot;])
+        n = A.shape[0]
+        
+        # Special case for 2x2 matrices
+        if n == 2:
+            a11, a12 = A[0, 0], A[0, 1]
+            a21, a22 = A[1, 0], A[1, 1]
+            
+            # Check stability
+            if not check_2x2_stability(a11, a12, a21, a22):
+                return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+            
+            # Solve Lyapunov equation
+            p11, p12, p22 = solve_2x2_lyapunov(a11, a12, a21, a22)
+            
+            if p11 is None:
+                return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+            
+            # Check positive definiteness
+            if p11 &lt;= 1e-10 or p11 * p22 - p12 * p12 &lt;= 1e-10:
+                return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+            
+            P = [[p11, p12], [p12, p22]]
+            return {&quot;is_stable&quot;: True, &quot;P&quot;: P}
+        
+        # For larger matrices, use scipy
+        eigenvalues = np.linalg.eigvals(A)
+        max_magnitude = np.max(np.abs(eigenvalues))
+        
+        if max_magnitude &gt;= 1.0 - 1e-10:
+            return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+        
+        try:
+            Q = np.eye(n)
+            P = linalg.solve_discrete_lyapunov(A.T, Q)
+            
+            # Quick positive definite check
+            if np.min(np.linalg.eigvals(P)) &gt; 1e-10:
+                return {&quot;is_stable&quot;: True, &quot;P&quot;: P.tolist()}
+            else:
+                return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+            
+        except:
+            return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.7003. You have $0.2997 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 106)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from scipy import linalg
+&gt; 003: from typing import Any
+&gt; 004: import numba
+&gt; 005: 
+&gt; 006: @numba.jit(nopython=True, cache=True)
+&gt; 007: def check_2x2_stability(a11, a12, a21, a22):
+&gt; 008:     &quot;&quot;&quot;Check stability of 2x2 matrix via eigenvalues.&quot;&quot;&quot;
+&gt; 009:     trace = a11 + a22
+&gt; 010:     det = a11 * a22 - a12 * a21
+&gt; 011:     discriminant = trace * trace - 4 * det
+&gt; 012:     
+&gt; 013:     if discriminant &gt;= 0:
+&gt; 014:         sqrt_disc = np.sqrt(discriminant)
+&gt; 015:         lambda1 = (trace + sqrt_disc) / 2
+&gt; 016:         lambda2 = (trace - sqrt_disc) / 2
+&gt; 017:         return abs(lambda1) &lt; 1 - 1e-10 and abs(lambda2) &lt; 1 - 1e-10
+&gt; 018:     else:
+&gt; 019:         # Complex eigenvalues
+&gt; 020:         real_part = trace / 2
+&gt; 021:         imag_part = np.sqrt(-discriminant) / 2
+&gt; 022:         magnitude_sq = real_part * real_part + imag_part * imag_part
+&gt; 023:         return magnitude_sq &lt; (1 - 1e-10) ** 2
+&gt; 024: 
+&gt; 025: @numba.jit(nopython=True, cache=True)
+&gt; 026: def solve_2x2_lyapunov(a11, a12, a21, a22):
+&gt; 027:     &quot;&quot;&quot;Analytical solution for 2x2 discrete Lyapunov equation A^T P A - P = -I.&quot;&quot;&quot;
+&gt; 028:     # Direct formula for 2x2 case
+&gt; 029:     # Build coefficient matrix for vectorized equation
+&gt; 030:     c11 = 1 - a11 * a11 - a21 * a21
+&gt; 031:     c12 = -a11 * a12 - a21 * a22
+&gt; 032:     c21 = -a11 * a21 - a12 * a21
+&gt; 033:     c22 = 1 - a12 * a12 - a22 * a22
+&gt; 034:     c33 = 1 - a11 * a11 - a12 * a12
+&gt; 035:     c34 = -a11 * a21 - a12 * a22
+&gt; 036:     c44 = 1 - a21 * a21 - a22 * a22
+&gt; 037:     
+&gt; 038:     # Solve for P elements
+&gt; 039:     # P is symmetric, so p12 = p21
+&gt; 040:     det = c11 * c22 - c12 * c21
+&gt; 041:     if abs(det) &lt; 1e-15:
+&gt; 042:         return None, None, None
+&gt; 043:     
+&gt; 044:     p11 = c22 / det
+&gt; 045:     p12 = -c12 / det
+&gt; 046:     
+&gt; 047:     # For p22, use the fact that A^T P A - P = -I
+&gt; 048:     # This gives us p22 from the (2,2) element
+&gt; 049:     p22 = (1 + a21 * a21 * p11 + 2 * a21 * a22 * p12) / c44
+&gt; 050:     
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">108.70</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Let me try a pure numpy approach without scipy for better performance:<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-106
+---
+import numpy as np
+from typing import Any
+
+class Solver:
+    def __init__(self):
+        # Precompute constants
+        self.eps = 1e-10
+        self.stable_threshold = 1 - 1e-10
+        
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solves the Lyapunov stability analysis problem.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;A&quot;], dtype=np.float64)
+        n = A.shape[0]
+        
+        if n == 2:
+            # Optimized 2x2 case
+            return self._solve_2x2(A)
+        elif n == 3:
+            # Optimized 3x3 case
+            return self._solve_3x3(A)
+        else:
+            # General case
+            return self._solve_general(A)
+    
+    def _solve_2x2(self, A):
+        &quot;&quot;&quot;Optimized solution for 2x2 matrices.&quot;&quot;&quot;
+        a11, a12 = A[0, 0], A[0, 1]
+        a21, a22 = A[1, 0], A[1, 1]
+        
+        # Check stability via characteristic polynomial
+        trace = a11 + a22
+        det = a11 * a22 - a12 * a21
+        
+        # Check Schur stability conditions for 2x2
+        # |det| &lt; 1 and |trace| &lt; 1 + det
+        if abs(det) &gt;= self.stable_threshold or abs(trace) &gt;= 1 + det - self.eps:
+            return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+        
+        # Direct solution of discrete Lyapunov equation
+        # Vectorized form: (I - A^T ⊗ A^T) vec(P) = vec(I)
+        # For 2x2, this is a 4x4 linear system
+        
+        # Build the coefficient matrix
+        c11 = 1 - a11*a11 - a21*a21
+        c12 = -a11*a12 - a21*a22
+        c21 = -a11*a21 - a12*a21  
+        c22 = 1 - a12*a12 - a22*a22
+        c33 = 1 - a11*a11 - a12*a12
+        c34 = -a11*a21 - a12*a22
+        c44 = 1 - a21*a21 - a22*a22
+        
+        # Solve the reduced 3x3 system (using symmetry of P)
+        # [c11  2*c12   0  ] [p11]   [1]
+        # [c21  c22+c33 c34] [p12] = [0]
+        # [0    2*c34   c44] [p22]   [1]
+        
+        det_main = c11 * (c22+c33) * c44 + 2*c12*c34*2*c34 - c11*c34*c34 - c44*2*c12*c21
+        
+        if abs(det_main) &lt; 1e-15:
+            return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+        
+        # Use Cramer&#x27;s rule for speed
+        det1 = (c22+c33) * c44 - c34*c34
+        det2 = -c21*c44
+        det3 = c11*(c22+c33) - 2*c12*c21
+        
+        p11 = det1 / det_main
+        p12 = det2 / det_main  
+        p22 = det3 / det_main
+        
+        # Check positive definiteness
+        if p11 &lt;= self.eps or p11*p22 - p12*p12 &lt;= self.eps:
+            return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+        
+        return {&quot;is_stable&quot;: True, &quot;P&quot;: [[p11, p12], [p12, p22]]}
+    
+    def _solve_3x3(self, A):
+        &quot;&quot;&quot;Optimized solution for 3x3 matrices.&quot;&quot;&quot;
+        # Quick stability check using Gershgorin circles
+        for i in range(3):
+            row_sum = np.sum(np.abs(A[i, :])) - np.abs(A[i, i])
+            if np.abs(A[i, i]) + row_sum &gt;= self.stable_threshold:
+                # May not be stable, need exact check
+                eigenvalues = np.linalg.eigvals(A)
+                if np.max(np.abs(eigenvalues)) &gt;= self.stable_threshold:
+                    return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+                break
+        else:
+            # Definitely stable by Gershgorin, but double-check
+            eigenvalues = np.linalg.eigvals(A)
+            if np.max(np.abs(eigenvalues)) &gt;= self.stable_threshold:
+                return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+        
+        # Solve using numpy&#x27;s linear algebra
+        n = 3
+        I = np.eye(n)
+        AT = A.T
+        
+        # Vectorized Lyapunov equation
+        kron_AT = np.kron(AT, AT)
+        M = np.eye(n*n) - kron_AT
+        vec_I = I.flatten()
+        
+        try:
+            vec_P = np.linalg.solve(M, vec_I)
+            P = vec_P.reshape(n, n)
+            
+            # Make symmetric
+            P = (P + P.T) / 2
+            
+            # Check positive definiteness via Cholesky
+            try:
+                np.linalg.cholesky(P)
+                return {&quot;is_stable&quot;: True, &quot;P&quot;: P.tolist()}
+            except:
+                return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+        except:
+            return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+    
+    def _solve_general(self, A):
+        &quot;&quot;&quot;General solution for larger matrices.&quot;&quot;&quot;
+        # Check stability
+        eigenvalues = np.linalg.eigvals(A)
+        if np.max(np.abs(eigenvalues)) &gt;= self.stable_threshold:
+            return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+        
+        # Use scipy for larger matrices
+        from scipy import linalg
+        try:
+            Q = np.eye(A.shape[0])
+            P = linalg.solve_discrete_lyapunov(A.T, Q)
+            
+            # Quick positive definite check
+            if np.min(np.linalg.eigvals(P)) &gt; self.eps:
+                return {&quot;is_stable&quot;: True, &quot;P&quot;: P.tolist()}
+            else:
+                return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+        except:
+            return {&quot;is_stable&quot;: False, &quot;P&quot;: None}
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

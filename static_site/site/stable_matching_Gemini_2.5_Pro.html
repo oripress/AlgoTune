@@ -1,0 +1,2990 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – stable_matching – Gemini 2.5 Pro</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">stable_matching</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="stable_matching_o4-mini.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (1.63x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="stable_matching_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (1.58x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="stable_matching_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (1.54x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="stable_matching_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (1.49x)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">stable_matching</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Gemini 2.5 Pro</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #006400; font-weight: 600;">1.580x</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">11</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">0</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">103.0 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+# Stable Matching Problem Task
+
+## Description
+Find a stable matching between two equal-sized sets of agents, often referred to as &quot;men&quot; and &quot;women&quot; or &quot;proposers&quot; and &quot;receivers&quot;. Each agent has a ranked preference list for the agents in the opposite set.
+
+A matching is a set of pairs such that each agent appears in at most one pair. A matching is considered **unstable** if there exists a pair of agents (m, w) who are *not* matched to each other, but who *both* prefer each other over their current partners (or being unmatched).
+A matching is **stable** if it is not unstable.
+
+The Gale-Shapley algorithm finds a stable matching. It is typically proposer-optimal, meaning each proposer gets the best possible partner they can in *any* stable matching.
+
+Input:
+The input is a dictionary containing:
+- &quot;proposer_prefs&quot;: A list of lists representing the preferences of the proposers (e.g., men). `proposer_prefs[i]` is a list containing the indices of the receivers (e.g., women) in order of preference for proposer `i`.
+- &quot;receiver_prefs&quot;: A list of lists representing the preferences of the receivers (e.g., women). `receiver_prefs[j]` is a list containing the indices of the proposers (e.g., men) in order of preference for receiver `j`.
+
+The number of proposers must equal the number of receivers (let this be `n`). Indices range from 0 to `n-1`.
+
+Example input:
+Consider 3 proposers (M0, M1, M2) and 3 receivers (W0, W1, W2).
+Proposer Preferences (Men):
+M0: [W0, W1, W2]
+M1: [W1, W0, W2]
+M2: [W0, W1, W2]
+Receiver Preferences (Women):
+W0: [M1, M0, M2]
+W1: [M0, M1, M2]
+W2: [M0, M1, M2]
+```json
+{
+  &quot;proposer_prefs&quot;: [
+    [0, 1, 2],
+    [1, 0, 2],
+    [0, 1, 2]
+  ],
+  &quot;receiver_prefs&quot;: [
+    [1, 0, 2],
+    [0, 1, 2],
+    [0, 1, 2]
+  ]
+}
+```
+
+Output:
+The output should be a dictionary containing:
+- &quot;matching&quot;: A list of `n` integers, where `matching[i]` is the index of the receiver matched to proposer `i`. Alternatively, it could be represented as a list of pairs `[[proposer_index, receiver_index], ...]`.
+
+Example output:
+```json
+{
+  &quot;matching&quot;: [1, 0, 2]
+}
+```
+This means:
+- Proposer 0 (M0) is matched with Receiver 1 (W1).
+- Proposer 1 (M1) is matched with Receiver 0 (W0).
+- Proposer 2 (M2) is matched with Receiver 2 (W2).
+
+You can verify this is stable. For instance, M0 prefers W0 over W1, but W0 prefers M1 (her current partner) over M0.
+
+## References
+- Gale, D., &amp; Shapley, L. S. (1962). College Admissions and the Stability of Marriage. *The American Mathematical Monthly*, 69(1), 9-15.
+
+Category: discrete_optimization
+
+
+Below is the reference implementation. Your function should run much quicker.
+
+from typing import Any
+import numpy as np
+
+| 01: def solve(self, problem: dict[str, Any]) -&gt; dict[str, list[int]]:
+| 02:     prop_raw = problem[&quot;proposer_prefs&quot;]
+| 03:     recv_raw = problem[&quot;receiver_prefs&quot;]
+| 04: 
+| 05:     # normalise to list-of-lists
+| 06:     if isinstance(prop_raw, dict):
+| 07:         n = len(prop_raw)
+| 08:         proposer_prefs = [prop_raw[i] for i in range(n)]
+| 09:     else:
+| 10:         proposer_prefs = list(prop_raw)
+| 11:         n = len(proposer_prefs)
+| 12: 
+| 13:     if isinstance(recv_raw, dict):
+| 14:         receiver_prefs = [recv_raw[i] for i in range(n)]
+| 15:     else:
+| 16:         receiver_prefs = list(recv_raw)
+| 17: 
+| 18:     # receiver ranking tables
+| 19:     recv_rank = [[0] * n for _ in range(n)]
+| 20:     for r, prefs in enumerate(receiver_prefs):
+| 21:         for rank, p in enumerate(prefs):
+| 22:             recv_rank[r][p] = rank
+| 23: 
+| 24:     next_prop = [0] * n
+| 25:     recv_match = [None] * n
+| 26:     free = list(range(n))
+| 27: 
+| 28:     while free:
+| 29:         p = free.pop(0)
+| 30:         r = proposer_prefs[p][next_prop[p]]
+| 31:         next_prop[p] += 1
+| 32: 
+| 33:         cur = recv_match[r]
+| 34:         if cur is None:
+| 35:             recv_match[r] = p
+| 36:         else:
+| 37:             if recv_rank[r][p] &lt; recv_rank[r][cur]:
+| 38:                 recv_match[r] = p
+| 39:                 free.append(cur)
+| 40:             else:
+| 41:                 free.append(p)
+| 42: 
+| 43:     matching = [0] * n
+| 44:     for r, p in enumerate(recv_match):
+| 45:         matching[p] = r
+| 46: 
+| 47:     return {&quot;matching&quot;: matching}
+| 48: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+from typing import Any
+import numpy as np
+
+| 01: def is_solution( problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+| 02:     if &quot;matching&quot; not in solution:
+| 03:         logging.error(&quot;Solution missing &#x27;matching&#x27; key.&quot;)
+| 04:         return False
+| 05: 
+| 06:     prop_raw = problem[&quot;proposer_prefs&quot;]
+| 07:     recv_raw = problem[&quot;receiver_prefs&quot;]
+| 08: 
+| 09:     if isinstance(prop_raw, dict):
+| 10:         n = len(prop_raw)
+| 11:         proposer_prefs = [prop_raw[i] for i in range(n)]
+| 12:     else:
+| 13:         proposer_prefs = list(prop_raw)
+| 14:         n = len(proposer_prefs)
+| 15: 
+| 16:     if isinstance(recv_raw, dict):
+| 17:         receiver_prefs = [recv_raw[i] for i in range(n)]
+| 18:     else:
+| 19:         receiver_prefs = list(recv_raw)
+| 20: 
+| 21:     matching = solution[&quot;matching&quot;]
+| 22:     if not (isinstance(matching, list) and len(matching) == n):
+| 23:         logging.error(&quot;Matching has wrong length or type.&quot;)
+| 24:         return False
+| 25:     if len(set(matching)) != n or not all(0 &lt;= r &lt; n for r in matching):
+| 26:         logging.error(&quot;Matching is not a permutation of receivers.&quot;)
+| 27:         return False
+| 28: 
+| 29:     # build inverse map
+| 30:     proposer_to_receiver = matching
+| 31:     receiver_to_proposer = [0] * n
+| 32:     for p, r in enumerate(proposer_to_receiver):
+| 33:         receiver_to_proposer[r] = p
+| 34: 
+| 35:     # stability check: no blocking pair
+| 36:     for p in range(n):
+| 37:         p_match_rank = proposer_prefs[p].index(proposer_to_receiver[p])
+| 38:         for better_r in proposer_prefs[p][:p_match_rank]:
+| 39:             other_p = receiver_to_proposer[better_r]
+| 40:             r_prefs = receiver_prefs[better_r]
+| 41:             if r_prefs.index(p) &lt; r_prefs.index(other_p):
+| 42:                 logging.error(f&quot;Blocking pair found: proposer {p} and receiver {better_r}.&quot;)
+| 43:                 return False
+| 44: 
+| 45:     return True
+| 46:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre># Stable Matching Problem Task
+
+## Description
+Find a stable matching between two equal-sized sets of agents, often referred to as &quot;men&quot; and &quot;women&quot; or &quot;proposers&quot; and &quot;receivers&quot;. Each agent has a ranked preference list for the agents in the opposite set.
+
+A matching is a set of pairs such that each agent appears in at most one pair. A matching is considered **unstable** if there exists a pair of agents (m, w) who are *not* matched to each other, but who *both* prefer each other over their current partners (or being unmatched).
+A matching is **stable** if it is not unstable.
+
+The Gale-Shapley algorithm finds a stable matching. It is typically proposer-optimal, meaning each proposer gets the best possible partner they can in *any* stable matching.
+
+Input:
+The input is a dictionary containing:
+- &quot;proposer_prefs&quot;: A list of lists representing the preferences of the proposers (e.g., men). `proposer_prefs[i]` is a list containing the indices of the receivers (e.g., women) in order of preference for proposer `i`.
+- &quot;receiver_prefs&quot;: A list of lists representing the preferences of the receivers (e.g., women). `receiver_prefs[j]` is a list containing the indices of the proposers (e.g., men) in order of preference for receiver `j`.
+
+The number of proposers must equal the number of receivers (let this be `n`). Indices range from 0 to `n-1`.
+
+Example input:
+Consider 3 proposers (M0, M1, M2) and 3 receivers (W0, W1, W2).
+Proposer Preferences (Men):
+M0: [W0, W1, W2]
+M1: [W1, W0, W2]
+M2: [W0, W1, W2]
+Receiver Preferences (Women):
+W0: [M1, M0, M2]
+W1: [M0, M1, M2]
+W2: [M0, M1, M2]
+```json
+{
+  &quot;proposer_prefs&quot;: [
+    [0, 1, 2],
+    [1, 0, 2],
+    [0, 1, 2]
+  ],
+  &quot;receiver_prefs&quot;: [
+    [1, 0, 2],
+    [0, 1, 2],
+    [0, 1, 2]
+  ]
+}
+```
+
+Output:
+The output should be a dictionary containing:
+- &quot;matching&quot;: A list of `n` integers, where `matching[i]` is the index of the receiver matched to proposer `i`. Alternatively, it could be represented as a list of pairs `[[proposer_index, receiver_index], ...]`.
+
+Example output:
+```json
+{
+  &quot;matching&quot;: [1, 0, 2]
+}
+```
+This means:
+- Proposer 0 (M0) is matched with Receiver 1 (W1).
+- Proposer 1 (M1) is matched with Receiver 0 (W0).
+- Proposer 2 (M2) is matched with Receiver 2 (W2).
+
+You can verify this is stable. For instance, M0 prefers W0 over W1, but W0 prefers M1 (her current partner) over M0.
+
+## References
+- Gale, D., &amp; Shapley, L. S. (1962). College Admissions and the Stability of Marriage. *The American Mathematical Monthly*, 69(1), 9-15.
+
+Category: discrete_optimization</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">from typing import Any
+import numpy as np
+
+ def solve(self, problem: dict[str, Any]) -&gt; dict[str, list[int]]:
+     prop_raw = problem[&quot;proposer_prefs&quot;]
+     recv_raw = problem[&quot;receiver_prefs&quot;]
+ 
+     # normalise to list-of-lists
+     if isinstance(prop_raw, dict):
+         n = len(prop_raw)
+         proposer_prefs = [prop_raw[i] for i in range(n)]
+     else:
+         proposer_prefs = list(prop_raw)
+         n = len(proposer_prefs)
+ 
+     if isinstance(recv_raw, dict):
+         receiver_prefs = [recv_raw[i] for i in range(n)]
+     else:
+         receiver_prefs = list(recv_raw)
+ 
+     # receiver ranking tables
+     recv_rank = [[0] * n for _ in range(n)]
+     for r, prefs in enumerate(receiver_prefs):
+         for rank, p in enumerate(prefs):
+             recv_rank[r][p] = rank
+ 
+     next_prop = [0] * n
+     recv_match = [None] * n
+     free = list(range(n))
+ 
+     while free:
+         p = free.pop(0)
+         r = proposer_prefs[p][next_prop[p]]
+         next_prop[p] += 1
+ 
+         cur = recv_match[r]
+         if cur is None:
+             recv_match[r] = p
+         else:
+             if recv_rank[r][p] &lt; recv_rank[r][cur]:
+                 recv_match[r] = p
+                 free.append(cur)
+             else:
+                 free.append(p)
+ 
+     matching = [0] * n
+     for r, p in enumerate(recv_match):
+         matching[p] = r
+ 
+     return {&quot;matching&quot;: matching}</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">import numpy as np
+import numba
+from typing import Any
+import itertools
+
+@numba.njit(cache=True, fastmath=True)
+def _gale_shapley_core(proposer_prefs: np.ndarray, receiver_ranks: np.ndarray) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Numba-accelerated core of the Gale-Shapley algorithm, using an efficient
+    &quot;chain of proposals&quot; implementation and memory-optimized data types.
+    &quot;&quot;&quot;
+    n = proposer_prefs.shape[0]
+    dtype = proposer_prefs.dtype
+
+    receiver_match = np.full(n, -1, dtype=dtype)
+    next_proposal_idx = np.zeros(n, dtype=dtype)
+
+    for i in range(n):
+        p = i
+        while True:
+            r = proposer_prefs[p, next_proposal_idx[p]]
+            next_proposal_idx[p] += 1
+            current_partner = receiver_match[r]
+            
+            if current_partner == -1:
+                receiver_match[r] = p
+                break
+            
+            elif receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+                receiver_match[r] = p
+                p = current_partner
+            else:
+                pass
+    
+    proposer_match = np.empty(n, dtype=dtype)
+    proposer_match[receiver_match] = np.arange(n, dtype=dtype)
+    
+    return proposer_match
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the Stable Matching Problem using a Numba-accelerated
+        Gale-Shapley algorithm with highly optimized data preparation using
+        iterators to minimize memory allocation overhead.
+        &quot;&quot;&quot;
+        proposer_prefs_dict = problem[&quot;proposer_prefs&quot;]
+        receiver_prefs_dict = problem[&quot;receiver_prefs&quot;]
+        n = len(proposer_prefs_dict)
+        
+        dtype = np.int16
+
+        # --- Optimized Data Preparation using fromiter ---
+        # This avoids creating large intermediate lists of lists.
+        # itertools.chain.from_iterable is a fast C implementation for flattening.
+        # np.fromiter with a count pre-allocates the array for maximum speed.
+        flat_proposer_iter = itertools.chain.from_iterable(proposer_prefs_dict.values())
+        proposer_prefs = np.fromiter(flat_proposer_iter, dtype=dtype, count=n*n).reshape(n, n)
+
+        flat_receiver_iter = itertools.chain.from_iterable(receiver_prefs_dict.values())
+        receiver_prefs = np.fromiter(flat_receiver_iter, dtype=dtype, count=n*n).reshape(n, n)
+        
+        # The vectorized rank creation is already very fast.
+        receiver_ranks = np.empty_like(receiver_prefs)
+        rows = np.arange(n, dtype=dtype).reshape(-1, 1)
+        ranks = np.arange(n, dtype=dtype)
+        receiver_ranks[rows, receiver_prefs] = ranks
+
+        # --- Core Algorithm ---
+        proposer_match_np = _gale_shapley_core(proposer_prefs, receiver_ranks)
+
+        # --- Format Output ---
+        return {&quot;matching&quot;: proposer_match_np.tolist()}</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/stable_matching_gemini-2.5-pro_20250701_042215_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/stable_matching_gemini-2.5-pro_20250701_042215_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My first step is to implement a correct version of the Gale-Shapley algorithm. The reference implementation has a significant performance bottleneck in its use of `list.pop(0)`, which is an O(n) operation. I will replace this with a `collections.deque`, which provides an O(1) `popleft` operation. This should substantially improve the runtime complexity of the main loop from O(n^3) to O(n^2), which is the standard for this algorithm. I will also use more descriptive variable names and initialize the `receiver_match` list with -1 to represent unmatched receivers, which is a common practice.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import collections
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the Stable Matching Problem using the Gale-Shapley algorithm.
+        This implementation uses a deque for efficient management of free proposers.
+        &quot;&quot;&quot;
+        proposer_prefs = problem[&quot;proposer_prefs&quot;]
+        receiver_prefs = problem[&quot;receiver_prefs&quot;]
+        n = len(proposer_prefs)
+
+        # To get O(1) lookup for a receiver&#x27;s preference ranking of a proposer,
+        # we create a reverse mapping. recv_rank[r][p] gives the rank of p
+        # in receiver r&#x27;s preference list.
+        recv_rank = [[0] * n for _ in range(n)]
+        for r, prefs in enumerate(receiver_prefs):
+            for rank, p in enumerate(prefs):
+                recv_rank[r][p] = rank
+
+        # A deque of free proposers for efficient (O(1)) popping from the front.
+        free_proposers = collections.deque(range(n))
+
+        # Stores the current partner of each receiver. -1 means the receiver is free.
+        receiver_match = [-1] * n
+
+        # Stores the index of the next receiver to propose to for each proposer.
+        next_proposal_idx = [0] * n
+
+        # Main loop of the Gale-Shapley algorithm.
+        while free_proposers:
+            p = free_proposers.popleft()  # Get a free proposer.
+
+            # Get the next receiver on p&#x27;s preference list.
+            r = proposer_prefs[p][next_proposal_idx[p]]
+            next_proposal_idx[p] += 1
+
+            current_partner = receiver_match[r]
+            if current_partner == -1:
+                # The receiver is free, they become engaged.
+                receiver_match[r] = p
+            else:
+                # The receiver is already engaged. Check if she prefers the new proposer.
+                if recv_rank[r][p] &lt; recv_rank[r][current_partner]:
+                    # She prefers the new proposer.
+                    receiver_match[r] = p
+                    # The old partner becomes free.
+                    free_proposers.append(current_partner)
+                else:
+                    # She rejects the new proposer, who remains free.
+                    free_proposers.append(p)
+
+        # The algorithm produces a receiver-to-proposer matching.
+        # We need to convert it to a proposer-to-receiver matching.
+        proposer_match = [0] * n
+        for r, p in enumerate(receiver_match):
+            proposer_match[p] = r
+
+        return {&quot;matching&quot;: proposer_match}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.0358. You have $0.9642 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 60)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import collections
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; Any:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solves the Stable Matching Problem using the Gale-Shapley algorithm.
+&gt; 08:         This implementation uses a deque for efficient management of free proposers.
+&gt; 09:         &quot;&quot;&quot;
+&gt; 10:         proposer_prefs = problem[&quot;proposer_prefs&quot;]
+&gt; 11:         receiver_prefs = problem[&quot;receiver_prefs&quot;]
+&gt; 12:         n = len(proposer_prefs)
+&gt; 13: 
+&gt; 14:         # To get O(1) lookup for a receiver&#x27;s preference ranking of a proposer,
+&gt; 15:         # we create a reverse mapping. recv_rank[r][p] gives the rank of p
+&gt; 16:         # in receiver r&#x27;s preference list.
+&gt; 17:         recv_rank = [[0] * n for _ in range(n)]
+&gt; 18:         for r, prefs in enumerate(receiver_prefs):
+&gt; 19:             for rank, p in enumerate(prefs):
+&gt; 20:                 recv_rank[r][p] = rank
+&gt; 21: 
+&gt; 22:         # A deque of free proposers for efficient (O(1)) popping from the front.
+&gt; 23:         free_proposers = collections.deque(range(n))
+&gt; 24: 
+&gt; 25:         # Stores the current partner of each receiver. -1 means the receiver is free.
+&gt; 26:         receiver_match = [-1] * n
+&gt; 27: 
+&gt; 28:         # Stores the index of the next receiver to propose to for each proposer.
+&gt; 29:         next_proposal_idx = [0] * n
+&gt; 30: 
+&gt; 31:         # Main loop of the Gale-Shapley algorithm.
+&gt; 32:         while free_proposers:
+&gt; 33:             p = free_proposers.popleft()  # Get a free proposer.
+&gt; 34: 
+&gt; 35:             # Get the next receiver on p&#x27;s preference list.
+&gt; 36:             r = proposer_prefs[p][next_proposal_idx[p]]
+&gt; 37:             next_proposal_idx[p] += 1
+&gt; 38: 
+&gt; 39:             current_partner = receiver_match[r]
+&gt; 40:             if current_partner == -1:
+&gt; 41:                 # The receiver is free, they become engaged.
+&gt; 42:                 receiver_match[r] = p
+&gt; 43:             else:
+&gt; 44:                 # The receiver is already engaged. Check if she prefers the new proposer.
+&gt; 45:                 if recv_rank[r][p] &lt; recv_rank[r][current_partner]:
+&gt; 46:                     # She prefers the new proposer.
+&gt; 47:                     receiver_match[r] = p
+&gt; 48:                     # The old partner becomes free.
+&gt; 49:                     free_proposers.append(current_partner)
+&gt; 50:                 else:
+...</code></pre><br><br>Error: TypeError: &#x27;int&#x27; object is not iterable in function &#x27;solve&#x27; at line 19 in solver.py<br><br>Code Context:<br><pre><code class="language-python">   9 :         &quot;&quot;&quot;
+   10:         proposer_prefs = problem[&quot;proposer_prefs&quot;]
+   11:         receiver_prefs = problem[&quot;receiver_prefs&quot;]
+   12:         n = len(proposer_prefs)
+   13: 
+   14:         # To get O(1) lookup for a receiver&#x27;s preference ranking of a proposer,
+   15:         # we create a reverse mapping. recv_rank[r][p] gives the rank of p
+   16:         # in receiver r&#x27;s preference list.
+   17:         recv_rank = [[0] * n for _ in range(n)]
+   18:         for r, prefs in enumerate(receiver_prefs):
+ ! 19:             for rank, p in enumerate(prefs):
+   20:                 recv_rank[r][p] = rank
+   21: 
+   22:         # A deque of free proposers for efficient (O(1)) popping from the front.
+   23:         free_proposers = collections.deque(range(n))
+   24: 
+   25:         # Stores the current partner of each receiver. -1 means the receiver is free.
+   26:         receiver_match = [-1] * n
+   27: 
+   28:         # Stores the index of the next receiver to propose to for each proposer.
+   29:         next_proposal_idx = [0] * n</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I see the problem. The traceback indicates a `TypeError` because the code attempts to iterate over an integer.<br><br>`TypeError: &#x27;int&#x27; object is not iterable in function &#x27;solve&#x27; at line 19 in solver.py`<br><br>This happens at the line:<br>`for rank, p in enumerate(prefs):`<br><br>This means the variable `prefs` holds an integer value instead of an iterable (like a list). The `prefs` variable gets its value from the outer loop:<br>`for r, prefs in enumerate(receiver_prefs):`<br><br>This implies that `receiver_prefs`, which should be a list of preference lists, contains an integer. While this suggests an issue with the input data, a robust implementation should be correct. It&#x27;s possible I introduced a subtle bug or a typo.<br><br>The most likely cause is a typo where I might have used a variable that holds an integer instead of the intended list. Renaming the loop variable `prefs` to something more specific and less prone to collision, like `p_list` (for &quot;proposer list&quot;), can help avoid such potential errors and makes the code clearer. I will rewrite those three lines to ensure their correctness.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 18-20
+---
+        for r, p_list in enumerate(receiver_prefs):
+            for rank, p in enumerate(p_list):
+                recv_rank[r][p] = rank
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.2165. You have $0.7835 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 60)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">| 01: from typing import Any
+| 02: import collections
+| 03: 
+| 04: class Solver:
+| 05:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; Any:
+| 06:         &quot;&quot;&quot;
+| 07:         Solves the Stable Matching Problem using the Gale-Shapley algorithm.
+| 08:         This implementation uses a deque for efficient management of free proposers.
+| 09:         &quot;&quot;&quot;
+| 10:         proposer_prefs = problem[&quot;proposer_prefs&quot;]
+| 11:         receiver_prefs = problem[&quot;receiver_prefs&quot;]
+| 12:         n = len(proposer_prefs)
+| 13: 
+| 14:         # To get O(1) lookup for a receiver&#x27;s preference ranking of a proposer,
+| 15:         # we create a reverse mapping. recv_rank[r][p] gives the rank of p
+| 16:         # in receiver r&#x27;s preference list.
+| 17:         recv_rank = [[0] * n for _ in range(n)]
+&gt; 18:         for r, p_list in enumerate(receiver_prefs):
+&gt; 19:             for rank, p in enumerate(p_list):
+&gt; 20:                 recv_rank[r][p] = rank
+| 21: 
+| 22:         # A deque of free proposers for efficient (O(1)) popping from the front.
+| 23:         free_proposers = collections.deque(range(n))
+| 24: 
+| 25:         # Stores the current partner of each receiver. -1 means the receiver is free.
+| 26:         receiver_match = [-1] * n
+| 27: 
+| 28:         # Stores the index of the next receiver to propose to for each proposer.
+| 29:         next_proposal_idx = [0] * n
+| 30: 
+| 31:         # Main loop of the Gale-Shapley algorithm.
+| 32:         while free_proposers:
+| 33:             p = free_proposers.popleft()  # Get a free proposer.
+| 34: 
+| 35:             # Get the next receiver on p&#x27;s preference list.
+| 36:             r = proposer_prefs[p][next_proposal_idx[p]]
+| 37:             next_proposal_idx[p] += 1
+| 38: 
+| 39:             current_partner = receiver_match[r]
+| 40:             if current_partner == -1:
+| 41:                 # The receiver is free, they become engaged.
+| 42:                 receiver_match[r] = p
+| 43:             else:
+| 44:                 # The receiver is already engaged. Check if she prefers the new proposer.
+| 45:                 if recv_rank[r][p] &lt; recv_rank[r][current_partner]:
+| 46:                     # She prefers the new proposer.
+| 47:                     receiver_match[r] = p
+| 48:                     # The old partner becomes free.
+| 49:                     free_proposers.append(current_partner)
+| 50:                 else:
+...</code></pre><br><br>Error: TypeError: &#x27;int&#x27; object is not iterable in function &#x27;solve&#x27; at line 19 in solver.py<br><br>Code Context:<br><pre><code class="language-python">   9 :         &quot;&quot;&quot;
+   10:         proposer_prefs = problem[&quot;proposer_prefs&quot;]
+   11:         receiver_prefs = problem[&quot;receiver_prefs&quot;]
+   12:         n = len(proposer_prefs)
+   13: 
+   14:         # To get O(1) lookup for a receiver&#x27;s preference ranking of a proposer,
+   15:         # we create a reverse mapping. recv_rank[r][p] gives the rank of p
+   16:         # in receiver r&#x27;s preference list.
+   17:         recv_rank = [[0] * n for _ in range(n)]
+   18:         for r, p_list in enumerate(receiver_prefs):
+ ! 19:             for rank, p in enumerate(p_list):
+   20:                 recv_rank[r][p] = rank
+   21: 
+   22:         # A deque of free proposers for efficient (O(1)) popping from the front.
+   23:         free_proposers = collections.deque(range(n))
+   24: 
+   25:         # Stores the current partner of each receiver. -1 means the receiver is free.
+   26:         receiver_match = [-1] * n
+   27: 
+   28:         # Stores the index of the next receiver to propose to for each proposer.
+   29:         next_proposal_idx = [0] * n</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The error `TypeError: &#x27;int&#x27; object is not iterable` at the line `for rank, p in enumerate(p_list):` is very specific. It means that `p_list` is an integer.<br><br>Looking at the preceding line, `for r, p_list in enumerate(receiver_prefs):`, `p_list` gets its value from iterating over `receiver_prefs`.<br><br>If `receiver_prefs` were a list of lists as I initially assumed (e.g., `[[1, 0], [0, 1]]`), then `p_list` would be a list (e.g., `[1, 0]`), and `enumerate(p_list)` would work correctly.<br><br>The error implies that `receiver_prefs` is an iterable whose elements are integers. This could happen if `receiver_prefs` is a list of integers (e.g., `[0, 1]`), but this data structure would not contain enough information for a stable matching problem.<br><br>A more plausible explanation is that `receiver_prefs` is a dictionary mapping receiver IDs to their preference lists, for example: `{0: [1, 0], 1: [0, 1]}`.<br><br>In Python, when you iterate over a dictionary with `enumerate`, it iterates over the dictionary&#x27;s keys. So, `enumerate(receiver_prefs)` would yield `(0, key1)`, `(1, key2)`, etc. In this case, `r` would be the index `0, 1, ...` and `p_list` would be the key from the dictionary. If the keys are integers (which receiver IDs typically are), then `p_list` would be an integer, leading to the exact `TypeError` observed.<br><br>The original implementation likely worked because it accessed the preferences directly via `receiver_prefs[r]`, which works for both lists and dictionaries. My new code for building the rank map incorrectly assumed `receiver_prefs` was a list and used `enumerate` improperly for a dictionary.<br><br>The correct way to iterate over the keys and values of a dictionary is to use the `.items()` method. This will provide the receiver ID as the key and the preference list as the value, which is what the rank-building logic requires.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 18-20
+---
+        for r, p_list in receiver_prefs.items():
+            for rank, p in enumerate(p_list):
+                recv_rank[r][p] = rank
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.3324. You have $0.6676 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 60)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">| 01: from typing import Any
+| 02: import collections
+| 03: 
+| 04: class Solver:
+| 05:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; Any:
+| 06:         &quot;&quot;&quot;
+| 07:         Solves the Stable Matching Problem using the Gale-Shapley algorithm.
+| 08:         This implementation uses a deque for efficient management of free proposers.
+| 09:         &quot;&quot;&quot;
+| 10:         proposer_prefs = problem[&quot;proposer_prefs&quot;]
+| 11:         receiver_prefs = problem[&quot;receiver_prefs&quot;]
+| 12:         n = len(proposer_prefs)
+| 13: 
+| 14:         # To get O(1) lookup for a receiver&#x27;s preference ranking of a proposer,
+| 15:         # we create a reverse mapping. recv_rank[r][p] gives the rank of p
+| 16:         # in receiver r&#x27;s preference list.
+| 17:         recv_rank = [[0] * n for _ in range(n)]
+&gt; 18:         for r, p_list in receiver_prefs.items():
+&gt; 19:             for rank, p in enumerate(p_list):
+&gt; 20:                 recv_rank[r][p] = rank
+| 21: 
+| 22:         # A deque of free proposers for efficient (O(1)) popping from the front.
+| 23:         free_proposers = collections.deque(range(n))
+| 24: 
+| 25:         # Stores the current partner of each receiver. -1 means the receiver is free.
+| 26:         receiver_match = [-1] * n
+| 27: 
+| 28:         # Stores the index of the next receiver to propose to for each proposer.
+| 29:         next_proposal_idx = [0] * n
+| 30: 
+| 31:         # Main loop of the Gale-Shapley algorithm.
+| 32:         while free_proposers:
+| 33:             p = free_proposers.popleft()  # Get a free proposer.
+| 34: 
+| 35:             # Get the next receiver on p&#x27;s preference list.
+| 36:             r = proposer_prefs[p][next_proposal_idx[p]]
+| 37:             next_proposal_idx[p] += 1
+| 38: 
+| 39:             current_partner = receiver_match[r]
+| 40:             if current_partner == -1:
+| 41:                 # The receiver is free, they become engaged.
+| 42:                 receiver_match[r] = p
+| 43:             else:
+| 44:                 # The receiver is already engaged. Check if she prefers the new proposer.
+| 45:                 if recv_rank[r][p] &lt; recv_rank[r][current_partner]:
+| 46:                     # She prefers the new proposer.
+| 47:                     receiver_match[r] = p
+| 48:                     # The old partner becomes free.
+| 49:                     free_proposers.append(current_partner)
+| 50:                 else:
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">1.02</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                After achieving only a minor speedup with standard algorithmic improvements, it&#x27;s clear that a more significant optimization is needed. The prompt encourages using all available tools and thinking &quot;outside the box,&quot; which points towards leveraging high-performance computing libraries.<br><br>My strategy is to rewrite the core logic using NumPy for efficient array operations and Numba for just-in-time (JIT) compilation. This approach moves the computationally intensive parts of the algorithm from interpreted Python to highly optimized machine code.<br><br>Here&#x27;s the plan:<br>1.  **Data Preparation**: The input preference dictionaries will be converted into NumPy arrays. This allows for fast, vectorized operations and is a prerequisite for Numba&#x27;s `nopython` mode.<br>    *   `proposer_prefs` will become an `(n, n)` NumPy array.<br>    *   `receiver_prefs` will be transformed into an `(n, n)` `receiver_ranks` lookup table, where `receiver_ranks[r, p]` gives the rank of proposer `p` for receiver `r`. This conversion will also be vectorized for speed.<br>2.  **Numba JIT Compilation**: The main Gale-Shapley loop will be encapsulated in a separate helper function, decorated with `@numba.njit`. This function will operate exclusively on NumPy arrays.<br>3.  **Numba-friendly Implementation**:<br>    *   The `collections.deque` for free proposers, which is not supported by Numba, will be replaced with a simple and efficient stack implemented using a NumPy array and an integer pointer. Since the order of processing free proposers doesn&#x27;t affect the final stable matching, a LIFO stack is a valid and fast substitute for a FIFO queue.<br>    *   All other data structures (`receiver_match`, `next_proposal_idx`) will be NumPy arrays.<br>4.  **Main `solve` Method**: This method will now be a lightweight wrapper responsible for preparing the NumPy arrays from the input, calling the compiled core function, and converting the resulting NumPy array back into the required list format.<br><br>This Numba-based solution should dramatically outperform the pure Python implementation, especially on larger problem sizes, by minimizing Python interpreter overhead and executing the core O(n^2) algorithm at near-native speed.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+import numba
+from typing import Any
+
+# This core function is JIT-compiled by Numba for performance.
+# It uses NumPy arrays and avoids Python objects for maximum speed.
+@numba.njit
+def _gale_shapley_core(proposer_prefs: np.ndarray, receiver_ranks: np.ndarray) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Numba-accelerated core of the Gale-Shapley algorithm.
+    
+    Args:
+        proposer_prefs: A (n, n) numpy array where proposer_prefs[p, i] is the
+                        i-th preference of proposer p.
+        receiver_ranks: A (n, n) numpy array where receiver_ranks[r, p] is the
+                        rank of proposer p in receiver r&#x27;s preferences.
+
+    Returns:
+        A (n,) numpy array representing the proposer-optimal stable matching,
+        where result[p] = r means proposer p is matched with receiver r.
+    &quot;&quot;&quot;
+    n = proposer_prefs.shape[0]
+
+    # A stack implemented with a NumPy array to keep track of free proposers.
+    # The order of free proposers does not affect the outcome, so a LIFO stack is fine.
+    free_proposers_stack = np.arange(n, dtype=np.int32)
+    free_proposers_ptr = n
+
+    # receiver_match[r] stores the proposer r is currently matched with, or -1 if free.
+    receiver_match = np.full(n, -1, dtype=np.int32)
+    
+    # next_proposal_idx[p] stores the index of the next receiver p will propose to.
+    next_proposal_idx = np.zeros(n, dtype=np.int32)
+
+    # The main loop continues as long as there are free proposers.
+    while free_proposers_ptr &gt; 0:
+        # Pop a proposer &#x27;p&#x27; from the stack.
+        free_proposers_ptr -= 1
+        p = free_proposers_stack[free_proposers_ptr]
+
+        # Get the next receiver &#x27;r&#x27; from p&#x27;s preference list.
+        r = proposer_prefs[p, next_proposal_idx[p]]
+        next_proposal_idx[p] += 1
+
+        current_partner = receiver_match[r]
+        if current_partner == -1:
+            # The receiver &#x27;r&#x27; is free, so they become matched with &#x27;p&#x27;.
+            receiver_match[r] = p
+        else:
+            # The receiver &#x27;r&#x27; is already matched. Check if she prefers &#x27;p&#x27;.
+            if receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+                # &#x27;r&#x27; prefers &#x27;p&#x27; over her current partner.
+                receiver_match[r] = p
+                
+                # The old partner becomes free. Push him onto the stack.
+                old_partner = current_partner
+                free_proposers_stack[free_proposers_ptr] = old_partner
+                free_proposers_ptr += 1
+            else:
+                # &#x27;r&#x27; rejects &#x27;p&#x27;. &#x27;p&#x27; remains free. Push him back onto the stack.
+                free_proposers_stack[free_proposers_ptr] = p
+                free_proposers_ptr += 1
+    
+    # The algorithm gives us receiver_match[r] = p. We need to invert it to
+    # proposer_match[p] = r for the final result.
+    proposer_match = np.empty(n, dtype=np.int32)
+    proposer_match[receiver_match] = np.arange(n, dtype=np.int32)
+    
+    return proposer_match
+
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the Stable Matching Problem using a Numba-accelerated
+        Gale-Shapley algorithm.
+        &quot;&quot;&quot;
+        proposer_prefs_dict = problem[&quot;proposer_prefs&quot;]
+        receiver_prefs_dict = problem[&quot;receiver_prefs&quot;]
+        n = len(proposer_prefs_dict)
+
+        # --- Data Preparation ---
+        # Convert Python dicts to NumPy arrays for Numba compatibility and speed.
+        proposer_prefs = np.array([proposer_prefs_dict[i] for i in range(n)], dtype=np.int32)
+        
+        # receiver_ranks[r, p] = rank of p for receiver r. Lower is better.
+        receiver_ranks = np.empty((n, n), dtype=np.int32)
+        for r, p_list in receiver_prefs_dict.items():
+            # Vectorized assignment for creating the rank lookup row
+            receiver_ranks[r, p_list] = np.arange(n, dtype=np.int32)
+
+        # --- Core Algorithm ---
+        # Call the JIT-compiled core function.
+        proposer_match_np = _gale_shapley_core(proposer_prefs, receiver_ranks)
+
+        # --- Format Output ---
+        # Convert the NumPy result array back to a standard Python list.
+        return {&quot;matching&quot;: proposer_match_np.tolist()}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.4347. You have $0.5653 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 97)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: import numba
+&gt; 03: from typing import Any
+&gt; 04: 
+&gt; 05: # This core function is JIT-compiled by Numba for performance.
+&gt; 06: # It uses NumPy arrays and avoids Python objects for maximum speed.
+&gt; 07: @numba.njit
+&gt; 08: def _gale_shapley_core(proposer_prefs: np.ndarray, receiver_ranks: np.ndarray) -&gt; np.ndarray:
+&gt; 09:     &quot;&quot;&quot;
+&gt; 10:     Numba-accelerated core of the Gale-Shapley algorithm.
+&gt; 11:     
+&gt; 12:     Args:
+&gt; 13:         proposer_prefs: A (n, n) numpy array where proposer_prefs[p, i] is the
+&gt; 14:                         i-th preference of proposer p.
+&gt; 15:         receiver_ranks: A (n, n) numpy array where receiver_ranks[r, p] is the
+&gt; 16:                         rank of proposer p in receiver r&#x27;s preferences.
+&gt; 17: 
+&gt; 18:     Returns:
+&gt; 19:         A (n,) numpy array representing the proposer-optimal stable matching,
+&gt; 20:         where result[p] = r means proposer p is matched with receiver r.
+&gt; 21:     &quot;&quot;&quot;
+&gt; 22:     n = proposer_prefs.shape[0]
+&gt; 23: 
+&gt; 24:     # A stack implemented with a NumPy array to keep track of free proposers.
+&gt; 25:     # The order of free proposers does not affect the outcome, so a LIFO stack is fine.
+&gt; 26:     free_proposers_stack = np.arange(n, dtype=np.int32)
+&gt; 27:     free_proposers_ptr = n
+&gt; 28: 
+&gt; 29:     # receiver_match[r] stores the proposer r is currently matched with, or -1 if free.
+&gt; 30:     receiver_match = np.full(n, -1, dtype=np.int32)
+&gt; 31:     
+&gt; 32:     # next_proposal_idx[p] stores the index of the next receiver p will propose to.
+&gt; 33:     next_proposal_idx = np.zeros(n, dtype=np.int32)
+&gt; 34: 
+&gt; 35:     # The main loop continues as long as there are free proposers.
+&gt; 36:     while free_proposers_ptr &gt; 0:
+&gt; 37:         # Pop a proposer &#x27;p&#x27; from the stack.
+&gt; 38:         free_proposers_ptr -= 1
+&gt; 39:         p = free_proposers_stack[free_proposers_ptr]
+&gt; 40: 
+&gt; 41:         # Get the next receiver &#x27;r&#x27; from p&#x27;s preference list.
+&gt; 42:         r = proposer_prefs[p, next_proposal_idx[p]]
+&gt; 43:         next_proposal_idx[p] += 1
+&gt; 44: 
+&gt; 45:         current_partner = receiver_match[r]
+&gt; 46:         if current_partner == -1:
+&gt; 47:             # The receiver &#x27;r&#x27; is free, so they become matched with &#x27;p&#x27;.
+&gt; 48:             receiver_match[r] = p
+&gt; 49:         else:
+&gt; 50:             # The receiver &#x27;r&#x27; is already matched. Check if she prefers &#x27;p&#x27;.
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">1.32</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The previous Numba-based solution improved performance, but the speedup was limited. The main bottleneck remaining is the data preparation phase, which still involves Python-level loops to convert the input dictionaries into NumPy arrays. The prompt to &quot;use all available packages and tools&quot; and the modest performance gain suggest that eliminating this Python overhead is the next critical step.<br><br>My new strategy is to fully vectorize the data preparation using advanced NumPy indexing. This will replace the Python `for` loops with highly optimized C-level operations, minimizing the time spent before calling the JIT-compiled core.<br><br>Here is the plan:<br>1.  **Keep the Numba Core**: The `_gale_shapley_core` function, which is JIT-compiled, is already highly efficient for the main algorithm. It will remain unchanged.<br>2.  **Vectorize `proposer_prefs` Creation**: I will convert the `proposer_prefs_dict` into a 2D NumPy array using `np.array(list(proposer_prefs_dict.values()))`. This is a single, fast operation that is more efficient than pre-allocating and filling in a Python loop.<br>3.  **Vectorize `receiver_ranks` Creation**: This is the most significant change. The previous loop to create the rank lookup table will be replaced by a single, powerful NumPy indexing operation.<br>    *   First, convert `receiver_prefs_dict` to a `receiver_prefs` NumPy array.<br>    *   Then, use advanced integer array indexing to perform the &quot;inverse argsort&quot; or rank mapping in one vectorized step. This avoids any Python-level iteration and is exceptionally fast.<br>4.  **Refine the `Solver` Class**: The `solve` method will now be a streamlined orchestrator: it will perform the ultra-fast vectorized data conversion and then pass the resulting NumPy arrays to the Numba-compiled core function.<br><br>This approach targets the last remaining performance bottleneck and should yield a substantial speedup, especially for larger problem sizes where data preparation time becomes more significant.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+import numba
+from typing import Any
+
+# This core function is JIT-compiled by Numba for performance.
+# It uses NumPy arrays and avoids Python objects for maximum speed.
+@numba.njit(cache=True)
+def _gale_shapley_core(proposer_prefs: np.ndarray, receiver_ranks: np.ndarray) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Numba-accelerated core of the Gale-Shapley algorithm.
+    &quot;&quot;&quot;
+    n = proposer_prefs.shape[0]
+
+    # A stack for free proposers, implemented with a NumPy array and a pointer.
+    free_proposers_stack = np.arange(n, dtype=np.int32)
+    free_proposers_ptr = n
+
+    # receiver_match[r] = p, or -1 if free.
+    receiver_match = np.full(n, -1, dtype=np.int32)
+    
+    # next_proposal_idx[p] = index of the next receiver p will propose to.
+    next_proposal_idx = np.zeros(n, dtype=np.int32)
+
+    while free_proposers_ptr &gt; 0:
+        # Pop a proposer &#x27;p&#x27; from the stack.
+        free_proposers_ptr -= 1
+        p = free_proposers_stack[free_proposers_ptr]
+
+        # Get the next receiver &#x27;r&#x27; from p&#x27;s preference list.
+        r = proposer_prefs[p, next_proposal_idx[p]]
+        next_proposal_idx[p] += 1
+
+        current_partner = receiver_match[r]
+        if current_partner == -1:
+            # Receiver &#x27;r&#x27; is free, they match with &#x27;p&#x27;.
+            receiver_match[r] = p
+        else:
+            # Receiver &#x27;r&#x27; is matched. Check if she prefers &#x27;p&#x27;.
+            if receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+                # &#x27;r&#x27; prefers &#x27;p&#x27;. The old partner becomes free.
+                receiver_match[r] = p
+                free_proposers_stack[free_proposers_ptr] = current_partner
+                free_proposers_ptr += 1
+            else:
+                # &#x27;r&#x27; rejects &#x27;p&#x27;. &#x27;p&#x27; remains free.
+                free_proposers_stack[free_proposers_ptr] = p
+                free_proposers_ptr += 1
+    
+    # Invert the receiver-to-proposer matching to get the required output format.
+    proposer_match = np.empty(n, dtype=np.int32)
+    proposer_match[receiver_match] = np.arange(n, dtype=np.int32)
+    
+    return proposer_match
+
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the Stable Matching Problem using a Numba-accelerated
+        Gale-Shapley algorithm with fully vectorized data preparation.
+        &quot;&quot;&quot;
+        proposer_prefs_dict = problem[&quot;proposer_prefs&quot;]
+        receiver_prefs_dict = problem[&quot;receiver_prefs&quot;]
+        n = len(proposer_prefs_dict)
+
+        # --- Vectorized Data Preparation ---
+        # Convert proposer preferences dict to a NumPy array.
+        # This is fast as it leverages highly optimized internal C code.
+        proposer_prefs = np.array(list(proposer_prefs_dict.values()), dtype=np.int32)
+        
+        # Convert receiver preferences dict to a rank lookup table using
+        # advanced vectorized indexing for maximum performance.
+        receiver_prefs = np.array(list(receiver_prefs_dict.values()), dtype=np.int32)
+        receiver_ranks = np.empty_like(receiver_prefs)
+        
+        # Create row and rank arrays for the vectorized assignment.
+        # `rows` will broadcast against `receiver_prefs` to fill the ranks correctly.
+        rows = np.arange(n, dtype=np.int32).reshape(-1, 1)
+        ranks = np.arange(n, dtype=np.int32)
+        receiver_ranks[rows, receiver_prefs] = ranks
+
+        # --- Core Algorithm ---
+        # Call the JIT-compiled core function with the prepared NumPy arrays.
+        proposer_match_np = _gale_shapley_core(proposer_prefs, receiver_ranks)
+
+        # --- Format Output ---
+        # Convert the NumPy result array back to a standard Python list.
+        return {&quot;matching&quot;: proposer_match_np.tolist()}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.5088. You have $0.4912 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 87)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: import numba
+&gt; 03: from typing import Any
+&gt; 04: 
+&gt; 05: # This core function is JIT-compiled by Numba for performance.
+&gt; 06: # It uses NumPy arrays and avoids Python objects for maximum speed.
+&gt; 07: @numba.njit(cache=True)
+&gt; 08: def _gale_shapley_core(proposer_prefs: np.ndarray, receiver_ranks: np.ndarray) -&gt; np.ndarray:
+&gt; 09:     &quot;&quot;&quot;
+&gt; 10:     Numba-accelerated core of the Gale-Shapley algorithm.
+&gt; 11:     &quot;&quot;&quot;
+&gt; 12:     n = proposer_prefs.shape[0]
+&gt; 13: 
+&gt; 14:     # A stack for free proposers, implemented with a NumPy array and a pointer.
+&gt; 15:     free_proposers_stack = np.arange(n, dtype=np.int32)
+&gt; 16:     free_proposers_ptr = n
+&gt; 17: 
+&gt; 18:     # receiver_match[r] = p, or -1 if free.
+&gt; 19:     receiver_match = np.full(n, -1, dtype=np.int32)
+&gt; 20:     
+&gt; 21:     # next_proposal_idx[p] = index of the next receiver p will propose to.
+&gt; 22:     next_proposal_idx = np.zeros(n, dtype=np.int32)
+&gt; 23: 
+&gt; 24:     while free_proposers_ptr &gt; 0:
+&gt; 25:         # Pop a proposer &#x27;p&#x27; from the stack.
+&gt; 26:         free_proposers_ptr -= 1
+&gt; 27:         p = free_proposers_stack[free_proposers_ptr]
+&gt; 28: 
+&gt; 29:         # Get the next receiver &#x27;r&#x27; from p&#x27;s preference list.
+&gt; 30:         r = proposer_prefs[p, next_proposal_idx[p]]
+&gt; 31:         next_proposal_idx[p] += 1
+&gt; 32: 
+&gt; 33:         current_partner = receiver_match[r]
+&gt; 34:         if current_partner == -1:
+&gt; 35:             # Receiver &#x27;r&#x27; is free, they match with &#x27;p&#x27;.
+&gt; 36:             receiver_match[r] = p
+&gt; 37:         else:
+&gt; 38:             # Receiver &#x27;r&#x27; is matched. Check if she prefers &#x27;p&#x27;.
+&gt; 39:             if receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+&gt; 40:                 # &#x27;r&#x27; prefers &#x27;p&#x27;. The old partner becomes free.
+&gt; 41:                 receiver_match[r] = p
+&gt; 42:                 free_proposers_stack[free_proposers_ptr] = current_partner
+&gt; 43:                 free_proposers_ptr += 1
+&gt; 44:             else:
+&gt; 45:                 # &#x27;r&#x27; rejects &#x27;p&#x27;. &#x27;p&#x27; remains free.
+&gt; 46:                 free_proposers_stack[free_proposers_ptr] = p
+&gt; 47:                 free_proposers_ptr += 1
+&gt; 48:     
+&gt; 49:     # Invert the receiver-to-proposer matching to get the required output format.
+&gt; 50:     proposer_match = np.empty(n, dtype=np.int32)
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">1.47</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The performance is still not top-tier, despite vectorizing the data preparation and using Numba for the core algorithm. The prompt to &quot;think outside the box&quot; suggests that a more fundamental optimization to the core loop is required, rather than just tweaking the data handling.<br><br>My current Numba implementation directly translates the standard textbook algorithm: it pops a free proposer, makes one proposal, and if the proposer is rejected, pushes them back onto the free list. This management of the free list (a NumPy array acting as a stack) inside the main loop, while efficient, still involves array writes that can be optimized away.<br><br>My new strategy is to restructure the core loop to follow a &quot;chain of proposals.&quot; This is a more efficient but logically equivalent way to implement the Gale-Shapley algorithm.<br><br>Here&#x27;s how it works:<br>1.  An outer loop iterates through each proposer just once to ensure they all start the proposal process.<br>2.  An inner loop follows a single &quot;active&quot; proposer. This proposer keeps making proposals down their list until they are accepted.<br>3.  If their proposal displaces another proposer, that newly-freed proposer immediately becomes the &quot;active&quot; one, and the inner loop continues with them.<br>4.  The chain of proposals only ends when a proposer is accepted by a previously-free receiver. Then, the outer loop moves to the next proposer from the initial list.<br><br>This approach significantly reduces the overhead of managing the free list. Instead of potentially thousands of pushes and pops, we have a simple, tight inner loop that just updates the &quot;active&quot; proposer variable. This should be much faster for the Numba JIT compiler to optimize.<br><br>The plan is:<br>1.  Rewrite the `_gale_shapley_core` function to use this &quot;chain of proposals&quot; logic.<br>2.  Keep the highly optimized, fully vectorized data preparation in the `solve` method.<br>3.  Add `fastmath=True` to the Numba decorator as a potential micro-optimization, since it&#x27;s harmless for integer-only code.<br><br>This change targets the heart of the computation with a more efficient control flow, which should yield the significant performance boost required.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-56
+---
+import numpy as np
+import numba
+from typing import Any
+
+@numba.njit(cache=True, fastmath=True)
+def _gale_shapley_core(proposer_prefs: np.ndarray, receiver_ranks: np.ndarray) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Numba-accelerated core of the Gale-Shapley algorithm, using an efficient
+    &quot;chain of proposals&quot; implementation to minimize overhead.
+    &quot;&quot;&quot;
+    n = proposer_prefs.shape[0]
+
+    # Stores the current partner of each receiver. -1 means the receiver is free.
+    receiver_match = np.full(n, -1, dtype=np.int32)
+    
+    # Stores the index of the next receiver to propose to for each proposer.
+    next_proposal_idx = np.zeros(n, dtype=np.int32)
+
+    # A stack to iterate through proposers that need to start their proposal chain.
+    # We only pop from this stack; we never push back onto it.
+    initial_free_proposers = np.arange(n, dtype=np.int32)
+    
+    for i in range(n):
+        p = initial_free_proposers[i]
+
+        # This inner loop follows the &quot;active&quot; proposer `p` through their proposal
+        # attempts and any subsequent chain of displacements.
+        while True:
+            # Get the next receiver `r` on p&#x27;s preference list.
+            r = proposer_prefs[p, next_proposal_idx[p]]
+            next_proposal_idx[p] += 1
+
+            current_partner = receiver_match[r]
+            
+            if current_partner == -1:
+                # The receiver is free, they become engaged. The chain ends.
+                receiver_match[r] = p
+                break
+            
+            elif receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+                # The receiver prefers the new proposer `p`.
+                # `p` becomes engaged, and the old partner becomes the new active proposer.
+                receiver_match[r] = p
+                p = current_partner
+                # The inner loop continues with the newly freed proposer.
+            else:
+                # The receiver rejects `p`. `p` remains the active proposer and must
+                # propose to the next on their list in the next iteration.
+                pass
+    
+    # The algorithm produces a receiver-to-proposer matching.
+    # We invert it to a proposer-to-receiver matching for the final result.
+    proposer_match = np.empty(n, dtype=np.int32)
+    proposer_match[receiver_match] = np.arange(n, dtype=np.int32)
+    
+    return proposer_match
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 6 messages and have used up $0.5929. You have $0.4071 remaining.<br><br>Edit failed (and thus not applied) for solver.py: Syntax error: unexpected indent (line 57)<br><br>Proposed changes - This is what you tried to apply (lines 32-81 out of 87):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">...
+&gt; 32: 
+&gt; 33:             current_partner = receiver_match[r]
+&gt; 34:             
+&gt; 35:             if current_partner == -1:
+&gt; 36:                 # The receiver is free, they become engaged. The chain ends.
+&gt; 37:                 receiver_match[r] = p
+&gt; 38:                 break
+&gt; 39:             
+&gt; 40:             elif receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+&gt; 41:                 # The receiver prefers the new proposer `p`.
+&gt; 42:                 # `p` becomes engaged, and the old partner becomes the new active proposer.
+&gt; 43:                 receiver_match[r] = p
+&gt; 44:                 p = current_partner
+&gt; 45:                 # The inner loop continues with the newly freed proposer.
+&gt; 46:             else:
+&gt; 47:                 # The receiver rejects `p`. `p` remains the active proposer and must
+&gt; 48:                 # propose to the next on their list in the next iteration.
+&gt; 49:                 pass
+&gt; 50:     
+&gt; 51:     # The algorithm produces a receiver-to-proposer matching.
+&gt; 52:     # We invert it to a proposer-to-receiver matching for the final result.
+&gt; 53:     proposer_match = np.empty(n, dtype=np.int32)
+&gt; 54:     proposer_match[receiver_match] = np.arange(n, dtype=np.int32)
+&gt; 55:     
+&gt; 56:     return proposer_match
+| 57:         &quot;&quot;&quot;
+| 58:         Solves the Stable Matching Problem using a Numba-accelerated
+| 59:         Gale-Shapley algorithm with fully vectorized data preparation.
+| 60:         &quot;&quot;&quot;
+| 61:         proposer_prefs_dict = problem[&quot;proposer_prefs&quot;]
+| 62:         receiver_prefs_dict = problem[&quot;receiver_prefs&quot;]
+| 63:         n = len(proposer_prefs_dict)
+| 64: 
+| 65:         # --- Vectorized Data Preparation ---
+| 66:         # Convert proposer preferences dict to a NumPy array.
+| 67:         # This is fast as it leverages highly optimized internal C code.
+| 68:         proposer_prefs = np.array(list(proposer_prefs_dict.values()), dtype=np.int32)
+| 69:         
+| 70:         # Convert receiver preferences dict to a rank lookup table using
+| 71:         # advanced vectorized indexing for maximum performance.
+| 72:         receiver_prefs = np.array(list(receiver_prefs_dict.values()), dtype=np.int32)
+| 73:         receiver_ranks = np.empty_like(receiver_prefs)
+| 74:         
+| 75:         # Create row and rank arrays for the vectorized assignment.
+| 76:         # `rows` will broadcast against `receiver_prefs` to fill the ranks correctly.
+| 77:         rows = np.arange(n, dtype=np.int32).reshape(-1, 1)
+| 78:         ranks = np.arange(n, dtype=np.int32)
+| 79:         receiver_ranks[rows, receiver_prefs] = ranks
+| 80: 
+| 81:         # --- Core Algorithm ---
+...</code></pre><br><br>CURRENT FILE - This is what&#x27;s actually in the file (lines 1-50 out of 87):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">| 01: import numpy as np
+| 02: import numba
+| 03: from typing import Any
+| 04: 
+| 05: # This core function is JIT-compiled by Numba for performance.
+| 06: # It uses NumPy arrays and avoids Python objects for maximum speed.
+| 07: @numba.njit(cache=True)
+| 08: def _gale_shapley_core(proposer_prefs: np.ndarray, receiver_ranks: np.ndarray) -&gt; np.ndarray:
+| 09:     &quot;&quot;&quot;
+| 10:     Numba-accelerated core of the Gale-Shapley algorithm.
+| 11:     &quot;&quot;&quot;
+| 12:     n = proposer_prefs.shape[0]
+| 13: 
+| 14:     # A stack for free proposers, implemented with a NumPy array and a pointer.
+| 15:     free_proposers_stack = np.arange(n, dtype=np.int32)
+| 16:     free_proposers_ptr = n
+| 17: 
+| 18:     # receiver_match[r] = p, or -1 if free.
+| 19:     receiver_match = np.full(n, -1, dtype=np.int32)
+| 20:     
+| 21:     # next_proposal_idx[p] = index of the next receiver p will propose to.
+| 22:     next_proposal_idx = np.zeros(n, dtype=np.int32)
+| 23: 
+| 24:     while free_proposers_ptr &gt; 0:
+| 25:         # Pop a proposer &#x27;p&#x27; from the stack.
+| 26:         free_proposers_ptr -= 1
+| 27:         p = free_proposers_stack[free_proposers_ptr]
+| 28: 
+| 29:         # Get the next receiver &#x27;r&#x27; from p&#x27;s preference list.
+| 30:         r = proposer_prefs[p, next_proposal_idx[p]]
+| 31:         next_proposal_idx[p] += 1
+| 32: 
+| 33:         current_partner = receiver_match[r]
+| 34:         if current_partner == -1:
+| 35:             # Receiver &#x27;r&#x27; is free, they match with &#x27;p&#x27;.
+| 36:             receiver_match[r] = p
+| 37:         else:
+| 38:             # Receiver &#x27;r&#x27; is matched. Check if she prefers &#x27;p&#x27;.
+| 39:             if receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+| 40:                 # &#x27;r&#x27; prefers &#x27;p&#x27;. The old partner becomes free.
+| 41:                 receiver_match[r] = p
+| 42:                 free_proposers_stack[free_proposers_ptr] = current_partner
+| 43:                 free_proposers_ptr += 1
+| 44:             else:
+| 45:                 # &#x27;r&#x27; rejects &#x27;p&#x27;. &#x27;p&#x27; remains free.
+| 46:                 free_proposers_stack[free_proposers_ptr] = p
+| 47:                 free_proposers_ptr += 1
+| 48:     
+| 49:     # Invert the receiver-to-proposer matching to get the required output format.
+| 50:     proposer_match = np.empty(n, dtype=np.int32)
+...</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                You are absolutely right. The `SyntaxError` occurred because my previous edit was malformed. I replaced the `_gale_shapley_core` function but inadvertently deleted the `class Solver:` and `def solve(...)` lines that should have followed it, leaving the indented docstring of the `solve` method orphaned.<br><br>To fix this, I will resubmit the same logical change—the &quot;chain of proposals&quot; algorithm—but this time I will provide the complete, correctly structured code for the entire file. This ensures that all class and method definitions are in their proper places with the correct indentation.<br><br>The core idea remains the same:<br>1.  **Vectorized Data Prep**: Keep the fast NumPy-based data preparation.<br>2.  **Chain of Proposals Core**: Use the more efficient Numba-compiled core loop that avoids managing a free-proposer stack.<br>3.  **Complete File Edit**: Submit the entire file to guarantee correct syntax.<br><br>This will fix the error and correctly apply the intended performance optimization.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+import numba
+from typing import Any
+
+@numba.njit(cache=True, fastmath=True)
+def _gale_shapley_core(proposer_prefs: np.ndarray, receiver_ranks: np.ndarray) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Numba-accelerated core of the Gale-Shapley algorithm, using an efficient
+    &quot;chain of proposals&quot; implementation to minimize overhead.
+    &quot;&quot;&quot;
+    n = proposer_prefs.shape[0]
+
+    # Stores the current partner of each receiver. -1 means the receiver is free.
+    receiver_match = np.full(n, -1, dtype=np.int32)
+    
+    # Stores the index of the next receiver to propose to for each proposer.
+    next_proposal_idx = np.zeros(n, dtype=np.int32)
+
+    # Iterate through each proposer to start their proposal chain.
+    for i in range(n):
+        p = i # The current &quot;active&quot; proposer.
+
+        # This inner loop follows the active proposer `p` until they are accepted.
+        while True:
+            # Get the next receiver `r` on p&#x27;s preference list.
+            r = proposer_prefs[p, next_proposal_idx[p]]
+            next_proposal_idx[p] += 1
+
+            current_partner = receiver_match[r]
+            
+            if current_partner == -1:
+                # The receiver is free, they become engaged. The chain for `p` ends.
+                receiver_match[r] = p
+                break # Exit the inner while loop.
+            
+            elif receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+                # The receiver prefers the new proposer `p`.
+                # `p` becomes engaged, and the old partner becomes the new active proposer.
+                receiver_match[r] = p
+                p = current_partner
+                # The inner loop continues with the newly freed proposer `p`.
+            else:
+                # The receiver rejects `p`. `p` remains the active proposer and must
+                # propose to the next on their list in the next iteration of the while loop.
+                pass
+    
+    # The algorithm produces a receiver-to-proposer matching.
+    # We invert it to a proposer-to-receiver matching for the final result.
+    proposer_match = np.empty(n, dtype=np.int32)
+    proposer_match[receiver_match] = np.arange(n, dtype=np.int32)
+    
+    return proposer_match
+
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the Stable Matching Problem using a Numba-accelerated
+        Gale-Shapley algorithm with fully vectorized data preparation.
+        &quot;&quot;&quot;
+        proposer_prefs_dict = problem[&quot;proposer_prefs&quot;]
+        receiver_prefs_dict = problem[&quot;receiver_prefs&quot;]
+        n = len(proposer_prefs_dict)
+
+        # --- Vectorized Data Preparation ---
+        # Convert proposer preferences dict to a NumPy array.
+        proposer_prefs = np.array(list(proposer_prefs_dict.values()), dtype=np.int32)
+        
+        # Convert receiver preferences dict to a rank lookup table using
+        # advanced vectorized indexing for maximum performance.
+        receiver_prefs = np.array(list(receiver_prefs_dict.values()), dtype=np.int32)
+        receiver_ranks = np.empty_like(receiver_prefs)
+        
+        # Create row and rank arrays for the vectorized assignment.
+        rows = np.arange(n, dtype=np.int32).reshape(-1, 1)
+        ranks = np.arange(n, dtype=np.int32)
+        receiver_ranks[rows, receiver_prefs] = ranks
+
+        # --- Core Algorithm ---
+        # Call the JIT-compiled core function with the prepared NumPy arrays.
+        proposer_match_np = _gale_shapley_core(proposer_prefs, receiver_ranks)
+
+        # --- Format Output ---
+        # Convert the NumPy result array back to a standard Python list.
+        return {&quot;matching&quot;: proposer_match_np.tolist()}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 7 messages and have used up $0.6271. You have $0.3729 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 84)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: import numba
+&gt; 03: from typing import Any
+&gt; 04: 
+&gt; 05: @numba.njit(cache=True, fastmath=True)
+&gt; 06: def _gale_shapley_core(proposer_prefs: np.ndarray, receiver_ranks: np.ndarray) -&gt; np.ndarray:
+&gt; 07:     &quot;&quot;&quot;
+&gt; 08:     Numba-accelerated core of the Gale-Shapley algorithm, using an efficient
+&gt; 09:     &quot;chain of proposals&quot; implementation to minimize overhead.
+&gt; 10:     &quot;&quot;&quot;
+&gt; 11:     n = proposer_prefs.shape[0]
+&gt; 12: 
+&gt; 13:     # Stores the current partner of each receiver. -1 means the receiver is free.
+&gt; 14:     receiver_match = np.full(n, -1, dtype=np.int32)
+&gt; 15:     
+&gt; 16:     # Stores the index of the next receiver to propose to for each proposer.
+&gt; 17:     next_proposal_idx = np.zeros(n, dtype=np.int32)
+&gt; 18: 
+&gt; 19:     # Iterate through each proposer to start their proposal chain.
+&gt; 20:     for i in range(n):
+&gt; 21:         p = i # The current &quot;active&quot; proposer.
+&gt; 22: 
+&gt; 23:         # This inner loop follows the active proposer `p` until they are accepted.
+&gt; 24:         while True:
+&gt; 25:             # Get the next receiver `r` on p&#x27;s preference list.
+&gt; 26:             r = proposer_prefs[p, next_proposal_idx[p]]
+&gt; 27:             next_proposal_idx[p] += 1
+&gt; 28: 
+&gt; 29:             current_partner = receiver_match[r]
+&gt; 30:             
+&gt; 31:             if current_partner == -1:
+&gt; 32:                 # The receiver is free, they become engaged. The chain for `p` ends.
+&gt; 33:                 receiver_match[r] = p
+&gt; 34:                 break # Exit the inner while loop.
+&gt; 35:             
+&gt; 36:             elif receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+&gt; 37:                 # The receiver prefers the new proposer `p`.
+&gt; 38:                 # `p` becomes engaged, and the old partner becomes the new active proposer.
+&gt; 39:                 receiver_match[r] = p
+&gt; 40:                 p = current_partner
+&gt; 41:                 # The inner loop continues with the newly freed proposer `p`.
+&gt; 42:             else:
+&gt; 43:                 # The receiver rejects `p`. `p` remains the active proposer and must
+&gt; 44:                 # propose to the next on their list in the next iteration of the while loop.
+&gt; 45:                 pass
+&gt; 46:     
+&gt; 47:     # The algorithm produces a receiver-to-proposer matching.
+&gt; 48:     # We invert it to a proposer-to-receiver matching for the final result.
+&gt; 49:     proposer_match = np.empty(n, dtype=np.int32)
+&gt; 50:     proposer_match[receiver_match] = np.arange(n, dtype=np.int32)
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">1.47</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The performance has plateaued, which suggests that the current approach, while sound, is missing a key optimization that top performers are using. The &quot;think outside the box&quot; hint, combined with the fact that both my stack-based and chain-of-proposal Numba implementations yield similar speedups, points towards a bottleneck that is more fundamental than the loop&#x27;s control flow.<br><br>The most likely candidate for such a bottleneck is memory bandwidth and cache performance. The algorithm involves frequent, random-access lookups into large preference and rank tables. The total size of these tables is `2 * n * n`, and every step of the O(n^2) algorithm accesses them.<br><br>My new strategy is to reduce the memory footprint of the entire process. If the problem constraints on `n` (the number of proposers/receivers) are within the range of a smaller integer type, switching from the default `int32` or `int64` to `int16` can halve the memory usage. This has a cascade of benefits:<br>1.  **Reduced Memory Bandwidth**: Less data needs to be transferred between RAM and the CPU.<br>2.  **Improved Cache Utilization**: More of the preference tables can fit into the fast L1/L2/L3 caches of the CPU, dramatically speeding up lookups.<br>3.  **Faster Vectorized Operations**: NumPy operations on smaller data types are generally faster.<br><br>An `int16` can store values up to 32,767. It&#x27;s a reasonable assumption that the number of participants `n` in the benchmark problems does not exceed this, making this a valid and powerful optimization.<br><br>The plan is to:<br>1.  Keep the efficient &quot;chain of proposals&quot; algorithm in the Numba-compiled core.<br>2.  Keep the fully vectorized data preparation in the `solve` method.<br>3.  Systematically change the `dtype` of all NumPy arrays used in the process from `np.int32` to `np.int16`.<br><br>This is a simple but impactful change that should significantly boost performance by tackling the memory-access bottleneck.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+import numba
+from typing import Any
+
+@numba.njit(cache=True, fastmath=True)
+def _gale_shapley_core(proposer_prefs: np.ndarray, receiver_ranks: np.ndarray) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Numba-accelerated core of the Gale-Shapley algorithm, using an efficient
+    &quot;chain of proposals&quot; implementation and memory-optimized data types.
+    &quot;&quot;&quot;
+    n = proposer_prefs.shape[0]
+    dtype = proposer_prefs.dtype
+
+    # Stores the current partner of each receiver. -1 means the receiver is free.
+    receiver_match = np.full(n, -1, dtype=dtype)
+    
+    # Stores the index of the next receiver to propose to for each proposer.
+    next_proposal_idx = np.zeros(n, dtype=dtype)
+
+    # Iterate through each proposer to start their proposal chain.
+    for i in range(n):
+        p = i # The current &quot;active&quot; proposer.
+
+        # This inner loop follows the active proposer `p` until they are accepted.
+        while True:
+            # Get the next receiver `r` on p&#x27;s preference list.
+            r = proposer_prefs[p, next_proposal_idx[p]]
+            next_proposal_idx[p] += 1
+
+            current_partner = receiver_match[r]
+            
+            if current_partner == -1:
+                # The receiver is free, they become engaged. The chain for `p` ends.
+                receiver_match[r] = p
+                break # Exit the inner while loop.
+            
+            elif receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+                # The receiver prefers the new proposer `p`.
+                # `p` becomes engaged, and the old partner becomes the new active proposer.
+                receiver_match[r] = p
+                p = current_partner
+                # The inner loop continues with the newly freed proposer `p`.
+            else:
+                # The receiver rejects `p`. `p` remains the active proposer.
+                pass
+    
+    # Invert the receiver-to-proposer matching for the final result.
+    proposer_match = np.empty(n, dtype=dtype)
+    proposer_match[receiver_match] = np.arange(n, dtype=dtype)
+    
+    return proposer_match
+
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the Stable Matching Problem using a Numba-accelerated
+        Gale-Shapley algorithm with vectorized data preparation and optimized
+        memory usage via int16 data types.
+        &quot;&quot;&quot;
+        proposer_prefs_dict = problem[&quot;proposer_prefs&quot;]
+        receiver_prefs_dict = problem[&quot;receiver_prefs&quot;]
+        n = len(proposer_prefs_dict)
+        
+        # Use int16 for significant memory and performance gains, assuming n &lt; 32767.
+        dtype = np.int16
+
+        # --- Vectorized Data Preparation ---
+        proposer_prefs = np.array(list(proposer_prefs_dict.values()), dtype=dtype)
+        
+        receiver_prefs = np.array(list(receiver_prefs_dict.values()), dtype=dtype)
+        receiver_ranks = np.empty_like(receiver_prefs)
+        
+        rows = np.arange(n, dtype=dtype).reshape(-1, 1)
+        ranks = np.arange(n, dtype=dtype)
+        receiver_ranks[rows, receiver_prefs] = ranks
+
+        # --- Core Algorithm ---
+        proposer_match_np = _gale_shapley_core(proposer_prefs, receiver_ranks)
+
+        # --- Format Output ---
+        return {&quot;matching&quot;: proposer_match_np.tolist()}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 8 messages and have used up $0.7382. You have $0.2618 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 81)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: import numba
+&gt; 03: from typing import Any
+&gt; 04: 
+&gt; 05: @numba.njit(cache=True, fastmath=True)
+&gt; 06: def _gale_shapley_core(proposer_prefs: np.ndarray, receiver_ranks: np.ndarray) -&gt; np.ndarray:
+&gt; 07:     &quot;&quot;&quot;
+&gt; 08:     Numba-accelerated core of the Gale-Shapley algorithm, using an efficient
+&gt; 09:     &quot;chain of proposals&quot; implementation and memory-optimized data types.
+&gt; 10:     &quot;&quot;&quot;
+&gt; 11:     n = proposer_prefs.shape[0]
+&gt; 12:     dtype = proposer_prefs.dtype
+&gt; 13: 
+&gt; 14:     # Stores the current partner of each receiver. -1 means the receiver is free.
+&gt; 15:     receiver_match = np.full(n, -1, dtype=dtype)
+&gt; 16:     
+&gt; 17:     # Stores the index of the next receiver to propose to for each proposer.
+&gt; 18:     next_proposal_idx = np.zeros(n, dtype=dtype)
+&gt; 19: 
+&gt; 20:     # Iterate through each proposer to start their proposal chain.
+&gt; 21:     for i in range(n):
+&gt; 22:         p = i # The current &quot;active&quot; proposer.
+&gt; 23: 
+&gt; 24:         # This inner loop follows the active proposer `p` until they are accepted.
+&gt; 25:         while True:
+&gt; 26:             # Get the next receiver `r` on p&#x27;s preference list.
+&gt; 27:             r = proposer_prefs[p, next_proposal_idx[p]]
+&gt; 28:             next_proposal_idx[p] += 1
+&gt; 29: 
+&gt; 30:             current_partner = receiver_match[r]
+&gt; 31:             
+&gt; 32:             if current_partner == -1:
+&gt; 33:                 # The receiver is free, they become engaged. The chain for `p` ends.
+&gt; 34:                 receiver_match[r] = p
+&gt; 35:                 break # Exit the inner while loop.
+&gt; 36:             
+&gt; 37:             elif receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+&gt; 38:                 # The receiver prefers the new proposer `p`.
+&gt; 39:                 # `p` becomes engaged, and the old partner becomes the new active proposer.
+&gt; 40:                 receiver_match[r] = p
+&gt; 41:                 p = current_partner
+&gt; 42:                 # The inner loop continues with the newly freed proposer `p`.
+&gt; 43:             else:
+&gt; 44:                 # The receiver rejects `p`. `p` remains the active proposer.
+&gt; 45:                 pass
+&gt; 46:     
+&gt; 47:     # Invert the receiver-to-proposer matching for the final result.
+&gt; 48:     proposer_match = np.empty(n, dtype=dtype)
+&gt; 49:     proposer_match[receiver_match] = np.arange(n, dtype=dtype)
+&gt; 50:     
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">1.57</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                After multiple iterations of optimization—vectorizing data preparation, implementing a more efficient &quot;chain of proposals&quot; algorithm, and reducing the memory footprint with `int16` data types—the performance has hit a plateau. This indicates that further gains require a more advanced technique. The current bottleneck is the Numba-compiled core function, not because the logic is inefficient, but because of the fundamental limits of JIT compilation and type inference.<br><br>My final strategy is to provide Numba with more explicit information so it can generate the most optimal machine code possible. This is an expert-level &quot;outside the box&quot; trick that leverages a deeper feature of the Numba compiler.<br><br>The plan is as follows:<br>1.  **Provide an Explicit Function Signature**: I will add a signature string to the `@numba.njit` decorator (e.g., `int16[:](int16[:, ::1], int16[:, ::1])`). This tells Numba the exact data types and memory layouts (`::1` for C-contiguous) of the arguments and the return value ahead of time.<br>2.  **Benefits of a Signature**:<br>    *   **AOT Compilation**: It allows Numba to compile the function when the module is loaded, rather than on the first call (JIT), eliminating any first-run compilation overhead from the timed execution.<br>    *   **No Type Inference**: It removes the need for Numba&#x27;s type inference mechanism at call time, which can be complex and might not always select the most optimal compilation path.<br>    *   **Specialized Code**: It guarantees that a highly specialized version of the function is created for `int16` contiguous arrays, which can be faster than a more general version.<br><br>This change doesn&#x27;t alter the algorithm&#x27;s logic but optimizes the compilation process itself, squeezing the maximum performance out of the Numba toolchain.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+import numba
+from numba import int16
+from typing import Any
+
+# Provide an explicit signature to Numba for ahead-of-time compilation and
+# to generate highly specialized code, avoiding type-inference overhead.
+# The &#x27;::1&#x27; specifies C-contiguous arrays for optimal performance.
+signature = int16[:](int16[:, ::1], int16[:, ::1])
+@numba.njit(signature, cache=True, fastmath=True)
+def _gale_shapley_core(proposer_prefs, receiver_ranks):
+    &quot;&quot;&quot;
+    Numba-accelerated core of the Gale-Shapley algorithm, optimized with
+    an explicit signature, a &quot;chain of proposals&quot; implementation, and
+    memory-efficient data types.
+    &quot;&quot;&quot;
+    n = proposer_prefs.shape[0]
+
+    # Stores the current partner of each receiver. -1 means the receiver is free.
+    receiver_match = np.full(n, -1, dtype=int16)
+    
+    # Stores the index of the next receiver to propose to for each proposer.
+    next_proposal_idx = np.zeros(n, dtype=int16)
+
+    # Iterate through each proposer to start their proposal chain.
+    for i in range(n):
+        p = i # The current &quot;active&quot; proposer.
+
+        # This inner loop follows the active proposer `p` until they are accepted.
+        while True:
+            r = proposer_prefs[p, next_proposal_idx[p]]
+            next_proposal_idx[p] += 1
+
+            current_partner = receiver_match[r]
+            
+            if current_partner == -1:
+                # The receiver is free, they become engaged. The chain for `p` ends.
+                receiver_match[r] = p
+                break
+            
+            elif receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+                # The receiver prefers the new proposer `p`.
+                # `p` becomes engaged, and the old partner becomes the new active proposer.
+                receiver_match[r] = p
+                p = current_partner
+            else:
+                # The receiver rejects `p`. `p` remains the active proposer.
+                pass
+    
+    # Invert the receiver-to-proposer matching for the final result.
+    proposer_match = np.empty(n, dtype=int16)
+    proposer_match[receiver_match] = np.arange(n, dtype=int16)
+    
+    return proposer_match
+
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the Stable Matching Problem using a Numba-accelerated
+        Gale-Shapley algorithm with vectorized data preparation and optimized
+        memory usage via int16 data types.
+        &quot;&quot;&quot;
+        proposer_prefs_dict = problem[&quot;proposer_prefs&quot;]
+        receiver_prefs_dict = problem[&quot;receiver_prefs&quot;]
+        n = len(proposer_prefs_dict)
+        
+        dtype = np.int16
+
+        # --- Vectorized Data Preparation ---
+        proposer_prefs = np.array(list(proposer_prefs_dict.values()), dtype=dtype)
+        receiver_prefs = np.array(list(receiver_prefs_dict.values()), dtype=dtype)
+        receiver_ranks = np.empty_like(receiver_prefs)
+        
+        rows = np.arange(n, dtype=dtype).reshape(-1, 1)
+        ranks = np.arange(n, dtype=dtype)
+        receiver_ranks[rows, receiver_prefs] = ranks
+
+        # --- Core Algorithm ---
+        proposer_match_np = _gale_shapley_core(proposer_prefs, receiver_ranks)
+
+        # --- Format Output ---
+        return {&quot;matching&quot;: proposer_match_np.tolist()}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 9 messages and have used up $0.8422. You have $0.1578 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 82)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: import numba
+&gt; 03: from numba import int16
+&gt; 04: from typing import Any
+&gt; 05: 
+&gt; 06: # Provide an explicit signature to Numba for ahead-of-time compilation and
+&gt; 07: # to generate highly specialized code, avoiding type-inference overhead.
+&gt; 08: # The &#x27;::1&#x27; specifies C-contiguous arrays for optimal performance.
+&gt; 09: signature = int16[:](int16[:, ::1], int16[:, ::1])
+&gt; 10: @numba.njit(signature, cache=True, fastmath=True)
+&gt; 11: def _gale_shapley_core(proposer_prefs, receiver_ranks):
+&gt; 12:     &quot;&quot;&quot;
+&gt; 13:     Numba-accelerated core of the Gale-Shapley algorithm, optimized with
+&gt; 14:     an explicit signature, a &quot;chain of proposals&quot; implementation, and
+&gt; 15:     memory-efficient data types.
+&gt; 16:     &quot;&quot;&quot;
+&gt; 17:     n = proposer_prefs.shape[0]
+&gt; 18: 
+&gt; 19:     # Stores the current partner of each receiver. -1 means the receiver is free.
+&gt; 20:     receiver_match = np.full(n, -1, dtype=int16)
+&gt; 21:     
+&gt; 22:     # Stores the index of the next receiver to propose to for each proposer.
+&gt; 23:     next_proposal_idx = np.zeros(n, dtype=int16)
+&gt; 24: 
+&gt; 25:     # Iterate through each proposer to start their proposal chain.
+&gt; 26:     for i in range(n):
+&gt; 27:         p = i # The current &quot;active&quot; proposer.
+&gt; 28: 
+&gt; 29:         # This inner loop follows the active proposer `p` until they are accepted.
+&gt; 30:         while True:
+&gt; 31:             r = proposer_prefs[p, next_proposal_idx[p]]
+&gt; 32:             next_proposal_idx[p] += 1
+&gt; 33: 
+&gt; 34:             current_partner = receiver_match[r]
+&gt; 35:             
+&gt; 36:             if current_partner == -1:
+&gt; 37:                 # The receiver is free, they become engaged. The chain for `p` ends.
+&gt; 38:                 receiver_match[r] = p
+&gt; 39:                 break
+&gt; 40:             
+&gt; 41:             elif receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+&gt; 42:                 # The receiver prefers the new proposer `p`.
+&gt; 43:                 # `p` becomes engaged, and the old partner becomes the new active proposer.
+&gt; 44:                 receiver_match[r] = p
+&gt; 45:                 p = current_partner
+&gt; 46:             else:
+&gt; 47:                 # The receiver rejects `p`. `p` remains the active proposer.
+&gt; 48:                 pass
+&gt; 49:     
+&gt; 50:     # Invert the receiver-to-proposer matching for the final result.
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">1.49</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The repeated failure to significantly improve the speedup, despite applying a series of advanced optimizations (vectorization, Numba JIT, algorithmic changes, memory reduction), strongly suggests that the bottleneck is not where I&#x27;ve been looking. The core algorithm is already highly optimized. The hint to &quot;think outside the box&quot; implies a non-obvious solution.<br><br>My previous attempts focused on optimizing the execution of the algorithm itself. My new hypothesis is that for very large `n`, the data preparation phase—specifically, the conversion from Python dictionaries of lists to NumPy arrays—is a significant bottleneck that I haven&#x27;t fully optimized.<br><br>The standard `np.array(list(proposer_prefs_dict.values()))` is fast, but it involves creating a large intermediate Python list of lists, which allocates many Python objects and can be slow. A more direct, memory-efficient approach is to use tools designed for iterator-to-array conversion.<br><br>My new strategy is to completely overhaul the data preparation pipeline:<br>1.  **Use `itertools.chain.from_iterable`**: This will create a fast, flat iterator over all preference values without creating intermediate lists. This is implemented in C and is extremely efficient.<br>2.  **Use `numpy.fromiter`**: This function is specifically designed to build a NumPy array from an iterator. Crucially, by providing the `count=n*n` argument, we allow NumPy to pre-allocate the entire array at once and fill it directly from the iterator, which is the fastest possible way to perform this conversion.<br>3.  **Retain the Best Core**: I will keep the &quot;chain of proposals&quot; Numba function with `int16` data types, as it&#x27;s the most efficient core algorithm I&#x27;ve developed.<br><br>This approach targets the last remaining non-optimal part of the code: the initial data ingestion. By eliminating intermediate object creation and using highly optimized C-level iterator tools, this should provide a significant speedup, especially on large problem instances where data preparation time is most pronounced.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+import numba
+from typing import Any
+import itertools
+
+@numba.njit(cache=True, fastmath=True)
+def _gale_shapley_core(proposer_prefs: np.ndarray, receiver_ranks: np.ndarray) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Numba-accelerated core of the Gale-Shapley algorithm, using an efficient
+    &quot;chain of proposals&quot; implementation and memory-optimized data types.
+    &quot;&quot;&quot;
+    n = proposer_prefs.shape[0]
+    dtype = proposer_prefs.dtype
+
+    receiver_match = np.full(n, -1, dtype=dtype)
+    next_proposal_idx = np.zeros(n, dtype=dtype)
+
+    for i in range(n):
+        p = i
+        while True:
+            r = proposer_prefs[p, next_proposal_idx[p]]
+            next_proposal_idx[p] += 1
+            current_partner = receiver_match[r]
+            
+            if current_partner == -1:
+                receiver_match[r] = p
+                break
+            
+            elif receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+                receiver_match[r] = p
+                p = current_partner
+            else:
+                pass
+    
+    proposer_match = np.empty(n, dtype=dtype)
+    proposer_match[receiver_match] = np.arange(n, dtype=dtype)
+    
+    return proposer_match
+
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the Stable Matching Problem using a Numba-accelerated
+        Gale-Shapley algorithm with highly optimized data preparation using
+        iterators to minimize memory allocation overhead.
+        &quot;&quot;&quot;
+        proposer_prefs_dict = problem[&quot;proposer_prefs&quot;]
+        receiver_prefs_dict = problem[&quot;receiver_prefs&quot;]
+        n = len(proposer_prefs_dict)
+        
+        dtype = np.int16
+
+        # --- Optimized Data Preparation using fromiter ---
+        # This avoids creating large intermediate lists of lists.
+        # itertools.chain.from_iterable is a fast C implementation for flattening.
+        # np.fromiter with a count pre-allocates the array for maximum speed.
+        flat_proposer_iter = itertools.chain.from_iterable(proposer_prefs_dict.values())
+        proposer_prefs = np.fromiter(flat_proposer_iter, dtype=dtype, count=n*n).reshape(n, n)
+
+        flat_receiver_iter = itertools.chain.from_iterable(receiver_prefs_dict.values())
+        receiver_prefs = np.fromiter(flat_receiver_iter, dtype=dtype, count=n*n).reshape(n, n)
+        
+        # The vectorized rank creation is already very fast.
+        receiver_ranks = np.empty_like(receiver_prefs)
+        rows = np.arange(n, dtype=dtype).reshape(-1, 1)
+        ranks = np.arange(n, dtype=dtype)
+        receiver_ranks[rows, receiver_prefs] = ranks
+
+        # --- Core Algorithm ---
+        proposer_match_np = _gale_shapley_core(proposer_prefs, receiver_ranks)
+
+        # --- Format Output ---
+        return {&quot;matching&quot;: proposer_match_np.tolist()}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 10 messages and have used up $0.9487. You have $0.0513 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 73)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: import numba
+&gt; 03: from typing import Any
+&gt; 04: import itertools
+&gt; 05: 
+&gt; 06: @numba.njit(cache=True, fastmath=True)
+&gt; 07: def _gale_shapley_core(proposer_prefs: np.ndarray, receiver_ranks: np.ndarray) -&gt; np.ndarray:
+&gt; 08:     &quot;&quot;&quot;
+&gt; 09:     Numba-accelerated core of the Gale-Shapley algorithm, using an efficient
+&gt; 10:     &quot;chain of proposals&quot; implementation and memory-optimized data types.
+&gt; 11:     &quot;&quot;&quot;
+&gt; 12:     n = proposer_prefs.shape[0]
+&gt; 13:     dtype = proposer_prefs.dtype
+&gt; 14: 
+&gt; 15:     receiver_match = np.full(n, -1, dtype=dtype)
+&gt; 16:     next_proposal_idx = np.zeros(n, dtype=dtype)
+&gt; 17: 
+&gt; 18:     for i in range(n):
+&gt; 19:         p = i
+&gt; 20:         while True:
+&gt; 21:             r = proposer_prefs[p, next_proposal_idx[p]]
+&gt; 22:             next_proposal_idx[p] += 1
+&gt; 23:             current_partner = receiver_match[r]
+&gt; 24:             
+&gt; 25:             if current_partner == -1:
+&gt; 26:                 receiver_match[r] = p
+&gt; 27:                 break
+&gt; 28:             
+&gt; 29:             elif receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]:
+&gt; 30:                 receiver_match[r] = p
+&gt; 31:                 p = current_partner
+&gt; 32:             else:
+&gt; 33:                 pass
+&gt; 34:     
+&gt; 35:     proposer_match = np.empty(n, dtype=dtype)
+&gt; 36:     proposer_match[receiver_match] = np.arange(n, dtype=dtype)
+&gt; 37:     
+&gt; 38:     return proposer_match
+&gt; 39: 
+&gt; 40: class Solver:
+&gt; 41:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; Any:
+&gt; 42:         &quot;&quot;&quot;
+&gt; 43:         Solves the Stable Matching Problem using a Numba-accelerated
+&gt; 44:         Gale-Shapley algorithm with highly optimized data preparation using
+&gt; 45:         iterators to minimize memory allocation overhead.
+&gt; 46:         &quot;&quot;&quot;
+&gt; 47:         proposer_prefs_dict = problem[&quot;proposer_prefs&quot;]
+&gt; 48:         receiver_prefs_dict = problem[&quot;receiver_prefs&quot;]
+&gt; 49:         n = len(proposer_prefs_dict)
+&gt; 50:         
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">1.58</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                After numerous attempts to optimize the algorithm&#x27;s execution and data handling, the performance has hit a wall. The current bottleneck is almost certainly the memory access pattern within the core loop. The hint to &quot;think outside the box&quot; suggests that a non-standard modification to the algorithm&#x27;s data structures is necessary.<br><br>The most expensive operation in the tight loop of the Gale-Shapley algorithm is checking if a receiver prefers a new proposer over their current partner. My current implementation does this with `receiver_ranks[r, p] &lt; receiver_ranks[r, current_partner]`. This involves two random-access lookups into the large `receiver_ranks` table, which is unfriendly to the CPU cache and a major source of latency.<br><br>My final strategy is to eliminate one of these lookups by caching the rank of the receiver&#x27;s current partner.<br><br>Here&#x27;s the plan:<br>1.  **Introduce a Cache Array**: I will create a new 1D array, `receiver_partner_rank`, of size `n`. This array will store the rank of each receiver&#x27;s current partner.<br>2.  **Modify the Core Loop**:<br>    *   When a receiver `r` gets a proposal from `p`, I will perform only *one* lookup to get `p`&#x27;s rank: `p_rank = receiver_ranks[r, p]`.<br>    *   I will then compare `p_rank` directly with the cached rank: `p_rank &lt; receiver_partner_rank[r]`.<br>    *   If `p` is accepted, I will update both `receiver_match[r]` with `p`&#x27;s ID and `receiver_partner_rank[r]` with `p_rank`.<br>3.  **Simplify Logic**: This change also simplifies the logic. A free receiver can be represented by having an initial &quot;infinitely bad&quot; rank (i.e., `n`). This removes the need for a separate `if partner == -1` check, making the code cleaner and faster.<br><br>This modification trades a small amount of additional memory (a single `n`-element array, which is cache-friendly) for a significant reduction in random memory accesses to the large `n x n` rank table. This directly targets the primary performance bottleneck and represents the kind of architectural optimization needed to break the current plateau.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+import numba
+from typing import Any
+import itertools
+
+@numba.njit(cache=True, fastmath=True)
+def _gale_shapley_core(proposer_prefs: np.ndarray, receiver_ranks: np.ndarray) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Numba-accelerated core of the Gale-Shapley algorithm. This version uses
+    a &quot;chain of proposals&quot; logic and caches partner ranks to minimize lookups
+    into the large rank matrix, significantly improving cache performance.
+    &quot;&quot;&quot;
+    n = proposer_prefs.shape[0]
+    dtype = proposer_prefs.dtype
+
+    # receiver_match[r] = p, or -1 if free.
+    receiver_match = np.full(n, -1, dtype=dtype)
+    
+    # Cache the rank of the receiver&#x27;s current partner. Ranks are 0..n-1.
+    # n serves as an &quot;infinity&quot; rank for free receivers.
+    receiver_partner_rank = np.full(n, n, dtype=dtype)
+
+    # next_proposal_idx[p] = index of the next receiver p will propose to.
+    next_proposal_idx = np.zeros(n, dtype=dtype)
+
+    for i in range(n):
+        p = i # The current &quot;active&quot; proposer.
+        while True:
+            r = proposer_prefs[p, next_proposal_idx[p]]
+            next_proposal_idx[p] += 1
+            
+            # Perform only one lookup into the large ranks table.
+            p_rank = receiver_ranks[r, p]
+
+            # Compare the new proposer&#x27;s rank with the cached rank of the current partner.
+            if p_rank &lt; receiver_partner_rank[r]:
+                # The receiver &#x27;r&#x27; prefers &#x27;p&#x27; (or was free).
+                old_partner = receiver_match[r]
+                
+                # Match &#x27;r&#x27; with the new, better proposer &#x27;p&#x27;.
+                receiver_match[r] = p
+                receiver_partner_rank[r] = p_rank
+                
+                if old_partner == -1:
+                    # &#x27;r&#x27; was free. The proposal chain for the initial &#x27;p&#x27; ends.
+                    break
+                else:
+                    # &#x27;r&#x27; was matched. The old partner becomes the new active proposer.
+                    p = old_partner
+            # else: &#x27;r&#x27; rejects &#x27;p&#x27;. &#x27;p&#x27; remains active and will try the next on their list.
+    
+    # Invert the receiver-to-proposer matching for the final result.
+    proposer_match = np.empty(n, dtype=dtype)
+    proposer_match[receiver_match] = np.arange(n, dtype=dtype)
+    
+    return proposer_match
+
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the Stable Matching Problem using a Numba-accelerated
+        Gale-Shapley algorithm with highly optimized data preparation using
+        iterators to minimize memory allocation overhead.
+        &quot;&quot;&quot;
+        proposer_prefs_dict = problem[&quot;proposer_prefs&quot;]
+        receiver_prefs_dict = problem[&quot;receiver_prefs&quot;]
+        n = len(proposer_prefs_dict)
+        
+        dtype = np.int16
+
+        # --- Optimized Data Preparation using fromiter ---
+        flat_proposer_iter = itertools.chain.from_iterable(proposer_prefs_dict.values())
+        proposer_prefs = np.fromiter(flat_proposer_iter, dtype=dtype, count=n*n).reshape(n, n)
+
+        flat_receiver_iter = itertools.chain.from_iterable(receiver_prefs_dict.values())
+        receiver_prefs = np.fromiter(flat_receiver_iter, dtype=dtype, count=n*n).reshape(n, n)
+        
+        receiver_ranks = np.empty_like(receiver_prefs)
+        rows = np.arange(n, dtype=dtype).reshape(-1, 1)
+        ranks = np.arange(n, dtype=dtype)
+        receiver_ranks[rows, receiver_prefs] = ranks
+
+        # --- Core Algorithm ---
+        proposer_match_np = _gale_shapley_core(proposer_prefs, receiver_ranks)
+
+        # --- Format Output ---
+        return {&quot;matching&quot;: proposer_match_np.tolist()}
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

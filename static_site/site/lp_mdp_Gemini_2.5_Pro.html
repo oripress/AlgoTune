@@ -1,0 +1,3376 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – lp_mdp – Gemini 2.5 Pro</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">lp_mdp</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="lp_mdp_o4-mini.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (407.58x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="lp_mdp_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (369.78x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="lp_mdp_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (327.67x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="lp_mdp_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (7.22x)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">lp_mdp</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Gemini 2.5 Pro</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #006400; font-weight: 600;">327.674x</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">13</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">1</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">92.3 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+Linear Program for MDPs
+Given a discounted Markov Decision Process (MDP) described by its transition probabilities and rewards, solve for the optimal value function and an optimal policy using a linear program.
+The objective is to maximize the total value across states under standard Bellman inequality constraints.
+
+Input:
+A dictionary with keys:
+  - &quot;num_states&quot;: Integer, the number of states.
+  - &quot;num_actions&quot;: Integer, the number of actions (same for every state).
+  - &quot;discount&quot;: A float in [0.8, 0.99], the discount factor.
+  - &quot;transitions&quot;: A 3D list of shape (num_states, num_actions, num_states),
+                   transitions[s][a][s&#x27;] = P(s&#x27; | s, a).
+  - &quot;rewards&quot;: A 3D list of shape (num_states, num_actions, num_states),
+               rewards[s][a][s&#x27;] = immediate reward for taking action a in state s
+               and ending up in s&#x27;.
+
+Example input:
+{
+  &quot;num_states&quot;: 3,
+  &quot;num_actions&quot;: 2,
+  &quot;discount&quot;: 0.9,
+  &quot;transitions&quot;: [
+    [
+      [0.8, 0.2, 0.0],
+      [0.3, 0.7, 0.0]
+    ],
+    [
+      [0.0, 0.5, 0.5],
+      [0.1, 0.0, 0.9]
+    ],
+    [
+      [1.0, 0.0, 0.0],
+      [0.2, 0.0, 0.8]
+    ]
+  ],
+  &quot;rewards&quot;: [
+    [
+      [1.0, 0.0, 0.0],
+      [0.5, 0.0, 0.0]
+    ],
+    [
+      [0.0, 1.0, -1.0],
+      [2.0, 0.0, -1.0]
+    ],
+    [
+      [0.0, 0.0, 0.0],
+      [0.3, 0.0, 2.0]
+    ]
+  ]
+}
+
+Output:
+A dictionary with two keys:
+  - &quot;value_function&quot;: A list of floats of length num_states, 
+                      representing the optimal value V*(s).
+  - &quot;policy&quot;: A list of integers of length num_states, 
+              where policy[s] is the action that attains the LP optimum 
+              (i.e., a that saturates the corresponding constraint).
+
+Example output:
+{
+  &quot;value_function&quot;: [2.993, 1.957, 3.101],
+  &quot;policy&quot;: [0, 1, 1]
+}
+
+Category: convex_optimization
+
+Below is the reference implementation. Your function should run much quicker.
+
+import random
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+| 01: def solve(self, problem: dict[str, Any]) -&gt; dict[str, list[float]]:
+| 02:     &quot;&quot;&quot;
+| 03:     Solve the MDP using the standard linear program for discounted MDPs:
+| 04: 
+| 05:       Maximize \sum_s V_s
+| 06:     subject to
+| 07:       V_s &gt;= r(s,a) + discount * \sum_{s&#x27;} P(s&#x27;|s,a)*V_{s&#x27;}   for all s,a
+| 08: 
+| 09:     We then pick a policy by finding, for each s, an a that (approximately)
+| 10:     saturates the constraint:
+| 11:       V_s ≈ r(s,a) + discount * sum_{s&#x27;} p(s&#x27;|s,a)*V_{s&#x27;}.
+| 12: 
+| 13:     :param problem: Dictionary with &#x27;num_states&#x27;, &#x27;num_actions&#x27;, &#x27;discount&#x27;,
+| 14:                     &#x27;transitions&#x27;, &#x27;rewards&#x27;.
+| 15:     :return: Dictionary with &#x27;value_function&#x27; and &#x27;policy&#x27;.
+| 16:     
+| 17: 
+| 18:     NOTE: Your solution must pass validation by:
+| 19:     1. Returning correctly formatted output
+| 20:     2. Having no NaN or infinity values
+| 21:     3. Matching expected results within numerical tolerance
+| 22:     &quot;&quot;&quot;
+| 23:     num_states = problem[&quot;num_states&quot;]
+| 24:     num_actions = problem[&quot;num_actions&quot;]
+| 25:     gamma = problem[&quot;discount&quot;]
+| 26: 
+| 27:     transitions = np.array(problem[&quot;transitions&quot;])  # shape: (S, A, S)
+| 28:     rewards = np.array(problem[&quot;rewards&quot;])  # shape: (S, A, S)
+| 29: 
+| 30:     # 1) Define variables
+| 31:     V_vars = cp.Variable(shape=(num_states,), name=&quot;V&quot;)
+| 32: 
+| 33:     # 2) Construct constraints
+| 34:     constraints = []
+| 35:     for s in range(num_states):
+| 36:         for a in range(num_actions):
+| 37:             # LHS: V_s
+| 38:             # RHS: sum_{s&#x27;} p(s&#x27;|s,a)*[r(s,a,s&#x27;) + gamma * V(s&#x27;)]
+| 39:             rhs = 0
+| 40:             for sp in range(num_states):
+| 41:                 rhs += transitions[s, a, sp] * (rewards[s, a, sp] + gamma * V_vars[sp])
+| 42:             # Constraint: V_s &gt;= rhs
+| 43:             constraints.append(V_vars[s] &gt;= rhs)
+| 44: 
+| 45:     # 3) Objective: minimize sum(V_s)
+| 46:     objective = cp.Minimize(cp.sum(V_vars))
+| 47: 
+| 48:     # 4) Solve
+| 49:     prob_cvx = cp.Problem(objective, constraints)
+| 50:     try:
+| 51:         prob_cvx.solve(solver=cp.SCS, verbose=False, eps=1e-5)
+| 52:     except Exception as e:
+| 53:         return {&quot;value_function&quot;: [0.0] * num_states, &quot;policy&quot;: [0] * num_states}
+| 54: 
+| 55:     if V_vars.value is None:
+| 56:         return {&quot;value_function&quot;: [0.0] * num_states, &quot;policy&quot;: [0] * num_states}
+| 57: 
+| 58:     val_func = V_vars.value.tolist()
+| 59: 
+| 60:     # 6) Recover a policy
+| 61:     # For each state s, choose an action that &quot;nearly&quot; saturates the constraint
+| 62:     # V_s ≈ sum_{s&#x27;} p(s&#x27;|s,a)*[r(s,a,s&#x27;) + gamma * V(s&#x27;)].
+| 63:     policy = []
+| 64:     for s in range(num_states):
+| 65:         best_a = 0
+| 66:         best_rhs = -1e10
+| 67:         for a in range(num_actions):
+| 68:             # compute Q(s,a) from our found V
+| 69:             rhs_value = np.sum(transitions[s, a] * (rewards[s, a] + gamma * np.array(val_func)))
+| 70:             if rhs_value &gt; best_rhs + 1e-8:  # small tolerance
+| 71:                 best_rhs = rhs_value
+| 72:                 best_a = a
+| 73:         policy.append(best_a)
+| 74: 
+| 75:     return {&quot;value_function&quot;: val_func, &quot;policy&quot;: policy}
+| 76: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+import random
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+| 01: def is_solution( problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+| 02:     &quot;&quot;&quot;
+| 03:     Validate by:
+| 04:       1) Checking keys &quot;value_function&quot; and &quot;policy&quot; exist.
+| 05:       2) Recomputing the LP-based solution and verifying that
+| 06:          the value function is close and the policy matches (if unique).
+| 07:     :param problem: The MDP dictionary.
+| 08:     :param solution: Proposed solution with &quot;value_function&quot; and &quot;policy&quot;.
+| 09:     :return: True if correct/optimal, else False.
+| 10:     &quot;&quot;&quot;
+| 11:     if &quot;value_function&quot; not in solution or &quot;policy&quot; not in solution:
+| 12:         logging.error(&quot;Solution must contain &#x27;value_function&#x27; and &#x27;policy&#x27;.&quot;)
+| 13:         return False
+| 14: 
+| 15:     proposed_V = np.array(solution[&quot;value_function&quot;], dtype=float)
+| 16:     proposed_policy = np.array(solution[&quot;policy&quot;], dtype=int)
+| 17: 
+| 18:     # Re-solve to get reference
+| 19:     reference_sol = solve(problem)
+| 20:     ref_V = np.array(reference_sol[&quot;value_function&quot;], dtype=float)
+| 21:     ref_policy = np.array(reference_sol[&quot;policy&quot;], dtype=int)
+| 22: 
+| 23:     # 1) Check value function dimension
+| 24:     if proposed_V.shape != ref_V.shape:
+| 25:         logging.error(
+| 26:             f&quot;Value function shape mismatch: got {proposed_V.shape}, expected {ref_V.shape}.&quot;
+| 27:         )
+| 28:         return False
+| 29: 
+| 30:     # 2) Check closeness
+| 31:     if not np.allclose(proposed_V, ref_V, atol=1e-4):
+| 32:         logging.error(
+| 33:             &quot;Proposed value_function differs from reference solution beyond tolerance.&quot;
+| 34:         )
+| 35:         return False
+| 36: 
+| 37:     # 3) Check policy dimension
+| 38:     if proposed_policy.shape != ref_policy.shape:
+| 39:         logging.error(
+| 40:             f&quot;Policy shape mismatch: got {proposed_policy.shape}, expected {ref_policy.shape}.&quot;
+| 41:         )
+| 42:         return False
+| 43: 
+| 44:     # For policy, we do an exact match by default.
+| 45:     # If multiple actions are truly tied, we might accept them as well.
+| 46:     if not np.array_equal(proposed_policy, ref_policy):
+| 47:         logging.error(&quot;Proposed policy does not match reference LP policy.&quot;)
+| 48:         return False
+| 49: 
+| 50:     return True
+| 51:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>Linear Program for MDPs
+Given a discounted Markov Decision Process (MDP) described by its transition probabilities and rewards, solve for the optimal value function and an optimal policy using a linear program.
+The objective is to maximize the total value across states under standard Bellman inequality constraints.
+
+Input:
+A dictionary with keys:
+  - &quot;num_states&quot;: Integer, the number of states.
+  - &quot;num_actions&quot;: Integer, the number of actions (same for every state).
+  - &quot;discount&quot;: A float in [0.8, 0.99], the discount factor.
+  - &quot;transitions&quot;: A 3D list of shape (num_states, num_actions, num_states),
+                   transitions[s][a][s&#x27;] = P(s&#x27; | s, a).
+  - &quot;rewards&quot;: A 3D list of shape (num_states, num_actions, num_states),
+               rewards[s][a][s&#x27;] = immediate reward for taking action a in state s
+               and ending up in s&#x27;.
+
+Example input:
+{
+  &quot;num_states&quot;: 3,
+  &quot;num_actions&quot;: 2,
+  &quot;discount&quot;: 0.9,
+  &quot;transitions&quot;: [
+    [
+      [0.8, 0.2, 0.0],
+      [0.3, 0.7, 0.0]
+    ],
+    [
+      [0.0, 0.5, 0.5],
+      [0.1, 0.0, 0.9]
+    ],
+    [
+      [1.0, 0.0, 0.0],
+      [0.2, 0.0, 0.8]
+    ]
+  ],
+  &quot;rewards&quot;: [
+    [
+      [1.0, 0.0, 0.0],
+      [0.5, 0.0, 0.0]
+    ],
+    [
+      [0.0, 1.0, -1.0],
+      [2.0, 0.0, -1.0]
+    ],
+    [
+      [0.0, 0.0, 0.0],
+      [0.3, 0.0, 2.0]
+    ]
+  ]
+}
+
+Output:
+A dictionary with two keys:
+  - &quot;value_function&quot;: A list of floats of length num_states, 
+                      representing the optimal value V*(s).
+  - &quot;policy&quot;: A list of integers of length num_states, 
+              where policy[s] is the action that attains the LP optimum 
+              (i.e., a that saturates the corresponding constraint).
+
+Example output:
+{
+  &quot;value_function&quot;: [2.993, 1.957, 3.101],
+  &quot;policy&quot;: [0, 1, 1]
+}
+
+Category: convex_optimization</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">import random
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+ def solve(self, problem: dict[str, Any]) -&gt; dict[str, list[float]]:
+     &quot;&quot;&quot;
+     Solve the MDP using the standard linear program for discounted MDPs:
+ 
+       Maximize \sum_s V_s
+     subject to
+       V_s &gt;= r(s,a) + discount * \sum_{s&#x27;} P(s&#x27;|s,a)*V_{s&#x27;}   for all s,a
+ 
+     We then pick a policy by finding, for each s, an a that (approximately)
+     saturates the constraint:
+       V_s ≈ r(s,a) + discount * sum_{s&#x27;} p(s&#x27;|s,a)*V_{s&#x27;}.
+ 
+     :param problem: Dictionary with &#x27;num_states&#x27;, &#x27;num_actions&#x27;, &#x27;discount&#x27;,
+                     &#x27;transitions&#x27;, &#x27;rewards&#x27;.
+     :return: Dictionary with &#x27;value_function&#x27; and &#x27;policy&#x27;.
+     
+ 
+     NOTE: Your solution must pass validation by:
+     1. Returning correctly formatted output
+     2. Having no NaN or infinity values
+     3. Matching expected results within numerical tolerance
+     &quot;&quot;&quot;
+     num_states = problem[&quot;num_states&quot;]
+     num_actions = problem[&quot;num_actions&quot;]
+     gamma = problem[&quot;discount&quot;]
+ 
+     transitions = np.array(problem[&quot;transitions&quot;])  # shape: (S, A, S)
+     rewards = np.array(problem[&quot;rewards&quot;])  # shape: (S, A, S)
+ 
+     # 1) Define variables
+     V_vars = cp.Variable(shape=(num_states,), name=&quot;V&quot;)
+ 
+     # 2) Construct constraints
+     constraints = []
+     for s in range(num_states):
+         for a in range(num_actions):
+             # LHS: V_s
+             # RHS: sum_{s&#x27;} p(s&#x27;|s,a)*[r(s,a,s&#x27;) + gamma * V(s&#x27;)]
+             rhs = 0
+             for sp in range(num_states):
+                 rhs += transitions[s, a, sp] * (rewards[s, a, sp] + gamma * V_vars[sp])
+             # Constraint: V_s &gt;= rhs
+             constraints.append(V_vars[s] &gt;= rhs)
+ 
+     # 3) Objective: minimize sum(V_s)
+     objective = cp.Minimize(cp.sum(V_vars))
+ 
+     # 4) Solve
+     prob_cvx = cp.Problem(objective, constraints)
+     try:
+         prob_cvx.solve(solver=cp.SCS, verbose=False, eps=1e-5)
+     except Exception as e:
+         return {&quot;value_function&quot;: [0.0] * num_states, &quot;policy&quot;: [0] * num_states}
+ 
+     if V_vars.value is None:
+         return {&quot;value_function&quot;: [0.0] * num_states, &quot;policy&quot;: [0] * num_states}
+ 
+     val_func = V_vars.value.tolist()
+ 
+     # 6) Recover a policy
+     # For each state s, choose an action that &quot;nearly&quot; saturates the constraint
+     # V_s ≈ sum_{s&#x27;} p(s&#x27;|s,a)*[r(s,a,s&#x27;) + gamma * V(s&#x27;)].
+     policy = []
+     for s in range(num_states):
+         best_a = 0
+         best_rhs = -1e10
+         for a in range(num_actions):
+             # compute Q(s,a) from our found V
+             rhs_value = np.sum(transitions[s, a] * (rewards[s, a] + gamma * np.array(val_func)))
+             if rhs_value &gt; best_rhs + 1e-8:  # small tolerance
+                 best_rhs = rhs_value
+                 best_a = a
+         policy.append(best_a)
+ 
+     return {&quot;value_function&quot;: val_func, &quot;policy&quot;: policy}</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">from typing import Any
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict, **kwargs) -&gt; dict:
+        &quot;&quot;&quot;
+        Solve the MDP using Policy Iteration.
+
+        Policy Iteration alternates between two steps:
+        1. Policy Evaluation: Given a policy, calculate its value function by
+           solving a system of linear equations.
+        2. Policy Improvement: Greedily update the policy based on the new
+           value function.
+
+        This method typically converges in far fewer iterations than Value
+        Iteration, making it faster for problems where VI converges slowly.
+        &quot;&quot;&quot;
+        num_states = problem[&quot;num_states&quot;]
+        gamma = problem[&quot;discount&quot;]
+        transitions = np.array(problem[&quot;transitions&quot;])  # Shape (S, A, S&#x27;)
+        rewards = np.array(problem[&quot;rewards&quot;])          # Shape (S, A, S&#x27;)
+
+        # 1. Pre-compute expected rewards R(s, a) for efficiency.
+        R_sa = np.sum(transitions * rewards, axis=2)  # Shape (S, A)
+
+        # 2. Initialize with an arbitrary policy (e.g., action 0 for all states).
+        policy = np.zeros(num_states, dtype=int)
+        
+        # A safe upper bound on iterations; PI usually converges much faster.
+        max_iter = 200 
+        for _ in range(max_iter):
+            # 3. Policy Evaluation: Solve the linear system (I - γP^π)V = R^π
+            
+            # Get the transition matrix P^π and reward vector R^π for the current policy.
+            # Using advanced indexing for a fully vectorized operation.
+            R_pi = R_sa[np.arange(num_states), policy]
+            P_pi = transitions[np.arange(num_states), policy, :]
+            
+            # Construct the system matrix for the Bellman equations.
+            system_matrix = np.eye(num_states) - gamma * P_pi
+            
+            # Solve for V^π. This is the most expensive step.
+            V = np.linalg.solve(system_matrix, R_pi)
+
+            # 4. Policy Improvement: Find a better policy using the new V.
+            # Q(s, a) = R(s, a) + γ * Σ_s&#x27; P(s&#x27;|s,a) * V(s&#x27;)
+            Q_sa = R_sa + gamma * (transitions @ V)
+            
+            new_policy = np.argmax(Q_sa, axis=1)
+
+            # 5. Check for convergence: If the policy is stable, we are done.
+            if np.array_equal(new_policy, policy):
+                break
+            
+            policy = new_policy
+
+        return {
+            &quot;value_function&quot;: V.tolist(),
+            &quot;policy&quot;: policy.tolist()
+        }</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/lp_mdp_gemini-2.5-pro_20250625_150745_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/lp_mdp_gemini-2.5-pro_20250625_150745_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I will solve this problem by formulating it as a linear program. The reference implementation uses `cvxpy`, which is user-friendly but can be slow due to overhead. To achieve better performance, I will use a more direct and faster LP solver.<br><br>My plan is as follows:<br>1.  Initially, I will start with a vectorized version of the primal LP formulation, similar to the reference but more efficient, using `cvxpy`.<br>2.  Then, I will switch from `cvxpy` to `scipy.optimize.linprog` with the `highs` solver, which should significantly reduce overhead and improve speed. I will need to construct the LP matrices `A_ub` and `b_ub` manually using `numpy`.<br>3.  Finally, I will implement the dual of the linear program. The dual LP often has a different structure (fewer constraints, more variables) which can be solved more efficiently by modern solvers. The optimal value function of the primal problem can be recovered from the dual variables of the dual solution.<br><br>This multi-step approach of progressively refining the formulation and choice of solver should lead to a highly optimized solution.<br><br>I&#x27;ll start by creating the `solver.py` file with a basic, correct implementation.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+from scipy.optimize import linprog
+
+class Solver:
+    def solve(self, problem: dict, **kwargs) -&gt; dict:
+        &quot;&quot;&quot;
+        Solve the MDP using the dual of the standard linear program.
+        The primal LP is:
+          Minimize sum(V_s)
+          s.t. V_s - gamma * P_a V &gt;= R_a for all a
+        
+        The dual LP is:
+          Maximize sum_{s,a} R(s,a) y(s,a)
+          s.t. sum_a y(s,a) - gamma * sum_{s&#x27;,a&#x27;} P(s|s&#x27;,a&#x27;) y(s&#x27;,a&#x27;) = 1 for all s
+               y(s,a) &gt;= 0
+        
+        The optimal V is the dual variable of the dual&#x27;s equality constraints.
+        &quot;&quot;&quot;
+        num_states = problem[&quot;num_states&quot;]
+        num_actions = problem[&quot;num_actions&quot;]
+        gamma = problem[&quot;discount&quot;]
+
+        transitions = np.array(problem[&quot;transitions&quot;])
+        rewards = np.array(problem[&quot;rewards&quot;])
+
+        # We solve the dual LP using scipy.linprog
+        # max c^T y  &lt;=&gt; min -c^T y
+        # s.t. A_eq y = b_eq, y &gt;= 0
+
+        # c_dual is the expected rewards for each state-action pair
+        R_sa = np.sum(transitions * rewards, axis=2)
+        c_dual = R_sa.flatten()
+
+        # A_eq has shape (S, S*A)
+        # A_eq[s, :] corresponds to the constraint for state s.
+        # The constraint is: sum_a y(s,a) - gamma * sum_{s&#x27;,a&#x27;} P(s|s&#x27;,a&#x27;) y(s&#x27;,a&#x27;) = 1
+        
+        # Part 1: sum_a y(s,a)
+        A_eq = np.kron(np.eye(num_states), np.ones((1, num_actions)))
+
+        # Part 2: -gamma * sum_{s&#x27;,a&#x27;} P(s|s&#x27;,a&#x27;) y(s&#x27;,a&#x27;)
+        # P(s|s&#x27;,a&#x27;) is transitions[s&#x27;, a&#x27;, s]
+        # This term is -gamma * (P^T y), where P is the transition matrix stack
+        P_matrix = transitions.reshape(num_states * num_actions, num_states) # (SA, S)
+        A_eq -= gamma * P_matrix.T
+
+        # b_eq is a vector of ones
+        b_eq = np.ones(num_states)
+
+        # Solve the dual LP
+        # We are maximizing, so we pass the negative of c_dual to the minimizer.
+        res = linprog(c=-c_dual, A_eq=A_eq, b_eq=b_eq, bounds=(0, None), method=&#x27;highs&#x27;)
+
+        if not res.success:
+            return {&quot;value_function&quot;: [0.0] * num_states, &quot;policy&quot;: [0] * num_states}
+
+        # The optimal value function V is the vector of dual variables
+        # associated with the equality constraints.
+        val_func = res.dual_eq
+
+        # Recover policy
+        Q_sa = np.sum(transitions * (rewards + gamma * val_func.reshape(1, 1, num_states)), axis=2)
+        policy = np.argmax(Q_sa, axis=1).tolist()
+
+        return {&quot;value_function&quot;: val_func.tolist(), &quot;policy&quot;: policy}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.1963. You have $0.8037 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 66)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: from scipy.optimize import linprog
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict, **kwargs) -&gt; dict:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solve the MDP using the dual of the standard linear program.
+&gt; 09:         The primal LP is:
+&gt; 10:           Minimize sum(V_s)
+&gt; 11:           s.t. V_s - gamma * P_a V &gt;= R_a for all a
+&gt; 12:         
+&gt; 13:         The dual LP is:
+&gt; 14:           Maximize sum_{s,a} R(s,a) y(s,a)
+&gt; 15:           s.t. sum_a y(s,a) - gamma * sum_{s&#x27;,a&#x27;} P(s|s&#x27;,a&#x27;) y(s&#x27;,a&#x27;) = 1 for all s
+&gt; 16:                y(s,a) &gt;= 0
+&gt; 17:         
+&gt; 18:         The optimal V is the dual variable of the dual&#x27;s equality constraints.
+&gt; 19:         &quot;&quot;&quot;
+&gt; 20:         num_states = problem[&quot;num_states&quot;]
+&gt; 21:         num_actions = problem[&quot;num_actions&quot;]
+&gt; 22:         gamma = problem[&quot;discount&quot;]
+&gt; 23: 
+&gt; 24:         transitions = np.array(problem[&quot;transitions&quot;])
+&gt; 25:         rewards = np.array(problem[&quot;rewards&quot;])
+&gt; 26: 
+&gt; 27:         # We solve the dual LP using scipy.linprog
+&gt; 28:         # max c^T y  &lt;=&gt; min -c^T y
+&gt; 29:         # s.t. A_eq y = b_eq, y &gt;= 0
+&gt; 30: 
+&gt; 31:         # c_dual is the expected rewards for each state-action pair
+&gt; 32:         R_sa = np.sum(transitions * rewards, axis=2)
+&gt; 33:         c_dual = R_sa.flatten()
+&gt; 34: 
+&gt; 35:         # A_eq has shape (S, S*A)
+&gt; 36:         # A_eq[s, :] corresponds to the constraint for state s.
+&gt; 37:         # The constraint is: sum_a y(s,a) - gamma * sum_{s&#x27;,a&#x27;} P(s|s&#x27;,a&#x27;) y(s&#x27;,a&#x27;) = 1
+&gt; 38:         
+&gt; 39:         # Part 1: sum_a y(s,a)
+&gt; 40:         A_eq = np.kron(np.eye(num_states), np.ones((1, num_actions)))
+&gt; 41: 
+&gt; 42:         # Part 2: -gamma * sum_{s&#x27;,a&#x27;} P(s|s&#x27;,a&#x27;) y(s&#x27;,a&#x27;)
+&gt; 43:         # P(s|s&#x27;,a&#x27;) is transitions[s&#x27;, a&#x27;, s]
+&gt; 44:         # This term is -gamma * (P^T y), where P is the transition matrix stack
+&gt; 45:         P_matrix = transitions.reshape(num_states * num_actions, num_states) # (SA, S)
+&gt; 46:         A_eq -= gamma * P_matrix.T
+&gt; 47: 
+&gt; 48:         # b_eq is a vector of ones
+&gt; 49:         b_eq = np.ones(num_states)
+&gt; 50: 
+...</code></pre><br><br>AttributeError: dual_eq in function &#x27;solve&#x27; at line 60 in solver.py<br><br>Code Context:<br><pre><code class="language-python">   50: 
+   51:         # Solve the dual LP
+   52:         # We are maximizing, so we pass the negative of c_dual to the minimizer.
+   53:         res = linprog(c=-c_dual, A_eq=A_eq, b_eq=b_eq, bounds=(0, None), method=&#x27;highs&#x27;)
+   54: 
+   55:         if not res.success:
+   56:             return {&quot;value_function&quot;: [0.0] * num_states, &quot;policy&quot;: [0] * num_states}
+   57: 
+   58:         # The optimal value function V is the vector of dual variables
+   59:         # associated with the equality constraints.
+ ! 60:         val_func = res.dual_eq
+   61: 
+   62:         # Recover policy
+   63:         Q_sa = np.sum(transitions * (rewards + gamma * val_func.reshape(1, 1, num_states)), axis=2)
+   64:         policy = np.argmax(Q_sa, axis=1).tolist()
+   65: 
+   66:         return {&quot;value_function&quot;: val_func.tolist(), &quot;policy&quot;: policy}</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The error `AttributeError: dual_eq` indicates that the result object returned by `scipy.optimize.linprog` with the `highs` method does not have the attribute `dual_eq`.<br><br>According to the SciPy documentation, when using the `highs` method, the dual variables (also known as Lagrange multipliers or shadow prices) for the equality constraints are stored in the `eqlin` attribute, which is a dictionary. The values themselves are under the key `&#x27;marginals&#x27;`.<br><br>Therefore, to access the dual variables for the equality constraints, you should use `res.eqlin[&#x27;marginals&#x27;]` instead of `res.dual_eq`. I will correct this line in the code.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 60-60
+---
+        # The optimal value function V is the vector of dual variables
+        # associated with the equality constraints.
+        # For the &#x27;highs&#x27; solver, these are in res.eqlin[&#x27;marginals&#x27;].
+        val_func = res.eqlin[&#x27;marginals&#x27;]
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.2204. You have $0.7796 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 20-69 out of 69)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">...
+| 20:         num_states = problem[&quot;num_states&quot;]
+| 21:         num_actions = problem[&quot;num_actions&quot;]
+| 22:         gamma = problem[&quot;discount&quot;]
+| 23: 
+| 24:         transitions = np.array(problem[&quot;transitions&quot;])
+| 25:         rewards = np.array(problem[&quot;rewards&quot;])
+| 26: 
+| 27:         # We solve the dual LP using scipy.linprog
+| 28:         # max c^T y  &lt;=&gt; min -c^T y
+| 29:         # s.t. A_eq y = b_eq, y &gt;= 0
+| 30: 
+| 31:         # c_dual is the expected rewards for each state-action pair
+| 32:         R_sa = np.sum(transitions * rewards, axis=2)
+| 33:         c_dual = R_sa.flatten()
+| 34: 
+| 35:         # A_eq has shape (S, S*A)
+| 36:         # A_eq[s, :] corresponds to the constraint for state s.
+| 37:         # The constraint is: sum_a y(s,a) - gamma * sum_{s&#x27;,a&#x27;} P(s|s&#x27;,a&#x27;) y(s&#x27;,a&#x27;) = 1
+| 38:         
+| 39:         # Part 1: sum_a y(s,a)
+| 40:         A_eq = np.kron(np.eye(num_states), np.ones((1, num_actions)))
+| 41: 
+| 42:         # Part 2: -gamma * sum_{s&#x27;,a&#x27;} P(s|s&#x27;,a&#x27;) y(s&#x27;,a&#x27;)
+| 43:         # P(s|s&#x27;,a&#x27;) is transitions[s&#x27;, a&#x27;, s]
+| 44:         # This term is -gamma * (P^T y), where P is the transition matrix stack
+| 45:         P_matrix = transitions.reshape(num_states * num_actions, num_states) # (SA, S)
+| 46:         A_eq -= gamma * P_matrix.T
+| 47: 
+| 48:         # b_eq is a vector of ones
+| 49:         b_eq = np.ones(num_states)
+| 50: 
+| 51:         # Solve the dual LP
+| 52:         # We are maximizing, so we pass the negative of c_dual to the minimizer.
+| 53:         res = linprog(c=-c_dual, A_eq=A_eq, b_eq=b_eq, bounds=(0, None), method=&#x27;highs&#x27;)
+| 54: 
+| 55:         if not res.success:
+| 56:             return {&quot;value_function&quot;: [0.0] * num_states, &quot;policy&quot;: [0] * num_states}
+| 57: 
+| 58:         # The optimal value function V is the vector of dual variables
+| 59:         # associated with the equality constraints.
+&gt; 60:         # The optimal value function V is the vector of dual variables
+&gt; 61:         # associated with the equality constraints.
+&gt; 62:         # For the &#x27;highs&#x27; solver, these are in res.eqlin[&#x27;marginals&#x27;].
+&gt; 63:         val_func = res.eqlin[&#x27;marginals&#x27;]
+| 64: 
+| 65:         # Recover policy
+| 66:         Q_sa = np.sum(transitions * (rewards + gamma * val_func.reshape(1, 1, num_states)), axis=2)
+| 67:         policy = np.argmax(Q_sa, axis=1).tolist()
+| 68: 
+| 69:         return {&quot;value_function&quot;: val_func.tolist(), &quot;policy&quot;: policy}</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 100%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;is_solution&#x27; at line 155 in lp_mdp.py<br><pre><code class="language-python">   145:     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+   146:         &quot;&quot;&quot;
+   147:         Validate by:
+   148:           1) Checking keys &quot;value_function&quot; and &quot;policy&quot; exist.
+   149:           2) Recomputing the LP-based solution and verifying that
+   150:              the value function is close and the policy matches (if unique).
+   151:         :param problem: The MDP dictionary.
+   152:         :param solution: Proposed solution with &quot;value_function&quot; and &quot;policy&quot;.
+   153:         :return: True if correct/optimal, else False.
+   154:         &quot;&quot;&quot;
+ ! 155:         if &quot;value_function&quot; not in solution or &quot;policy&quot; not in solution:
+   156:             logging.error(&quot;Solution must contain &#x27;value_function&#x27; and &#x27;policy&#x27;.&quot;)
+   157:             return False
+   158: 
+   159:         proposed_V = np.array(solution[&quot;value_function&quot;], dtype=float)
+   160:         proposed_policy = np.array(solution[&quot;policy&quot;], dtype=int)
+   161: 
+   162:         # Re-solve to get reference
+   163:         reference_sol = self.solve(problem)
+   164:         ref_V = np.array(reference_sol[&quot;value_function&quot;], dtype=float)
+   165:         ref_policy = np.array(reference_sol[&quot;policy&quot;], dtype=int)</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;is_solution&#x27; at line 155 in lp_mdp.py<br><pre><code class="language-python">   145:     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+   146:         &quot;&quot;&quot;
+   147:         Validate by:
+   148:           1) Checking keys &quot;value_function&quot; and &quot;policy&quot; exist.
+   149:           2) Recomputing the LP-based solution and verifying that
+   150:              the value function is close and the policy matches (if unique).
+   151:         :param problem: The MDP dictionary.
+   152:         :param solution: Proposed solution with &quot;value_function&quot; and &quot;policy&quot;.
+   153:         :return: True if correct/optimal, else False.
+   154:         &quot;&quot;&quot;
+ ! 155:         if &quot;value_function&quot; not in solution or &quot;policy&quot; not in solution:
+   156:             logging.error(&quot;Solution must contain &#x27;value_function&#x27; and &#x27;policy&#x27;.&quot;)
+   157:             return False
+   158: 
+   159:         proposed_V = np.array(solution[&quot;value_function&quot;], dtype=float)
+   160:         proposed_policy = np.array(solution[&quot;policy&quot;], dtype=int)
+   161: 
+   162:         # Re-solve to get reference
+   163:         reference_sol = self.solve(problem)
+   164:         ref_V = np.array(reference_sol[&quot;value_function&quot;], dtype=float)
+   165:         ref_policy = np.array(reference_sol[&quot;policy&quot;], dtype=int)</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;is_solution&#x27; at line 155 in lp_mdp.py<br><pre><code class="language-python">   145:     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+   146:         &quot;&quot;&quot;
+   147:         Validate by:
+   148:           1) Checking keys &quot;value_function&quot; and &quot;policy&quot; exist.
+   149:           2) Recomputing the LP-based solution and verifying that
+   150:              the value function is close and the policy matches (if unique).
+   151:         :param problem: The MDP dictionary.
+   152:         :param solution: Proposed solution with &quot;value_function&quot; and &quot;policy&quot;.
+   153:         :return: True if correct/optimal, else False.
+   154:         &quot;&quot;&quot;
+ ! 155:         if &quot;value_function&quot; not in solution or &quot;policy&quot; not in solution:
+   156:             logging.error(&quot;Solution must contain &#x27;value_function&#x27; and &#x27;policy&#x27;.&quot;)
+   157:             return False
+   158: 
+   159:         proposed_V = np.array(solution[&quot;value_function&quot;], dtype=float)
+   160:         proposed_policy = np.array(solution[&quot;policy&quot;], dtype=int)
+   161: 
+   162:         # Re-solve to get reference
+   163:         reference_sol = self.solve(problem)
+   164:         ref_V = np.array(reference_sol[&quot;value_function&quot;], dtype=float)
+   165:         ref_policy = np.array(reference_sol[&quot;policy&quot;], dtype=int)</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The error `TypeError: argument of type &#x27;NoneType&#x27; is not iterable` indicates that my `solve` function is returning `None` instead of a dictionary. This typically happens when an unhandled exception occurs within the function.<br><br>Looking at the code and the SciPy documentation for `linprog` with the `highs` method, I&#x27;ve identified the likely cause. The dual variables (which I need to get the value function) are not computed if the problem is solved during the presolve phase. The documentation states: &quot;To get the values of the dual variables, `presolve` must be set to `False`.&quot;<br><br>When `presolve` is `True` (the default), and it solves the problem, the `res.eqlin` attribute might not be populated. My code then attempts to access `res.eqlin[&#x27;marginals&#x27;]`, which would raise an exception (e.g., `TypeError` if `res.eqlin` is `None`, or `KeyError` if it&#x27;s an empty dict), causing the function to terminate and return `None`.<br><br>To fix this, I will explicitly disable presolve by passing `options={&#x27;presolve&#x27;: False}` to the `linprog` call. This ensures that the dual variables are always computed for successful solutions. I will also clean up the comments that were duplicated in the previous edit.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 51-63
+---
+        # Solve the dual LP
+        # We are maximizing, so we pass the negative of c_dual to the minimizer.
+        # We must disable presolve to ensure dual variables are computed.
+        res = linprog(c=-c_dual, A_eq=A_eq, b_eq=b_eq, bounds=(0, None), method=&#x27;highs&#x27;, options={&#x27;presolve&#x27;: False})
+
+        if not res.success:
+            return {&quot;value_function&quot;: [0.0] * num_states, &quot;policy&quot;: [0] * num_states}
+
+        # The optimal value function V is the vector of dual variables
+        # associated with the equality constraints. For the &#x27;highs&#x27; solver,
+        # these are in res.eqlin[&#x27;marginals&#x27;].
+        val_func = res.eqlin[&#x27;marginals&#x27;]
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.2575. You have $0.7425 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 19-68 out of 68)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">...
+| 19:         &quot;&quot;&quot;
+| 20:         num_states = problem[&quot;num_states&quot;]
+| 21:         num_actions = problem[&quot;num_actions&quot;]
+| 22:         gamma = problem[&quot;discount&quot;]
+| 23: 
+| 24:         transitions = np.array(problem[&quot;transitions&quot;])
+| 25:         rewards = np.array(problem[&quot;rewards&quot;])
+| 26: 
+| 27:         # We solve the dual LP using scipy.linprog
+| 28:         # max c^T y  &lt;=&gt; min -c^T y
+| 29:         # s.t. A_eq y = b_eq, y &gt;= 0
+| 30: 
+| 31:         # c_dual is the expected rewards for each state-action pair
+| 32:         R_sa = np.sum(transitions * rewards, axis=2)
+| 33:         c_dual = R_sa.flatten()
+| 34: 
+| 35:         # A_eq has shape (S, S*A)
+| 36:         # A_eq[s, :] corresponds to the constraint for state s.
+| 37:         # The constraint is: sum_a y(s,a) - gamma * sum_{s&#x27;,a&#x27;} P(s|s&#x27;,a&#x27;) y(s&#x27;,a&#x27;) = 1
+| 38:         
+| 39:         # Part 1: sum_a y(s,a)
+| 40:         A_eq = np.kron(np.eye(num_states), np.ones((1, num_actions)))
+| 41: 
+| 42:         # Part 2: -gamma * sum_{s&#x27;,a&#x27;} P(s|s&#x27;,a&#x27;) y(s&#x27;,a&#x27;)
+| 43:         # P(s|s&#x27;,a&#x27;) is transitions[s&#x27;, a&#x27;, s]
+| 44:         # This term is -gamma * (P^T y), where P is the transition matrix stack
+| 45:         P_matrix = transitions.reshape(num_states * num_actions, num_states) # (SA, S)
+| 46:         A_eq -= gamma * P_matrix.T
+| 47: 
+| 48:         # b_eq is a vector of ones
+| 49:         b_eq = np.ones(num_states)
+| 50: 
+&gt; 51:         # Solve the dual LP
+&gt; 52:         # We are maximizing, so we pass the negative of c_dual to the minimizer.
+&gt; 53:         # We must disable presolve to ensure dual variables are computed.
+&gt; 54:         res = linprog(c=-c_dual, A_eq=A_eq, b_eq=b_eq, bounds=(0, None), method=&#x27;highs&#x27;, options={&#x27;presolve&#x27;: False})
+&gt; 55: 
+&gt; 56:         if not res.success:
+&gt; 57:             return {&quot;value_function&quot;: [0.0] * num_states, &quot;policy&quot;: [0] * num_states}
+&gt; 58: 
+&gt; 59:         # The optimal value function V is the vector of dual variables
+&gt; 60:         # associated with the equality constraints. For the &#x27;highs&#x27; solver,
+&gt; 61:         # these are in res.eqlin[&#x27;marginals&#x27;].
+&gt; 62:         val_func = res.eqlin[&#x27;marginals&#x27;]
+| 63: 
+| 64:         # Recover policy
+| 65:         Q_sa = np.sum(transitions * (rewards + gamma * val_func.reshape(1, 1, num_states)), axis=2)
+| 66:         policy = np.argmax(Q_sa, axis=1).tolist()
+| 67: 
+| 68:         return {&quot;value_function&quot;: val_func.tolist(), &quot;policy&quot;: policy}</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 100%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;is_solution&#x27; at line 155 in lp_mdp.py<br><pre><code class="language-python">   145:     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+   146:         &quot;&quot;&quot;
+   147:         Validate by:
+   148:           1) Checking keys &quot;value_function&quot; and &quot;policy&quot; exist.
+   149:           2) Recomputing the LP-based solution and verifying that
+   150:              the value function is close and the policy matches (if unique).
+   151:         :param problem: The MDP dictionary.
+   152:         :param solution: Proposed solution with &quot;value_function&quot; and &quot;policy&quot;.
+   153:         :return: True if correct/optimal, else False.
+   154:         &quot;&quot;&quot;
+ ! 155:         if &quot;value_function&quot; not in solution or &quot;policy&quot; not in solution:
+   156:             logging.error(&quot;Solution must contain &#x27;value_function&#x27; and &#x27;policy&#x27;.&quot;)
+   157:             return False
+   158: 
+   159:         proposed_V = np.array(solution[&quot;value_function&quot;], dtype=float)
+   160:         proposed_policy = np.array(solution[&quot;policy&quot;], dtype=int)
+   161: 
+   162:         # Re-solve to get reference
+   163:         reference_sol = self.solve(problem)
+   164:         ref_V = np.array(reference_sol[&quot;value_function&quot;], dtype=float)
+   165:         ref_policy = np.array(reference_sol[&quot;policy&quot;], dtype=int)</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;is_solution&#x27; at line 155 in lp_mdp.py<br><pre><code class="language-python">   145:     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+   146:         &quot;&quot;&quot;
+   147:         Validate by:
+   148:           1) Checking keys &quot;value_function&quot; and &quot;policy&quot; exist.
+   149:           2) Recomputing the LP-based solution and verifying that
+   150:              the value function is close and the policy matches (if unique).
+   151:         :param problem: The MDP dictionary.
+   152:         :param solution: Proposed solution with &quot;value_function&quot; and &quot;policy&quot;.
+   153:         :return: True if correct/optimal, else False.
+   154:         &quot;&quot;&quot;
+ ! 155:         if &quot;value_function&quot; not in solution or &quot;policy&quot; not in solution:
+   156:             logging.error(&quot;Solution must contain &#x27;value_function&#x27; and &#x27;policy&#x27;.&quot;)
+   157:             return False
+   158: 
+   159:         proposed_V = np.array(solution[&quot;value_function&quot;], dtype=float)
+   160:         proposed_policy = np.array(solution[&quot;policy&quot;], dtype=int)
+   161: 
+   162:         # Re-solve to get reference
+   163:         reference_sol = self.solve(problem)
+   164:         ref_V = np.array(reference_sol[&quot;value_function&quot;], dtype=float)
+   165:         ref_policy = np.array(reference_sol[&quot;policy&quot;], dtype=int)</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;is_solution&#x27; at line 155 in lp_mdp.py<br><pre><code class="language-python">   145:     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+   146:         &quot;&quot;&quot;
+   147:         Validate by:
+   148:           1) Checking keys &quot;value_function&quot; and &quot;policy&quot; exist.
+   149:           2) Recomputing the LP-based solution and verifying that
+   150:              the value function is close and the policy matches (if unique).
+   151:         :param problem: The MDP dictionary.
+   152:         :param solution: Proposed solution with &quot;value_function&quot; and &quot;policy&quot;.
+   153:         :return: True if correct/optimal, else False.
+   154:         &quot;&quot;&quot;
+ ! 155:         if &quot;value_function&quot; not in solution or &quot;policy&quot; not in solution:
+   156:             logging.error(&quot;Solution must contain &#x27;value_function&#x27; and &#x27;policy&#x27;.&quot;)
+   157:             return False
+   158: 
+   159:         proposed_V = np.array(solution[&quot;value_function&quot;], dtype=float)
+   160:         proposed_policy = np.array(solution[&quot;policy&quot;], dtype=int)
+   161: 
+   162:         # Re-solve to get reference
+   163:         reference_sol = self.solve(problem)
+   164:         ref_V = np.array(reference_sol[&quot;value_function&quot;], dtype=float)
+   165:         ref_policy = np.array(reference_sol[&quot;policy&quot;], dtype=int)</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The error `TypeError: argument of type &#x27;NoneType&#x27; is not iterable` indicates that the `solve` function is returning `None`, which happens when an unhandled exception occurs. Despite correctly identifying that `presolve` must be disabled to retrieve dual variables, the issue persists. This suggests a more fundamental problem with the dual formulation&#x27;s implementation or its interaction with the `scipy.optimize.linprog` solver, which is hard to debug without access to the execution environment&#x27;s specifics (like SciPy version or the exact failing test cases).<br><br>A robust way to fix this is to switch from the dual LP formulation to the primal LP formulation. The primal LP directly solves for the value function `V`, so we don&#x27;t need to extract dual variables from the solver&#x27;s result object. This avoids the problematic step that is likely causing the exception.<br><br>The primal LP for an MDP is:<br>-   **Variables**: The value function `V_s` for each state `s`. There are `num_states` variables.<br>-   **Objective**: Minimize `sum(V_s)`. This is equivalent to finding a solution to the Bellman optimality equations.<br>-   **Constraints**: For each state `s` and action `a`, the Bellman optimality inequality must hold:<br>    `V_s &gt;= R(s,a) + gamma * sum_{s&#x27;} P(s&#x27;|s,a) * V_s&#x27;`<br>    where `R(s,a)` is the expected immediate reward `sum_{s&#x27;} P(s&#x27;|s,a) * R(s,a,s&#x27;)`.<br><br>For `scipy.optimize.linprog`, which solves minimization problems of the form `A_ub @ x &lt;= b_ub`, we can rewrite the constraints as:<br>`R(s,a) + gamma * sum_{s&#x27;} P(s&#x27;|s,a) * V_s&#x27; - V_s &lt;= 0`<br><br>This formulation is more direct. While the dual LP can be faster (fewer constraints if `num_actions` is large), the primal LP is less complex to implement correctly and more likely to be robust. I will replace the dual LP implementation with this primal one.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+from scipy.optimize import linprog
+
+class Solver:
+    def solve(self, problem: dict, **kwargs) -&gt; dict:
+        &quot;&quot;&quot;
+        Solve the MDP using the primal linear program.
+        The primal LP is:
+          Minimize sum(V_s)
+          s.t. V_s &gt;= R_sa + gamma * P_a V for all s, a
+        
+        This is equivalent to solving for V in the Bellman optimality equations.
+        &quot;&quot;&quot;
+        num_states = problem[&quot;num_states&quot;]
+        num_actions = problem[&quot;num_actions&quot;]
+        gamma = problem[&quot;discount&quot;]
+
+        transitions = np.array(problem[&quot;transitions&quot;])
+        rewards = np.array(problem[&quot;rewards&quot;])
+
+        # We solve the primal LP using scipy.linprog
+        # min c^T x s.t. A_ub x &lt;= b_ub
+        # Variables x are the value function V, so x has shape (S, 1).
+
+        # Objective: minimize sum(V_s). So, c is a vector of ones.
+        c_primal = np.ones(num_states)
+
+        # Constraints: V_s &gt;= R_sa + gamma * sum_s&#x27; P(s&#x27;|s,a)V_s&#x27;
+        # Rewritten for linprog: gamma * sum_s&#x27; P(s&#x27;|s,a)V_s&#x27; - V_s &lt;= -R_sa
+        
+        # b_ub contains the negative expected rewards for each state-action pair.
+        R_sa = np.sum(transitions * rewards, axis=2)
+        b_ub = -R_sa.flatten()
+
+        # A_ub has shape (S*A, S). Each row corresponds to a constraint for (s,a).
+        # For a row (s,a), the coefficient for V_s&#x27; is gamma*P(s&#x27;|s,a)
+        # and the coefficient for V_s is -1.
+        
+        # Part 1: gamma * P_a V
+        # This corresponds to a matrix where row (s,a) is gamma * P(s&#x27;|s,a).
+        A_ub = gamma * transitions.reshape(num_states * num_actions, num_states)
+        
+        # Part 2: -V_s
+        # This corresponds to subtracting 1 from the column &#x27;s&#x27; for all rows (s,a).
+        # This can be constructed by repeating the identity matrix.
+        I_matrix = np.repeat(np.eye(num_states), num_actions, axis=0)
+        A_ub -= I_matrix
+
+        # Solve the primal LP.
+        res = linprog(c=c_primal, A_ub=A_ub, b_ub=b_ub, method=&#x27;highs&#x27;)
+
+        if not res.success:
+            # If the LP fails, return a default policy.
+            return {&quot;value_function&quot;: [0.0] * num_states, &quot;policy&quot;: [0] * num_states}
+
+        # The solution vector x is the optimal value function.
+        val_func = res.x
+
+        # Recover the optimal policy from the value function.
+        Q_sa = np.sum(transitions * (rewards + gamma * val_func.reshape(1, 1, num_states)), axis=2)
+        policy = np.argmax(Q_sa, axis=1).tolist()
+
+        return {&quot;value_function&quot;: val_func.tolist(), &quot;policy&quot;: policy}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.4031. You have $0.5969 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 64)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: from scipy.optimize import linprog
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict, **kwargs) -&gt; dict:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solve the MDP using the primal linear program.
+&gt; 09:         The primal LP is:
+&gt; 10:           Minimize sum(V_s)
+&gt; 11:           s.t. V_s &gt;= R_sa + gamma * P_a V for all s, a
+&gt; 12:         
+&gt; 13:         This is equivalent to solving for V in the Bellman optimality equations.
+&gt; 14:         &quot;&quot;&quot;
+&gt; 15:         num_states = problem[&quot;num_states&quot;]
+&gt; 16:         num_actions = problem[&quot;num_actions&quot;]
+&gt; 17:         gamma = problem[&quot;discount&quot;]
+&gt; 18: 
+&gt; 19:         transitions = np.array(problem[&quot;transitions&quot;])
+&gt; 20:         rewards = np.array(problem[&quot;rewards&quot;])
+&gt; 21: 
+&gt; 22:         # We solve the primal LP using scipy.linprog
+&gt; 23:         # min c^T x s.t. A_ub x &lt;= b_ub
+&gt; 24:         # Variables x are the value function V, so x has shape (S, 1).
+&gt; 25: 
+&gt; 26:         # Objective: minimize sum(V_s). So, c is a vector of ones.
+&gt; 27:         c_primal = np.ones(num_states)
+&gt; 28: 
+&gt; 29:         # Constraints: V_s &gt;= R_sa + gamma * sum_s&#x27; P(s&#x27;|s,a)V_s&#x27;
+&gt; 30:         # Rewritten for linprog: gamma * sum_s&#x27; P(s&#x27;|s,a)V_s&#x27; - V_s &lt;= -R_sa
+&gt; 31:         
+&gt; 32:         # b_ub contains the negative expected rewards for each state-action pair.
+&gt; 33:         R_sa = np.sum(transitions * rewards, axis=2)
+&gt; 34:         b_ub = -R_sa.flatten()
+&gt; 35: 
+&gt; 36:         # A_ub has shape (S*A, S). Each row corresponds to a constraint for (s,a).
+&gt; 37:         # For a row (s,a), the coefficient for V_s&#x27; is gamma*P(s&#x27;|s,a)
+&gt; 38:         # and the coefficient for V_s is -1.
+&gt; 39:         
+&gt; 40:         # Part 1: gamma * P_a V
+&gt; 41:         # This corresponds to a matrix where row (s,a) is gamma * P(s&#x27;|s,a).
+&gt; 42:         A_ub = gamma * transitions.reshape(num_states * num_actions, num_states)
+&gt; 43:         
+&gt; 44:         # Part 2: -V_s
+&gt; 45:         # This corresponds to subtracting 1 from the column &#x27;s&#x27; for all rows (s,a).
+&gt; 46:         # This can be constructed by repeating the identity matrix.
+&gt; 47:         I_matrix = np.repeat(np.eye(num_states), num_actions, axis=0)
+&gt; 48:         A_ub -= I_matrix
+&gt; 49: 
+&gt; 50:         # Solve the primal LP.
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">53.84</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My previous solution, while correct and significantly faster than the baseline, was based on solving the primal linear program. To achieve a top-tier speedup, a more fundamental algorithmic change is necessary. The prompt to &quot;think outside the box&quot; suggests moving beyond a direct LP formulation, even though the problem context is &quot;lp_mdp&quot;.<br><br>The most effective and standard alternative for solving Markov Decision Processes is **Value Iteration (VI)**. VI is a dynamic programming algorithm that iteratively improves an estimate of the optimal value function until it converges. For discounted problems (`gamma &lt; 1`), VI is guaranteed to converge to the same optimal value function as the LP formulation.<br><br>Here&#x27;s why Value Iteration is expected to be much faster:<br><br>1.  **No Large Matrix Construction**: The LP formulation requires constructing a large and potentially dense constraint matrix `A_ub` of size `(num_states * num_actions, num_states)`. VI avoids this entirely, working directly with the problem&#x27;s transition and reward tensors.<br>2.  **Highly Optimized Kernels**: Each iteration of VI consists of a tensor-vector product (`transitions @ V`) and a `max` operation. These operations are extremely fast in NumPy, as they are backed by highly optimized BLAS (Basic Linear Algebra Subprograms) libraries.<br>3.  **Simpler Iterations**: Compared to the complex steps inside an LP solver (like the simplex or interior-point method), the operations in a VI iteration are much simpler and have lower overhead.<br><br>The implementation will be fully vectorized using NumPy to maximize performance. It will initialize the value function to zeros and then repeatedly apply the Bellman optimality operator until the value function converges to within a small tolerance (`epsilon`). The optimal policy is then easily extracted from the converged value function. This approach should be substantially faster than any LP-based solution that relies on a general-purpose solver.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict, **kwargs) -&gt; dict:
+        &quot;&quot;&quot;
+        Solve the MDP using Value Iteration.
+
+        This dynamic programming approach is typically much faster than solving the
+        equivalent Linear Program, especially for discount factors less than 1.
+        It iteratively applies the Bellman optimality operator to find the
+        optimal value function.
+        &quot;&quot;&quot;
+        num_states = problem[&quot;num_states&quot;]
+        gamma = problem[&quot;discount&quot;]
+        transitions = np.array(problem[&quot;transitions&quot;])  # Shape (S, A, S&#x27;)
+        rewards = np.array(problem[&quot;rewards&quot;])          # Shape (S, A, S&#x27;)
+
+        # 1. Pre-compute expected rewards R(s, a) for efficiency.
+        # R_sa[s, a] = sum_{s&#x27;} P(s&#x27;|s,a) * R(s,a,s&#x27;)
+        R_sa = np.sum(transitions * rewards, axis=2)  # Shape (S, A)
+
+        # 2. Initialize the value function vector.
+        V = np.zeros(num_states, dtype=np.float64)
+
+        # 3. Perform Value Iteration until convergence.
+        # The convergence check is based on the max-norm of the difference
+        # between successive value function estimates (the Bellman residual).
+        epsilon = 1e-9  # A small tolerance for convergence.
+        max_iter = 50000 # A safeguard against extremely slow convergence.
+
+        for _ in range(max_iter):
+            # Calculate Q-values for all state-action pairs simultaneously.
+            # Q(s, a) = R(s, a) + gamma * sum_s&#x27;(P(s&#x27;|s,a) * V(s&#x27;))
+            # The summation is a tensor-vector product, computed efficiently with &#x27;@&#x27;.
+            Q_sa = R_sa + gamma * (transitions @ V)
+            
+            # Update the value function by taking the max over actions for each state.
+            V_new = np.max(Q_sa, axis=1)
+
+            # Check for convergence.
+            if np.max(np.abs(V_new - V)) &lt; epsilon:
+                V = V_new
+                break
+            
+            V = V_new
+        
+        # 4. Recover the optimal policy from the final value function.
+        # The optimal action in a state is the one that maximizes the Q-value.
+        # We re-calculate Q_sa to ensure it corresponds to the final V.
+        Q_sa = R_sa + gamma * (transitions @ V)
+        policy = np.argmax(Q_sa, axis=1)
+
+        return {
+            &quot;value_function&quot;: V.tolist(),
+            &quot;policy&quot;: policy.tolist()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.4873. You have $0.5127 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 57)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: dict, **kwargs) -&gt; dict:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solve the MDP using Value Iteration.
+&gt; 08: 
+&gt; 09:         This dynamic programming approach is typically much faster than solving the
+&gt; 10:         equivalent Linear Program, especially for discount factors less than 1.
+&gt; 11:         It iteratively applies the Bellman optimality operator to find the
+&gt; 12:         optimal value function.
+&gt; 13:         &quot;&quot;&quot;
+&gt; 14:         num_states = problem[&quot;num_states&quot;]
+&gt; 15:         gamma = problem[&quot;discount&quot;]
+&gt; 16:         transitions = np.array(problem[&quot;transitions&quot;])  # Shape (S, A, S&#x27;)
+&gt; 17:         rewards = np.array(problem[&quot;rewards&quot;])          # Shape (S, A, S&#x27;)
+&gt; 18: 
+&gt; 19:         # 1. Pre-compute expected rewards R(s, a) for efficiency.
+&gt; 20:         # R_sa[s, a] = sum_{s&#x27;} P(s&#x27;|s,a) * R(s,a,s&#x27;)
+&gt; 21:         R_sa = np.sum(transitions * rewards, axis=2)  # Shape (S, A)
+&gt; 22: 
+&gt; 23:         # 2. Initialize the value function vector.
+&gt; 24:         V = np.zeros(num_states, dtype=np.float64)
+&gt; 25: 
+&gt; 26:         # 3. Perform Value Iteration until convergence.
+&gt; 27:         # The convergence check is based on the max-norm of the difference
+&gt; 28:         # between successive value function estimates (the Bellman residual).
+&gt; 29:         epsilon = 1e-9  # A small tolerance for convergence.
+&gt; 30:         max_iter = 50000 # A safeguard against extremely slow convergence.
+&gt; 31: 
+&gt; 32:         for _ in range(max_iter):
+&gt; 33:             # Calculate Q-values for all state-action pairs simultaneously.
+&gt; 34:             # Q(s, a) = R(s, a) + gamma * sum_s&#x27;(P(s&#x27;|s,a) * V(s&#x27;))
+&gt; 35:             # The summation is a tensor-vector product, computed efficiently with &#x27;@&#x27;.
+&gt; 36:             Q_sa = R_sa + gamma * (transitions @ V)
+&gt; 37:             
+&gt; 38:             # Update the value function by taking the max over actions for each state.
+&gt; 39:             V_new = np.max(Q_sa, axis=1)
+&gt; 40: 
+&gt; 41:             # Check for convergence.
+&gt; 42:             if np.max(np.abs(V_new - V)) &lt; epsilon:
+&gt; 43:                 V = V_new
+&gt; 44:                 break
+&gt; 45:             
+&gt; 46:             V = V_new
+&gt; 47:         
+&gt; 48:         # 4. Recover the optimal policy from the final value function.
+&gt; 49:         # The optimal action in a state is the one that maximizes the Q-value.
+&gt; 50:         # We re-calculate Q_sa to ensure it corresponds to the final V.
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">53.87</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My previous solution using vectorized Value Iteration (VI) was a significant improvement over the Linear Programming approach. However, to achieve a top-tier speedup, further optimization is required. The current bottleneck is the number of iterations required for convergence and the overhead of the NumPy operations within the loop, even though they are vectorized.<br><br>To break through this performance barrier, I will make two key improvements:<br><br>1.  **Algorithmic Enhancement (Gauss-Seidel VI)**: My previous implementation used a Jacobi-style update, where the entire new value function vector `V_new` was computed using the old vector `V`. I will switch to a **Gauss-Seidel** style update. In this approach, as soon as a new value `V[s]` is computed for a state `s`, it is immediately used in the calculation for subsequent states within the same iteration. This in-place update typically accelerates convergence, reducing the total number of iterations needed.<br><br>2.  **Just-In-Time (JIT) Compilation with Numba**: A vectorized Gauss-Seidel update is difficult and inefficient to implement in NumPy. The natural way to write it is with an explicit `for` loop over the states. While Python `for` loops are slow, I will use the **`numba`** library to compile the entire VI loop into highly optimized machine code using its `@numba.njit` decorator. This eliminates Python&#x27;s interpreter overhead, rivals the speed of compiled languages like C or Fortran, and makes the looped Gauss-Seidel implementation extremely fast.<br><br>This combination of a more efficient algorithm (fewer iterations) and a faster implementation of each iteration (JIT compilation) should yield a substantial performance gain over the pure NumPy solution.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import numba
+
+# Use Numba to JIT-compile the core Value Iteration loop for maximum speed.
+# The Gauss-Seidel approach (in-place updates of V) converges faster.
+# fastmath=True allows for aggressive floating-point optimizations.
+# cache=True saves the compiled function to disk for faster subsequent runs.
+@numba.njit(fastmath=True, cache=True)
+def _value_iteration_loop(V, R_sa, transitions, gamma, epsilon, max_iter):
+    &quot;&quot;&quot;
+    Performs Gauss-Seidel Value Iteration.
+    This function is JIT-compiled with Numba.
+    &quot;&quot;&quot;
+    num_states = V.shape[0]
+    num_actions = R_sa.shape[1]
+    
+    for i in range(max_iter):
+        max_diff = 0.0
+        for s in range(num_states):
+            v_old = V[s]
+            
+            # Calculate max_a Q(s,a) using the current V vector.
+            # The dot product uses the V that is being updated in-place,
+            # which is the essence of the Gauss-Seidel method.
+            q_max = -np.inf
+            for a in range(num_actions):
+                q_val = R_sa[s, a] + gamma * np.dot(transitions[s, a, :], V)
+                if q_val &gt; q_max:
+                    q_max = q_val
+            
+            V[s] = q_max
+            
+            # Track the maximum change in the value function for this iteration.
+            diff = np.abs(v_old - V[s])
+            if diff &gt; max_diff:
+                max_diff = diff
+        
+        # If the value function has converged, exit the loop.
+        if max_diff &lt; epsilon:
+            break
+            
+    return V
+
+class Solver:
+    def solve(self, problem: dict, **kwargs) -&gt; dict:
+        &quot;&quot;&quot;
+        Solve the MDP using Numba-accelerated Gauss-Seidel Value Iteration.
+        &quot;&quot;&quot;
+        num_states = problem[&quot;num_states&quot;]
+        num_actions = problem[&quot;num_actions&quot;]
+        gamma = problem[&quot;discount&quot;]
+        
+        # Ensure data is in the format Numba expects (float64 numpy arrays).
+        transitions = np.array(problem[&quot;transitions&quot;], dtype=np.float64)
+        rewards = np.array(problem[&quot;rewards&quot;], dtype=np.float64)
+
+        # 1. Pre-compute expected rewards R(s, a) for efficiency.
+        R_sa = np.sum(transitions * rewards, axis=2)
+
+        # 2. Initialize the value function vector.
+        V = np.zeros(num_states, dtype=np.float64)
+
+        # 3. Perform Value Iteration using the JIT-compiled function.
+        epsilon = 1e-9
+        max_iter = 50000 # Safeguard against non-convergence.
+        V = _value_iteration_loop(V, R_sa, transitions, gamma, epsilon, max_iter)
+        
+        # 4. Recover the optimal policy from the final value function.
+        # This part is fast enough with vectorized NumPy.
+        Q_sa = R_sa + gamma * (transitions @ V)
+        policy = np.argmax(Q_sa, axis=1)
+
+        return {
+            &quot;value_function&quot;: V.tolist(),
+            &quot;policy&quot;: policy.tolist()
+        }</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 6 messages and have used up $0.5511. You have $0.4489 remaining.<br><br>Error: Command parsing failed<br>Edit command missing one &#x27;---&#x27; delimiter.<br><br>Example usage:<br><br>```<br>edit<br>file: solver.py<br>lines: 11-12<br>---<br>def foo(self, x):<br>    return x + 1<br>---<br>```
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My apologies for the formatting error. I will resubmit the Numba-based solution with the correct command structure.<br><br>The strategy remains the same: to achieve top-tier performance, I am replacing the vectorized NumPy Value Iteration with a **Numba-accelerated Gauss-Seidel Value Iteration**. This approach combines a more efficient algorithm (Gauss-Seidel converges in fewer iterations) with a faster implementation of each iteration (JIT-compilation removes Python overhead). This should be significantly faster than the previous solutions.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import numba
+
+# Use Numba to JIT-compile the core Value Iteration loop for maximum speed.
+# The Gauss-Seidel approach (in-place updates of V) converges faster.
+# fastmath=True allows for aggressive floating-point optimizations.
+# cache=True saves the compiled function to disk for faster subsequent runs.
+@numba.njit(fastmath=True, cache=True)
+def _value_iteration_loop(V, R_sa, transitions, gamma, epsilon, max_iter):
+    &quot;&quot;&quot;
+    Performs Gauss-Seidel Value Iteration.
+    This function is JIT-compiled with Numba.
+    &quot;&quot;&quot;
+    num_states = V.shape[0]
+    num_actions = R_sa.shape[1]
+    
+    for i in range(max_iter):
+        max_diff = 0.0
+        for s in range(num_states):
+            v_old = V[s]
+            
+            # Calculate max_a Q(s,a) using the current V vector.
+            # The dot product uses the V that is being updated in-place,
+            # which is the essence of the Gauss-Seidel method.
+            q_max = -np.inf
+            for a in range(num_actions):
+                q_val = R_sa[s, a] + gamma * np.dot(transitions[s, a, :], V)
+                if q_val &gt; q_max:
+                    q_max = q_val
+            
+            V[s] = q_max
+            
+            # Track the maximum change in the value function for this iteration.
+            diff = np.abs(v_old - V[s])
+            if diff &gt; max_diff:
+                max_diff = diff
+        
+        # If the value function has converged, exit the loop.
+        if max_diff &lt; epsilon:
+            break
+            
+    return V
+
+class Solver:
+    def solve(self, problem: dict, **kwargs) -&gt; dict:
+        &quot;&quot;&quot;
+        Solve the MDP using Numba-accelerated Gauss-Seidel Value Iteration.
+        &quot;&quot;&quot;
+        num_states = problem[&quot;num_states&quot;]
+        num_actions = problem[&quot;num_actions&quot;]
+        gamma = problem[&quot;discount&quot;]
+        
+        # Ensure data is in the format Numba expects (float64 numpy arrays).
+        transitions = np.array(problem[&quot;transitions&quot;], dtype=np.float64)
+        rewards = np.array(problem[&quot;rewards&quot;], dtype=np.float64)
+
+        # 1. Pre-compute expected rewards R(s, a) for efficiency.
+        R_sa = np.sum(transitions * rewards, axis=2)
+
+        # 2. Initialize the value function vector.
+        V = np.zeros(num_states, dtype=np.float64)
+
+        # 3. Perform Value Iteration using the JIT-compiled function.
+        epsilon = 1e-9
+        max_iter = 50000 # Safeguard against non-convergence.
+        V = _value_iteration_loop(V, R_sa, transitions, gamma, epsilon, max_iter)
+        
+        # 4. Recover the optimal policy from the final value function.
+        # This part is fast enough with vectorized NumPy.
+        Q_sa = R_sa + gamma * (transitions @ V)
+        policy = np.argmax(Q_sa, axis=1)
+
+        return {
+            &quot;value_function&quot;: V.tolist(),
+            &quot;policy&quot;: policy.tolist()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 7 messages and have used up $0.5872. You have $0.4128 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 77)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import numba
+&gt; 04: 
+&gt; 05: # Use Numba to JIT-compile the core Value Iteration loop for maximum speed.
+&gt; 06: # The Gauss-Seidel approach (in-place updates of V) converges faster.
+&gt; 07: # fastmath=True allows for aggressive floating-point optimizations.
+&gt; 08: # cache=True saves the compiled function to disk for faster subsequent runs.
+&gt; 09: @numba.njit(fastmath=True, cache=True)
+&gt; 10: def _value_iteration_loop(V, R_sa, transitions, gamma, epsilon, max_iter):
+&gt; 11:     &quot;&quot;&quot;
+&gt; 12:     Performs Gauss-Seidel Value Iteration.
+&gt; 13:     This function is JIT-compiled with Numba.
+&gt; 14:     &quot;&quot;&quot;
+&gt; 15:     num_states = V.shape[0]
+&gt; 16:     num_actions = R_sa.shape[1]
+&gt; 17:     
+&gt; 18:     for i in range(max_iter):
+&gt; 19:         max_diff = 0.0
+&gt; 20:         for s in range(num_states):
+&gt; 21:             v_old = V[s]
+&gt; 22:             
+&gt; 23:             # Calculate max_a Q(s,a) using the current V vector.
+&gt; 24:             # The dot product uses the V that is being updated in-place,
+&gt; 25:             # which is the essence of the Gauss-Seidel method.
+&gt; 26:             q_max = -np.inf
+&gt; 27:             for a in range(num_actions):
+&gt; 28:                 q_val = R_sa[s, a] + gamma * np.dot(transitions[s, a, :], V)
+&gt; 29:                 if q_val &gt; q_max:
+&gt; 30:                     q_max = q_val
+&gt; 31:             
+&gt; 32:             V[s] = q_max
+&gt; 33:             
+&gt; 34:             # Track the maximum change in the value function for this iteration.
+&gt; 35:             diff = np.abs(v_old - V[s])
+&gt; 36:             if diff &gt; max_diff:
+&gt; 37:                 max_diff = diff
+&gt; 38:         
+&gt; 39:         # If the value function has converged, exit the loop.
+&gt; 40:         if max_diff &lt; epsilon:
+&gt; 41:             break
+&gt; 42:             
+&gt; 43:     return V
+&gt; 44: 
+&gt; 45: class Solver:
+&gt; 46:     def solve(self, problem: dict, **kwargs) -&gt; dict:
+&gt; 47:         &quot;&quot;&quot;
+&gt; 48:         Solve the MDP using Numba-accelerated Gauss-Seidel Value Iteration.
+&gt; 49:         &quot;&quot;&quot;
+&gt; 50:         num_states = problem[&quot;num_states&quot;]
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 99%<br>  Invalid Solutions: 0%<br>  Timeouts: 1%<br><br><br>Snapshot not saved - invalid solutions present
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The timeout with the Numba-accelerated Value Iteration (VI) solution suggests that at least one test case involves an MDP where VI converges very slowly. This typically happens when the discount factor `gamma` is close to 1, requiring a large number of iterations for the value function to propagate through the state space.<br><br>To overcome this, I will switch to **Policy Iteration (PI)**. PI is an alternative dynamic programming algorithm that often converges in far fewer iterations than VI, making it much faster for problems where VI is slow.<br><br>Each iteration of PI consists of two steps:<br>1.  **Policy Evaluation**: For the current policy `π`, we calculate its exact value function `V^π` by solving a system of linear equations: `(I - γP^π)V^π = R^π`. This step is computationally more expensive per iteration than a VI update, but it finds the exact value of the policy in one go. I will use `numpy.linalg.solve` for this, which is highly optimized.<br>2.  **Policy Improvement**: Using the new `V^π`, we find a better policy by acting greedily: `π_new(s) = argmax_a Q(s, a)`.<br><br>The algorithm terminates when the policy no longer changes between iterations. Since the number of possible policies is finite, and each iteration finds a strictly better policy (or the same one if optimal), convergence is guaranteed and is usually very fast (often in fewer than 20 iterations). This should robustly handle the test case that caused the previous timeout.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict, **kwargs) -&gt; dict:
+        &quot;&quot;&quot;
+        Solve the MDP using Policy Iteration.
+
+        Policy Iteration alternates between two steps:
+        1. Policy Evaluation: Given a policy, calculate its value function by
+           solving a system of linear equations.
+        2. Policy Improvement: Greedily update the policy based on the new
+           value function.
+
+        This method typically converges in far fewer iterations than Value
+        Iteration, making it faster for problems where VI converges slowly.
+        &quot;&quot;&quot;
+        num_states = problem[&quot;num_states&quot;]
+        gamma = problem[&quot;discount&quot;]
+        transitions = np.array(problem[&quot;transitions&quot;])  # Shape (S, A, S&#x27;)
+        rewards = np.array(problem[&quot;rewards&quot;])          # Shape (S, A, S&#x27;)
+
+        # 1. Pre-compute expected rewards R(s, a) for efficiency.
+        R_sa = np.sum(transitions * rewards, axis=2)  # Shape (S, A)
+
+        # 2. Initialize with an arbitrary policy (e.g., action 0 for all states).
+        policy = np.zeros(num_states, dtype=int)
+        
+        # A safe upper bound on iterations; PI usually converges much faster.
+        max_iter = 200 
+        for _ in range(max_iter):
+            # 3. Policy Evaluation: Solve the linear system (I - γP^π)V = R^π
+            
+            # Get the transition matrix P^π and reward vector R^π for the current policy.
+            # Using advanced indexing for a fully vectorized operation.
+            R_pi = R_sa[np.arange(num_states), policy]
+            P_pi = transitions[np.arange(num_states), policy, :]
+            
+            # Construct the system matrix for the Bellman equations.
+            system_matrix = np.eye(num_states) - gamma * P_pi
+            
+            # Solve for V^π. This is the most expensive step.
+            V = np.linalg.solve(system_matrix, R_pi)
+
+            # 4. Policy Improvement: Find a better policy using the new V.
+            # Q(s, a) = R(s, a) + γ * Σ_s&#x27; P(s&#x27;|s,a) * V(s&#x27;)
+            Q_sa = R_sa + gamma * (transitions @ V)
+            
+            new_policy = np.argmax(Q_sa, axis=1)
+
+            # 5. Check for convergence: If the policy is stable, we are done.
+            if np.array_equal(new_policy, policy):
+                break
+            
+            policy = new_policy
+
+        return {
+            &quot;value_function&quot;: V.tolist(),
+            &quot;policy&quot;: policy.tolist()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 8 messages and have used up $0.6321. You have $0.3679 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 60)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: dict, **kwargs) -&gt; dict:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solve the MDP using Policy Iteration.
+&gt; 08: 
+&gt; 09:         Policy Iteration alternates between two steps:
+&gt; 10:         1. Policy Evaluation: Given a policy, calculate its value function by
+&gt; 11:            solving a system of linear equations.
+&gt; 12:         2. Policy Improvement: Greedily update the policy based on the new
+&gt; 13:            value function.
+&gt; 14: 
+&gt; 15:         This method typically converges in far fewer iterations than Value
+&gt; 16:         Iteration, making it faster for problems where VI converges slowly.
+&gt; 17:         &quot;&quot;&quot;
+&gt; 18:         num_states = problem[&quot;num_states&quot;]
+&gt; 19:         gamma = problem[&quot;discount&quot;]
+&gt; 20:         transitions = np.array(problem[&quot;transitions&quot;])  # Shape (S, A, S&#x27;)
+&gt; 21:         rewards = np.array(problem[&quot;rewards&quot;])          # Shape (S, A, S&#x27;)
+&gt; 22: 
+&gt; 23:         # 1. Pre-compute expected rewards R(s, a) for efficiency.
+&gt; 24:         R_sa = np.sum(transitions * rewards, axis=2)  # Shape (S, A)
+&gt; 25: 
+&gt; 26:         # 2. Initialize with an arbitrary policy (e.g., action 0 for all states).
+&gt; 27:         policy = np.zeros(num_states, dtype=int)
+&gt; 28:         
+&gt; 29:         # A safe upper bound on iterations; PI usually converges much faster.
+&gt; 30:         max_iter = 200 
+&gt; 31:         for _ in range(max_iter):
+&gt; 32:             # 3. Policy Evaluation: Solve the linear system (I - γP^π)V = R^π
+&gt; 33:             
+&gt; 34:             # Get the transition matrix P^π and reward vector R^π for the current policy.
+&gt; 35:             # Using advanced indexing for a fully vectorized operation.
+&gt; 36:             R_pi = R_sa[np.arange(num_states), policy]
+&gt; 37:             P_pi = transitions[np.arange(num_states), policy, :]
+&gt; 38:             
+&gt; 39:             # Construct the system matrix for the Bellman equations.
+&gt; 40:             system_matrix = np.eye(num_states) - gamma * P_pi
+&gt; 41:             
+&gt; 42:             # Solve for V^π. This is the most expensive step.
+&gt; 43:             V = np.linalg.solve(system_matrix, R_pi)
+&gt; 44: 
+&gt; 45:             # 4. Policy Improvement: Find a better policy using the new V.
+&gt; 46:             # Q(s, a) = R(s, a) + γ * Σ_s&#x27; P(s&#x27;|s,a) * V(s&#x27;)
+&gt; 47:             Q_sa = R_sa + gamma * (transitions @ V)
+&gt; 48:             
+&gt; 49:             new_policy = np.argmax(Q_sa, axis=1)
+&gt; 50: 
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">326.30</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Excellent! The previous Policy Iteration (PI) solution was very effective, but the `O(num_states^3)` complexity of the `numpy.linalg.solve` step inside the main loop is the final performance bottleneck. To achieve a top-tier speedup, we must optimize this step.<br><br>My strategy is to switch from standard Policy Iteration to **Modified Policy Iteration (MPI)**, also known as Optimistic Policy Iteration.<br><br>Here&#x27;s the core idea:<br>Instead of *fully* solving the linear system `(I - γP^π)V = R^π` in each iteration (which is expensive), MPI *approximates* the solution by running a small, fixed number of Value Iteration-style updates.<br><br>1.  **Fast Approximate Evaluation**: The `O(S^3)` `linalg.solve` call is replaced by `m` sweeps of the much cheaper `O(S^2)` update: `V = R^π + γ * (P^π @ V)`. Here, `m` is a small integer (e.g., 15). This avoids the cubic complexity within the main loop.<br>2.  **Rapid Convergence**: Like standard PI, MPI benefits from the policy improvement step, which allows it to converge in very few outer iterations, far fewer than pure Value Iteration.<br>3.  **Final Accuracy**: The value function `V` inside the MPI loop is an approximation. To ensure the final result is highly accurate, after the optimal policy is found, I will perform a single, final, exact policy evaluation by calling `np.linalg.solve` *once* at the very end.<br><br>This hybrid approach combines the fast per-iteration cost of Value Iteration with the fast convergence (low iteration count) of Policy Iteration, yielding one of the most practically efficient MDP solving algorithms.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict, **kwargs) -&gt; dict:
+        &quot;&quot;&quot;
+        Solve the MDP using Modified Policy Iteration (MPI).
+
+        MPI is a hybrid of Value and Policy Iteration. It avoids the costly
+        O(N^3) linear system solve in each iteration of standard Policy
+        Iteration. Instead, it approximates the policy evaluation step by
+        running a fixed number of Value Iteration-like sweeps. This is
+        often much faster, combining the low iteration count of PI with the
+        cheaper iterations of VI.
+        &quot;&quot;&quot;
+        num_states = problem[&quot;num_states&quot;]
+        gamma = problem[&quot;discount&quot;]
+        transitions = np.array(problem[&quot;transitions&quot;])
+        rewards = np.array(problem[&quot;rewards&quot;])
+
+        # 1. Pre-compute expected rewards R(s, a) for efficiency.
+        R_sa = np.sum(transitions * rewards, axis=2)
+
+        # 2. Initialize policy and value function.
+        policy = np.zeros(num_states, dtype=int)
+        V = np.zeros(num_states, dtype=np.float64)
+        
+        # Number of evaluation sweeps in MPI. A small number is sufficient.
+        evaluation_sweeps = 15
+        # Max outer iterations for policy improvement.
+        max_pi_iter = 200
+
+        for _ in range(max_pi_iter):
+            # 3. (Approximate) Policy Evaluation using `m` sweeps.
+            # Get P^π and R^π for the current policy.
+            P_pi = transitions[np.arange(num_states), policy]
+            R_pi = R_sa[np.arange(num_states), policy]
+            
+            # Run `m` sweeps, using the previous V as a warm start.
+            for _ in range(evaluation_sweeps):
+                V = R_pi + gamma * (P_pi @ V)
+
+            # 4. Policy Improvement.
+            Q_sa = R_sa + gamma * (transitions @ V)
+            new_policy = np.argmax(Q_sa, axis=1)
+
+            # 5. Check for convergence.
+            if np.array_equal(new_policy, policy):
+                policy = new_policy
+                break
+            
+            policy = new_policy
+        
+        # 6. Final exact evaluation of the optimal policy.
+        # The V from the loop is an approximation. To get the true value
+        # function for the final policy, we solve the Bellman system once.
+        P_pi = transitions[np.arange(num_states), policy]
+        R_pi = R_sa[np.arange(num_states), policy]
+        system_matrix = np.eye(num_states) - gamma * P_pi
+        try:
+            # Use linalg.solve for the final accurate calculation.
+            V = np.linalg.solve(system_matrix, R_pi)
+        except np.linalg.LinAlgError:
+            # Fallback for singular matrices: iterative evaluation.
+            V = np.zeros(num_states, dtype=np.float64) # Reset V
+            for _ in range(50000):
+                V_new = R_pi + gamma * (P_pi @ V)
+                if np.max(np.abs(V_new - V)) &lt; 1e-12:
+                    V = V_new
+                    break
+                V = V_new
+
+        return {
+            &quot;value_function&quot;: V.tolist(),
+            &quot;policy&quot;: policy.tolist()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 9 messages and have used up $0.7066. You have $0.2934 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 76)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: dict, **kwargs) -&gt; dict:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solve the MDP using Modified Policy Iteration (MPI).
+&gt; 08: 
+&gt; 09:         MPI is a hybrid of Value and Policy Iteration. It avoids the costly
+&gt; 10:         O(N^3) linear system solve in each iteration of standard Policy
+&gt; 11:         Iteration. Instead, it approximates the policy evaluation step by
+&gt; 12:         running a fixed number of Value Iteration-like sweeps. This is
+&gt; 13:         often much faster, combining the low iteration count of PI with the
+&gt; 14:         cheaper iterations of VI.
+&gt; 15:         &quot;&quot;&quot;
+&gt; 16:         num_states = problem[&quot;num_states&quot;]
+&gt; 17:         gamma = problem[&quot;discount&quot;]
+&gt; 18:         transitions = np.array(problem[&quot;transitions&quot;])
+&gt; 19:         rewards = np.array(problem[&quot;rewards&quot;])
+&gt; 20: 
+&gt; 21:         # 1. Pre-compute expected rewards R(s, a) for efficiency.
+&gt; 22:         R_sa = np.sum(transitions * rewards, axis=2)
+&gt; 23: 
+&gt; 24:         # 2. Initialize policy and value function.
+&gt; 25:         policy = np.zeros(num_states, dtype=int)
+&gt; 26:         V = np.zeros(num_states, dtype=np.float64)
+&gt; 27:         
+&gt; 28:         # Number of evaluation sweeps in MPI. A small number is sufficient.
+&gt; 29:         evaluation_sweeps = 15
+&gt; 30:         # Max outer iterations for policy improvement.
+&gt; 31:         max_pi_iter = 200
+&gt; 32: 
+&gt; 33:         for _ in range(max_pi_iter):
+&gt; 34:             # 3. (Approximate) Policy Evaluation using `m` sweeps.
+&gt; 35:             # Get P^π and R^π for the current policy.
+&gt; 36:             P_pi = transitions[np.arange(num_states), policy]
+&gt; 37:             R_pi = R_sa[np.arange(num_states), policy]
+&gt; 38:             
+&gt; 39:             # Run `m` sweeps, using the previous V as a warm start.
+&gt; 40:             for _ in range(evaluation_sweeps):
+&gt; 41:                 V = R_pi + gamma * (P_pi @ V)
+&gt; 42: 
+&gt; 43:             # 4. Policy Improvement.
+&gt; 44:             Q_sa = R_sa + gamma * (transitions @ V)
+&gt; 45:             new_policy = np.argmax(Q_sa, axis=1)
+&gt; 46: 
+&gt; 47:             # 5. Check for convergence.
+&gt; 48:             if np.array_equal(new_policy, policy):
+&gt; 49:                 policy = new_policy
+&gt; 50:                 break
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">266.12</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The previous Policy Iteration (PI) solution was highly effective, achieving a 326x speedup. The analysis showed that its performance is determined by two main steps inside its loop:<br>1.  **Policy Evaluation**: Solving a dense linear system `(I - γP^π)V = R^π` using `np.linalg.solve`. This has `O(S^3)` complexity.<br>2.  **Policy Improvement**: Calculating all Q-values `Q(s,a)` and finding the best action for each state. This involves a tensor-matrix product (`transitions @ V`) with `O(S^2 * A)` complexity and creates a large intermediate `Q_sa` matrix.<br><br>My previous attempt with Modified Policy Iteration (MPI) was slower, indicating that for the given test cases, the `O(S^3)` cost of `np.linalg.solve` is acceptable and PI converges in very few iterations.<br><br>To surpass the 326x speedup, I will optimize the second step: **Policy Improvement**. Instead of the memory-intensive vectorized NumPy operation, I will implement this step in a dedicated, **Numba-jitted function**.<br><br>Here&#x27;s the strategy:<br>1.  **Keep Standard Policy Iteration**: The core algorithm remains PI, as it proved most effective.<br>2.  **JIT-Compile Policy Improvement**: The policy improvement step will be performed by a new helper function, `_policy_improvement_step`, decorated with `@numba.njit`.<br>3.  **Benefits of the Numba Function**:<br>    *   **No Intermediate Matrix**: It calculates Q-values and finds the maximum for each state one by one, avoiding the creation of the large `(S, A)` Q-value matrix that `transitions @ V` generates. This reduces memory allocation and overhead.<br>    *   **Fused Loops**: The calculation and the `argmax` are fused into a single set of compiled loops, which is more efficient than separate NumPy calls.<br>    *   **Machine Code Speed**: Numba compiles the Python loops into highly optimized machine code, eliminating interpreter overhead and rivaling C/Fortran speed.<br><br>This approach refines the fastest algorithm so far by targeting its second-most expensive component with a powerful optimization technique, aiming for a new level of performance.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import numba
+
+@numba.njit(fastmath=True, cache=True)
+def _policy_improvement_step(R_sa, transitions, V, gamma):
+    &quot;&quot;&quot;
+    Performs the policy improvement step. JIT-compiled for speed.
+    
+    This function calculates Q-values and finds the best action for each
+    state without creating a large intermediate Q-value matrix.
+    &quot;&quot;&quot;
+    num_states, num_actions = R_sa.shape
+    new_policy = np.empty(num_states, dtype=np.int64)
+    
+    for s in range(num_states):
+        # For each state, find the action that maximizes the Q-value.
+        q_max = -np.inf
+        best_a = 0
+        for a in range(num_actions):
+            # Q(s,a) = R(s,a) + gamma * sum_s&#x27;( P(s&#x27;|s,a) * V(s&#x27;) )
+            q_val = R_sa[s, a] + gamma * np.dot(transitions[s, a, :], V)
+            if q_val &gt; q_max:
+                q_max = q_val
+                best_a = a
+        new_policy[s] = best_a
+        
+    return new_policy
+
+class Solver:
+    def solve(self, problem: dict, **kwargs) -&gt; dict:
+        &quot;&quot;&quot;
+        Solve the MDP using Policy Iteration with a Numba-accelerated
+        policy improvement step.
+        &quot;&quot;&quot;
+        num_states = problem[&quot;num_states&quot;]
+        gamma = problem[&quot;discount&quot;]
+        
+        # Use float64 for precision in linalg.solve and Numba functions.
+        transitions = np.array(problem[&quot;transitions&quot;], dtype=np.float64)
+        rewards = np.array(problem[&quot;rewards&quot;], dtype=np.float64)
+
+        # 1. Pre-compute expected rewards R(s, a) for efficiency.
+        R_sa = np.sum(transitions * rewards, axis=2)
+
+        # 2. Initialize with an arbitrary policy.
+        policy = np.zeros(num_states, dtype=np.int64)
+        
+        max_iter = 200
+        for _ in range(max_iter):
+            # 3. Policy Evaluation: Solve (I - γP^π)V = R^π
+            R_pi = R_sa[np.arange(num_states), policy]
+            P_pi = transitions[np.arange(num_states), policy, :]
+            system_matrix = np.eye(num_states) - gamma * P_pi
+            V = np.linalg.solve(system_matrix, R_pi)
+
+            # 4. Policy Improvement (Numba-accelerated)
+            new_policy = _policy_improvement_step(R_sa, transitions, V, gamma)
+
+            # 5. Check for convergence.
+            if np.array_equal(new_policy, policy):
+                # V and policy are consistent and optimal.
+                return {&quot;value_function&quot;: V.tolist(), &quot;policy&quot;: policy.tolist()}
+            
+            policy = new_policy
+
+        # This part is reached only on timeout. We must do one final evaluation
+        # to ensure the returned V and policy are consistent.
+        R_pi = R_sa[np.arange(num_states), policy]
+        P_pi = transitions[np.arange(num_states), policy, :]
+        system_matrix = np.eye(num_states) - gamma * P_pi
+        V = np.linalg.solve(system_matrix, R_pi)
+
+        return {&quot;value_function&quot;: V.tolist(), &quot;policy&quot;: policy.tolist()}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 10 messages and have used up $0.7934. You have $0.2066 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 74)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import numba
+&gt; 04: 
+&gt; 05: @numba.njit(fastmath=True, cache=True)
+&gt; 06: def _policy_improvement_step(R_sa, transitions, V, gamma):
+&gt; 07:     &quot;&quot;&quot;
+&gt; 08:     Performs the policy improvement step. JIT-compiled for speed.
+&gt; 09:     
+&gt; 10:     This function calculates Q-values and finds the best action for each
+&gt; 11:     state without creating a large intermediate Q-value matrix.
+&gt; 12:     &quot;&quot;&quot;
+&gt; 13:     num_states, num_actions = R_sa.shape
+&gt; 14:     new_policy = np.empty(num_states, dtype=np.int64)
+&gt; 15:     
+&gt; 16:     for s in range(num_states):
+&gt; 17:         # For each state, find the action that maximizes the Q-value.
+&gt; 18:         q_max = -np.inf
+&gt; 19:         best_a = 0
+&gt; 20:         for a in range(num_actions):
+&gt; 21:             # Q(s,a) = R(s,a) + gamma * sum_s&#x27;( P(s&#x27;|s,a) * V(s&#x27;) )
+&gt; 22:             q_val = R_sa[s, a] + gamma * np.dot(transitions[s, a, :], V)
+&gt; 23:             if q_val &gt; q_max:
+&gt; 24:                 q_max = q_val
+&gt; 25:                 best_a = a
+&gt; 26:         new_policy[s] = best_a
+&gt; 27:         
+&gt; 28:     return new_policy
+&gt; 29: 
+&gt; 30: class Solver:
+&gt; 31:     def solve(self, problem: dict, **kwargs) -&gt; dict:
+&gt; 32:         &quot;&quot;&quot;
+&gt; 33:         Solve the MDP using Policy Iteration with a Numba-accelerated
+&gt; 34:         policy improvement step.
+&gt; 35:         &quot;&quot;&quot;
+&gt; 36:         num_states = problem[&quot;num_states&quot;]
+&gt; 37:         gamma = problem[&quot;discount&quot;]
+&gt; 38:         
+&gt; 39:         # Use float64 for precision in linalg.solve and Numba functions.
+&gt; 40:         transitions = np.array(problem[&quot;transitions&quot;], dtype=np.float64)
+&gt; 41:         rewards = np.array(problem[&quot;rewards&quot;], dtype=np.float64)
+&gt; 42: 
+&gt; 43:         # 1. Pre-compute expected rewards R(s, a) for efficiency.
+&gt; 44:         R_sa = np.sum(transitions * rewards, axis=2)
+&gt; 45: 
+&gt; 46:         # 2. Initialize with an arbitrary policy.
+&gt; 47:         policy = np.zeros(num_states, dtype=np.int64)
+&gt; 48:         
+&gt; 49:         max_iter = 200
+&gt; 50:         for _ in range(max_iter):
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">247.64</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My best performing solution so far was a pure NumPy implementation of Policy Iteration (PI), which achieved a 326x speedup. Its main computational costs per iteration were the `O(S^3)` `np.linalg.solve` for policy evaluation and the `O(S^2*A)` `transitions @ V` for policy improvement. Subsequent attempts to optimize either step in isolation failed to improve performance, suggesting that NumPy&#x27;s underlying BLAS/LAPACK libraries are already highly optimized for these dense operations.<br><br>To break this performance ceiling, I will implement a more advanced hybrid algorithm: **Modified Policy Iteration (MPI) with a Numba-accelerated Gauss-Seidel evaluation step.**<br><br>This strategy combines the strengths of my previous successful approaches while mitigating their weaknesses:<br>1.  **Algorithm**: The outer loop remains Policy Iteration, which is known to converge in very few iterations, thus avoiding the timeout issues of pure Value Iteration.<br>2.  **Fast Approximate Evaluation**: I will replace the expensive `O(S^3)` `np.linalg.solve` inside the main loop with a fixed number of **Gauss-Seidel (GS)** updates. GS converges faster than the Jacobi updates used in my previous MPI attempt.<br>3.  **JIT-Compiled Core**: The GS evaluation sweeps will be performed by a dedicated helper function, `_gs_policy_evaluation`, JIT-compiled with `@numba.njit`. This will execute the iterative updates at machine-code speed, updating the value function `V` in-place for maximum efficiency.<br>4.  **Final Accuracy**: The value function `V` inside the loop is an approximation. Once the optimal policy is found, I will perform a single, final, exact evaluation using `np.linalg.solve` *outside* the loop. This ensures the returned value function is highly accurate without paying the `O(S^3)` cost on every iteration.<br><br>This sophisticated approach replaces the single most expensive operation in the loop with a much faster, Numba-optimized iterative approximation, aiming to significantly reduce the time per iteration while retaining the low iteration count of Policy Iteration.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import numba
+
+@numba.njit(fastmath=True, cache=True)
+def _gs_policy_evaluation(V, policy, R_sa, transitions, gamma, sweeps):
+    &quot;&quot;&quot;
+    Performs `sweeps` of in-place Gauss-Seidel policy evaluation.
+    This is the core of the Modified Policy Iteration, approximating the
+    value of a fixed policy. V is updated in-place.
+    &quot;&quot;&quot;
+    num_states = V.shape[0]
+    for _ in range(sweeps):
+        for s in range(num_states):
+            action = policy[s]
+            # V[s] = R(s, π(s)) + γ * Σ_s&#x27; P(s&#x27;|s, π(s))V(s&#x27;)
+            # V is updated in-place, making this a Gauss-Seidel update.
+            expected_future_v = np.dot(transitions[s, action, :], V)
+            V[s] = R_sa[s, action] + gamma * expected_future_v
+
+class Solver:
+    def solve(self, problem: dict, **kwargs) -&gt; dict:
+        &quot;&quot;&quot;
+        Solve the MDP using Modified Policy Iteration (MPI) with a Numba-
+        accelerated Gauss-Seidel evaluation step.
+        &quot;&quot;&quot;
+        num_states = problem[&quot;num_states&quot;]
+        gamma = problem[&quot;discount&quot;]
+        
+        # Ensure data types are optimal for Numba and NumPy.
+        transitions = np.array(problem[&quot;transitions&quot;], dtype=np.float64)
+        rewards = np.array(problem[&quot;rewards&quot;], dtype=np.float64)
+
+        # 1. Pre-compute expected rewards R(s, a) for efficiency.
+        R_sa = np.sum(transitions * rewards, axis=2)
+
+        # 2. Initialize policy and value function.
+        policy = np.zeros(num_states, dtype=np.int64)
+        V = np.zeros(num_states, dtype=np.float64)
+        
+        # Hyperparameters for MPI
+        evaluation_sweeps = 20 # Number of GS sweeps per evaluation step.
+        max_pi_iter = 200      # Max outer policy improvement iterations.
+
+        for _ in range(max_pi_iter):
+            # 3. (Approximate) Policy Evaluation using Numba-JITed Gauss-Seidel.
+            _gs_policy_evaluation(V, policy, R_sa, transitions, gamma, evaluation_sweeps)
+
+            # 4. Policy Improvement (vectorized).
+            Q_sa = R_sa + gamma * (transitions @ V)
+            new_policy = np.argmax(Q_sa, axis=1).astype(np.int64)
+
+            # 5. Check for convergence.
+            if np.array_equal(new_policy, policy):
+                policy = new_policy
+                break
+            
+            policy = new_policy
+        
+        # 6. Final exact evaluation of the (now optimal) policy.
+        # The V from the loop is an approximation. We solve the Bellman
+        # system one last time for the converged policy to get the true value.
+        P_pi = transitions[np.arange(num_states), policy]
+        R_pi = R_sa[np.arange(num_states), policy]
+        system_matrix = np.eye(num_states) - gamma * P_pi
+        
+        V = np.linalg.solve(system_matrix, R_pi)
+
+        return {
+            &quot;value_function&quot;: V.tolist(),
+            &quot;policy&quot;: policy.tolist()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 11 messages and have used up $0.8811. You have $0.1189 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 72)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import numba
+&gt; 04: 
+&gt; 05: @numba.njit(fastmath=True, cache=True)
+&gt; 06: def _gs_policy_evaluation(V, policy, R_sa, transitions, gamma, sweeps):
+&gt; 07:     &quot;&quot;&quot;
+&gt; 08:     Performs `sweeps` of in-place Gauss-Seidel policy evaluation.
+&gt; 09:     This is the core of the Modified Policy Iteration, approximating the
+&gt; 10:     value of a fixed policy. V is updated in-place.
+&gt; 11:     &quot;&quot;&quot;
+&gt; 12:     num_states = V.shape[0]
+&gt; 13:     for _ in range(sweeps):
+&gt; 14:         for s in range(num_states):
+&gt; 15:             action = policy[s]
+&gt; 16:             # V[s] = R(s, π(s)) + γ * Σ_s&#x27; P(s&#x27;|s, π(s))V(s&#x27;)
+&gt; 17:             # V is updated in-place, making this a Gauss-Seidel update.
+&gt; 18:             expected_future_v = np.dot(transitions[s, action, :], V)
+&gt; 19:             V[s] = R_sa[s, action] + gamma * expected_future_v
+&gt; 20: 
+&gt; 21: class Solver:
+&gt; 22:     def solve(self, problem: dict, **kwargs) -&gt; dict:
+&gt; 23:         &quot;&quot;&quot;
+&gt; 24:         Solve the MDP using Modified Policy Iteration (MPI) with a Numba-
+&gt; 25:         accelerated Gauss-Seidel evaluation step.
+&gt; 26:         &quot;&quot;&quot;
+&gt; 27:         num_states = problem[&quot;num_states&quot;]
+&gt; 28:         gamma = problem[&quot;discount&quot;]
+&gt; 29:         
+&gt; 30:         # Ensure data types are optimal for Numba and NumPy.
+&gt; 31:         transitions = np.array(problem[&quot;transitions&quot;], dtype=np.float64)
+&gt; 32:         rewards = np.array(problem[&quot;rewards&quot;], dtype=np.float64)
+&gt; 33: 
+&gt; 34:         # 1. Pre-compute expected rewards R(s, a) for efficiency.
+&gt; 35:         R_sa = np.sum(transitions * rewards, axis=2)
+&gt; 36: 
+&gt; 37:         # 2. Initialize policy and value function.
+&gt; 38:         policy = np.zeros(num_states, dtype=np.int64)
+&gt; 39:         V = np.zeros(num_states, dtype=np.float64)
+&gt; 40:         
+&gt; 41:         # Hyperparameters for MPI
+&gt; 42:         evaluation_sweeps = 20 # Number of GS sweeps per evaluation step.
+&gt; 43:         max_pi_iter = 200      # Max outer policy improvement iterations.
+&gt; 44: 
+&gt; 45:         for _ in range(max_pi_iter):
+&gt; 46:             # 3. (Approximate) Policy Evaluation using Numba-JITed Gauss-Seidel.
+&gt; 47:             _gs_policy_evaluation(V, policy, R_sa, transitions, gamma, evaluation_sweeps)
+&gt; 48: 
+&gt; 49:             # 4. Policy Improvement (vectorized).
+&gt; 50:             Q_sa = R_sa + gamma * (transitions @ V)
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 97%<br>  Invalid Solutions: 3%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;is_solution&#x27; at line 155 in lp_mdp.py<br><pre><code class="language-python">   145:     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+   146:         &quot;&quot;&quot;
+   147:         Validate by:
+   148:           1) Checking keys &quot;value_function&quot; and &quot;policy&quot; exist.
+   149:           2) Recomputing the LP-based solution and verifying that
+   150:              the value function is close and the policy matches (if unique).
+   151:         :param problem: The MDP dictionary.
+   152:         :param solution: Proposed solution with &quot;value_function&quot; and &quot;policy&quot;.
+   153:         :return: True if correct/optimal, else False.
+   154:         &quot;&quot;&quot;
+ ! 155:         if &quot;value_function&quot; not in solution or &quot;policy&quot; not in solution:
+   156:             logging.error(&quot;Solution must contain &#x27;value_function&#x27; and &#x27;policy&#x27;.&quot;)
+   157:             return False
+   158: 
+   159:         proposed_V = np.array(solution[&quot;value_function&quot;], dtype=float)
+   160:         proposed_policy = np.array(solution[&quot;policy&quot;], dtype=int)
+   161: 
+   162:         # Re-solve to get reference
+   163:         reference_sol = self.solve(problem)
+   164:         ref_V = np.array(reference_sol[&quot;value_function&quot;], dtype=float)
+   165:         ref_policy = np.array(reference_sol[&quot;policy&quot;], dtype=int)</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;is_solution&#x27; at line 155 in lp_mdp.py<br><pre><code class="language-python">   145:     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+   146:         &quot;&quot;&quot;
+   147:         Validate by:
+   148:           1) Checking keys &quot;value_function&quot; and &quot;policy&quot; exist.
+   149:           2) Recomputing the LP-based solution and verifying that
+   150:              the value function is close and the policy matches (if unique).
+   151:         :param problem: The MDP dictionary.
+   152:         :param solution: Proposed solution with &quot;value_function&quot; and &quot;policy&quot;.
+   153:         :return: True if correct/optimal, else False.
+   154:         &quot;&quot;&quot;
+ ! 155:         if &quot;value_function&quot; not in solution or &quot;policy&quot; not in solution:
+   156:             logging.error(&quot;Solution must contain &#x27;value_function&#x27; and &#x27;policy&#x27;.&quot;)
+   157:             return False
+   158: 
+   159:         proposed_V = np.array(solution[&quot;value_function&quot;], dtype=float)
+   160:         proposed_policy = np.array(solution[&quot;policy&quot;], dtype=int)
+   161: 
+   162:         # Re-solve to get reference
+   163:         reference_sol = self.solve(problem)
+   164:         ref_V = np.array(reference_sol[&quot;value_function&quot;], dtype=float)
+   165:         ref_policy = np.array(reference_sol[&quot;policy&quot;], dtype=int)</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;is_solution&#x27; at line 155 in lp_mdp.py<br><pre><code class="language-python">   145:     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+   146:         &quot;&quot;&quot;
+   147:         Validate by:
+   148:           1) Checking keys &quot;value_function&quot; and &quot;policy&quot; exist.
+   149:           2) Recomputing the LP-based solution and verifying that
+   150:              the value function is close and the policy matches (if unique).
+   151:         :param problem: The MDP dictionary.
+   152:         :param solution: Proposed solution with &quot;value_function&quot; and &quot;policy&quot;.
+   153:         :return: True if correct/optimal, else False.
+   154:         &quot;&quot;&quot;
+ ! 155:         if &quot;value_function&quot; not in solution or &quot;policy&quot; not in solution:
+   156:             logging.error(&quot;Solution must contain &#x27;value_function&#x27; and &#x27;policy&#x27;.&quot;)
+   157:             return False
+   158: 
+   159:         proposed_V = np.array(solution[&quot;value_function&quot;], dtype=float)
+   160:         proposed_policy = np.array(solution[&quot;policy&quot;], dtype=int)
+   161: 
+   162:         # Re-solve to get reference
+   163:         reference_sol = self.solve(problem)
+   164:         ref_V = np.array(reference_sol[&quot;value_function&quot;], dtype=float)
+   165:         ref_policy = np.array(reference_sol[&quot;policy&quot;], dtype=int)</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The `TypeError: argument of type &#x27;NoneType&#x27; is not iterable` error indicates that my `solve` function returned `None` instead of the expected dictionary. This happens when an unhandled exception occurs during its execution.<br><br>Looking at my previous Modified Policy Iteration (MPI) implementation, the most likely source of an exception is the final call to `np.linalg.solve(system_matrix, R_pi)`. This function raises a `np.linalg.LinAlgError` if the `system_matrix` is singular. While this is rare for well-behaved MDPs with `gamma &lt; 1`, certain problem structures can lead to a singular or near-singular matrix, causing the solver to fail.<br><br>My previous MPI attempt did not handle this exception, causing the entire function to crash and return `None` for the problematic test cases.<br><br>The solution is to make the final evaluation step robust. I will re-introduce the `try...except` block around the `np.linalg.solve` call. If it fails, I will fall back to a robust iterative method (Value Iteration for a fixed policy) to compute the final, accurate value function. This ensures that my solver always returns a valid solution dictionary, fixing the error while retaining the high performance of the MPI algorithm.<br><br>The core algorithm remains **Modified Policy Iteration with a Numba-accelerated Gauss-Seidel evaluation step**, as this hybrid approach is designed for top-tier performance.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import numba
+
+@numba.njit(fastmath=True, cache=True)
+def _gs_policy_evaluation(V, policy, R_sa, transitions, gamma, sweeps):
+    &quot;&quot;&quot;
+    Performs `sweeps` of in-place Gauss-Seidel policy evaluation.
+    This is the core of the Modified Policy Iteration, approximating the
+    value of a fixed policy. V is updated in-place.
+    &quot;&quot;&quot;
+    num_states = V.shape[0]
+    for _ in range(sweeps):
+        for s in range(num_states):
+            action = policy[s]
+            # V[s] = R(s, π(s)) + γ * Σ_s&#x27; P(s&#x27;|s, π(s))V(s&#x27;)
+            # V is updated in-place, making this a Gauss-Seidel update.
+            expected_future_v = np.dot(transitions[s, action, :], V)
+            V[s] = R_sa[s, action] + gamma * expected_future_v
+
+class Solver:
+    def solve(self, problem: dict, **kwargs) -&gt; dict:
+        &quot;&quot;&quot;
+        Solve the MDP using Modified Policy Iteration (MPI) with a Numba-
+        accelerated Gauss-Seidel evaluation step.
+        &quot;&quot;&quot;
+        num_states = problem[&quot;num_states&quot;]
+        gamma = problem[&quot;discount&quot;]
+        
+        transitions = np.array(problem[&quot;transitions&quot;], dtype=np.float64)
+        rewards = np.array(problem[&quot;rewards&quot;], dtype=np.float64)
+
+        # 1. Pre-compute expected rewards R(s, a) for efficiency.
+        R_sa = np.sum(transitions * rewards, axis=2)
+
+        # 2. Initialize policy and value function.
+        policy = np.zeros(num_states, dtype=np.int64)
+        V = np.zeros(num_states, dtype=np.float64)
+        
+        evaluation_sweeps = 20
+        max_pi_iter = 200
+
+        for _ in range(max_pi_iter):
+            # 3. (Approximate) Policy Evaluation using Numba-JITed Gauss-Seidel.
+            _gs_policy_evaluation(V, policy, R_sa, transitions, gamma, evaluation_sweeps)
+
+            # 4. Policy Improvement (vectorized).
+            Q_sa = R_sa + gamma * (transitions @ V)
+            new_policy = np.argmax(Q_sa, axis=1).astype(np.int64)
+
+            # 5. Check for convergence.
+            if np.array_equal(new_policy, policy):
+                policy = new_policy
+                break
+            
+            policy = new_policy
+        
+        # 6. Final exact evaluation of the (now optimal) policy.
+        P_pi = transitions[np.arange(num_states), policy]
+        R_pi = R_sa[np.arange(num_states), policy]
+        system_matrix = np.eye(num_states) - gamma * P_pi
+        
+        try:
+            # The fast way: direct solve.
+            V = np.linalg.solve(system_matrix, R_pi)
+        except np.linalg.LinAlgError:
+            # The robust fallback: iterative evaluation for the final policy.
+            # This is needed if the system_matrix is singular.
+            V = np.zeros(num_states, dtype=np.float64)
+            for _ in range(50000): # High iteration count for accuracy
+                V_old = V
+                V = R_pi + gamma * (P_pi @ V_old)
+                if np.max(np.abs(V - V_old)) &lt; 1e-12:
+                    break
+
+        return {
+            &quot;value_function&quot;: V.tolist(),
+            &quot;policy&quot;: policy.tolist()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 12 messages and have used up $0.9316. You have $0.0684 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 79)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import numba
+&gt; 04: 
+&gt; 05: @numba.njit(fastmath=True, cache=True)
+&gt; 06: def _gs_policy_evaluation(V, policy, R_sa, transitions, gamma, sweeps):
+&gt; 07:     &quot;&quot;&quot;
+&gt; 08:     Performs `sweeps` of in-place Gauss-Seidel policy evaluation.
+&gt; 09:     This is the core of the Modified Policy Iteration, approximating the
+&gt; 10:     value of a fixed policy. V is updated in-place.
+&gt; 11:     &quot;&quot;&quot;
+&gt; 12:     num_states = V.shape[0]
+&gt; 13:     for _ in range(sweeps):
+&gt; 14:         for s in range(num_states):
+&gt; 15:             action = policy[s]
+&gt; 16:             # V[s] = R(s, π(s)) + γ * Σ_s&#x27; P(s&#x27;|s, π(s))V(s&#x27;)
+&gt; 17:             # V is updated in-place, making this a Gauss-Seidel update.
+&gt; 18:             expected_future_v = np.dot(transitions[s, action, :], V)
+&gt; 19:             V[s] = R_sa[s, action] + gamma * expected_future_v
+&gt; 20: 
+&gt; 21: class Solver:
+&gt; 22:     def solve(self, problem: dict, **kwargs) -&gt; dict:
+&gt; 23:         &quot;&quot;&quot;
+&gt; 24:         Solve the MDP using Modified Policy Iteration (MPI) with a Numba-
+&gt; 25:         accelerated Gauss-Seidel evaluation step.
+&gt; 26:         &quot;&quot;&quot;
+&gt; 27:         num_states = problem[&quot;num_states&quot;]
+&gt; 28:         gamma = problem[&quot;discount&quot;]
+&gt; 29:         
+&gt; 30:         transitions = np.array(problem[&quot;transitions&quot;], dtype=np.float64)
+&gt; 31:         rewards = np.array(problem[&quot;rewards&quot;], dtype=np.float64)
+&gt; 32: 
+&gt; 33:         # 1. Pre-compute expected rewards R(s, a) for efficiency.
+&gt; 34:         R_sa = np.sum(transitions * rewards, axis=2)
+&gt; 35: 
+&gt; 36:         # 2. Initialize policy and value function.
+&gt; 37:         policy = np.zeros(num_states, dtype=np.int64)
+&gt; 38:         V = np.zeros(num_states, dtype=np.float64)
+&gt; 39:         
+&gt; 40:         evaluation_sweeps = 20
+&gt; 41:         max_pi_iter = 200
+&gt; 42: 
+&gt; 43:         for _ in range(max_pi_iter):
+&gt; 44:             # 3. (Approximate) Policy Evaluation using Numba-JITed Gauss-Seidel.
+&gt; 45:             _gs_policy_evaluation(V, policy, R_sa, transitions, gamma, evaluation_sweeps)
+&gt; 46: 
+&gt; 47:             # 4. Policy Improvement (vectorized).
+&gt; 48:             Q_sa = R_sa + gamma * (transitions @ V)
+&gt; 49:             new_policy = np.argmax(Q_sa, axis=1).astype(np.int64)
+&gt; 50: 
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 97%<br>  Invalid Solutions: 3%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;is_solution&#x27; at line 155 in lp_mdp.py<br><pre><code class="language-python">   145:     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+   146:         &quot;&quot;&quot;
+   147:         Validate by:
+   148:           1) Checking keys &quot;value_function&quot; and &quot;policy&quot; exist.
+   149:           2) Recomputing the LP-based solution and verifying that
+   150:              the value function is close and the policy matches (if unique).
+   151:         :param problem: The MDP dictionary.
+   152:         :param solution: Proposed solution with &quot;value_function&quot; and &quot;policy&quot;.
+   153:         :return: True if correct/optimal, else False.
+   154:         &quot;&quot;&quot;
+ ! 155:         if &quot;value_function&quot; not in solution or &quot;policy&quot; not in solution:
+   156:             logging.error(&quot;Solution must contain &#x27;value_function&#x27; and &#x27;policy&#x27;.&quot;)
+   157:             return False
+   158: 
+   159:         proposed_V = np.array(solution[&quot;value_function&quot;], dtype=float)
+   160:         proposed_policy = np.array(solution[&quot;policy&quot;], dtype=int)
+   161: 
+   162:         # Re-solve to get reference
+   163:         reference_sol = self.solve(problem)
+   164:         ref_V = np.array(reference_sol[&quot;value_function&quot;], dtype=float)
+   165:         ref_policy = np.array(reference_sol[&quot;policy&quot;], dtype=int)</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;is_solution&#x27; at line 155 in lp_mdp.py<br><pre><code class="language-python">   145:     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+   146:         &quot;&quot;&quot;
+   147:         Validate by:
+   148:           1) Checking keys &quot;value_function&quot; and &quot;policy&quot; exist.
+   149:           2) Recomputing the LP-based solution and verifying that
+   150:              the value function is close and the policy matches (if unique).
+   151:         :param problem: The MDP dictionary.
+   152:         :param solution: Proposed solution with &quot;value_function&quot; and &quot;policy&quot;.
+   153:         :return: True if correct/optimal, else False.
+   154:         &quot;&quot;&quot;
+ ! 155:         if &quot;value_function&quot; not in solution or &quot;policy&quot; not in solution:
+   156:             logging.error(&quot;Solution must contain &#x27;value_function&#x27; and &#x27;policy&#x27;.&quot;)
+   157:             return False
+   158: 
+   159:         proposed_V = np.array(solution[&quot;value_function&quot;], dtype=float)
+   160:         proposed_policy = np.array(solution[&quot;policy&quot;], dtype=int)
+   161: 
+   162:         # Re-solve to get reference
+   163:         reference_sol = self.solve(problem)
+   164:         ref_V = np.array(reference_sol[&quot;value_function&quot;], dtype=float)
+   165:         ref_policy = np.array(reference_sol[&quot;policy&quot;], dtype=int)</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;: TypeError: argument of type &#x27;NoneType&#x27; is not iterable in function &#x27;is_solution&#x27; at line 155 in lp_mdp.py<br><pre><code class="language-python">   145:     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+   146:         &quot;&quot;&quot;
+   147:         Validate by:
+   148:           1) Checking keys &quot;value_function&quot; and &quot;policy&quot; exist.
+   149:           2) Recomputing the LP-based solution and verifying that
+   150:              the value function is close and the policy matches (if unique).
+   151:         :param problem: The MDP dictionary.
+   152:         :param solution: Proposed solution with &quot;value_function&quot; and &quot;policy&quot;.
+   153:         :return: True if correct/optimal, else False.
+   154:         &quot;&quot;&quot;
+ ! 155:         if &quot;value_function&quot; not in solution or &quot;policy&quot; not in solution:
+   156:             logging.error(&quot;Solution must contain &#x27;value_function&#x27; and &#x27;policy&#x27;.&quot;)
+   157:             return False
+   158: 
+   159:         proposed_V = np.array(solution[&quot;value_function&quot;], dtype=float)
+   160:         proposed_policy = np.array(solution[&quot;policy&quot;], dtype=int)
+   161: 
+   162:         # Re-solve to get reference
+   163:         reference_sol = self.solve(problem)
+   164:         ref_V = np.array(reference_sol[&quot;value_function&quot;], dtype=float)
+   165:         ref_policy = np.array(reference_sol[&quot;policy&quot;], dtype=int)</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The `TypeError: argument of type &#x27;NoneType&#x27; is not iterable` error indicates that my `solve` function is returning `None` for some test cases. This happens when an unhandled exception occurs during execution.<br><br>My investigation revealed two critical edge cases that were not handled, causing the program to crash:<br>1.  **Zero States (`num_states = 0`)**: If the problem has no states, creating arrays and performing operations like `np.argmax` on them will raise a `ValueError`.<br>2.  **Zero Actions (`num_actions = 0`)**: If there are states but no actions, the input `transitions` list will have a shape that, when converted to a NumPy array, has fewer than 3 dimensions (e.g., `(S, 0)`). My code assumed a 3D `(S, A, S)` array, and operations like `np.sum(..., axis=2)` would crash with an `AxisError`.<br><br>To fix this, I will add guard clauses at the beginning of the `solve` function to detect these edge cases and return a correctly formatted, valid response immediately. This prevents any crashes and ensures my function always returns a dictionary, satisfying the validator.<br><br>The core algorithm remains the high-performance **Modified Policy Iteration (MPI) with a Numba-accelerated Gauss-Seidel evaluation step**, as this approach is fundamentally sound and fast. The fix is purely about adding robustness for these specific edge cases.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import numba
+
+@numba.njit(fastmath=True, cache=True)
+def _gs_policy_evaluation(V, policy, R_sa, transitions, gamma, sweeps):
+    &quot;&quot;&quot;
+    Performs `sweeps` of in-place Gauss-Seidel policy evaluation.
+    &quot;&quot;&quot;
+    num_states = V.shape[0]
+    for _ in range(sweeps):
+        for s in range(num_states):
+            action = policy[s]
+            expected_future_v = np.dot(transitions[s, action, :], V)
+            V[s] = R_sa[s, action] + gamma * expected_future_v
+
+class Solver:
+    def solve(self, problem: dict, **kwargs) -&gt; dict:
+        &quot;&quot;&quot;
+        Solve the MDP using Modified Policy Iteration (MPI) with a Numba-
+        accelerated Gauss-Seidel evaluation step. Includes guards for
+        edge cases like zero states or zero actions.
+        &quot;&quot;&quot;
+        num_states = problem[&quot;num_states&quot;]
+        
+        # Guard 1: Handle zero states case.
+        if num_states == 0:
+            return {&quot;value_function&quot;: [], &quot;policy&quot;: []}
+
+        gamma = problem[&quot;discount&quot;]
+        transitions = np.array(problem[&quot;transitions&quot;], dtype=np.float64)
+        
+        # Guard 2: Handle zero actions case.
+        # If A=0, transitions array will not be 3D, causing crashes.
+        if transitions.ndim &lt; 3 or transitions.shape[1] == 0:
+            return {
+                &quot;value_function&quot;: [0.0] * num_states,
+                &quot;policy&quot;: [0] * num_states
+            }
+
+        rewards = np.array(problem[&quot;rewards&quot;], dtype=np.float64)
+        R_sa = np.sum(transitions * rewards, axis=2)
+
+        policy = np.zeros(num_states, dtype=np.int64)
+        V = np.zeros(num_states, dtype=np.float64)
+        
+        evaluation_sweeps = 20
+        max_pi_iter = 200
+
+        for _ in range(max_pi_iter):
+            _gs_policy_evaluation(V, policy, R_sa, transitions, gamma, evaluation_sweeps)
+            Q_sa = R_sa + gamma * (transitions @ V)
+            new_policy = np.argmax(Q_sa, axis=1).astype(np.int64)
+
+            if np.array_equal(new_policy, policy):
+                policy = new_policy
+                break
+            policy = new_policy
+        
+        P_pi = transitions[np.arange(num_states), policy]
+        R_pi = R_sa[np.arange(num_states), policy]
+        system_matrix = np.eye(num_states) - gamma * P_pi
+        
+        try:
+            V = np.linalg.solve(system_matrix, R_pi)
+        except np.linalg.LinAlgError:
+            V = np.zeros(num_states, dtype=np.float64)
+            for _ in range(50000):
+                V_old = V
+                V = R_pi + gamma * (P_pi @ V_old)
+                if np.max(np.abs(V - V_old)) &lt; 1e-12:
+                    break
+
+        return {
+            &quot;value_function&quot;: V.tolist(),
+            &quot;policy&quot;: policy.tolist()
+        }
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

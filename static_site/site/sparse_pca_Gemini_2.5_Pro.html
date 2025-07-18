@@ -1,0 +1,3963 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – sparse_pca – Gemini 2.5 Pro</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">sparse_pca</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="sparse_pca_o4-mini.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (9.12x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="sparse_pca_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (9.08x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="sparse_pca_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (6.06x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="sparse_pca_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (1.74x)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">sparse_pca</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Gemini 2.5 Pro</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #006400; font-weight: 600;">6.057x</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">12</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">1</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">107.3 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+Sparse Principal Component Analysis Task
+
+This task involves finding sparse principal components that explain the maximum variance in the data while having a limited number of non-zero loadings. Standard Principal Component Analysis (PCA) often produces dense loadings that are difficult to interpret. Sparse PCA addresses this issue by inducing sparsity in the loadings, making the resulting components more interpretable while still capturing important patterns in the data.
+
+The optimization problem is formulated as:
+
+    minimize    ||B - X||_F^2 + λ ||X||_1
+    subject to  ||X_i||_2 ≤ 1  for i=1,...,k
+
+Where:
+- B is derived from the eigendecomposition of the covariance matrix A
+- X contains the k principal components (loadings)
+- λ is the sparsity parameter that controls the trade-off between variance and sparsity
+- The constraint ensures each component has unit norm
+
+Input: A dictionary with keys:
+- &quot;covariance&quot;: A symmetric positive semidefinite matrix representing the data covariance (list of lists of float)
+- &quot;n_components&quot;: Number of sparse principal components to extract (int)
+- &quot;sparsity_param&quot;: Parameter controlling sparsity level; higher values lead to more sparsity (float)
+
+Example input:
+{
+  &quot;covariance&quot;: [
+    [1.0, 0.5, 0.3],
+    [0.5, 1.0, 0.2],
+    [0.3, 0.2, 1.0]
+  ],
+  &quot;n_components&quot;: 2,
+  &quot;sparsity_param&quot;: 0.1
+}
+
+Output: A dictionary with keys:
+- &quot;components&quot;: The sparse principal components, each column is a component (list of lists of float)
+- &quot;explained_variance&quot;: The variance explained by each component (list of float)
+
+Example output:
+{
+  &quot;components&quot;: [
+    [0.8, 0.1],
+    [0.6, 0.0],
+    [0.0, 0.9]
+  ],
+  &quot;explained_variance&quot;: [1.45, 1.05]
+}
+
+Category: convex_optimization
+
+Below is the reference implementation. Your function should run much quicker.
+
+import cvxpy as cp
+import numpy as np
+
+| 01: def solve(self, problem: dict) -&gt; dict:
+| 02:     &quot;&quot;&quot;
+| 03:     Solve the sparse PCA problem.
+| 04: 
+| 05:     :param problem: Dictionary with problem parameters
+| 06:     :return: Dictionary with the sparse principal components
+| 07:     
+| 08: 
+| 09:     NOTE: Your solution must pass validation by:
+| 10:     1. Returning correctly formatted output
+| 11:     2. Having no NaN or infinity values
+| 12:     3. Matching expected results within numerical tolerance
+| 13:     &quot;&quot;&quot;
+| 14:     A = np.array(problem[&quot;covariance&quot;])
+| 15:     n_components = int(problem[&quot;n_components&quot;])
+| 16:     sparsity_param = float(problem[&quot;sparsity_param&quot;])
+| 17: 
+| 18:     n = A.shape[0]  # Dimension of the data
+| 19: 
+| 20:     # Decision variables
+| 21:     X = cp.Variable((n, n_components))
+| 22: 
+| 23:     # Use eigendecomposition-based approach for sparse PCA
+| 24:     # Minimize ||B - X||_F^2 + λ ||X||_1 where B contains principal components
+| 25: 
+| 26:     # Get the eigendecomposition of A
+| 27:     eigvals, eigvecs = np.linalg.eigh(A)
+| 28: 
+| 29:     # Keep only positive eigenvalues for PSD approximation
+| 30:     pos_indices = eigvals &gt; 0
+| 31:     eigvals = eigvals[pos_indices]
+| 32:     eigvecs = eigvecs[:, pos_indices]
+| 33: 
+| 34:     # Sort in descending order
+| 35:     idx = np.argsort(eigvals)[::-1]
+| 36:     eigvals = eigvals[idx]
+| 37:     eigvecs = eigvecs[:, idx]
+| 38: 
+| 39:     # Use the top n_components eigenvectors scaled by sqrt(eigenvalues)
+| 40:     k = min(len(eigvals), n_components)
+| 41:     B = eigvecs[:, :k] * np.sqrt(eigvals[:k])
+| 42: 
+| 43:     # Objective: minimize ||B - X||_F^2 + λ ||X||_1
+| 44:     objective = cp.Minimize(cp.sum_squares(B - X) + sparsity_param * cp.norm1(X))
+| 45: 
+| 46:     # Constraints: each component has unit norm
+| 47:     constraints = [cp.norm(X[:, i]) &lt;= 1 for i in range(n_components)]
+| 48: 
+| 49:     # Solve the problem
+| 50:     prob = cp.Problem(objective, constraints)
+| 51:     try:
+| 52:         prob.solve()
+| 53: 
+| 54:         if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or X.value is None:
+| 55:             return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+| 56: 
+| 57:         # Calculate explained variance for each component
+| 58:         components = X.value
+| 59:         explained_variance = []
+| 60:         for i in range(min(n_components, components.shape[1])):
+| 61:             var = components[:, i].T @ A @ components[:, i]
+| 62:             explained_variance.append(float(var))
+| 63: 
+| 64:         return {&quot;components&quot;: components.tolist(), &quot;explained_variance&quot;: explained_variance}
+| 65: 
+| 66:     except cp.SolverError as e:
+| 67:         return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+| 68:     except Exception as e:
+| 69:         return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+| 70: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+import cvxpy as cp
+import numpy as np
+
+| 001: def is_solution( problem: dict, solution: dict) -&gt; bool:
+| 002:     &quot;&quot;&quot;
+| 003:     Verify if the solution is valid and optimal.
+| 004: 
+| 005:     :param problem: Dictionary with problem parameters
+| 006:     :param solution: Dictionary with the proposed solution
+| 007:     :return: True if the solution is valid and optimal, False otherwise
+| 008:     &quot;&quot;&quot;
+| 009:     # Check for required keys
+| 010:     required_keys = {&quot;components&quot;, &quot;explained_variance&quot;}
+| 011:     if not required_keys.issubset(solution.keys()):
+| 012:         logging.error(f&quot;Solution missing required keys: {required_keys - solution.keys()}&quot;)
+| 013:         return False
+| 014: 
+| 015:     # Check for empty values (solver failure)
+| 016:     if isinstance(solution[&quot;components&quot;], list) and not solution[&quot;components&quot;]:
+| 017:         logging.error(&quot;Empty components value (solver likely failed).&quot;)
+| 018:         return False
+| 019: 
+| 020:     try:
+| 021:         # Extract problem data
+| 022:         A = np.array(problem[&quot;covariance&quot;])
+| 023:         n_components = int(problem[&quot;n_components&quot;])
+| 024:         sparsity_param = float(problem[&quot;sparsity_param&quot;])
+| 025: 
+| 026:         # Extract solution data
+| 027:         components = np.array(solution[&quot;components&quot;])
+| 028:         explained_variance = np.array(solution[&quot;explained_variance&quot;])
+| 029: 
+| 030:         # Check dimensions
+| 031:         n = A.shape[0]
+| 032:         if components.shape != (n, n_components):
+| 033:             logging.error(
+| 034:                 f&quot;Components have incorrect shape: expected {(n, n_components)}, got {components.shape}&quot;
+| 035:             )
+| 036:             return False
+| 037: 
+| 038:         if len(explained_variance) != n_components:
+| 039:             logging.error(
+| 040:                 f&quot;Explained variance has incorrect length: expected {n_components}, got {len(explained_variance)}&quot;
+| 041:             )
+| 042:             return False
+| 043: 
+| 044:         # Check unit norm constraint
+| 045:         eps = 1e-5
+| 046:         for i in range(n_components):
+| 047:             norm = np.linalg.norm(components[:, i])
+| 048:             if norm &gt; 1 + eps:
+| 049:                 logging.error(f&quot;Component {i} violates unit norm constraint: {norm} &gt; 1&quot;)
+| 050:                 return False
+| 051: 
+| 052:         # Check explained variance
+| 053:         for i in range(n_components):
+| 054:             comp = components[:, i]
+| 055:             var = comp.T @ A @ comp
+| 056:             if abs(var - explained_variance[i]) &gt; eps * max(1, abs(var)):
+| 057:                 logging.error(
+| 058:                     f&quot;Explained variance mismatch for component {i}: {var} != {explained_variance[i]}&quot;
+| 059:                 )
+| 060:                 return False
+| 061: 
+| 062:         # Get reference solution
+| 063:         ref_solution = solve(problem)
+| 064: 
+| 065:         # Check if reference solution failed
+| 066:         if isinstance(ref_solution.get(&quot;components&quot;), list) and not ref_solution.get(
+| 067:             &quot;components&quot;
+| 068:         ):
+| 069:             logging.warning(&quot;Reference solution failed; skipping optimality check.&quot;)
+| 070:             return True
+| 071: 
+| 072:         # Calculate objective values for the optimization problem
+| 073:         ref_components = np.array(ref_solution[&quot;components&quot;])
+| 074: 
+| 075:         # Get eigendecomposition of covariance matrix
+| 076:         eigvals, eigvecs = np.linalg.eigh(A)
+| 077:         pos_indices = eigvals &gt; 0
+| 078:         eigvals = eigvals[pos_indices]
+| 079:         eigvecs = eigvecs[:, pos_indices]
+| 080:         idx = np.argsort(eigvals)[::-1]
+| 081:         eigvals = eigvals[idx]
+| 082:         eigvecs = eigvecs[:, idx]
+| 083:         k = min(len(eigvals), n_components)
+| 084:         B = eigvecs[:, :k] * np.sqrt(eigvals[:k])
+| 085: 
+| 086:         # Calculate objective for reference and proposed solutions
+| 087:         ref_obj = np.sum((B - ref_components) ** 2) + sparsity_param * np.sum(
+| 088:             np.abs(ref_components)
+| 089:         )
+| 090:         sol_obj = np.sum((B - components) ** 2) + sparsity_param * np.sum(np.abs(components))
+| 091: 
+| 092:         # Check optimality with 1% tolerance
+| 093:         if sol_obj &gt; ref_obj * 1.01:
+| 094:             logging.error(f&quot;Sub-optimal solution: {sol_obj} &gt; {ref_obj} * 1.01&quot;)
+| 095:             return False
+| 096: 
+| 097:         return True
+| 098: 
+| 099:     except Exception as e:
+| 100:         logging.error(f&quot;Error when verifying solution: {e}&quot;)
+| 101:         return False
+| 102:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>Sparse Principal Component Analysis Task
+
+This task involves finding sparse principal components that explain the maximum variance in the data while having a limited number of non-zero loadings. Standard Principal Component Analysis (PCA) often produces dense loadings that are difficult to interpret. Sparse PCA addresses this issue by inducing sparsity in the loadings, making the resulting components more interpretable while still capturing important patterns in the data.
+
+The optimization problem is formulated as:
+
+    minimize    ||B - X||_F^2 + λ ||X||_1
+    subject to  ||X_i||_2 ≤ 1  for i=1,...,k
+
+Where:
+- B is derived from the eigendecomposition of the covariance matrix A
+- X contains the k principal components (loadings)
+- λ is the sparsity parameter that controls the trade-off between variance and sparsity
+- The constraint ensures each component has unit norm
+
+Input: A dictionary with keys:
+- &quot;covariance&quot;: A symmetric positive semidefinite matrix representing the data covariance (list of lists of float)
+- &quot;n_components&quot;: Number of sparse principal components to extract (int)
+- &quot;sparsity_param&quot;: Parameter controlling sparsity level; higher values lead to more sparsity (float)
+
+Example input:
+{
+  &quot;covariance&quot;: [
+    [1.0, 0.5, 0.3],
+    [0.5, 1.0, 0.2],
+    [0.3, 0.2, 1.0]
+  ],
+  &quot;n_components&quot;: 2,
+  &quot;sparsity_param&quot;: 0.1
+}
+
+Output: A dictionary with keys:
+- &quot;components&quot;: The sparse principal components, each column is a component (list of lists of float)
+- &quot;explained_variance&quot;: The variance explained by each component (list of float)
+
+Example output:
+{
+  &quot;components&quot;: [
+    [0.8, 0.1],
+    [0.6, 0.0],
+    [0.0, 0.9]
+  ],
+  &quot;explained_variance&quot;: [1.45, 1.05]
+}
+
+Category: convex_optimization</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">import cvxpy as cp
+import numpy as np
+
+ def solve(self, problem: dict) -&gt; dict:
+     &quot;&quot;&quot;
+     Solve the sparse PCA problem.
+ 
+     :param problem: Dictionary with problem parameters
+     :return: Dictionary with the sparse principal components
+     
+ 
+     NOTE: Your solution must pass validation by:
+     1. Returning correctly formatted output
+     2. Having no NaN or infinity values
+     3. Matching expected results within numerical tolerance
+     &quot;&quot;&quot;
+     A = np.array(problem[&quot;covariance&quot;])
+     n_components = int(problem[&quot;n_components&quot;])
+     sparsity_param = float(problem[&quot;sparsity_param&quot;])
+ 
+     n = A.shape[0]  # Dimension of the data
+ 
+     # Decision variables
+     X = cp.Variable((n, n_components))
+ 
+     # Use eigendecomposition-based approach for sparse PCA
+     # Minimize ||B - X||_F^2 + λ ||X||_1 where B contains principal components
+ 
+     # Get the eigendecomposition of A
+     eigvals, eigvecs = np.linalg.eigh(A)
+ 
+     # Keep only positive eigenvalues for PSD approximation
+     pos_indices = eigvals &gt; 0
+     eigvals = eigvals[pos_indices]
+     eigvecs = eigvecs[:, pos_indices]
+ 
+     # Sort in descending order
+     idx = np.argsort(eigvals)[::-1]
+     eigvals = eigvals[idx]
+     eigvecs = eigvecs[:, idx]
+ 
+     # Use the top n_components eigenvectors scaled by sqrt(eigenvalues)
+     k = min(len(eigvals), n_components)
+     B = eigvecs[:, :k] * np.sqrt(eigvals[:k])
+ 
+     # Objective: minimize ||B - X||_F^2 + λ ||X||_1
+     objective = cp.Minimize(cp.sum_squares(B - X) + sparsity_param * cp.norm1(X))
+ 
+     # Constraints: each component has unit norm
+     constraints = [cp.norm(X[:, i]) &lt;= 1 for i in range(n_components)]
+ 
+     # Solve the problem
+     prob = cp.Problem(objective, constraints)
+     try:
+         prob.solve()
+ 
+         if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or X.value is None:
+             return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+ 
+         # Calculate explained variance for each component
+         components = X.value
+         explained_variance = []
+         for i in range(min(n_components, components.shape[1])):
+             var = components[:, i].T @ A @ components[:, i]
+             explained_variance.append(float(var))
+ 
+         return {&quot;components&quot;: components.tolist(), &quot;explained_variance&quot;: explained_variance}
+ 
+     except cp.SolverError as e:
+         return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+     except Exception as e:
+         return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">import numpy as np
+from typing import Any, Dict
+import numba
+from scipy.sparse.linalg import eigsh
+
+# Numba-jitted FISTA solver for the subproblem.
+# Using cache=True to avoid re-compilation on subsequent runs.
+@numba.jit(nopython=True, fastmath=True, cache=True)
+def _solve_component_fista(b_i: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Solves the subproblem for a single component using FISTA.
+    min ||b - x||^2 + sparsity_param * ||x||_1 s.t. ||x||_2 &lt;= 1
+    &quot;&quot;&quot;
+    # Initialization for FISTA
+    x_i = b_i.copy()
+    y_i = x_i.copy()
+    s = 1.0
+
+    for _ in range(max_iter):
+        x_old = x_i.copy()
+
+        # Gradient step on y_i
+        grad = 2.0 * (y_i - b_i)
+        z = y_i - t * grad
+
+        # Proximal operator for L1 norm (soft-thresholding)
+        threshold = t * sparsity_param
+        z_thresh = np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
+
+        # Projection onto the L2 unit ball
+        norm_z = np.linalg.norm(z_thresh)
+        if norm_z &gt; 1.0:
+            x_i = z_thresh / norm_z
+        else:
+            x_i = z_thresh
+
+        # FISTA update
+        s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+        y_i = x_i + ((s - 1.0) / s_new) * (x_i - x_old)
+        s = s_new
+
+        # Convergence check
+        if np.linalg.norm(x_i - x_old) &lt; tol:
+            break
+            
+    return x_i
+
+class Solver:
+    def solve(self, problem: Dict, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the sparse PCA problem.
+        1. Uses eigsh for efficient partial eigendecomposition.
+        2. Solves the relaxed problem using FISTA for faster convergence.
+        3. JIT-compiles the FISTA solver using Numba for speed.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;covariance&quot;])
+        n_components = int(problem[&quot;n_components&quot;])
+        sparsity_param = float(problem[&quot;sparsity_param&quot;])
+        n = A.shape[0]
+
+        if n_components == 0:
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Eigendecomposition
+        try:
+            # Use eigsh for k &lt; n-1 as it&#x27;s faster for partial decomposition.
+            # For k &gt;= n-1, eigh is often more stable and sometimes faster.
+            if n_components &gt;= n - 1:
+                eigvals, eigvecs = np.linalg.eigh(A)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+                eigvals = eigvals[:n_components]
+                eigvecs = eigvecs[:, :n_components]
+            else:
+                # eigsh finds the k largest eigenvalues. &#x27;LM&#x27; = Largest Magnitude.
+                eigvals, eigvecs = eigsh(A, k=n_components, which=&#x27;LM&#x27;, tol=1e-6)
+                # Re-sort as eigsh doesn&#x27;t guarantee order for close eigenvalues
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+        except (np.linalg.LinAlgError, RuntimeError):
+            # Fallback for decomposition failure
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Filter out small non-positive eigenvalues for numerical stability
+        pos_indices = eigvals &gt; 1e-9
+        eigvals = eigvals[pos_indices]
+        eigvecs = eigvecs[:, pos_indices]
+
+        k = len(eigvals)
+
+        # Construct the target matrix B
+        B = np.zeros((n, n_components))
+        if k &gt; 0:
+            B[:, :k] = eigvecs * np.sqrt(eigvals)
+
+        # Initialize the solution matrix X
+        X = np.zeros((n, n_components))
+
+        # Parameters for the FISTA solver
+        max_iter = 1000
+        tol = 1e-6
+        # Lipschitz constant of grad(f) is 2, so step size t &lt; 1/L = 0.5
+        t = 0.49
+
+        # Solve for each component independently using the jitted FISTA solver
+        for i in range(n_components):
+            b_i = B[:, i]
+            X[:, i] = _solve_component_fista(b_i, sparsity_param, t, max_iter, tol)
+
+        # Calculate explained variance for each component
+        explained_variance = [float(X[:, i].T @ A @ X[:, i]) for i in range(n_components)]
+
+        return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}
+        return {&quot;components&quot;: X.T.tolist(), &quot;explained_variance&quot;: explained_variance}</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/sparse_pca_gemini-2.5-pro_20250703_231731_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/sparse_pca_gemini-2.5-pro_20250703_231731_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I&#x27;ll start by implementing a solution based on a proximal gradient method. The reference implementation uses `cvxpy`, which is general but often slow. The problem structure allows for a more direct and efficient iterative solver. The optimization problem can be decomposed into independent subproblems for each principal component, which can be solved using an iterative shrinkage-thresholding algorithm (ISTA). This should be significantly faster than formulating and solving the problem with a high-level tool like `cvxpy`. I&#x27;ll first write the code for this approach and then evaluate its performance.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+from typing import Any, Dict
+
+class Solver:
+    def solve(self, problem: Dict, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the sparse PCA problem using a proximal gradient method.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;covariance&quot;])
+        n_components = int(problem[&quot;n_components&quot;])
+        sparsity_param = float(problem[&quot;sparsity_param&quot;])
+        n = A.shape[0]
+
+        # Eigendecomposition of the covariance matrix A
+        try:
+            eigvals, eigvecs = np.linalg.eigh(A)
+        except np.linalg.LinAlgError:
+            # If decomposition fails, return empty solution
+            # Based on reference, this should be an empty component list
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Filter out small non-positive eigenvalues for numerical stability
+        pos_indices = eigvals &gt; 1e-9
+        eigvals = eigvals[pos_indices]
+        eigvecs = eigvecs[:, pos_indices]
+
+        # Sort eigenvalues and eigenvectors in descending order
+        idx = np.argsort(eigvals)[::-1]
+        eigvals = eigvals[idx]
+        eigvecs = eigvecs[:, idx]
+
+        # Determine the number of components to use from eigendecomposition
+        k = min(len(eigvals), n_components)
+
+        # Construct the target matrix B
+        B = np.zeros((n, n_components))
+        if k &gt; 0:
+            B[:, :k] = eigvecs[:, :k] * np.sqrt(eigvals[:k])
+
+        # Initialize the solution matrix X
+        X = np.zeros((n, n_components))
+
+        # Parameters for the proximal gradient solver
+        max_iter = 1000
+        tol = 1e-6
+        # Lipschitz constant for the smooth part of the objective is 2.
+        # Step size t should be &lt; 2/L = 1. Using a safe value.
+        t = 0.49
+
+        # Solve for each component independently
+        for i in range(n_components):
+            b_i = B[:, i]
+            # Initialize x_i. A good start is b_i itself.
+            x_i = b_i.copy()
+
+            for _ in range(max_iter):
+                x_old = x_i.copy()
+
+                # Gradient descent step for the smooth part: f(x) = ||b - x||^2
+                grad = 2 * (x_i - b_i)
+                y = x_i - t * grad
+
+                # Proximal operator for the L1 norm (soft-thresholding)
+                z = np.sign(y) * np.maximum(0, np.abs(y) - t * sparsity_param)
+
+                # Projection onto the L2 unit ball
+                norm_z = np.linalg.norm(z)
+                if norm_z &gt; 1.0:
+                    x_i = z / norm_z
+                else:
+                    x_i = z
+
+                # Convergence check
+                if np.linalg.norm(x_i - x_old) &lt; tol:
+                    break
+            
+            X[:, i] = x_i
+
+        # Calculate explained variance for each component
+        explained_variance = []
+        for i in range(n_components):
+            # var = x_i^T * A * x_i
+            var = X[:, i].T @ A @ X[:, i]
+            explained_variance.append(float(var))
+
+        return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.1029. You have $0.8971 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 86)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from typing import Any, Dict
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: Dict, **kwargs) -&gt; Any:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solves the sparse PCA problem using a proximal gradient method.
+&gt; 08:         &quot;&quot;&quot;
+&gt; 09:         A = np.array(problem[&quot;covariance&quot;])
+&gt; 10:         n_components = int(problem[&quot;n_components&quot;])
+&gt; 11:         sparsity_param = float(problem[&quot;sparsity_param&quot;])
+&gt; 12:         n = A.shape[0]
+&gt; 13: 
+&gt; 14:         # Eigendecomposition of the covariance matrix A
+&gt; 15:         try:
+&gt; 16:             eigvals, eigvecs = np.linalg.eigh(A)
+&gt; 17:         except np.linalg.LinAlgError:
+&gt; 18:             # If decomposition fails, return empty solution
+&gt; 19:             # Based on reference, this should be an empty component list
+&gt; 20:             return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+&gt; 21: 
+&gt; 22:         # Filter out small non-positive eigenvalues for numerical stability
+&gt; 23:         pos_indices = eigvals &gt; 1e-9
+&gt; 24:         eigvals = eigvals[pos_indices]
+&gt; 25:         eigvecs = eigvecs[:, pos_indices]
+&gt; 26: 
+&gt; 27:         # Sort eigenvalues and eigenvectors in descending order
+&gt; 28:         idx = np.argsort(eigvals)[::-1]
+&gt; 29:         eigvals = eigvals[idx]
+&gt; 30:         eigvecs = eigvecs[:, idx]
+&gt; 31: 
+&gt; 32:         # Determine the number of components to use from eigendecomposition
+&gt; 33:         k = min(len(eigvals), n_components)
+&gt; 34: 
+&gt; 35:         # Construct the target matrix B
+&gt; 36:         B = np.zeros((n, n_components))
+&gt; 37:         if k &gt; 0:
+&gt; 38:             B[:, :k] = eigvecs[:, :k] * np.sqrt(eigvals[:k])
+&gt; 39: 
+&gt; 40:         # Initialize the solution matrix X
+&gt; 41:         X = np.zeros((n, n_components))
+&gt; 42: 
+&gt; 43:         # Parameters for the proximal gradient solver
+&gt; 44:         max_iter = 1000
+&gt; 45:         tol = 1e-6
+&gt; 46:         # Lipschitz constant for the smooth part of the objective is 2.
+&gt; 47:         # Step size t should be &lt; 2/L = 1. Using a safe value.
+&gt; 48:         t = 0.49
+&gt; 49: 
+&gt; 50:         # Solve for each component independently
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">1.72</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge other"> Invalid Command</span>
+            </div>
+            <div class="message-content">
+                An analysis of the initial proximal gradient implementation reveals several opportunities for significant performance enhancement, aligning with the suggestion to leverage all available tools. The current solution, while algorithmically sound, can be improved in three key areas:<br><br>1.  **Eigendecomposition Efficiency**: The initial step involves computing the top eigenvectors of the covariance matrix `A`. The current use of `numpy.linalg.eigh` calculates all `n` eigenvectors, which is inefficient when the number of requested components (`n_components`) is much smaller than the matrix dimension `n`. A more efficient alternative is `scipy.sparse.linalg.eigsh`, which is designed to compute only a specified number (`k`) of the largest eigenvalues and eigenvectors. This can lead to substantial time savings for large `n` and small `n_components`.<br><br>2.  **Algorithmic Acceleration**: The implemented iterative shrinkage-thresholding algorithm (ISTA) has a known convergence rate of O(1/k). An accelerated version, the Fast Iterative Shrinkage-Thresholding Algorithm (FISTA), improves this rate to O(1/k²). By requiring fewer iterations to reach the same tolerance, FISTA can significantly speed up the solver, especially for problems that are slow to converge.<br><br>3.  **Just-In-Time (JIT) Compilation**: The core of the solver is a loop that iterates many times, performing numerical operations on NumPy arrays. While NumPy is fast, the Python interpreter overhead for each loop can be a bottleneck. The `numba` library can compile this performance-critical Python code to highly optimized machine code using its JIT compiler. Applying `@numba.jit` to the iterative solver function will virtually eliminate Python overhead, resulting in C- or Fortran-like speed for that section.<br><br>By combining these three strategies—switching to `eigsh` for partial eigendecomposition, upgrading the solver from ISTA to FISTA, and JIT-compiling the solver loop with Numba—the new implementation will be substantially faster and more scalable.<br><br><pre><code class="language-python">import numpy as np
+from typing import Any, Dict
+import numba
+from scipy.sparse.linalg import eigsh
+
+# Numba-jitted FISTA solver for the subproblem.
+# Using cache=True to avoid re-compilation on subsequent runs.
+@numba.jit(nopython=True, fastmath=True, cache=True)
+def _solve_component_fista(b_i: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Solves the subproblem for a single component using FISTA.
+    min ||b - x||^2 + sparsity_param * ||x||_1 s.t. ||x||_2 &lt;= 1
+    &quot;&quot;&quot;
+    # Initialization for FISTA
+    x_i = b_i.copy()
+    y_i = x_i.copy()
+    s = 1.0
+
+    for _ in range(max_iter):
+        x_old = x_i.copy()
+
+        # Gradient step on y_i
+        grad = 2.0 * (y_i - b_i)
+        z = y_i - t * grad
+
+        # Proximal operator for L1 norm (soft-thresholding)
+        threshold = t * sparsity_param
+        z_thresh = np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
+
+        # Projection onto the L2 unit ball
+        norm_z = np.linalg.norm(z_thresh)
+        if norm_z &gt; 1.0:
+            x_i = z_thresh / norm_z
+        else:
+            x_i = z_thresh
+
+        # FISTA update
+        s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+        y_i = x_i + ((s - 1.0) / s_new) * (x_i - x_old)
+        s = s_new
+
+        # Convergence check
+        if np.linalg.norm(x_i - x_old) &lt; tol:
+            break
+            
+    return x_i
+
+class Solver:
+    def solve(self, problem: Dict, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the sparse PCA problem.
+        1. Uses eigsh for efficient partial eigendecomposition.
+        2. Solves the relaxed problem using FISTA for faster convergence.
+        3. JIT-compiles the FISTA solver using Numba for speed.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;covariance&quot;])
+        n_components = int(problem[&quot;n_components&quot;])
+        sparsity_param = float(problem[&quot;sparsity_param&quot;])
+        n = A.shape[0]
+
+        if n_components == 0:
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Eigendecomposition
+        try:
+            # Use eigsh for k &lt; n-1 as it&#x27;s faster for partial decomposition.
+            # For k &gt;= n-1, eigh is often more stable and sometimes faster.
+            if n_components &gt;= n - 1:
+                eigvals, eigvecs = np.linalg.eigh(A)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+                eigvals = eigvals[:n_components]
+                eigvecs = eigvecs[:, :n_components]
+            else:
+                # eigsh finds the k largest eigenvalues. &#x27;LM&#x27; = Largest Magnitude.
+                eigvals, eigvecs = eigsh(A, k=n_components, which=&#x27;LM&#x27;, tol=1e-6)
+                # Re-sort as eigsh doesn&#x27;t guarantee order for close eigenvalues
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+        except (np.linalg.LinAlgError, RuntimeError):
+            # Fallback for decomposition failure
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Filter out small non-positive eigenvalues for numerical stability
+        pos_indices = eigvals &gt; 1e-9
+        eigvals = eigvals[pos_indices]
+        eigvecs = eigvecs[:, pos_indices]
+
+        k = len(eigvals)
+
+        # Construct the target matrix B
+        B = np.zeros((n, n_components))
+        if k &gt; 0:
+            B[:, :k] = eigvecs * np.sqrt(eigvals)
+
+        # Initialize the solution matrix X
+        X = np.zeros((n, n_components))
+
+        # Parameters for the FISTA solver
+        max_iter = 1000
+        tol = 1e-6
+        # Lipschitz constant of grad(f) is 2, so step size t &lt; 1/L = 0.5
+        t = 0.49
+
+        # Solve for each component independently using the jitted FISTA solver
+        for i in range(n_components):
+            b_i = B[:, i]
+            X[:, i] = _solve_component_fista(b_i, sparsity_param, t, max_iter, tol)
+
+        # Calculate explained variance for each component
+        explained_variance = [float(X[:, i].T @ A @ X[:, i]) for i in range(n_components)]
+
+        # Transpose X to get components as a list of columns
+        return {&quot;components&quot;: X.T.tolist(), &quot;explained_variance&quot;: explained_variance}</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.2310. You have $0.7690 remaining.<br><br>Error: Command parsing failed<br>Command parsing failed. <br>Remember to include one and only one command in each message. Important: remember to include all arguments for each command.<br>Remember to sandwich your command in between ``` and ```. <br>IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.<br><br>Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:<br>- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:<br>  ```<br>  edit <br>  file: &lt;file_name&gt;<br>  lines: &lt;start_line&gt;-&lt;end_line&gt;<br>  ---<br>  &lt;new_content&gt;<br>  ---<br>  ```<br><br>  The command will:<br>  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)<br>  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;<br>  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file<br>  <br>  Example:<br>  edit<br>  file: solver.py<br>  lines: 5-7<br>  ---<br>  def improved_function():<br>      print(&quot;Optimized solution&quot;)<br>  ---<br>- `ls`: List all files in the current working directory.<br>- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).<br>- `revert`: Revert the code to the best-performing version thus far.<br>- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: <br>  ```<br>  reference [1,2,3,4]<br>  ```<br>- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: <br>  ```<br>  eval_input [1,2,3,4]<br>  ```<br>- `eval`: Run evaluation on the current solution and report the results.<br>- `delete`: Delete a range of lines from a file using the format:<br>  ```<br>  delete<br>  file: &lt;file_name&gt;<br>  lines: &lt;start_line&gt;-&lt;end_line&gt;<br><br>  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)<br>  <br>  Example:<br>  ```<br>  delete<br>  file: solver.py<br>  lines: 5-10<br>  ```<br>- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.<br>  Example:<br>  ```<br>  profile solver.py [1, 2, 3]<br>  ```<br>- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.<br>  Example: <br>  ```<br>  profile_lines solver.py 1,2,3 [1, 2, 3]<br>  ```
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I apologize for the formatting error. I will now resubmit my optimized solution using the correct `edit` command format.<br><br>This solution incorporates three key optimizations:<br>1.  **Efficient Eigendecomposition**: It uses `scipy.sparse.linalg.eigsh` to compute only the top `k` eigenvectors, which is much faster than `numpy.linalg.eigh` when `k` is small compared to the matrix size.<br>2.  **Accelerated Algorithm**: It replaces the standard proximal gradient method (ISTA) with the Fast Iterative Shrinkage-Thresholding Algorithm (FISTA), which has a superior convergence rate (O(1/k²) vs. O(1/k)).<br>3.  **JIT Compilation**: The core iterative solver loop is compiled to highly optimized machine code using `numba.jit`, which dramatically reduces Python interpreter overhead.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+from typing import Any, Dict
+import numba
+from scipy.sparse.linalg import eigsh
+
+# Numba-jitted FISTA solver for the subproblem.
+# Using cache=True to avoid re-compilation on subsequent runs.
+@numba.jit(nopython=True, fastmath=True, cache=True)
+def _solve_component_fista(b_i: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Solves the subproblem for a single component using FISTA.
+    min ||b - x||^2 + sparsity_param * ||x||_1 s.t. ||x||_2 &lt;= 1
+    &quot;&quot;&quot;
+    # Initialization for FISTA
+    x_i = b_i.copy()
+    y_i = x_i.copy()
+    s = 1.0
+
+    for _ in range(max_iter):
+        x_old = x_i.copy()
+
+        # Gradient step on y_i
+        grad = 2.0 * (y_i - b_i)
+        z = y_i - t * grad
+
+        # Proximal operator for L1 norm (soft-thresholding)
+        threshold = t * sparsity_param
+        z_thresh = np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
+
+        # Projection onto the L2 unit ball
+        norm_z = np.linalg.norm(z_thresh)
+        if norm_z &gt; 1.0:
+            x_i = z_thresh / norm_z
+        else:
+            x_i = z_thresh
+
+        # FISTA update
+        s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+        y_i = x_i + ((s - 1.0) / s_new) * (x_i - x_old)
+        s = s_new
+
+        # Convergence check
+        if np.linalg.norm(x_i - x_old) &lt; tol:
+            break
+            
+    return x_i
+
+class Solver:
+    def solve(self, problem: Dict, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the sparse PCA problem.
+        1. Uses eigsh for efficient partial eigendecomposition.
+        2. Solves the relaxed problem using FISTA for faster convergence.
+        3. JIT-compiles the FISTA solver using Numba for speed.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;covariance&quot;])
+        n_components = int(problem[&quot;n_components&quot;])
+        sparsity_param = float(problem[&quot;sparsity_param&quot;])
+        n = A.shape[0]
+
+        if n_components == 0:
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Eigendecomposition
+        try:
+            # Use eigsh for k &lt; n-1 as it&#x27;s faster for partial decomposition.
+            # For k &gt;= n-1, eigh is often more stable and sometimes faster.
+            if n_components &gt;= n - 1:
+                eigvals, eigvecs = np.linalg.eigh(A)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+                eigvals = eigvals[:n_components]
+                eigvecs = eigvecs[:, :n_components]
+            else:
+                # eigsh finds the k largest eigenvalues. &#x27;LM&#x27; = Largest Magnitude.
+                eigvals, eigvecs = eigsh(A, k=n_components, which=&#x27;LM&#x27;, tol=1e-6)
+                # Re-sort as eigsh doesn&#x27;t guarantee order for close eigenvalues
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+        except (np.linalg.LinAlgError, RuntimeError):
+            # Fallback for decomposition failure
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Filter out small non-positive eigenvalues for numerical stability
+        pos_indices = eigvals &gt; 1e-9
+        eigvals = eigvals[pos_indices]
+        eigvecs = eigvecs[:, pos_indices]
+
+        k = len(eigvals)
+
+        # Construct the target matrix B
+        B = np.zeros((n, n_components))
+        if k &gt; 0:
+            B[:, :k] = eigvecs * np.sqrt(eigvals)
+
+        # Initialize the solution matrix X
+        X = np.zeros((n, n_components))
+
+        # Parameters for the FISTA solver
+        max_iter = 1000
+        tol = 1e-6
+        # Lipschitz constant of grad(f) is 2, so step size t &lt; 1/L = 0.5
+        t = 0.49
+
+        # Solve for each component independently using the jitted FISTA solver
+        for i in range(n_components):
+            b_i = B[:, i]
+            X[:, i] = _solve_component_fista(b_i, sparsity_param, t, max_iter, tol)
+
+        # Calculate explained variance for each component
+        explained_variance = [float(X[:, i].T @ A @ X[:, i]) for i in range(n_components)]
+
+        # Transpose X to get components as a list of columns
+        return {&quot;components&quot;: X.T.tolist(), &quot;explained_variance&quot;: explained_variance}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.2608. You have $0.7392 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 116)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, Dict
+&gt; 003: import numba
+&gt; 004: from scipy.sparse.linalg import eigsh
+&gt; 005: 
+&gt; 006: # Numba-jitted FISTA solver for the subproblem.
+&gt; 007: # Using cache=True to avoid re-compilation on subsequent runs.
+&gt; 008: @numba.jit(nopython=True, fastmath=True, cache=True)
+&gt; 009: def _solve_component_fista(b_i: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+&gt; 010:     &quot;&quot;&quot;
+&gt; 011:     Solves the subproblem for a single component using FISTA.
+&gt; 012:     min ||b - x||^2 + sparsity_param * ||x||_1 s.t. ||x||_2 &lt;= 1
+&gt; 013:     &quot;&quot;&quot;
+&gt; 014:     # Initialization for FISTA
+&gt; 015:     x_i = b_i.copy()
+&gt; 016:     y_i = x_i.copy()
+&gt; 017:     s = 1.0
+&gt; 018: 
+&gt; 019:     for _ in range(max_iter):
+&gt; 020:         x_old = x_i.copy()
+&gt; 021: 
+&gt; 022:         # Gradient step on y_i
+&gt; 023:         grad = 2.0 * (y_i - b_i)
+&gt; 024:         z = y_i - t * grad
+&gt; 025: 
+&gt; 026:         # Proximal operator for L1 norm (soft-thresholding)
+&gt; 027:         threshold = t * sparsity_param
+&gt; 028:         z_thresh = np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
+&gt; 029: 
+&gt; 030:         # Projection onto the L2 unit ball
+&gt; 031:         norm_z = np.linalg.norm(z_thresh)
+&gt; 032:         if norm_z &gt; 1.0:
+&gt; 033:             x_i = z_thresh / norm_z
+&gt; 034:         else:
+&gt; 035:             x_i = z_thresh
+&gt; 036: 
+&gt; 037:         # FISTA update
+&gt; 038:         s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+&gt; 039:         y_i = x_i + ((s - 1.0) / s_new) * (x_i - x_old)
+&gt; 040:         s = s_new
+&gt; 041: 
+&gt; 042:         # Convergence check
+&gt; 043:         if np.linalg.norm(x_i - x_old) &lt; tol:
+&gt; 044:             break
+&gt; 045:             
+&gt; 046:     return x_i
+&gt; 047: 
+&gt; 048: class Solver:
+&gt; 049:     def solve(self, problem: Dict, **kwargs) -&gt; Any:
+&gt; 050:         &quot;&quot;&quot;
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 100%<br>  Timeouts: 0%<br><br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  151:             # Extract problem data
+  152:             A = np.array(problem[&quot;covariance&quot;])
+  153:             n_components = int(problem[&quot;n_components&quot;])
+  154:             sparsity_param = float(problem[&quot;sparsity_param&quot;])
+  155: 
+  156:             # Extract solution data
+  157:             components = np.array(solution[&quot;components&quot;])
+  158:             explained_variance = np.array(solution[&quot;explained_variance&quot;])
+  159: 
+  160:             # Check dimensions
+  161:             n = A.shape[0]
+  162:             if components.shape != (n, n_components):
+  163:                 logging.error(
+  164:                     f&quot;Components have incorrect shape: expected {(n, n_components)}, got {components.shape}&quot;
+  165:                 )
+&gt; 166:                 return False</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  151:             # Extract problem data
+  152:             A = np.array(problem[&quot;covariance&quot;])
+  153:             n_components = int(problem[&quot;n_components&quot;])
+  154:             sparsity_param = float(problem[&quot;sparsity_param&quot;])
+  155: 
+  156:             # Extract solution data
+  157:             components = np.array(solution[&quot;components&quot;])
+  158:             explained_variance = np.array(solution[&quot;explained_variance&quot;])
+  159: 
+  160:             # Check dimensions
+  161:             n = A.shape[0]
+  162:             if components.shape != (n, n_components):
+  163:                 logging.error(
+  164:                     f&quot;Components have incorrect shape: expected {(n, n_components)}, got {components.shape}&quot;
+  165:                 )
+&gt; 166:                 return False</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  151:             # Extract problem data
+  152:             A = np.array(problem[&quot;covariance&quot;])
+  153:             n_components = int(problem[&quot;n_components&quot;])
+  154:             sparsity_param = float(problem[&quot;sparsity_param&quot;])
+  155: 
+  156:             # Extract solution data
+  157:             components = np.array(solution[&quot;components&quot;])
+  158:             explained_variance = np.array(solution[&quot;explained_variance&quot;])
+  159: 
+  160:             # Check dimensions
+  161:             n = A.shape[0]
+  162:             if components.shape != (n, n_components):
+  163:                 logging.error(
+  164:                     f&quot;Components have incorrect shape: expected {(n, n_components)}, got {components.shape}&quot;
+  165:                 )
+&gt; 166:                 return False</code></pre><br><br><br>Snapshot not saved - invalid solutions present
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The evaluation failed because the shape of the returned `components` matrix was incorrect. The error log clearly states: `Components have incorrect shape: expected {(n, n_components)}, got {components.shape}`.<br><br>My code calculates the solution matrix `X` with the shape `(n, n_components)`, where `n` is the number of features and `n_components` is the number of principal components. Each column of `X` represents a component vector.<br><br>The error was introduced in the final return statement:<br>`return {&quot;components&quot;: X.T.tolist(), &quot;explained_variance&quot;: explained_variance}`<br><br>Here, `X.T` transposes the matrix to `(n_components, n)`. When converted to a list and then back to a NumPy array by the validator, it results in a shape of `(n_components, n)`, which mismatches the expected `(n, n_components)`.<br><br>The fix is to remove the transposition `.T` before converting the matrix `X` to a list. The correct line should be:<br>`return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}`<br><br>This will produce a list of lists that, when converted back to an array, has the correct `(n, n_components)` shape, satisfying the validator&#x27;s requirement. I will now apply this fix.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 115-115
+---
+        return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.2887. You have $0.7113 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 67-116 out of 116)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">...
+| 067:             # For k &gt;= n-1, eigh is often more stable and sometimes faster.
+| 068:             if n_components &gt;= n - 1:
+| 069:                 eigvals, eigvecs = np.linalg.eigh(A)
+| 070:                 idx = np.argsort(eigvals)[::-1]
+| 071:                 eigvals = eigvals[idx]
+| 072:                 eigvecs = eigvecs[:, idx]
+| 073:                 eigvals = eigvals[:n_components]
+| 074:                 eigvecs = eigvecs[:, :n_components]
+| 075:             else:
+| 076:                 # eigsh finds the k largest eigenvalues. &#x27;LM&#x27; = Largest Magnitude.
+| 077:                 eigvals, eigvecs = eigsh(A, k=n_components, which=&#x27;LM&#x27;, tol=1e-6)
+| 078:                 # Re-sort as eigsh doesn&#x27;t guarantee order for close eigenvalues
+| 079:                 idx = np.argsort(eigvals)[::-1]
+| 080:                 eigvals = eigvals[idx]
+| 081:                 eigvecs = eigvecs[:, idx]
+| 082:         except (np.linalg.LinAlgError, RuntimeError):
+| 083:             # Fallback for decomposition failure
+| 084:             return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+| 085: 
+| 086:         # Filter out small non-positive eigenvalues for numerical stability
+| 087:         pos_indices = eigvals &gt; 1e-9
+| 088:         eigvals = eigvals[pos_indices]
+| 089:         eigvecs = eigvecs[:, pos_indices]
+| 090: 
+| 091:         k = len(eigvals)
+| 092: 
+| 093:         # Construct the target matrix B
+| 094:         B = np.zeros((n, n_components))
+| 095:         if k &gt; 0:
+| 096:             B[:, :k] = eigvecs * np.sqrt(eigvals)
+| 097: 
+| 098:         # Initialize the solution matrix X
+| 099:         X = np.zeros((n, n_components))
+| 100: 
+| 101:         # Parameters for the FISTA solver
+| 102:         max_iter = 1000
+| 103:         tol = 1e-6
+| 104:         # Lipschitz constant of grad(f) is 2, so step size t &lt; 1/L = 0.5
+| 105:         t = 0.49
+| 106: 
+| 107:         # Solve for each component independently using the jitted FISTA solver
+| 108:         for i in range(n_components):
+| 109:             b_i = B[:, i]
+| 110:             X[:, i] = _solve_component_fista(b_i, sparsity_param, t, max_iter, tol)
+| 111: 
+| 112:         # Calculate explained variance for each component
+| 113:         explained_variance = [float(X[:, i].T @ A @ X[:, i]) for i in range(n_components)]
+| 114: 
+&gt; 115:         return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}
+| 116:         return {&quot;components&quot;: X.T.tolist(), &quot;explained_variance&quot;: explained_variance}</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">6.02</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                After achieving a 6.02x speedup, the feedback indicates that a top-tier solution requires even more significant optimization. My current approach already uses an efficient eigensolver (`eigsh`), an accelerated algorithm (FISTA), and JIT compilation (`numba.jit`) for the core solver loop.<br><br>The key remaining opportunity lies in parallelization. The problem of finding `n_components` sparse principal components can be decomposed into `n_components` independent subproblems. My current implementation solves these sequentially in a Python `for` loop, calling the Numba-jitted FISTA solver for each component. While the inner loop is fast, the outer loop is serial.<br><br>To unlock further performance, I will restructure the code to solve for all components in parallel. This can be achieved by moving the component-wise loop inside a single Numba-jitted function and using `numba.prange` for parallel execution. This will leverage multiple CPU cores to solve the independent subproblems simultaneously, dramatically reducing the total wall-clock time, especially when `n_components` is greater than one.<br><br>Additionally, I will vectorize the final calculation of explained variance. Instead of using a list comprehension with repeated matrix-vector products, I will use a single, highly optimized NumPy expression (`np.diag(X.T @ A @ X)`) to compute all variances at once.<br><br>This combination of parallel computation for the main workload and vectorization for the final step represents a more holistic optimization strategy, pushing beyond algorithmic and single-thread performance improvements.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-116
+---
+import numpy as np
+from typing import Any, Dict
+import numba
+from scipy.sparse.linalg import eigsh
+
+# Numba-jitted and parallelized FISTA solver for all components.
+# It iterates over components in parallel using numba.prange.
+@numba.jit(nopython=True, parallel=True, fastmath=True, cache=True)
+def _solve_all_components_fista_parallel(B: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Solves the subproblem for all components in parallel using FISTA.
+    &quot;&quot;&quot;
+    n, n_components = B.shape
+    X = np.zeros((n, n_components))
+
+    # numba.prange enables parallel execution of this loop
+    for i in numba.prange(n_components):
+        b_i = B[:, i]
+        
+        # Initialization for FISTA for component i
+        x_i = b_i.copy()
+        y_i = x_i.copy()
+        s = 1.0
+
+        for _ in range(max_iter):
+            x_old = x_i.copy()
+
+            # Gradient step on y_i
+            grad = 2.0 * (y_i - b_i)
+            z = y_i - t * grad
+
+            # Proximal operator for L1 norm (soft-thresholding)
+            threshold = t * sparsity_param
+            z_thresh = np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
+
+            # Projection onto the L2 unit ball
+            norm_z = np.linalg.norm(z_thresh)
+            if norm_z &gt; 1.0:
+                x_i = z_thresh / norm_z
+            else:
+                x_i = z_thresh
+
+            # FISTA update
+            s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+            y_i = x_i + ((s - 1.0) / s_new) * (x_i - x_old)
+            s = s_new
+
+            # Convergence check
+            if np.linalg.norm(x_i - x_old) &lt; tol:
+                break
+        
+        X[:, i] = x_i
+            
+    return X
+
+class Solver:
+    def solve(self, problem: Dict, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the sparse PCA problem.
+        1. Uses eigsh for efficient partial eigendecomposition.
+        2. Solves the relaxed problem using a parallelized FISTA solver.
+        3. JIT-compiles the solver using Numba with parallel=True.
+        4. Vectorizes the explained variance calculation.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;covariance&quot;])
+        n_components = int(problem[&quot;n_components&quot;])
+        sparsity_param = float(problem[&quot;sparsity_param&quot;])
+        n = A.shape[0]
+
+        if n_components == 0:
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Eigendecomposition
+        try:
+            if n_components &gt;= n - 1:
+                eigvals, eigvecs = np.linalg.eigh(A)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+                eigvals = eigvals[:n_components]
+                eigvecs = eigvecs[:, :n_components]
+            else:
+                eigvals, eigvecs = eigsh(A, k=n_components, which=&#x27;LM&#x27;, tol=1e-6)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+        except (np.linalg.LinAlgError, RuntimeError):
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Filter out small non-positive eigenvalues
+        pos_indices = eigvals &gt; 1e-9
+        eigvals = eigvals[pos_indices]
+        eigvecs = eigvecs[:, pos_indices]
+
+        k = len(eigvals)
+
+        # Construct the target matrix B
+        B = np.zeros((n, n_components))
+        if k &gt; 0:
+            B[:, :k] = eigvecs * np.sqrt(eigvals)
+
+        # Parameters for the FISTA solver
+        max_iter = 1000
+        tol = 1e-6
+        t = 0.49 # Step size &lt; 1/L where L=2
+
+        # Solve for all components in parallel
+        X = _solve_all_components_fista_parallel(B, sparsity_param, t, max_iter, tol)
+
+        # Vectorized calculation of explained variance
+        explained_variance = np.diag(X.T @ A @ X).tolist()
+
+        return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.3603. You have $0.6397 remaining.<br><br>Edit failed (and thus not applied) for solver.py: Line 17: Non-iterable value numba.prange(n_components) is used in an iterating context (not-an-iterable)<br><br>Proposed changes - This is what you tried to apply (lines 1-50 out of 113):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, Dict
+&gt; 003: import numba
+&gt; 004: from scipy.sparse.linalg import eigsh
+&gt; 005: 
+&gt; 006: # Numba-jitted and parallelized FISTA solver for all components.
+&gt; 007: # It iterates over components in parallel using numba.prange.
+&gt; 008: @numba.jit(nopython=True, parallel=True, fastmath=True, cache=True)
+&gt; 009: def _solve_all_components_fista_parallel(B: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+&gt; 010:     &quot;&quot;&quot;
+&gt; 011:     Solves the subproblem for all components in parallel using FISTA.
+&gt; 012:     &quot;&quot;&quot;
+&gt; 013:     n, n_components = B.shape
+&gt; 014:     X = np.zeros((n, n_components))
+&gt; 015: 
+&gt; 016:     # numba.prange enables parallel execution of this loop
+&gt; 017:     for i in numba.prange(n_components):
+&gt; 018:         b_i = B[:, i]
+&gt; 019:         
+&gt; 020:         # Initialization for FISTA for component i
+&gt; 021:         x_i = b_i.copy()
+&gt; 022:         y_i = x_i.copy()
+&gt; 023:         s = 1.0
+&gt; 024: 
+&gt; 025:         for _ in range(max_iter):
+&gt; 026:             x_old = x_i.copy()
+&gt; 027: 
+&gt; 028:             # Gradient step on y_i
+&gt; 029:             grad = 2.0 * (y_i - b_i)
+&gt; 030:             z = y_i - t * grad
+&gt; 031: 
+&gt; 032:             # Proximal operator for L1 norm (soft-thresholding)
+&gt; 033:             threshold = t * sparsity_param
+&gt; 034:             z_thresh = np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
+&gt; 035: 
+&gt; 036:             # Projection onto the L2 unit ball
+&gt; 037:             norm_z = np.linalg.norm(z_thresh)
+&gt; 038:             if norm_z &gt; 1.0:
+&gt; 039:                 x_i = z_thresh / norm_z
+&gt; 040:             else:
+&gt; 041:                 x_i = z_thresh
+&gt; 042: 
+&gt; 043:             # FISTA update
+&gt; 044:             s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+&gt; 045:             y_i = x_i + ((s - 1.0) / s_new) * (x_i - x_old)
+&gt; 046:             s = s_new
+&gt; 047: 
+&gt; 048:             # Convergence check
+&gt; 049:             if np.linalg.norm(x_i - x_old) &lt; tol:
+&gt; 050:                 break
+...</code></pre><br><br>CURRENT FILE - This is what&#x27;s actually in the file (lines 1-50 out of 116):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">| 001: import numpy as np
+| 002: from typing import Any, Dict
+| 003: import numba
+| 004: from scipy.sparse.linalg import eigsh
+| 005: 
+| 006: # Numba-jitted FISTA solver for the subproblem.
+| 007: # Using cache=True to avoid re-compilation on subsequent runs.
+| 008: @numba.jit(nopython=True, fastmath=True, cache=True)
+| 009: def _solve_component_fista(b_i: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+| 010:     &quot;&quot;&quot;
+| 011:     Solves the subproblem for a single component using FISTA.
+| 012:     min ||b - x||^2 + sparsity_param * ||x||_1 s.t. ||x||_2 &lt;= 1
+| 013:     &quot;&quot;&quot;
+| 014:     # Initialization for FISTA
+| 015:     x_i = b_i.copy()
+| 016:     y_i = x_i.copy()
+| 017:     s = 1.0
+| 018: 
+| 019:     for _ in range(max_iter):
+| 020:         x_old = x_i.copy()
+| 021: 
+| 022:         # Gradient step on y_i
+| 023:         grad = 2.0 * (y_i - b_i)
+| 024:         z = y_i - t * grad
+| 025: 
+| 026:         # Proximal operator for L1 norm (soft-thresholding)
+| 027:         threshold = t * sparsity_param
+| 028:         z_thresh = np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
+| 029: 
+| 030:         # Projection onto the L2 unit ball
+| 031:         norm_z = np.linalg.norm(z_thresh)
+| 032:         if norm_z &gt; 1.0:
+| 033:             x_i = z_thresh / norm_z
+| 034:         else:
+| 035:             x_i = z_thresh
+| 036: 
+| 037:         # FISTA update
+| 038:         s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+| 039:         y_i = x_i + ((s - 1.0) / s_new) * (x_i - x_old)
+| 040:         s = s_new
+| 041: 
+| 042:         # Convergence check
+| 043:         if np.linalg.norm(x_i - x_old) &lt; tol:
+| 044:             break
+| 045:             
+| 046:     return x_i
+| 047: 
+| 048: class Solver:
+| 049:     def solve(self, problem: Dict, **kwargs) -&gt; Any:
+| 050:         &quot;&quot;&quot;
+...</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The previous attempt failed due to a Numba compilation error: `Non-iterable value numba.prange(...) is used in an iterating context`. This error suggests that Numba&#x27;s compiler could not correctly process the nested loop structure within a single parallel function.<br><br>The standard and more robust way to parallelize with Numba is to separate the serial logic from the parallel execution. I will refactor the code to follow this pattern:<br><br>1.  **`_solve_component_fista`**: A JIT-compiled function (without `parallel=True`) that contains the FISTA logic to solve for a *single* component. This function is self-contained and proven to work from my previous successful submission.<br>2.  **`_solve_all_components_parallel`**: A new JIT-compiled wrapper function with `parallel=True`. This function&#x27;s only job is to loop over the components using `numba.prange` and call `_solve_component_fista` for each one. The assignments to the output array `X` are independent, making this a perfectly parallelizable task.<br><br>This separation simplifies the code that Numba&#x27;s parallel-pass needs to analyze, avoiding potential compiler issues and making the parallelization strategy explicit and clean. I will now apply this corrected and refactored code.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-116
+---
+import numpy as np
+from typing import Any, Dict
+import numba
+from scipy.sparse.linalg import eigsh
+
+# Numba-jitted FISTA solver for a single component.
+# This function contains the core serial logic.
+@numba.jit(nopython=True, fastmath=True, cache=True)
+def _solve_component_fista(b_i: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Solves the subproblem for a single component using FISTA.
+    &quot;&quot;&quot;
+    x_i = b_i.copy()
+    y_i = x_i.copy()
+    s = 1.0
+
+    for _ in range(max_iter):
+        x_old = x_i.copy()
+        grad = 2.0 * (y_i - b_i)
+        z = y_i - t * grad
+        threshold = t * sparsity_param
+        z_thresh = np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
+        norm_z = np.linalg.norm(z_thresh)
+        if norm_z &gt; 1.0:
+            x_i = z_thresh / norm_z
+        else:
+            x_i = z_thresh
+        s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+        y_i = x_i + ((s - 1.0) / s_new) * (x_i - x_old)
+        s = s_new
+        if np.linalg.norm(x_i - x_old) &lt; tol:
+            break
+    return x_i
+
+# Numba-jitted parallel wrapper to solve for all components.
+@numba.jit(nopython=True, parallel=True, fastmath=True, cache=True)
+def _solve_all_components_parallel(B: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Calls the single-component solver in parallel for all components.
+    &quot;&quot;&quot;
+    n, n_components = B.shape
+    X = np.zeros((n, n_components))
+    # Use prange to parallelize the loop over components
+    for i in numba.prange(n_components):
+        X[:, i] = _solve_component_fista(B[:, i], sparsity_param, t, max_iter, tol)
+    return X
+
+class Solver:
+    def solve(self, problem: Dict, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the sparse PCA problem.
+        1. Uses eigsh for efficient partial eigendecomposition.
+        2. Solves the relaxed problem using a parallelized FISTA solver.
+        3. JIT-compiles the solver using Numba with parallel=True.
+        4. Vectorizes the explained variance calculation.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;covariance&quot;])
+        n_components = int(problem[&quot;n_components&quot;])
+        sparsity_param = float(problem[&quot;sparsity_param&quot;])
+        n = A.shape[0]
+
+        if n_components == 0:
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Eigendecomposition
+        try:
+            if n_components &gt;= n - 1:
+                eigvals, eigvecs = np.linalg.eigh(A)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+                eigvals = eigvals[:n_components]
+                eigvecs = eigvecs[:, :n_components]
+            else:
+                eigvals, eigvecs = eigsh(A, k=n_components, which=&#x27;LM&#x27;, tol=1e-6)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+        except (np.linalg.LinAlgError, RuntimeError):
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Filter out small non-positive eigenvalues
+        pos_indices = eigvals &gt; 1e-9
+        eigvals = eigvals[pos_indices]
+        eigvecs = eigvecs[:, pos_indices]
+
+        k = len(eigvals)
+
+        # Construct the target matrix B
+        B = np.zeros((n, n_components))
+        if k &gt; 0:
+            B[:, :k] = eigvecs * np.sqrt(eigvals)
+
+        # Parameters for the FISTA solver
+        max_iter = 1000
+        tol = 1e-6
+        t = 0.49 # Step size &lt; 1/L where L=2
+
+        # Solve for all components in parallel
+        X = _solve_all_components_parallel(B, sparsity_param, t, max_iter, tol)
+
+        # Vectorized calculation of explained variance
+        explained_variance = np.diag(X.T @ A @ X).tolist()
+
+        return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 6 messages and have used up $0.4201. You have $0.5799 remaining.<br><br>Edit failed (and thus not applied) for solver.py: Line 44: Non-iterable value numba.prange(n_components) is used in an iterating context (not-an-iterable)<br><br>Proposed changes - This is what you tried to apply (lines 19-68 out of 105):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">...
+&gt; 019:         grad = 2.0 * (y_i - b_i)
+&gt; 020:         z = y_i - t * grad
+&gt; 021:         threshold = t * sparsity_param
+&gt; 022:         z_thresh = np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
+&gt; 023:         norm_z = np.linalg.norm(z_thresh)
+&gt; 024:         if norm_z &gt; 1.0:
+&gt; 025:             x_i = z_thresh / norm_z
+&gt; 026:         else:
+&gt; 027:             x_i = z_thresh
+&gt; 028:         s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+&gt; 029:         y_i = x_i + ((s - 1.0) / s_new) * (x_i - x_old)
+&gt; 030:         s = s_new
+&gt; 031:         if np.linalg.norm(x_i - x_old) &lt; tol:
+&gt; 032:             break
+&gt; 033:     return x_i
+&gt; 034: 
+&gt; 035: # Numba-jitted parallel wrapper to solve for all components.
+&gt; 036: @numba.jit(nopython=True, parallel=True, fastmath=True, cache=True)
+&gt; 037: def _solve_all_components_parallel(B: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+&gt; 038:     &quot;&quot;&quot;
+&gt; 039:     Calls the single-component solver in parallel for all components.
+&gt; 040:     &quot;&quot;&quot;
+&gt; 041:     n, n_components = B.shape
+&gt; 042:     X = np.zeros((n, n_components))
+&gt; 043:     # Use prange to parallelize the loop over components
+&gt; 044:     for i in numba.prange(n_components):
+&gt; 045:         X[:, i] = _solve_component_fista(B[:, i], sparsity_param, t, max_iter, tol)
+&gt; 046:     return X
+&gt; 047: 
+&gt; 048: class Solver:
+&gt; 049:     def solve(self, problem: Dict, **kwargs) -&gt; Any:
+&gt; 050:         &quot;&quot;&quot;
+&gt; 051:         Solves the sparse PCA problem.
+&gt; 052:         1. Uses eigsh for efficient partial eigendecomposition.
+&gt; 053:         2. Solves the relaxed problem using a parallelized FISTA solver.
+&gt; 054:         3. JIT-compiles the solver using Numba with parallel=True.
+&gt; 055:         4. Vectorizes the explained variance calculation.
+&gt; 056:         &quot;&quot;&quot;
+&gt; 057:         A = np.array(problem[&quot;covariance&quot;])
+&gt; 058:         n_components = int(problem[&quot;n_components&quot;])
+&gt; 059:         sparsity_param = float(problem[&quot;sparsity_param&quot;])
+&gt; 060:         n = A.shape[0]
+&gt; 061: 
+&gt; 062:         if n_components == 0:
+&gt; 063:             return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+&gt; 064: 
+&gt; 065:         # Eigendecomposition
+&gt; 066:         try:
+&gt; 067:             if n_components &gt;= n - 1:
+&gt; 068:                 eigvals, eigvecs = np.linalg.eigh(A)
+...</code></pre><br><br>CURRENT FILE - This is what&#x27;s actually in the file (lines 1-50 out of 116):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">| 001: import numpy as np
+| 002: from typing import Any, Dict
+| 003: import numba
+| 004: from scipy.sparse.linalg import eigsh
+| 005: 
+| 006: # Numba-jitted FISTA solver for the subproblem.
+| 007: # Using cache=True to avoid re-compilation on subsequent runs.
+| 008: @numba.jit(nopython=True, fastmath=True, cache=True)
+| 009: def _solve_component_fista(b_i: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+| 010:     &quot;&quot;&quot;
+| 011:     Solves the subproblem for a single component using FISTA.
+| 012:     min ||b - x||^2 + sparsity_param * ||x||_1 s.t. ||x||_2 &lt;= 1
+| 013:     &quot;&quot;&quot;
+| 014:     # Initialization for FISTA
+| 015:     x_i = b_i.copy()
+| 016:     y_i = x_i.copy()
+| 017:     s = 1.0
+| 018: 
+| 019:     for _ in range(max_iter):
+| 020:         x_old = x_i.copy()
+| 021: 
+| 022:         # Gradient step on y_i
+| 023:         grad = 2.0 * (y_i - b_i)
+| 024:         z = y_i - t * grad
+| 025: 
+| 026:         # Proximal operator for L1 norm (soft-thresholding)
+| 027:         threshold = t * sparsity_param
+| 028:         z_thresh = np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
+| 029: 
+| 030:         # Projection onto the L2 unit ball
+| 031:         norm_z = np.linalg.norm(z_thresh)
+| 032:         if norm_z &gt; 1.0:
+| 033:             x_i = z_thresh / norm_z
+| 034:         else:
+| 035:             x_i = z_thresh
+| 036: 
+| 037:         # FISTA update
+| 038:         s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+| 039:         y_i = x_i + ((s - 1.0) / s_new) * (x_i - x_old)
+| 040:         s = s_new
+| 041: 
+| 042:         # Convergence check
+| 043:         if np.linalg.norm(x_i - x_old) &lt; tol:
+| 044:             break
+| 045:             
+| 046:     return x_i
+| 047: 
+| 048: class Solver:
+| 049:     def solve(self, problem: Dict, **kwargs) -&gt; Any:
+| 050:         &quot;&quot;&quot;
+...</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The repeated failure of `numba.prange` indicates a persistent issue with Numba&#x27;s parallel compilation in this specific environment, possibly due to versioning, configuration, or the complexity of the nested loops.<br><br>To overcome this, I will switch to a more robust and widely-used parallelization library: `joblib`. This library is a staple of the scientific Python ecosystem (used heavily by scikit-learn) and is expertly designed for embarrassingly parallel `for` loops, which is exactly the structure of this problem.<br><br>My new strategy is as follows:<br>1.  **Keep the Numba-jitted FISTA solver (`_solve_component_fista`)**: This function is highly optimized for a single CPU core and has been proven to work correctly. It will serve as the &quot;worker&quot; function.<br>2.  **Use `joblib.Parallel`**: In the main `solve` method, I will use `joblib.Parallel(n_jobs=-1)` to create a pool of worker processes (using all available CPU cores).<br>3.  **Use `joblib.delayed`**: I will wrap the call to my worker function, `_solve_component_fista`, inside `joblib.delayed`. This creates a lightweight tuple of `(function, args, kwargs)` that `joblib` can efficiently send to the worker processes.<br>4.  **Reassemble the result**: The parallel execution will return a list of the resulting component vectors. I will use `np.stack` to efficiently reassemble these into the final solution matrix `X`.<br><br>This approach combines the single-core C-like speed of Numba for the numerical kernel with the robust, multi-process parallelization of `joblib` for the overall task, bypassing the `numba.prange` issue entirely.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-116
+---
+import numpy as np
+from typing import Any, Dict
+import numba
+from scipy.sparse.linalg import eigsh
+from joblib import Parallel, delayed
+
+# Numba-jitted FISTA solver for a single component.
+# This function is the core computational kernel that will be parallelized.
+@numba.jit(nopython=True, fastmath=True, cache=True)
+def _solve_component_fista(b_i: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Solves the subproblem for a single component using FISTA.
+    &quot;&quot;&quot;
+    x_i = b_i.copy()
+    y_i = x_i.copy()
+    s = 1.0
+
+    for _ in range(max_iter):
+        x_old = x_i.copy()
+        grad = 2.0 * (y_i - b_i)
+        z = y_i - t * grad
+        threshold = t * sparsity_param
+        z_thresh = np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
+        norm_z = np.linalg.norm(z_thresh)
+        if norm_z &gt; 1.0:
+            x_i = z_thresh / norm_z
+        else:
+            x_i = z_thresh
+        s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+        y_i = x_i + ((s - 1.0) / s_new) * (x_i - x_old)
+        s = s_new
+        if np.linalg.norm(x_i - x_old) &lt; tol:
+            break
+    return x_i
+
+class Solver:
+    def solve(self, problem: Dict, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the sparse PCA problem using a hybrid Numba + Joblib approach.
+        1. Uses eigsh for efficient partial eigendecomposition.
+        2. Uses a Numba-jitted FISTA solver for the core computation.
+        3. Uses Joblib to parallelize the solving of each component across CPU cores.
+        4. Vectorizes the final explained variance calculation.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;covariance&quot;])
+        n_components = int(problem[&quot;n_components&quot;])
+        sparsity_param = float(problem[&quot;sparsity_param&quot;])
+        n = A.shape[0]
+
+        if n_components == 0:
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Eigendecomposition
+        try:
+            if n_components &gt;= n - 1:
+                eigvals, eigvecs = np.linalg.eigh(A)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+                eigvals = eigvals[:n_components]
+                eigvecs = eigvecs[:, :n_components]
+            else:
+                eigvals, eigvecs = eigsh(A, k=n_components, which=&#x27;LM&#x27;, tol=1e-6)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+        except (np.linalg.LinAlgError, RuntimeError):
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Filter out small non-positive eigenvalues
+        pos_indices = eigvals &gt; 1e-9
+        eigvals = eigvals[pos_indices]
+        eigvecs = eigvecs[:, pos_indices]
+
+        k = len(eigvals)
+
+        # Construct the target matrix B
+        B = np.zeros((n, n_components))
+        if k &gt; 0:
+            B[:, :k] = eigvecs * np.sqrt(eigvals)
+
+        # Parameters for the FISTA solver
+        max_iter = 1000
+        tol = 1e-6
+        t = 0.49 # Step size &lt; 1/L where L=2
+
+        # Use Joblib to run the FISTA solver for each component in parallel
+        component_list = Parallel(n_jobs=-1)(
+            delayed(_solve_component_fista)(B[:, i], sparsity_param, t, max_iter, tol)
+            for i in range(n_components)
+        )
+
+        # Reassemble the results from the parallel execution
+        if not component_list:
+            X = np.zeros((n, n_components))
+        else:
+            X = np.stack(component_list, axis=1)
+
+        # Vectorized calculation of explained variance
+        explained_variance = np.diag(X.T @ A @ X).tolist()
+
+        return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 7 messages and have used up $0.4691. You have $0.5309 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 102)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, Dict
+&gt; 003: import numba
+&gt; 004: from scipy.sparse.linalg import eigsh
+&gt; 005: from joblib import Parallel, delayed
+&gt; 006: 
+&gt; 007: # Numba-jitted FISTA solver for a single component.
+&gt; 008: # This function is the core computational kernel that will be parallelized.
+&gt; 009: @numba.jit(nopython=True, fastmath=True, cache=True)
+&gt; 010: def _solve_component_fista(b_i: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+&gt; 011:     &quot;&quot;&quot;
+&gt; 012:     Solves the subproblem for a single component using FISTA.
+&gt; 013:     &quot;&quot;&quot;
+&gt; 014:     x_i = b_i.copy()
+&gt; 015:     y_i = x_i.copy()
+&gt; 016:     s = 1.0
+&gt; 017: 
+&gt; 018:     for _ in range(max_iter):
+&gt; 019:         x_old = x_i.copy()
+&gt; 020:         grad = 2.0 * (y_i - b_i)
+&gt; 021:         z = y_i - t * grad
+&gt; 022:         threshold = t * sparsity_param
+&gt; 023:         z_thresh = np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
+&gt; 024:         norm_z = np.linalg.norm(z_thresh)
+&gt; 025:         if norm_z &gt; 1.0:
+&gt; 026:             x_i = z_thresh / norm_z
+&gt; 027:         else:
+&gt; 028:             x_i = z_thresh
+&gt; 029:         s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+&gt; 030:         y_i = x_i + ((s - 1.0) / s_new) * (x_i - x_old)
+&gt; 031:         s = s_new
+&gt; 032:         if np.linalg.norm(x_i - x_old) &lt; tol:
+&gt; 033:             break
+&gt; 034:     return x_i
+&gt; 035: 
+&gt; 036: class Solver:
+&gt; 037:     def solve(self, problem: Dict, **kwargs) -&gt; Any:
+&gt; 038:         &quot;&quot;&quot;
+&gt; 039:         Solves the sparse PCA problem using a hybrid Numba + Joblib approach.
+&gt; 040:         1. Uses eigsh for efficient partial eigendecomposition.
+&gt; 041:         2. Uses a Numba-jitted FISTA solver for the core computation.
+&gt; 042:         3. Uses Joblib to parallelize the solving of each component across CPU cores.
+&gt; 043:         4. Vectorizes the final explained variance calculation.
+&gt; 044:         &quot;&quot;&quot;
+&gt; 045:         A = np.array(problem[&quot;covariance&quot;])
+&gt; 046:         n_components = int(problem[&quot;n_components&quot;])
+&gt; 047:         sparsity_param = float(problem[&quot;sparsity_param&quot;])
+&gt; 048:         n = A.shape[0]
+&gt; 049: 
+&gt; 050:         if n_components == 0:
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 0%<br>  Timeouts: 100%<br><br><br>Snapshot not saved - invalid solutions present
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The previous submission timed out, indicating that the overhead of using `joblib` with its default process-based backend (`loky`) was greater than the performance gain from parallelization. Spawning new processes and serializing data for each component was too slow.<br><br>The solution is to switch from multi-processing to multi-threading. Normally, Python&#x27;s Global Interpreter Lock (GIL) prevents threads from achieving true parallelism for CPU-bound tasks. However, my core computational function, `_solve_component_fista`, is decorated with `@numba.jit(nopython=True)`. A key feature of this mode is that Numba releases the GIL when executing the compiled code.<br><br>This allows me to use `joblib` with a threading backend, which has significantly lower overhead as threads share memory and don&#x27;t require data serialization. By changing the `Parallel` call to `Parallel(n_jobs=-1, prefer=&quot;threads&quot;)`, I can leverage multiple CPU cores to execute the GIL-releasing Numba function in parallel, eliminating the overhead that caused the timeout while still achieving the desired speedup.<br><br>I will now resubmit the `joblib`-based solution with this critical modification to use the threading backend.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-102
+---
+import numpy as np
+from typing import Any, Dict
+import numba
+from scipy.sparse.linalg import eigsh
+from joblib import Parallel, delayed
+
+# Numba-jitted FISTA solver for a single component.
+# nopython=True releases the GIL, allowing for true multi-threading via Joblib.
+@numba.jit(nopython=True, fastmath=True, cache=True)
+def _solve_component_fista(b_i: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Solves the subproblem for a single component using FISTA.
+    &quot;&quot;&quot;
+    x_i = b_i.copy()
+    y_i = x_i.copy()
+    s = 1.0
+
+    for _ in range(max_iter):
+        x_old = x_i.copy()
+        grad = 2.0 * (y_i - b_i)
+        z = y_i - t * grad
+        threshold = t * sparsity_param
+        z_thresh = np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
+        norm_z = np.linalg.norm(z_thresh)
+        if norm_z &gt; 1.0:
+            x_i = z_thresh / norm_z
+        else:
+            x_i = z_thresh
+        s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+        y_i = x_i + ((s - 1.0) / s_new) * (x_i - x_old)
+        s = s_new
+        if np.linalg.norm(x_i - x_old) &lt; tol:
+            break
+    return x_i
+
+class Solver:
+    def solve(self, problem: Dict, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the sparse PCA problem using a hybrid Numba + Joblib approach.
+        1. Uses eigsh for efficient partial eigendecomposition.
+        2. Uses a Numba-jitted FISTA solver for the core computation.
+        3. Uses Joblib with a threading backend to parallelize solving each component.
+        4. Vectorizes the final explained variance calculation.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;covariance&quot;])
+        n_components = int(problem[&quot;n_components&quot;])
+        sparsity_param = float(problem[&quot;sparsity_param&quot;])
+        n = A.shape[0]
+
+        if n_components == 0:
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Eigendecomposition
+        try:
+            if n_components &gt;= n - 1:
+                eigvals, eigvecs = np.linalg.eigh(A)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+                eigvals = eigvals[:n_components]
+                eigvecs = eigvecs[:, :n_components]
+            else:
+                eigvals, eigvecs = eigsh(A, k=n_components, which=&#x27;LM&#x27;, tol=1e-6)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+        except (np.linalg.LinAlgError, RuntimeError):
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Filter out small non-positive eigenvalues
+        pos_indices = eigvals &gt; 1e-9
+        eigvals = eigvals[pos_indices]
+        eigvecs = eigvecs[:, pos_indices]
+
+        k = len(eigvals)
+
+        # Construct the target matrix B
+        B = np.zeros((n, n_components))
+        if k &gt; 0:
+            B[:, :k] = eigvecs * np.sqrt(eigvals)
+
+        # Parameters for the FISTA solver
+        max_iter = 1000
+        tol = 1e-6
+        t = 0.49 # Step size &lt; 1/L where L=2
+
+        # Use Joblib with the threading backend to avoid serialization overhead.
+        # The Numba-jitted function releases the GIL, allowing for true parallelism.
+        component_list = Parallel(n_jobs=-1, prefer=&quot;threads&quot;)(
+            delayed(_solve_component_fista)(B[:, i], sparsity_param, t, max_iter, tol)
+            for i in range(n_components)
+        )
+
+        # Reassemble the results from the parallel execution
+        if not component_list:
+            X = np.zeros((n, n_components))
+        else:
+            X = np.stack(component_list, axis=1)
+
+        # Vectorized calculation of explained variance
+        explained_variance = np.diag(X.T @ A @ X).tolist()
+
+        return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 8 messages and have used up $0.5308. You have $0.4692 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 103)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, Dict
+&gt; 003: import numba
+&gt; 004: from scipy.sparse.linalg import eigsh
+&gt; 005: from joblib import Parallel, delayed
+&gt; 006: 
+&gt; 007: # Numba-jitted FISTA solver for a single component.
+&gt; 008: # nopython=True releases the GIL, allowing for true multi-threading via Joblib.
+&gt; 009: @numba.jit(nopython=True, fastmath=True, cache=True)
+&gt; 010: def _solve_component_fista(b_i: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+&gt; 011:     &quot;&quot;&quot;
+&gt; 012:     Solves the subproblem for a single component using FISTA.
+&gt; 013:     &quot;&quot;&quot;
+&gt; 014:     x_i = b_i.copy()
+&gt; 015:     y_i = x_i.copy()
+&gt; 016:     s = 1.0
+&gt; 017: 
+&gt; 018:     for _ in range(max_iter):
+&gt; 019:         x_old = x_i.copy()
+&gt; 020:         grad = 2.0 * (y_i - b_i)
+&gt; 021:         z = y_i - t * grad
+&gt; 022:         threshold = t * sparsity_param
+&gt; 023:         z_thresh = np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
+&gt; 024:         norm_z = np.linalg.norm(z_thresh)
+&gt; 025:         if norm_z &gt; 1.0:
+&gt; 026:             x_i = z_thresh / norm_z
+&gt; 027:         else:
+&gt; 028:             x_i = z_thresh
+&gt; 029:         s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+&gt; 030:         y_i = x_i + ((s - 1.0) / s_new) * (x_i - x_old)
+&gt; 031:         s = s_new
+&gt; 032:         if np.linalg.norm(x_i - x_old) &lt; tol:
+&gt; 033:             break
+&gt; 034:     return x_i
+&gt; 035: 
+&gt; 036: class Solver:
+&gt; 037:     def solve(self, problem: Dict, **kwargs) -&gt; Any:
+&gt; 038:         &quot;&quot;&quot;
+&gt; 039:         Solves the sparse PCA problem using a hybrid Numba + Joblib approach.
+&gt; 040:         1. Uses eigsh for efficient partial eigendecomposition.
+&gt; 041:         2. Uses a Numba-jitted FISTA solver for the core computation.
+&gt; 042:         3. Uses Joblib with a threading backend to parallelize solving each component.
+&gt; 043:         4. Vectorizes the final explained variance calculation.
+&gt; 044:         &quot;&quot;&quot;
+&gt; 045:         A = np.array(problem[&quot;covariance&quot;])
+&gt; 046:         n_components = int(problem[&quot;n_components&quot;])
+&gt; 047:         sparsity_param = float(problem[&quot;sparsity_param&quot;])
+&gt; 048:         n = A.shape[0]
+&gt; 049: 
+&gt; 050:         if n_components == 0:
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">3.59</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My previous attempts to parallelize the component-wise solving loop using `numba.prange` and `joblib` did not yield the expected speedup, with the `joblib` threading approach even being slower than the original serial implementation. This suggests that for this problem&#x27;s scale, the overhead of parallelization outweighs the benefits.<br><br>The most promising path to a significant performance leap is to eliminate the Python loop over components entirely. I will achieve this by &quot;vectorizing&quot; the FISTA solver. Instead of solving for each component vector `x_i` one by one, the new approach will operate on the entire component matrix `X` at once.<br><br>My new implementation will feature:<br>1.  **A Fully Vectorized FISTA Solver**: A single `numba.jit`-compiled function, `_solve_all_fista_vectorized`, will perform all FISTA steps (gradient, soft-thresholding, projection) on the full `(n, n_components)` matrices. This maximizes the work done in highly optimized compiled code and minimizes Python interpreter overhead.<br>2.  **Vectorized Projection**: The projection of each component vector onto the L2 unit ball will be done efficiently for all columns simultaneously using vectorized `numpy` operations like `np.sum(..., axis=0)` and broadcasting.<br>3.  **Matrix-wise Convergence**: A single Frobenius norm calculation on the difference `X - X_old` will be used to check for convergence, avoiding a loop over columns.<br><br>This refactoring represents a fundamental shift from a looping/parallel strategy to a more efficient, fully vectorized one, which should provide a substantial speedup.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-116
+---
+import numpy as np
+from typing import Any, Dict
+import numba
+from scipy.sparse.linalg import eigsh
+
+@numba.jit(nopython=True, fastmath=True, cache=True)
+def _solve_all_fista_vectorized(B: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Solves the subproblem for all components simultaneously using a vectorized FISTA.
+    This avoids Python loops and parallelization overhead by using matrix operations.
+    &quot;&quot;&quot;
+    n, n_components = B.shape
+    if n_components == 0:
+        return np.zeros((n, 0))
+
+    # Initialize matrices for FISTA
+    X = B.copy()
+    Y = X.copy()
+    s = 1.0
+    
+    # Scale tolerance by sqrt of n_components for the matrix-wide Frobenius norm check
+    scaled_tol = tol * np.sqrt(float(n_components))
+
+    for _ in range(max_iter):
+        X_old = X.copy()
+
+        # Gradient step (matrix operation)
+        grad = 2.0 * (Y - B)
+        Z = Y - t * grad
+        
+        # Proximal step for L1 norm (matrix operation)
+        threshold = t * sparsity_param
+        Z_thresh = np.sign(Z) * np.maximum(np.abs(Z) - threshold, 0.0)
+
+        # Vectorized projection step for L2 unit ball constraint
+        # 1. Calculate L2 norm for each column vector
+        col_norms = np.sqrt(np.sum(Z_thresh**2, axis=0))
+        # 2. Create a divisor that is 1.0 for norms &lt;= 1, and the norm itself for norms &gt; 1
+        divisor = np.maximum(col_norms, 1.0)
+        # 3. Broadcast the division column-wise to normalize columns where norm &gt; 1
+        X = Z_thresh / divisor
+        
+        # FISTA acceleration step (matrix operations)
+        s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+        Y = X + ((s - 1.0) / s_new) * (X - X_old)
+        s = s_new
+
+        # Convergence check using the Frobenius norm of the change in X
+        if np.linalg.norm(X - X_old) &lt; scaled_tol:
+            break
+            
+    return X
+
+class Solver:
+    def solve(self, problem: Dict, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the sparse PCA problem using a fully vectorized FISTA algorithm.
+        1. Uses eigsh for efficient partial eigendecomposition.
+        2. Constructs a target matrix B.
+        3. Solves for all components simultaneously in a Numba-jitted vectorized solver.
+        4. Vectorizes the final explained variance calculation.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;covariance&quot;])
+        n_components = int(problem[&quot;n_components&quot;])
+        sparsity_param = float(problem[&quot;sparsity_param&quot;])
+        n = A.shape[0]
+
+        if n_components == 0:
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Eigendecomposition to find the principal subspace
+        try:
+            if n_components &gt;= n - 1:
+                eigvals, eigvecs = np.linalg.eigh(A)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+                eigvals = eigvals[:n_components]
+                eigvecs = eigvecs[:, :n_components]
+            else:
+                eigvals, eigvecs = eigsh(A, k=n_components, which=&#x27;LM&#x27;, tol=1e-6)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+        except (np.linalg.LinAlgError, RuntimeError):
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Filter out small non-positive eigenvalues for numerical stability
+        pos_indices = eigvals &gt; 1e-9
+        eigvals = eigvals[pos_indices]
+        eigvecs = eigvecs[:, pos_indices]
+
+        k = len(eigvals)
+
+        # Construct the target matrix B for the relaxed problem
+        B = np.zeros((n, n_components))
+        if k &gt; 0:
+            B[:, :k] = eigvecs * np.sqrt(eigvals)
+
+        # Parameters for the FISTA solver
+        max_iter = 1000
+        tol = 1e-6
+        t = 0.49 # Step size &lt; 1/L where Lipschitz constant L=2
+
+        # Call the single, vectorized solver
+        X = _solve_all_fista_vectorized(B, sparsity_param, t, max_iter, tol)
+
+        # Vectorized calculation of explained variance
+        explained_variance = np.diag(X.T @ A @ X).tolist()
+
+        return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 9 messages and have used up $0.6350. You have $0.3650 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 111)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, Dict
+&gt; 003: import numba
+&gt; 004: from scipy.sparse.linalg import eigsh
+&gt; 005: 
+&gt; 006: @numba.jit(nopython=True, fastmath=True, cache=True)
+&gt; 007: def _solve_all_fista_vectorized(B: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+&gt; 008:     &quot;&quot;&quot;
+&gt; 009:     Solves the subproblem for all components simultaneously using a vectorized FISTA.
+&gt; 010:     This avoids Python loops and parallelization overhead by using matrix operations.
+&gt; 011:     &quot;&quot;&quot;
+&gt; 012:     n, n_components = B.shape
+&gt; 013:     if n_components == 0:
+&gt; 014:         return np.zeros((n, 0))
+&gt; 015: 
+&gt; 016:     # Initialize matrices for FISTA
+&gt; 017:     X = B.copy()
+&gt; 018:     Y = X.copy()
+&gt; 019:     s = 1.0
+&gt; 020:     
+&gt; 021:     # Scale tolerance by sqrt of n_components for the matrix-wide Frobenius norm check
+&gt; 022:     scaled_tol = tol * np.sqrt(float(n_components))
+&gt; 023: 
+&gt; 024:     for _ in range(max_iter):
+&gt; 025:         X_old = X.copy()
+&gt; 026: 
+&gt; 027:         # Gradient step (matrix operation)
+&gt; 028:         grad = 2.0 * (Y - B)
+&gt; 029:         Z = Y - t * grad
+&gt; 030:         
+&gt; 031:         # Proximal step for L1 norm (matrix operation)
+&gt; 032:         threshold = t * sparsity_param
+&gt; 033:         Z_thresh = np.sign(Z) * np.maximum(np.abs(Z) - threshold, 0.0)
+&gt; 034: 
+&gt; 035:         # Vectorized projection step for L2 unit ball constraint
+&gt; 036:         # 1. Calculate L2 norm for each column vector
+&gt; 037:         col_norms = np.sqrt(np.sum(Z_thresh**2, axis=0))
+&gt; 038:         # 2. Create a divisor that is 1.0 for norms &lt;= 1, and the norm itself for norms &gt; 1
+&gt; 039:         divisor = np.maximum(col_norms, 1.0)
+&gt; 040:         # 3. Broadcast the division column-wise to normalize columns where norm &gt; 1
+&gt; 041:         X = Z_thresh / divisor
+&gt; 042:         
+&gt; 043:         # FISTA acceleration step (matrix operations)
+&gt; 044:         s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+&gt; 045:         Y = X + ((s - 1.0) / s_new) * (X - X_old)
+&gt; 046:         s = s_new
+&gt; 047: 
+&gt; 048:         # Convergence check using the Frobenius norm of the change in X
+&gt; 049:         if np.linalg.norm(X - X_old) &lt; scaled_tol:
+&gt; 050:             break
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">6.00</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The vectorized FISTA solver achieved a 6.00x speedup, matching my previous best but not improving upon it. This indicates that while the high-level algorithm is efficient, the implementation is likely limited by memory bandwidth due to the creation of numerous temporary arrays within the main loop (e.g., for gradients, thresholded results, norms).<br><br>To break this barrier, I will rewrite the core FISTA solver to eliminate these intermediate allocations. The new strategy is:<br><br>1.  **Pre-allocation**: Before the main loop, I will pre-allocate all necessary workspace arrays (`X_old`, `Z`).<br>2.  **Explicit Loops and Fusion**: I will replace the sequence of NumPy-style vector operations inside the main loop with explicit, nested `for` loops. While this looks more verbose, it&#x27;s a standard and highly effective pattern for Numba. It allows Numba&#x27;s JIT compiler to:<br>    *   **Fuse operations**: Combine the gradient, soft-thresholding, and projection calculations into a single pass over the data, improving cache locality.<br>    *   **Eliminate temporary arrays**: Write results directly to the pre-allocated buffers instead of creating new arrays at each step.<br>3.  **In-place Updates**: All updates to the solution matrices (`X`, `Y`) will be done in-place.<br>4.  **Squared Norm Convergence**: I will modify the convergence check to use the squared Frobenius norm, avoiding a costly `sqrt` operation in every iteration.<br><br>This approach shifts the bottleneck from memory bandwidth to raw computation, which is exactly what a JIT compiler like Numba excels at optimizing. This should result in a significant performance gain over the previous vectorized implementation.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-111
+---
+import numpy as np
+from typing import Any, Dict
+import numba
+from scipy.sparse.linalg import eigsh
+
+@numba.jit(nopython=True, fastmath=True, cache=True)
+def _solve_all_fista_vectorized(B: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Solves the subproblem for all components simultaneously using FISTA.
+    This version uses explicit, fused loops to minimize memory allocation and
+    allow Numba to perform aggressive optimizations.
+    &quot;&quot;&quot;
+    n, n_components = B.shape
+    if n_components == 0:
+        return np.zeros((n, 0))
+
+    # Pre-allocate all necessary arrays to avoid allocation in loop
+    X = B.copy()
+    Y = X.copy()
+    X_old = np.empty_like(X)
+    Z = np.empty_like(X)
+    
+    s = 1.0
+    # Use squared tolerance for convergence check to avoid sqrt in loop
+    scaled_tol_sq = (tol * np.sqrt(float(n_components)))**2
+    threshold = t * sparsity_param
+
+    for _ in range(max_iter):
+        np.copyto(X_old, X)
+
+        # --- FISTA steps implemented with fused loops for efficiency ---
+        
+        # 1. Gradient step, store result in Z
+        for i in range(n):
+            for j in range(n_components):
+                Z[i, j] = Y[i, j] - t * (2.0 * (Y[i, j] - B[i, j]))
+
+        # 2. Proximal (soft-thresholding) and Projection steps
+        for j in range(n_components):
+            # Apply soft-thresholding to column j of Z and calculate its norm
+            norm_sq = 0.0
+            for i in range(n):
+                val = Z[i, j]
+                if val &gt; threshold:
+                    shrunk_val = val - threshold
+                elif val &lt; -threshold:
+                    shrunk_val = val + threshold
+                else:
+                    shrunk_val = 0.0
+                Z[i, j] = shrunk_val
+                norm_sq += shrunk_val * shrunk_val
+            
+            # Project column j onto L2 ball, storing result in X
+            norm = np.sqrt(norm_sq)
+            divisor = max(norm, 1.0)
+            for i in range(n):
+                X[i, j] = Z[i, j] / divisor
+
+        # 3. FISTA acceleration step, updating Y
+        s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+        beta = (s - 1.0) / s_new
+        for i in range(n):
+            for j in range(n_components):
+                Y[i, j] = X[i, j] + beta * (X[i, j] - X_old[i, j])
+        s = s_new
+
+        # 4. Convergence check using squared Frobenius norm
+        diff_norm_sq = 0.0
+        for i in range(n):
+            for j in range(n_components):
+                diff = X[i, j] - X_old[i, j]
+                diff_norm_sq += diff * diff
+        
+        if diff_norm_sq &lt; scaled_tol_sq:
+            break
+            
+    return X
+
+class Solver:
+    def solve(self, problem: Dict, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the sparse PCA problem using a fully vectorized FISTA algorithm.
+        1. Uses eigsh for efficient partial eigendecomposition.
+        2. Constructs a target matrix B.
+        3. Solves for all components simultaneously in a Numba-jitted solver
+           optimized with explicit loops to minimize memory allocation.
+        4. Vectorizes the final explained variance calculation.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;covariance&quot;])
+        n_components = int(problem[&quot;n_components&quot;])
+        sparsity_param = float(problem[&quot;sparsity_param&quot;])
+        n = A.shape[0]
+
+        if n_components == 0:
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Eigendecomposition to find the principal subspace
+        try:
+            if n_components &gt;= n - 1:
+                eigvals, eigvecs = np.linalg.eigh(A)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+                eigvals = eigvals[:n_components]
+                eigvecs = eigvecs[:, :n_components]
+            else:
+                eigvals, eigvecs = eigsh(A, k=n_components, which=&#x27;LM&#x27;, tol=1e-6)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+        except (np.linalg.LinAlgError, RuntimeError):
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Filter out small non-positive eigenvalues for numerical stability
+        pos_indices = eigvals &gt; 1e-9
+        eigvals = eigvals[pos_indices]
+        eigvecs = eigvecs[:, pos_indices]
+
+        k = len(eigvals)
+
+        # Construct the target matrix B for the relaxed problem
+        B = np.zeros((n, n_components))
+        if k &gt; 0:
+            B[:, :k] = eigvecs * np.sqrt(eigvals)
+
+        # Parameters for the FISTA solver
+        max_iter = 1000
+        tol = 1e-6
+        t = 0.49 # Step size &lt; 1/L where Lipschitz constant L=2
+
+        # Call the single, optimized solver
+        X = _solve_all_fista_vectorized(B, sparsity_param, t, max_iter, tol)
+
+        # Vectorized calculation of explained variance
+        explained_variance = np.diag(X.T @ A @ X).tolist()
+
+        return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 10 messages and have used up $0.7311. You have $0.2689 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 137)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, Dict
+&gt; 003: import numba
+&gt; 004: from scipy.sparse.linalg import eigsh
+&gt; 005: 
+&gt; 006: @numba.jit(nopython=True, fastmath=True, cache=True)
+&gt; 007: def _solve_all_fista_vectorized(B: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+&gt; 008:     &quot;&quot;&quot;
+&gt; 009:     Solves the subproblem for all components simultaneously using FISTA.
+&gt; 010:     This version uses explicit, fused loops to minimize memory allocation and
+&gt; 011:     allow Numba to perform aggressive optimizations.
+&gt; 012:     &quot;&quot;&quot;
+&gt; 013:     n, n_components = B.shape
+&gt; 014:     if n_components == 0:
+&gt; 015:         return np.zeros((n, 0))
+&gt; 016: 
+&gt; 017:     # Pre-allocate all necessary arrays to avoid allocation in loop
+&gt; 018:     X = B.copy()
+&gt; 019:     Y = X.copy()
+&gt; 020:     X_old = np.empty_like(X)
+&gt; 021:     Z = np.empty_like(X)
+&gt; 022:     
+&gt; 023:     s = 1.0
+&gt; 024:     # Use squared tolerance for convergence check to avoid sqrt in loop
+&gt; 025:     scaled_tol_sq = (tol * np.sqrt(float(n_components)))**2
+&gt; 026:     threshold = t * sparsity_param
+&gt; 027: 
+&gt; 028:     for _ in range(max_iter):
+&gt; 029:         np.copyto(X_old, X)
+&gt; 030: 
+&gt; 031:         # --- FISTA steps implemented with fused loops for efficiency ---
+&gt; 032:         
+&gt; 033:         # 1. Gradient step, store result in Z
+&gt; 034:         for i in range(n):
+&gt; 035:             for j in range(n_components):
+&gt; 036:                 Z[i, j] = Y[i, j] - t * (2.0 * (Y[i, j] - B[i, j]))
+&gt; 037: 
+&gt; 038:         # 2. Proximal (soft-thresholding) and Projection steps
+&gt; 039:         for j in range(n_components):
+&gt; 040:             # Apply soft-thresholding to column j of Z and calculate its norm
+&gt; 041:             norm_sq = 0.0
+&gt; 042:             for i in range(n):
+&gt; 043:                 val = Z[i, j]
+&gt; 044:                 if val &gt; threshold:
+&gt; 045:                     shrunk_val = val - threshold
+&gt; 046:                 elif val &lt; -threshold:
+&gt; 047:                     shrunk_val = val + threshold
+&gt; 048:                 else:
+&gt; 049:                     shrunk_val = 0.0
+&gt; 050:                 Z[i, j] = shrunk_val
+...</code></pre><br><br>Error: During: Pass nopython_type_inference in function &#x27;solve&#x27; at line 132 in solver.py<br><br>Code Context:<br><pre><code class="language-python">   122:         B = np.zeros((n, n_components))
+   123:         if k &gt; 0:
+   124:             B[:, :k] = eigvecs * np.sqrt(eigvals)
+   125: 
+   126:         # Parameters for the FISTA solver
+   127:         max_iter = 1000
+   128:         tol = 1e-6
+   129:         t = 0.49 # Step size &lt; 1/L where Lipschitz constant L=2
+   130: 
+   131:         # Call the single, optimized solver
+ ! 132:         X = _solve_all_fista_vectorized(B, sparsity_param, t, max_iter, tol)
+   133: 
+   134:         # Vectorized calculation of explained variance
+   135:         explained_variance = np.diag(X.T @ A @ X).tolist()
+   136: 
+   137:         return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The previous submission failed with a Numba `TypingError` during type inference. The error message pointed to the `solve` method, which is not JIT-compiled, but the failure occurred when calling the JIT-compiled helper function. This indicates that Numba failed to compile `_solve_all_fista_vectorized` for the given input types. This is often caused by a code pattern inside the JIT function that confuses the compiler, even if it&#x27;s logically correct.<br><br>My previous attempt used explicit loops to reduce memory allocation, but the structure involved multiple passes over the data within the main loop. To resolve the compilation error and further improve performance, I will refactor the JIT-compiled function to be even more efficient and compiler-friendly:<br><br>1.  **Loop Fusion**: I will merge the gradient calculation, soft-thresholding, and norm calculation into a single, fused loop. Instead of calculating the gradient for the whole matrix `Y` and storing it in `Z`, I will calculate the gradient value for each element `(i, j)` &quot;just-in-time&quot; inside the loop that performs thresholding. This eliminates an entire matrix pass and a large temporary allocation (`Z`), significantly reducing memory pressure and improving cache usage.<br>2.  **Explicit `if/else`**: I will replace the `max(norm, 1.0)` call with an explicit `if/else` block. While `max` is supported, making the control flow explicit can sometimes help Numba&#x27;s compiler.<br>3.  **Pre-calculation**: Constants used inside the loops (like `2.0 * t`) will be pre-calculated to minimize redundant arithmetic.<br><br>This refactoring creates a more streamlined, single-pass structure for the most computationally intensive part of the algorithm. This is a classic and powerful optimization pattern for JIT compilers like Numba and is very likely to resolve the typing error while also providing a significant speed boost.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-137
+---
+import numpy as np
+from typing import Any, Dict
+import numba
+from scipy.sparse.linalg import eigsh
+
+@numba.jit(nopython=True, fastmath=True, cache=True)
+def _solve_all_fista_fused(B: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Solves the subproblem for all components simultaneously using FISTA.
+    This version uses a single fused loop for gradient, thresholding, and norm
+    calculation to maximize efficiency and minimize memory allocation.
+    &quot;&quot;&quot;
+    n, n_components = B.shape
+    if n_components == 0:
+        return np.zeros((n, 0))
+
+    # Pre-allocate all necessary arrays
+    X = B.copy()
+    Y = X.copy()
+    X_old = np.empty_like(X)
+    Z_thresh = np.empty_like(X)
+    
+    s = 1.0
+    # Use squared tolerance for convergence check to avoid sqrt in loop
+    scaled_tol_sq = (tol * np.sqrt(float(n_components)))**2
+    threshold = t * sparsity_param
+    two_t = 2.0 * t
+
+    for _ in range(max_iter):
+        np.copyto(X_old, X)
+
+        # --- Fused Gradient, Thresholding, and Projection ---
+        for j in range(n_components):
+            norm_sq = 0.0
+            # Fused gradient + thresholding + norm calculation
+            for i in range(n):
+                grad_step_val = Y[i, j] - two_t * (Y[i, j] - B[i, j])
+                
+                if grad_step_val &gt; threshold:
+                    shrunk_val = grad_step_val - threshold
+                elif grad_step_val &lt; -threshold:
+                    shrunk_val = grad_step_val + threshold
+                else:
+                    shrunk_val = 0.0
+                
+                Z_thresh[i, j] = shrunk_val
+                norm_sq += shrunk_val * shrunk_val
+            
+            # Projection of the column
+            norm = np.sqrt(norm_sq)
+            divisor = norm if norm &gt; 1.0 else 1.0
+            
+            for i in range(n):
+                X[i, j] = Z_thresh[i, j] / divisor
+
+        # --- FISTA acceleration ---
+        s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+        beta = (s - 1.0) / s_new
+        for i in range(n):
+            for j in range(n_components):
+                Y[i, j] = X[i, j] + beta * (X[i, j] - X_old[i, j])
+        s = s_new
+
+        # --- Convergence check ---
+        diff_norm_sq = 0.0
+        for i in range(n):
+            for j in range(n_components):
+                diff = X[i, j] - X_old[i, j]
+                diff_norm_sq += diff * diff
+        
+        if diff_norm_sq &lt; scaled_tol_sq:
+            break
+            
+    return X
+
+class Solver:
+    def solve(self, problem: Dict, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the sparse PCA problem using a fully vectorized FISTA algorithm.
+        1. Uses eigsh for efficient partial eigendecomposition.
+        2. Constructs a target matrix B.
+        3. Solves for all components simultaneously in a Numba-jitted solver
+           optimized with fused loops to minimize memory allocation.
+        4. Vectorizes the final explained variance calculation.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;covariance&quot;])
+        n_components = int(problem[&quot;n_components&quot;])
+        sparsity_param = float(problem[&quot;sparsity_param&quot;])
+        n = A.shape[0]
+
+        if n_components == 0:
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Eigendecomposition to find the principal subspace
+        try:
+            if n_components &gt;= n - 1:
+                eigvals, eigvecs = np.linalg.eigh(A)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+                eigvals = eigvals[:n_components]
+                eigvecs = eigvecs[:, :n_components]
+            else:
+                eigvals, eigvecs = eigsh(A, k=n_components, which=&#x27;LM&#x27;, tol=1e-6)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+        except (np.linalg.LinAlgError, RuntimeError):
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Filter out small non-positive eigenvalues for numerical stability
+        pos_indices = eigvals &gt; 1e-9
+        eigvals = eigvals[pos_indices]
+        eigvecs = eigvecs[:, pos_indices]
+
+        k = len(eigvals)
+
+        # Construct the target matrix B for the relaxed problem
+        B = np.zeros((n, n_components))
+        if k &gt; 0:
+            B[:, :k] = eigvecs * np.sqrt(eigvals)
+
+        # Parameters for the FISTA solver
+        max_iter = 1000
+        tol = 1e-6
+        t = 0.49 # Step size &lt; 1/L where Lipschitz constant L=2
+
+        # Call the single, optimized solver
+        X = _solve_all_fista_fused(B, sparsity_param, t, max_iter, tol)
+
+        # Vectorized calculation of explained variance
+        explained_variance = np.diag(X.T @ A @ X).tolist()
+
+        return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 11 messages and have used up $0.8487. You have $0.1513 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 134)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, Dict
+&gt; 003: import numba
+&gt; 004: from scipy.sparse.linalg import eigsh
+&gt; 005: 
+&gt; 006: @numba.jit(nopython=True, fastmath=True, cache=True)
+&gt; 007: def _solve_all_fista_fused(B: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+&gt; 008:     &quot;&quot;&quot;
+&gt; 009:     Solves the subproblem for all components simultaneously using FISTA.
+&gt; 010:     This version uses a single fused loop for gradient, thresholding, and norm
+&gt; 011:     calculation to maximize efficiency and minimize memory allocation.
+&gt; 012:     &quot;&quot;&quot;
+&gt; 013:     n, n_components = B.shape
+&gt; 014:     if n_components == 0:
+&gt; 015:         return np.zeros((n, 0))
+&gt; 016: 
+&gt; 017:     # Pre-allocate all necessary arrays
+&gt; 018:     X = B.copy()
+&gt; 019:     Y = X.copy()
+&gt; 020:     X_old = np.empty_like(X)
+&gt; 021:     Z_thresh = np.empty_like(X)
+&gt; 022:     
+&gt; 023:     s = 1.0
+&gt; 024:     # Use squared tolerance for convergence check to avoid sqrt in loop
+&gt; 025:     scaled_tol_sq = (tol * np.sqrt(float(n_components)))**2
+&gt; 026:     threshold = t * sparsity_param
+&gt; 027:     two_t = 2.0 * t
+&gt; 028: 
+&gt; 029:     for _ in range(max_iter):
+&gt; 030:         np.copyto(X_old, X)
+&gt; 031: 
+&gt; 032:         # --- Fused Gradient, Thresholding, and Projection ---
+&gt; 033:         for j in range(n_components):
+&gt; 034:             norm_sq = 0.0
+&gt; 035:             # Fused gradient + thresholding + norm calculation
+&gt; 036:             for i in range(n):
+&gt; 037:                 grad_step_val = Y[i, j] - two_t * (Y[i, j] - B[i, j])
+&gt; 038:                 
+&gt; 039:                 if grad_step_val &gt; threshold:
+&gt; 040:                     shrunk_val = grad_step_val - threshold
+&gt; 041:                 elif grad_step_val &lt; -threshold:
+&gt; 042:                     shrunk_val = grad_step_val + threshold
+&gt; 043:                 else:
+&gt; 044:                     shrunk_val = 0.0
+&gt; 045:                 
+&gt; 046:                 Z_thresh[i, j] = shrunk_val
+&gt; 047:                 norm_sq += shrunk_val * shrunk_val
+&gt; 048:             
+&gt; 049:             # Projection of the column
+&gt; 050:             norm = np.sqrt(norm_sq)
+...</code></pre><br><br>Error: During: Pass nopython_type_inference in function &#x27;solve&#x27; at line 129 in solver.py<br><br>Code Context:<br><pre><code class="language-python">   119:         B = np.zeros((n, n_components))
+   120:         if k &gt; 0:
+   121:             B[:, :k] = eigvecs * np.sqrt(eigvals)
+   122: 
+   123:         # Parameters for the FISTA solver
+   124:         max_iter = 1000
+   125:         tol = 1e-6
+   126:         t = 0.49 # Step size &lt; 1/L where Lipschitz constant L=2
+   127: 
+   128:         # Call the single, optimized solver
+ ! 129:         X = _solve_all_fista_fused(B, sparsity_param, t, max_iter, tol)
+   130: 
+   131:         # Vectorized calculation of explained variance
+   132:         explained_variance = np.diag(X.T @ A @ X).tolist()
+   133: 
+   134:         return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The persistent `TypingError` from Numba indicates a subtle issue with the way the JIT compiler is interpreting the explicit-loop code, likely related to its analysis of memory allocation and initialization. The previous attempts, while logically sound, were complex enough to trigger this edge case in the compiler.<br><br>To resolve this, I will simplify the memory management within the JIT-compiled function, which is a common strategy to overcome opaque compiler errors. My new approach is:<br><br>1.  **Reduce Temporary Allocations**: Instead of allocating a full `(n, n_components)` temporary matrix (`Z_thresh`) inside the JIT function, I will allocate a single, reusable column vector (`temp_col`).<br>2.  **Two-Pass Column Update**: For each component (column `j`), the algorithm will perform two passes over the data:<br>    *   **Pass 1**: Calculate the gradient step and soft-thresholding for each element `i` in the column, storing the result in `temp_col[i]` and simultaneously accumulating the squared norm.<br>    *   **Pass 2**: After the final norm for the column is known, a second quick pass over the column divides each element of `temp_col` by the correct divisor and writes the final value to `X[i, j]`.<br>3.  **Safe Initialization**: I will use `np.zeros_like` instead of `np.empty_like` for the `X_old` buffer. While slightly slower, it guarantees initialization and adds robustness against potential compiler misinterpretations.<br><br>This refactoring significantly simplifies the memory access pattern within the main loop. By operating on a small, fixed-size buffer (`temp_col`), we make the code easier for Numba to analyze and optimize, which should resolve the `TypingError` while retaining the high performance of the fused-loop design.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-137
+---
+import numpy as np
+from typing import Any, Dict
+import numba
+from scipy.sparse.linalg import eigsh
+
+@numba.jit(nopython=True, fastmath=True, cache=True)
+def _solve_fista_fused_low_mem(B: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Solves the subproblem for all components simultaneously using FISTA.
+    This version uses explicit, fused loops and a single temporary column
+    vector to minimize memory allocation and avoid Numba typing errors.
+    &quot;&quot;&quot;
+    n, n_components = B.shape
+    if n_components == 0:
+        return np.zeros((n, 0))
+
+    # Pre-allocate necessary arrays.
+    X = B.copy()
+    Y = X.copy()
+    X_old = np.zeros_like(X) # Use zeros for safety
+    temp_col = np.empty(n, dtype=X.dtype) # Re-usable buffer for one column
+
+    s = 1.0
+    # Use squared tolerance for convergence check to avoid sqrt in loop
+    scaled_tol_sq = (tol * np.sqrt(n_components))**2
+    threshold = t * sparsity_param
+    two_t = 2.0 * t
+
+    for _ in range(max_iter):
+        np.copyto(X_old, X)
+
+        # --- Fused Gradient, Thresholding, and Projection ---
+        for j in range(n_components):
+            # Pass 1: Calculate thresholded column and its norm, store in temp_col
+            norm_sq = 0.0
+            for i in range(n):
+                grad_step_val = Y[i, j] - two_t * (Y[i, j] - B[i, j])
+                
+                shrunk_val = 0.0
+                if grad_step_val &gt; threshold:
+                    shrunk_val = grad_step_val - threshold
+                elif grad_step_val &lt; -threshold:
+                    shrunk_val = grad_step_val + threshold
+                
+                temp_col[i] = shrunk_val
+                norm_sq += shrunk_val * shrunk_val
+            
+            # Project the column
+            norm = np.sqrt(norm_sq)
+            divisor = max(norm, 1.0)
+            
+            # Pass 2: Write the projected result from temp_col into X
+            for i in range(n):
+                X[i, j] = temp_col[i] / divisor
+
+        # --- FISTA acceleration ---
+        s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+        beta = (s - 1.0) / s_new
+        for i in range(n):
+            for j in range(n_components):
+                Y[i, j] = X[i, j] + beta * (X[i, j] - X_old[i, j])
+        s = s_new
+
+        # --- Convergence check ---
+        diff_norm_sq = 0.0
+        for i in range(n):
+            for j in range(n_components):
+                diff = X[i, j] - X_old[i, j]
+                diff_norm_sq += diff * diff
+        
+        if diff_norm_sq &lt; scaled_tol_sq:
+            break
+            
+    return X
+
+class Solver:
+    def solve(self, problem: Dict, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the sparse PCA problem using a fully vectorized FISTA algorithm.
+        1. Uses eigsh for efficient partial eigendecomposition.
+        2. Constructs a target matrix B.
+        3. Solves for all components simultaneously in a Numba-jitted solver
+           optimized with fused loops and minimal memory allocation.
+        4. Vectorizes the final explained variance calculation.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;covariance&quot;])
+        n_components = int(problem[&quot;n_components&quot;])
+        sparsity_param = float(problem[&quot;sparsity_param&quot;])
+        n = A.shape[0]
+
+        if n_components == 0:
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Eigendecomposition to find the principal subspace
+        try:
+            if n_components &gt;= n - 1:
+                eigvals, eigvecs = np.linalg.eigh(A)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+                eigvals = eigvals[:n_components]
+                eigvecs = eigvecs[:, :n_components]
+            else:
+                eigvals, eigvecs = eigsh(A, k=n_components, which=&#x27;LM&#x27;, tol=1e-6)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+        except (np.linalg.LinAlgError, RuntimeError):
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Filter out small non-positive eigenvalues for numerical stability
+        pos_indices = eigvals &gt; 1e-9
+        eigvals = eigvals[pos_indices]
+        eigvecs = eigvecs[:, pos_indices]
+
+        k = len(eigvals)
+
+        # Construct the target matrix B for the relaxed problem
+        B = np.zeros((n, n_components))
+        if k &gt; 0:
+            B[:, :k] = eigvecs * np.sqrt(eigvals)
+
+        # Parameters for the FISTA solver
+        max_iter = 1000
+        tol = 1e-6
+        t = 0.49 # Step size &lt; 1/L where Lipschitz constant L=2
+
+        # Call the single, optimized solver
+        X = _solve_fista_fused_low_mem(B, sparsity_param, t, max_iter, tol)
+
+        # Vectorized calculation of explained variance
+        explained_variance = np.diag(X.T @ A @ X).tolist()
+
+        return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 12 messages and have used up $0.9579. You have $0.0421 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 134)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, Dict
+&gt; 003: import numba
+&gt; 004: from scipy.sparse.linalg import eigsh
+&gt; 005: 
+&gt; 006: @numba.jit(nopython=True, fastmath=True, cache=True)
+&gt; 007: def _solve_fista_fused_low_mem(B: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+&gt; 008:     &quot;&quot;&quot;
+&gt; 009:     Solves the subproblem for all components simultaneously using FISTA.
+&gt; 010:     This version uses explicit, fused loops and a single temporary column
+&gt; 011:     vector to minimize memory allocation and avoid Numba typing errors.
+&gt; 012:     &quot;&quot;&quot;
+&gt; 013:     n, n_components = B.shape
+&gt; 014:     if n_components == 0:
+&gt; 015:         return np.zeros((n, 0))
+&gt; 016: 
+&gt; 017:     # Pre-allocate necessary arrays.
+&gt; 018:     X = B.copy()
+&gt; 019:     Y = X.copy()
+&gt; 020:     X_old = np.zeros_like(X) # Use zeros for safety
+&gt; 021:     temp_col = np.empty(n, dtype=X.dtype) # Re-usable buffer for one column
+&gt; 022: 
+&gt; 023:     s = 1.0
+&gt; 024:     # Use squared tolerance for convergence check to avoid sqrt in loop
+&gt; 025:     scaled_tol_sq = (tol * np.sqrt(n_components))**2
+&gt; 026:     threshold = t * sparsity_param
+&gt; 027:     two_t = 2.0 * t
+&gt; 028: 
+&gt; 029:     for _ in range(max_iter):
+&gt; 030:         np.copyto(X_old, X)
+&gt; 031: 
+&gt; 032:         # --- Fused Gradient, Thresholding, and Projection ---
+&gt; 033:         for j in range(n_components):
+&gt; 034:             # Pass 1: Calculate thresholded column and its norm, store in temp_col
+&gt; 035:             norm_sq = 0.0
+&gt; 036:             for i in range(n):
+&gt; 037:                 grad_step_val = Y[i, j] - two_t * (Y[i, j] - B[i, j])
+&gt; 038:                 
+&gt; 039:                 shrunk_val = 0.0
+&gt; 040:                 if grad_step_val &gt; threshold:
+&gt; 041:                     shrunk_val = grad_step_val - threshold
+&gt; 042:                 elif grad_step_val &lt; -threshold:
+&gt; 043:                     shrunk_val = grad_step_val + threshold
+&gt; 044:                 
+&gt; 045:                 temp_col[i] = shrunk_val
+&gt; 046:                 norm_sq += shrunk_val * shrunk_val
+&gt; 047:             
+&gt; 048:             # Project the column
+&gt; 049:             norm = np.sqrt(norm_sq)
+&gt; 050:             divisor = max(norm, 1.0)
+...</code></pre><br><br>Error: During: Pass nopython_type_inference in function &#x27;solve&#x27; at line 129 in solver.py<br><br>Code Context:<br><pre><code class="language-python">   119:         B = np.zeros((n, n_components))
+   120:         if k &gt; 0:
+   121:             B[:, :k] = eigvecs * np.sqrt(eigvals)
+   122: 
+   123:         # Parameters for the FISTA solver
+   124:         max_iter = 1000
+   125:         tol = 1e-6
+   126:         t = 0.49 # Step size &lt; 1/L where Lipschitz constant L=2
+   127: 
+   128:         # Call the single, optimized solver
+ ! 129:         X = _solve_fista_fused_low_mem(B, sparsity_param, t, max_iter, tol)
+   130: 
+   131:         # Vectorized calculation of explained variance
+   132:         explained_variance = np.diag(X.T @ A @ X).tolist()
+   133: 
+   134:         return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The persistent `TypingError` from Numba, despite the logical correctness of the code, points to a subtle issue in how the JIT compiler analyzes the code, likely related to memory initialization or function polymorphism. My previous attempts to use explicit loops for performance failed to compile, while the version using high-level NumPy functions compiled but was not fast enough.<br><br>My final attempt is a synthesis of all previous lessons, designed to be both highly performant and robust enough to avoid confusing the Numba compiler. The strategy is:<br><br>1.  **Embrace Explicit Loops**: The only way to achieve top-tier performance is to eliminate temporary memory allocations within the main FISTA loop. Explicit `for` loops, when compiled by Numba, are the most effective way to do this.<br>2.  **Guarantee Memory Initialization**: A potential cause for Numba&#x27;s type inference failure is reading from uninitialized memory. I will replace all `np.empty_like` calls for temporary buffers (`X_old`, `Z`) with `np.zeros_like`. This guarantees that all memory is initialized, providing a safer and more predictable environment for the compiler.<br>3.  **Eliminate Ambiguity**: The standard Python `max()` function is polymorphic. In previous attempts, `max(norm, 1.0)` might have confused the type inferencer. I will replace this with an explicit `if norm &gt; 1.0: ... else: ...` block. This removes any ambiguity for the compiler.<br>4.  **Fuse Operations**: I will retain the efficient structure of fusing the gradient calculation and soft-thresholding step into a single loop, which minimizes passes over the data.<br><br>This approach directly addresses the most likely causes of the `TypingError` by making the code&#x27;s memory management and control flow as simple and unambiguous as possible for the JIT compiler, while retaining the highly optimized explicit-loop structure needed for maximum speed.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-137
+---
+import numpy as np
+from typing import Any, Dict
+import numba
+from scipy.sparse.linalg import eigsh
+
+@numba.jit(nopython=True, fastmath=True, cache=True)
+def _solve_fista_robust(B: np.ndarray, sparsity_param: float, t: float, max_iter: int, tol: float) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Solves the subproblem for all components simultaneously using FISTA.
+    This version uses explicit loops and robust patterns (e.g., guaranteed
+    initialization, explicit control flow) to avoid Numba compilation errors
+    while maintaining high performance.
+    &quot;&quot;&quot;
+    n, n_components = B.shape
+    if n_components == 0:
+        return np.zeros((n, 0))
+
+    # Pre-allocate and initialize all arrays to be safe for Numba&#x27;s type inference.
+    X = B.copy()
+    Y = X.copy()
+    X_old = np.zeros_like(X)
+    Z = np.zeros_like(X)
+    
+    s = 1.0
+    # Use squared tolerance for convergence check to avoid sqrt in loop
+    scaled_tol_sq = (tol * np.sqrt(float(n_components)))**2
+    threshold = t * sparsity_param
+    two_t = 2.0 * t
+
+    for _ in range(max_iter):
+        np.copyto(X_old, X)
+
+        # --- FISTA steps implemented with explicit, robust loops ---
+        
+        # 1. Fused Gradient and Thresholding step, result in Z
+        for i in range(n):
+            for j in range(n_components):
+                grad_step_val = Y[i, j] - two_t * (Y[i, j] - B[i, j])
+                
+                shrunk_val = 0.0
+                if grad_step_val &gt; threshold:
+                    shrunk_val = grad_step_val - threshold
+                elif grad_step_val &lt; -threshold:
+                    shrunk_val = grad_step_val + threshold
+                
+                Z[i, j] = shrunk_val
+
+        # 2. Projection step, from Z to X
+        for j in range(n_components):
+            col_norm_sq = 0.0
+            for i in range(n):
+                col_norm_sq += Z[i, j]**2
+            
+            norm = np.sqrt(col_norm_sq)
+            
+            # Use explicit if/else instead of max() for robustness
+            if norm &gt; 1.0:
+                for i in range(n):
+                    X[i, j] = Z[i, j] / norm
+            else:
+                for i in range(n):
+                    X[i, j] = Z[i, j]
+
+        # 3. FISTA acceleration step, updating Y
+        s_new = (1.0 + np.sqrt(1.0 + 4.0 * s**2)) / 2.0
+        beta = (s - 1.0) / s_new
+        for i in range(n):
+            for j in range(n_components):
+                Y[i, j] = X[i, j] + beta * (X[i, j] - X_old[i, j])
+        s = s_new
+
+        # 4. Convergence check
+        diff_norm_sq = 0.0
+        for i in range(n):
+            for j in range(n_components):
+                diff = X[i, j] - X_old[i, j]
+                diff_norm_sq += diff * diff
+        
+        if diff_norm_sq &lt; scaled_tol_sq:
+            break
+            
+    return X
+
+class Solver:
+    def solve(self, problem: Dict, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;
+        Solves the sparse PCA problem using a fully vectorized FISTA algorithm.
+        1. Uses eigsh for efficient partial eigendecomposition.
+        2. Constructs a target matrix B.
+        3. Solves for all components simultaneously in a robust, Numba-jitted solver
+           optimized with fused loops and minimal memory allocation.
+        4. Vectorizes the final explained variance calculation.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;covariance&quot;])
+        n_components = int(problem[&quot;n_components&quot;])
+        sparsity_param = float(problem[&quot;sparsity_param&quot;])
+        n = A.shape[0]
+
+        if n_components == 0:
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Eigendecomposition to find the principal subspace
+        try:
+            if n_components &gt;= n - 1:
+                eigvals, eigvecs = np.linalg.eigh(A)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+                eigvals = eigvals[:n_components]
+                eigvecs = eigvecs[:, :n_components]
+            else:
+                eigvals, eigvecs = eigsh(A, k=n_components, which=&#x27;LM&#x27;, tol=1e-6)
+                idx = np.argsort(eigvals)[::-1]
+                eigvals = eigvals[idx]
+                eigvecs = eigvecs[:, idx]
+        except (np.linalg.LinAlgError, RuntimeError):
+            return {&quot;components&quot;: [], &quot;explained_variance&quot;: []}
+
+        # Filter out small non-positive eigenvalues for numerical stability
+        pos_indices = eigvals &gt; 1e-9
+        eigvals = eigvals[pos_indices]
+        eigvecs = eigvecs[:, pos_indices]
+
+        k = len(eigvals)
+
+        # Construct the target matrix B for the relaxed problem
+        B = np.zeros((n, n_components))
+        if k &gt; 0:
+            B[:, :k] = eigvecs * np.sqrt(eigvals)
+
+        # Parameters for the FISTA solver
+        max_iter = 1000
+        tol = 1e-6
+        t = 0.49 # Step size &lt; 1/L where Lipschitz constant L=2
+
+        # Call the single, optimized solver
+        X = _solve_fista_robust(B, sparsity_param, t, max_iter, tol)
+
+        # Vectorized calculation of explained variance
+        explained_variance = np.diag(X.T @ A @ X).tolist()
+
+        return {&quot;components&quot;: X.tolist(), &quot;explained_variance&quot;: explained_variance}
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
