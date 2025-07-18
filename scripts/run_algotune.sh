@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# run_algobench.sh - Bash entry point for AlgoTune
+# run_algotune.sh - Bash entry point for AlgoTune
 # This script handles timing evaluations and test suite execution
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# AlgoBench launcher
 # Unified launcher for both SLURM and standalone operations
 
 set -e
@@ -17,7 +16,7 @@ fi
 
 usage() {
     cat << EOF
-AlgoBench Launcher
+AlgoTune Launcher
 
 USAGE:
     $0 <command> [options]
