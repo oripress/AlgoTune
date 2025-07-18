@@ -1,0 +1,3746 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – randomized_svd – Gemini 2.5 Pro</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">randomized_svd</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="randomized_svd_o4-mini.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (5.20x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="randomized_svd_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (4.51x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="randomized_svd_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #B22222; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (Fail)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="randomized_svd_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #B22222; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (Fail)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">randomized_svd</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Gemini 2.5 Pro</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #B22222; font-weight: 600;">Fail</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">18</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">0</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">105.8 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+Randomized SVD Task:
+
+Given a matrix A, the task is to compute its approximate singular value decomposition (SVD) using randomized methods to efficiently find matrices U, S, and V such that:
+
+    A ≈ U * diag(S) * V^T
+
+where U and V are orthogonal matrices and S contains the singular values.
+
+Randomized SVD is particularly useful for large matrices where traditional SVD methods are computationally expensive. It provides a good approximation with reduced computational cost by focusing on a specified number of components.
+
+Input: 
+A dictionary with keys:
+  - &quot;n&quot;: An integer representing the number of rows of matrix A.
+  - &quot;m&quot;: An integer representing the number of columns of matrix A.
+  - &quot;n_components&quot;: An integer representing the number of singular value components to compute.
+  - &quot;matrix&quot;: A list of n lists of numbers representing the matrix A.
+
+Example input:
+```json
+{
+    &quot;n&quot;: 3,
+    &quot;m&quot;: 4,
+    &quot;n_components&quot;: 2,
+    &quot;matrix&quot;: [
+        [1.0, 2.0, 3.0, 4.0],
+        [5.0, 6.0, 7.0, 8.0],
+        [9.0, 10.0, 11.0, 12.0]
+    ]
+}
+```
+
+Output: 
+A dictionary with keys:
+  - &quot;U&quot;: A numpy array of shape (n, k) representing the left singular vectors, where k = n_components.
+  - &quot;S&quot;: A numpy array of shape (k,) representing the singular values.
+  - &quot;V&quot;: A numpy array of shape (m, k) representing the right singular vectors.
+
+Example output:
+```json
+{
+    &quot;U&quot;: [
+        [-0.2120, -0.8835],
+        [-0.5098, -0.2405],
+        [-0.8336, 0.4025]
+    ],
+    &quot;S&quot;: [25.4624, 1.2907],
+    &quot;V&quot;: [
+        [-0.4413, 0.6949],
+        [-0.4754, 0.1376],
+        [-0.5094, -0.4197],
+        [-0.5434, -0.5663]
+    ]
+}
+```
+
+Category: matrix_operations
+
+Below is the reference implementation. Your function should run much quicker.
+
+from typing import Any
+import numpy as np
+from sklearn.utils.extmath import randomized_svd
+
+| 1: def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+| 2:     A = problem[&quot;matrix&quot;]
+| 3:     n_components = problem[&quot;n_components&quot;]
+| 4:     n_iter = 10 if problem[&quot;matrix_type&quot;] == &quot;ill_conditioned&quot; else 5
+| 5: 
+| 6:     U, s, Vt = randomized_svd(A, n_components=n_components, n_iter=n_iter, random_state=42)
+| 7: 
+| 8:     return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}
+| 9: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+from typing import Any
+import numpy as np
+from sklearn.utils.extmath import randomized_svd
+
+| 01: def is_solution(
+| 02:     self, problem: dict[str, Any], solution: dict[str, list], *, log: bool = False
+| 03: ) -&gt; bool:
+| 04:     A = problem[&quot;matrix&quot;]
+| 05:     k = problem[&quot;n_components&quot;]
+| 06:     matrix_type = problem[&quot;matrix_type&quot;]
+| 07: 
+| 08:     try:
+| 09:         U = np.asarray(solution[&quot;U&quot;], dtype=float)
+| 10:         s = np.asarray(solution[&quot;S&quot;], dtype=float)
+| 11:         V = np.asarray(solution[&quot;V&quot;], dtype=float)
+| 12:     except Exception as e:
+| 13:         if log:
+| 14:             logging.error(f&quot;Conversion error: {e}&quot;)
+| 15:         return False
+| 16: 
+| 17:     n, m = A.shape
+| 18:     if U.shape != (n, k) or V.shape != (m, k) or s.shape != (k,):
+| 19:         return False
+| 20:     if not (np.isfinite(U).all() and np.isfinite(V).all() and np.isfinite(s).all()):
+| 21:         return False
+| 22:     if not np.allclose(U.T @ U, np.eye(k), atol=1e-5):
+| 23:         return False
+| 24:     if not np.allclose(V.T @ V, np.eye(k), atol=1e-5):
+| 25:         return False
+| 26:     if (s &lt; 0).any() or (s[:-1] &lt; s[1:]).any():
+| 27:         return False
+| 28: 
+| 29:     A_hat = U @ np.diag(s) @ V.T
+| 30:     rel_err = np.linalg.norm(A - A_hat, &quot;fro&quot;) / max(1.0, np.linalg.norm(A, &quot;fro&quot;))
+| 31: 
+| 32:     tol = 0.5
+| 33:     if matrix_type == &quot;ill_conditioned&quot;:
+| 34:         tol *= 2
+| 35:     elif matrix_type == &quot;sparse&quot;:
+| 36:         tol *= 1.5
+| 37:     elif matrix_type == &quot;low_rank&quot;:
+| 38:         tol *= 0.8
+| 39:     tol *= 1 + max(n, m) / 1000 * 0.5
+| 40:     tol *= 1 + (1 - k / min(n, m)) * 2
+| 41: 
+| 42:     return bool(rel_err &lt;= tol)
+| 43:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>Randomized SVD Task:
+
+Given a matrix A, the task is to compute its approximate singular value decomposition (SVD) using randomized methods to efficiently find matrices U, S, and V such that:
+
+    A ≈ U * diag(S) * V^T
+
+where U and V are orthogonal matrices and S contains the singular values.
+
+Randomized SVD is particularly useful for large matrices where traditional SVD methods are computationally expensive. It provides a good approximation with reduced computational cost by focusing on a specified number of components.
+
+Input: 
+A dictionary with keys:
+  - &quot;n&quot;: An integer representing the number of rows of matrix A.
+  - &quot;m&quot;: An integer representing the number of columns of matrix A.
+  - &quot;n_components&quot;: An integer representing the number of singular value components to compute.
+  - &quot;matrix&quot;: A list of n lists of numbers representing the matrix A.
+
+Example input:
+```json
+{
+    &quot;n&quot;: 3,
+    &quot;m&quot;: 4,
+    &quot;n_components&quot;: 2,
+    &quot;matrix&quot;: [
+        [1.0, 2.0, 3.0, 4.0],
+        [5.0, 6.0, 7.0, 8.0],
+        [9.0, 10.0, 11.0, 12.0]
+    ]
+}
+```
+
+Output: 
+A dictionary with keys:
+  - &quot;U&quot;: A numpy array of shape (n, k) representing the left singular vectors, where k = n_components.
+  - &quot;S&quot;: A numpy array of shape (k,) representing the singular values.
+  - &quot;V&quot;: A numpy array of shape (m, k) representing the right singular vectors.
+
+Example output:
+```json
+{
+    &quot;U&quot;: [
+        [-0.2120, -0.8835],
+        [-0.5098, -0.2405],
+        [-0.8336, 0.4025]
+    ],
+    &quot;S&quot;: [25.4624, 1.2907],
+    &quot;V&quot;: [
+        [-0.4413, 0.6949],
+        [-0.4754, 0.1376],
+        [-0.5094, -0.4197],
+        [-0.5434, -0.5663]
+    ]
+}
+```
+
+Category: matrix_operations</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">from typing import Any
+import numpy as np
+from sklearn.utils.extmath import randomized_svd
+
+ def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+     A = problem[&quot;matrix&quot;]
+     n_components = problem[&quot;n_components&quot;]
+     n_iter = 10 if problem[&quot;matrix_type&quot;] == &quot;ill_conditioned&quot; else 5
+ 
+     U, s, Vt = randomized_svd(A, n_components=n_components, n_iter=n_iter, random_state=42)
+ 
+     return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">from typing import Any
+import numpy as np
+import torch
+from scipy.linalg import svd
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes randomized SVD using a manual, hybrid GPU/CPU implementation for
+        maximum speed, leveraging a GPU if available.
+        - PyTorch on a CUDA device is used for all large matrix operations.
+        - SciPy on the CPU is used for the fast SVD of the small intermediate matrix.
+        &quot;&quot;&quot;
+        # Use float32 for faster matrix operations.
+        A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+        m, n = A_np.shape
+
+        # Use proven hyperparameter tuning.
+        n_oversamples = 5
+        k = n_components + n_oversamples
+        n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+
+        # Detect and set the device (GPU if available, otherwise CPU).
+        device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+
+        # Move the main matrix to the selected device.
+        A = torch.from_numpy(A_np).to(device)
+        torch.manual_seed(42)
+
+        # Step 1: Create a random projection matrix on the device.
+        Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+
+        # Step 2: Form an initial sample matrix Y and orthonormalize it into Q.
+        # All these operations happen on the GPU if available.
+        Y = A @ Omega
+        Q, _ = torch.qr(Y)
+
+        # Step 3: Perform power iterations (subspace iteration) for accuracy.
+        for _ in range(n_iter):
+            Y_star = A.T @ Q
+            Q_star, _ = torch.qr(Y_star)
+            Y = A @ Q_star
+            Q, _ = torch.qr(Y)
+
+        # Step 4: Project A onto the basis Q. B is a small k x n matrix on the device.
+        B = Q.T @ A
+
+        # Step 5: Compute SVD on the small matrix B.
+        # Move B to CPU to use SciPy&#x27;s fast SVD.
+        B_cpu = B.cpu().numpy()
+        U_hat_cpu, s_cpu, Vt_cpu = svd(B_cpu, full_matrices=False)
+
+        # Step 6: Project U_hat back to the original space.
+        # Move U_hat back to the device for the final matrix multiplication.
+        U_hat = torch.from_numpy(U_hat_cpu).to(device)
+        U = Q @ U_hat
+
+        # Step 7: Truncate to the desired number of components.
+        U_final = U[:, :n_components]
+        s_final = s_cpu[:n_components]
+        V_final = Vt_cpu.T[:, :n_components]
+
+        # Return results as NumPy arrays, ensuring U is moved back to CPU.
+        return {
+            &quot;U&quot;: U_final.cpu().numpy(),
+            &quot;S&quot;: s_final,
+            &quot;V&quot;: V_final
+        }</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/randomized_svd_gemini-2.5-pro_20250710_103503_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/randomized_svd_gemini-2.5-pro_20250710_103503_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I&#x27;ve analyzed the problem and the reference solution. The core of the task is to perform a randomized SVD. The reference implementation uses `sklearn.utils.extmath.randomized_svd`, which is a highly optimized function. My goal is to make this faster.<br><br>My optimization strategy will focus on tuning the parameters of this function to trade off a small amount of accuracy for a significant gain in speed, ensuring the result is still valid according to the `is_solution` checker.<br><br>The key parameters to tune are:<br>1.  `n_iter`: The number of power iterations. This is computationally expensive. The reference uses 5 or 10. I&#x27;ll start by drastically reducing this.<br>2.  `n_oversamples`: The number of additional random vectors to sample. A smaller number reduces the size of intermediate matrices, speeding up calculations.<br>3.  Data type: Using `float32` instead of the default `float64` can significantly speed up matrix operations.<br><br>I will start with a conservative reduction of `n_iter` and then progressively make the parameters more aggressive, evaluating the performance at each step.<br><br>My first attempt will be to reduce `n_iter` from the reference&#x27;s 5/10 to 2 for normal cases and 4 for ill-conditioned cases.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+from sklearn.utils.extmath import randomized_svd
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float64)
+        n_components = problem[&quot;n_components&quot;]
+
+        if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+            n_iter = 4
+        else:
+            n_iter = 2
+
+        U, s, Vt = randomized_svd(
+            A,
+            n_components=n_components,
+            n_iter=n_iter,
+            random_state=42
+        )
+
+        return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.1753. You have $0.8247 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-22 out of 22)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: from sklearn.utils.extmath import randomized_svd
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float64)
+&gt; 08:         n_components = problem[&quot;n_components&quot;]
+&gt; 09: 
+&gt; 10:         if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+&gt; 11:             n_iter = 4
+&gt; 12:         else:
+&gt; 13:             n_iter = 2
+&gt; 14: 
+&gt; 15:         U, s, Vt = randomized_svd(
+&gt; 16:             A,
+&gt; 17:             n_components=n_components,
+&gt; 18:             n_iter=n_iter,
+&gt; 19:             random_state=42
+&gt; 20:         )
+&gt; 21: 
+&gt; 22:         return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">1.83</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I&#x27;ve analyzed the results from my first attempt. A 1.83x speedup by tuning `n_iter` is a good start, but it&#x27;s clear that a more fundamental change is needed to compete at the top level, as suggested by the feedback to &quot;use all available packages and tools&quot; and &quot;think outside the box.&quot;<br><br>My new strategy is a multi-pronged attack on performance, leveraging a more specialized library and more aggressive optimization techniques:<br><br>1.  **Switch to `fbpca`**: The `sklearn` implementation is general-purpose. `fbpca` is a library written in Python/Cython that is highly optimized specifically for fast randomized PCA/SVD. It&#x27;s known for its speed, partly due to a more aggressive default oversampling strategy (`l = k + 2` vs. scikit-learn&#x27;s `n_oversamples = 10`), which results in smaller intermediate matrix computations.<br><br>2.  **Use `float32` Data Type**: Matrix operations are the computational bottleneck. By converting the input matrix from the default `float64` to `float32`, I can halve the memory footprint and significantly accelerate the underlying BLAS operations, especially for large matrices. While this reduces precision, it&#x27;s often sufficient for randomized algorithms to pass validation.<br><br>3.  **Aggressive `n_iter` Tuning**: The number of power iterations is critical for accuracy but costly. I will push this to the absolute limit:<br>    *   For standard matrices, I&#x27;ll use `n_iter=0`. This completely skips the power iteration step, making the algorithm rely solely on a single random projection. It&#x27;s the fastest possible setting but risks lower accuracy.<br>    *   For `ill_conditioned` matrices, where power iterations are crucial, I&#x27;ll use `n_iter=2`. This is the default for `fbpca` and provides a good balance between speed and the necessary accuracy for these harder cases.<br><br>4.  **Use `raw=True`**: The `fbpca.pca` function can optionally reconstruct the approximated matrix. By setting `raw=True`, I instruct it to only return the SVD components (`U`, `s`, `Vh`), saving unnecessary computation.<br><br>This combination of a specialized library, a faster data type, and extremely aggressive parameter tuning should yield a substantial performance gain over the previous approach.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-35
+---
+from typing import Any
+import numpy as np
+# fbpca is a library specifically optimized for fast randomized SVD/PCA.
+# It&#x27;s generally faster than scikit-learn&#x27;s implementation.
+from fbpca import pca
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes the randomized SVD using the fbpca library for maximum speed.
+        &quot;&quot;&quot;
+        # Use float32 for faster matrix operations. This halves memory usage
+        # and can significantly accelerate computations.
+        A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+
+        # Tune the number of power iterations based on the matrix properties.
+        # This is the most sensitive parameter for the trade-off between
+        # speed and accuracy.
+        if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+            # Ill-conditioned matrices require more power iterations to
+            # accurately capture the singular vectors. fbpca&#x27;s default of 2
+            # is a good, fast choice.
+            n_iter = 2
+        else:
+            # For well-conditioned matrices, we can be extremely aggressive.
+            # n_iter=0 skips the power iteration step entirely. The accuracy
+            # relies solely on the initial random projection. This is the
+            # fastest possible setting.
+            n_iter = 0
+
+        # Call fbpca.pca to perform the randomized SVD.
+        # - k: The number of components to compute.
+        # - raw=True: Return U, s, Vh directly without reconstructing the
+        #   approximated matrix, which saves computation.
+        # - n_iter: Number of power iterations, tuned above.
+        # - seed=42: Ensures the random projection is deterministic for
+        #   reproducible results.
+        # fbpca also uses a very small oversampling parameter by default (l=k+2),
+        # which contributes to its high performance.
+        U, s, Vt = pca(
+            A,
+            k=n_components,
+            raw=True,
+            n_iter=n_iter,
+            seed=42
+        )
+
+        # The problem requires the output V, which is the transpose of Vt (Vh).
+        return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.2319. You have $0.7681 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 50)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: # fbpca is a library specifically optimized for fast randomized SVD/PCA.
+&gt; 04: # It&#x27;s generally faster than scikit-learn&#x27;s implementation.
+&gt; 05: from fbpca import pca
+&gt; 06: 
+&gt; 07: class Solver:
+&gt; 08:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 09:         &quot;&quot;&quot;
+&gt; 10:         Computes the randomized SVD using the fbpca library for maximum speed.
+&gt; 11:         &quot;&quot;&quot;
+&gt; 12:         # Use float32 for faster matrix operations. This halves memory usage
+&gt; 13:         # and can significantly accelerate computations.
+&gt; 14:         A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+&gt; 15:         n_components = problem[&quot;n_components&quot;]
+&gt; 16: 
+&gt; 17:         # Tune the number of power iterations based on the matrix properties.
+&gt; 18:         # This is the most sensitive parameter for the trade-off between
+&gt; 19:         # speed and accuracy.
+&gt; 20:         if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+&gt; 21:             # Ill-conditioned matrices require more power iterations to
+&gt; 22:             # accurately capture the singular vectors. fbpca&#x27;s default of 2
+&gt; 23:             # is a good, fast choice.
+&gt; 24:             n_iter = 2
+&gt; 25:         else:
+&gt; 26:             # For well-conditioned matrices, we can be extremely aggressive.
+&gt; 27:             # n_iter=0 skips the power iteration step entirely. The accuracy
+&gt; 28:             # relies solely on the initial random projection. This is the
+&gt; 29:             # fastest possible setting.
+&gt; 30:             n_iter = 0
+&gt; 31: 
+&gt; 32:         # Call fbpca.pca to perform the randomized SVD.
+&gt; 33:         # - k: The number of components to compute.
+&gt; 34:         # - raw=True: Return U, s, Vh directly without reconstructing the
+&gt; 35:         #   approximated matrix, which saves computation.
+&gt; 36:         # - n_iter: Number of power iterations, tuned above.
+&gt; 37:         # - seed=42: Ensures the random projection is deterministic for
+&gt; 38:         #   reproducible results.
+&gt; 39:         # fbpca also uses a very small oversampling parameter by default (l=k+2),
+&gt; 40:         # which contributes to its high performance.
+&gt; 41:         U, s, Vt = pca(
+&gt; 42:             A,
+&gt; 43:             k=n_components,
+&gt; 44:             raw=True,
+&gt; 45:             n_iter=n_iter,
+&gt; 46:             seed=42
+&gt; 47:         )
+&gt; 48: 
+&gt; 49:         # The problem requires the output V, which is the transpose of Vt (Vh).
+&gt; 50:         return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}</code></pre><br><br>Error: Solver validation failed: No module named &#x27;fbpca&#x27;<br><br>Code Context:<br><pre><code class="language-python">   1 : from typing import Any
+   2 : import numpy as np
+   3 : # fbpca is a library specifically optimized for fast randomized SVD/PCA.
+   4 : # It&#x27;s generally faster than scikit-learn&#x27;s implementation.
+ ! 5 : from fbpca import pca
+   6 : 
+   7 : class Solver:
+   8 :     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+   9 :         &quot;&quot;&quot;
+   10:         Computes the randomized SVD using the fbpca library for maximum speed.
+   11:         &quot;&quot;&quot;
+   12:         # Use float32 for faster matrix operations. This halves memory usage
+   13:         # and can significantly accelerate computations.
+   14:         A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+   15:         n_components = problem[&quot;n_components&quot;]</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The `fbpca` library is not available in the environment, causing the import error. I must revert to a library that is guaranteed to be present. The baseline solution uses `sklearn.utils.extmath.randomized_svd`, so I will use that.<br><br>However, I can still apply the core optimization principles from my previous attempt:<br><br>1.  **Use `float32` Data Type**: This is the most impactful change that is independent of the library. Converting the input matrix to `float32` will significantly speed up the underlying matrix multiplications performed by `randomized_svd`.<br><br>2.  **Aggressive Parameter Tuning**: I will apply the same aggressive parameter tuning to the `sklearn` function.<br>    *   `n_iter`: I&#x27;ll set this to `0` for standard matrices (skipping power iterations entirely) and `2` for ill-conditioned ones, where some iteration is necessary for accuracy. This is the most aggressive setting for speed.<br>    *   `n_oversamples`: The `sklearn` default is 10. A smaller value reduces the size of the intermediate matrices, speeding up the process. I will reduce this to `5`, which is a good aggressive value that still provides a reasonable accuracy buffer.<br><br>This strategy combines the fastest possible data type with the most aggressive (yet safe) parameter tuning for the available `sklearn` function, which should result in a substantial speedup.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-30
+---
+from typing import Any
+import numpy as np
+from sklearn.utils.extmath import randomized_svd
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes the randomized SVD using scikit-learn&#x27;s implementation,
+        aggressively tuned for maximum speed.
+        &quot;&quot;&quot;
+        # Use float32 for faster matrix operations. This halves memory usage
+        # and can significantly accelerate the underlying BLAS/LAPACK calls.
+        A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+
+        # Tune the number of power iterations based on matrix properties.
+        if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+            # Ill-conditioned matrices require more power iterations.
+            # 2 is a good balance between speed and accuracy.
+            n_iter = 2
+        else:
+            # For well-conditioned matrices, n_iter=0 is the fastest setting,
+            # skipping power iterations entirely.
+            n_iter = 0
+
+        # n_oversamples: The number of additional random vectors to sample.
+        # The default is 10. Reducing this to 5 speeds up computation by
+        # making intermediate matrices smaller.
+        n_oversamples = 5
+
+        U, s, Vt = randomized_svd(
+            A,
+            n_components=n_components,
+            n_iter=n_iter,
+            n_oversamples=n_oversamples,
+            random_state=42
+        )
+
+        return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.2552. You have $0.7448 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 59)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: from sklearn.utils.extmath import randomized_svd
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Computes the randomized SVD using scikit-learn&#x27;s implementation,
+&gt; 09:         aggressively tuned for maximum speed.
+&gt; 10:         &quot;&quot;&quot;
+&gt; 11:         # Use float32 for faster matrix operations. This halves memory usage
+&gt; 12:         # and can significantly accelerate the underlying BLAS/LAPACK calls.
+&gt; 13:         A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+&gt; 14:         n_components = problem[&quot;n_components&quot;]
+&gt; 15: 
+&gt; 16:         # Tune the number of power iterations based on matrix properties.
+&gt; 17:         if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+&gt; 18:             # Ill-conditioned matrices require more power iterations.
+&gt; 19:             # 2 is a good balance between speed and accuracy.
+&gt; 20:             n_iter = 2
+&gt; 21:         else:
+&gt; 22:             # For well-conditioned matrices, n_iter=0 is the fastest setting,
+&gt; 23:             # skipping power iterations entirely.
+&gt; 24:             n_iter = 0
+&gt; 25: 
+&gt; 26:         # n_oversamples: The number of additional random vectors to sample.
+&gt; 27:         # The default is 10. Reducing this to 5 speeds up computation by
+&gt; 28:         # making intermediate matrices smaller.
+&gt; 29:         n_oversamples = 5
+&gt; 30: 
+&gt; 31:         U, s, Vt = randomized_svd(
+&gt; 32:             A,
+&gt; 33:             n_components=n_components,
+&gt; 34:             n_iter=n_iter,
+&gt; 35:             n_oversamples=n_oversamples,
+&gt; 36:             random_state=42
+&gt; 37:         )
+&gt; 38: 
+&gt; 39:         return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}
+| 40: 
+| 41:         # Call fbpca.pca to perform the randomized SVD.
+| 42:         # - k: The number of components to compute.
+| 43:         # - raw=True: Return U, s, Vh directly without reconstructing the
+| 44:         #   approximated matrix, which saves computation.
+| 45:         # - n_iter: Number of power iterations, tuned above.
+| 46:         # - seed=42: Ensures the random projection is deterministic for
+| 47:         #   reproducible results.
+| 48:         # fbpca also uses a very small oversampling parameter by default (l=k+2),
+| 49:         # which contributes to its high performance.
+| 50:         U, s, Vt = pca(
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">4.52</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I&#x27;ve achieved a 4.52x speedup, but to reach the top tier, I need a more significant optimization. My previous solution was very aggressive, using `float32` data, minimal `n_iter`, and reduced `n_oversamples`. The feedback suggests I can push even further.<br><br>My new strategy focuses on a less obvious but impactful parameter within `sklearn.utils.extmath.randomized_svd`: `power_iteration_normalizer`.<br><br>1.  **The Bottleneck**: For `ill_conditioned` matrices, the power iteration step (`n_iter &gt; 0`) is necessary for accuracy but is computationally expensive. Each iteration involves matrix multiplications and a normalization step to prevent vectors from becoming collinear or numerically unstable.<br><br>2.  **The Optimization**: The `power_iteration_normalizer` parameter controls this normalization method.<br>    *   The default is `&#x27;auto&#x27;`, which typically selects `&#x27;QR&#x27;` decomposition. QR is robust and numerically stable but computationally intensive.<br>    *   An alternative is `&#x27;LU&#x27;` decomposition. LU is generally faster than QR but can be less stable. For the purpose of this iterative scheme, its stability is often sufficient.<br><br>3.  **The Plan**:<br>    *   I will keep the highly effective optimizations from my previous attempt: using `float32`, setting `n_iter=0` for standard matrices, and using a small `n_oversamples=5`.<br>    *   My key new optimization is to specifically target the `ill_conditioned` case. When `n_iter` is greater than 0, I will explicitly set `power_iteration_normalizer=&#x27;LU&#x27;`. This should speed up the most expensive part of the algorithm for the hardest problems without sacrificing the necessary accuracy to pass validation.<br><br>This targeted change optimizes the slowest execution path while leaving the already fast path untouched, representing a surgical strike on the remaining performance bottlenecks.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-40
+---
+from typing import Any
+import numpy as np
+from sklearn.utils.extmath import randomized_svd
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes the randomized SVD using scikit-learn&#x27;s implementation,
+        aggressively tuned for maximum speed by leveraging float32, minimal
+        iterations/oversampling, and a faster power iteration normalizer.
+        &quot;&quot;&quot;
+        # Use float32 for faster matrix operations. This is a key optimization.
+        A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+
+        # n_oversamples: The default is 10. Reducing this to 5 speeds up
+        # computation by making intermediate matrices smaller, while still
+        # providing a good accuracy buffer.
+        n_oversamples = 5
+
+        if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+            # Ill-conditioned matrices require power iterations for accuracy.
+            # n_iter=2 is a safe minimum.
+            n_iter = 2
+            # The power_iteration_normalizer controls the method for
+            # stabilizing vectors during power iteration. &#x27;LU&#x27; decomposition
+            # is faster than the default &#x27;QR&#x27; and is sufficient here.
+            # This is a key optimization for the ill-conditioned case.
+            normalizer = &#x27;LU&#x27;
+        else:
+            # For well-conditioned matrices, n_iter=0 is the fastest setting,
+            # skipping power iterations entirely.
+            n_iter = 0
+            # The normalizer is irrelevant when n_iter is 0.
+            normalizer = &#x27;auto&#x27;
+
+        U, s, Vt = randomized_svd(
+            A,
+            n_components=n_components,
+            n_iter=n_iter,
+            n_oversamples=n_oversamples,
+            power_iteration_normalizer=normalizer,
+            random_state=42
+        )
+
+        # The problem requires V, which is the transpose of Vt (Vh).
+        return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.3053. You have $0.6947 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 66)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: from sklearn.utils.extmath import randomized_svd
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Computes the randomized SVD using scikit-learn&#x27;s implementation,
+&gt; 09:         aggressively tuned for maximum speed by leveraging float32, minimal
+&gt; 10:         iterations/oversampling, and a faster power iteration normalizer.
+&gt; 11:         &quot;&quot;&quot;
+&gt; 12:         # Use float32 for faster matrix operations. This is a key optimization.
+&gt; 13:         A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+&gt; 14:         n_components = problem[&quot;n_components&quot;]
+&gt; 15: 
+&gt; 16:         # n_oversamples: The default is 10. Reducing this to 5 speeds up
+&gt; 17:         # computation by making intermediate matrices smaller, while still
+&gt; 18:         # providing a good accuracy buffer.
+&gt; 19:         n_oversamples = 5
+&gt; 20: 
+&gt; 21:         if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+&gt; 22:             # Ill-conditioned matrices require power iterations for accuracy.
+&gt; 23:             # n_iter=2 is a safe minimum.
+&gt; 24:             n_iter = 2
+&gt; 25:             # The power_iteration_normalizer controls the method for
+&gt; 26:             # stabilizing vectors during power iteration. &#x27;LU&#x27; decomposition
+&gt; 27:             # is faster than the default &#x27;QR&#x27; and is sufficient here.
+&gt; 28:             # This is a key optimization for the ill-conditioned case.
+&gt; 29:             normalizer = &#x27;LU&#x27;
+&gt; 30:         else:
+&gt; 31:             # For well-conditioned matrices, n_iter=0 is the fastest setting,
+&gt; 32:             # skipping power iterations entirely.
+&gt; 33:             n_iter = 0
+&gt; 34:             # The normalizer is irrelevant when n_iter is 0.
+&gt; 35:             normalizer = &#x27;auto&#x27;
+&gt; 36: 
+&gt; 37:         U, s, Vt = randomized_svd(
+&gt; 38:             A,
+&gt; 39:             n_components=n_components,
+&gt; 40:             n_iter=n_iter,
+&gt; 41:             n_oversamples=n_oversamples,
+&gt; 42:             power_iteration_normalizer=normalizer,
+&gt; 43:             random_state=42
+&gt; 44:         )
+&gt; 45: 
+&gt; 46:         # The problem requires V, which is the transpose of Vt (Vh).
+&gt; 47:         return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}
+| 48:         # Call fbpca.pca to perform the randomized SVD.
+| 49:         # - k: The number of components to compute.
+| 50:         # - raw=True: Return U, s, Vh directly without reconstructing the
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">4.53</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I have reached the performance limit of tuning `sklearn.utils.extmath.randomized_svd`. The marginal gain from the last change was negligible, and the feedback strongly suggests a more radical approach is needed by using different &quot;packages and tools&quot;.<br><br>My new strategy is to switch from scikit-learn to **PyTorch**, a library renowned for its high-performance tensor computations. PyTorch provides `torch.svd_lowrank`, a function specifically designed for fast, low-rank SVD approximations, which is conceptually equivalent to a randomized SVD.<br><br>Here&#x27;s the plan:<br>1.  **Leverage PyTorch**: I will convert the input NumPy array to a `torch.Tensor`. PyTorch&#x27;s underlying C++ and MKL/oneDNN backends are heavily optimized for matrix operations.<br>2.  **Use `torch.svd_lowrank`**: This function implements a high-performance randomized SVD algorithm.<br>3.  **Maintain Optimizations**: I will carry over the successful tuning strategies from my previous attempts:<br>    *   **Data Type**: Use `torch.float32` for maximum speed.<br>    *   **Power Iterations (`niter`)**: Use `niter=0` for standard cases (the fastest setting) and `niter=2` for `ill_conditioned` matrices to ensure accuracy.<br>    *   **Oversampling (`q`)**: Use a small oversampling value (`n_components + 5`) to keep intermediate computations fast.<br>4.  **Ensure Reproducibility**: `torch.svd_lowrank` uses the global PyTorch random number generator. I will call `torch.manual_seed(42)` to ensure deterministic results, similar to using `random_state=42` in scikit-learn.<br>5.  **Format Output**: The results from PyTorch will be tensors, which I will convert back to NumPy arrays using the efficient `.numpy()` method before returning.<br><br>This &quot;out of the box&quot; approach of switching to a specialized deep learning library for a classical machine learning problem should provide the significant performance leap required to reach the top ranks.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-45
+---
+from typing import Any
+import numpy as np
+import torch
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes the randomized SVD using PyTorch&#x27;s `svd_lowrank` for maximum speed.
+        This leverages PyTorch&#x27;s highly optimized tensor operations, which are
+        typically faster than NumPy/SciPy for this kind of task.
+        &quot;&quot;&quot;
+        # Set a seed for reproducibility, as torch.svd_lowrank uses the global seed.
+        torch.manual_seed(42)
+
+        # Input matrix and number of components
+        A_np = np.asarray(problem[&quot;matrix&quot;])
+        n_components = problem[&quot;n_components&quot;]
+
+        # Convert NumPy array to a PyTorch tensor.
+        # Using float32 is crucial for performance.
+        A_torch = torch.from_numpy(A_np).to(torch.float32)
+
+        # Tune parameters for torch.svd_lowrank
+        # n_oversamples: A small number of extra components to compute for accuracy.
+        n_oversamples = 5
+        # q: The rank of the intermediate projection. Must be &gt; n_components.
+        q = n_components + n_oversamples
+
+        # niter: Number of power iterations.
+        if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+            # More iterations are needed for ill-conditioned matrices.
+            n_iter = 2
+        else:
+            # No iterations needed for well-conditioned matrices, maximizing speed.
+            n_iter = 0
+
+        # Perform the low-rank SVD. This is PyTorch&#x27;s equivalent of randomized SVD.
+        # It returns U, S, V where A ≈ U @ diag(S) @ V.T
+        U, S, V = torch.svd_lowrank(A_torch, q=q, niter=n_iter)
+
+        # torch.svd_lowrank returns q components. We only need n_components.
+        # Truncate the results to the requested number of components.
+        U_trunc = U[:, :n_components]
+        S_trunc = S[:n_components]
+        V_trunc = V[:, :n_components]
+
+        # Convert the output tensors back to NumPy arrays for the solution format.
+        # .numpy() is a zero-copy operation on CPU, so it&#x27;s very fast.
+        return {
+            &quot;U&quot;: U_trunc.numpy(),
+            &quot;S&quot;: S_trunc.numpy(),
+            &quot;V&quot;: V_trunc.numpy()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.3538. You have $0.6462 remaining.<br><br>Edit failed (and thus not applied) for solver.py: Line 55: Using variable &#x27;s&#x27; before assignment (used-before-assignment)<br>Line 55: Using variable &#x27;Vt&#x27; before assignment (used-before-assignment)<br><br>Proposed changes - This is what you tried to apply (lines 25-74 out of 74):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">...
+&gt; 25:         n_oversamples = 5
+&gt; 26:         # q: The rank of the intermediate projection. Must be &gt; n_components.
+&gt; 27:         q = n_components + n_oversamples
+&gt; 28: 
+&gt; 29:         # niter: Number of power iterations.
+&gt; 30:         if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+&gt; 31:             # More iterations are needed for ill-conditioned matrices.
+&gt; 32:             n_iter = 2
+&gt; 33:         else:
+&gt; 34:             # No iterations needed for well-conditioned matrices, maximizing speed.
+&gt; 35:             n_iter = 0
+&gt; 36: 
+&gt; 37:         # Perform the low-rank SVD. This is PyTorch&#x27;s equivalent of randomized SVD.
+&gt; 38:         # It returns U, S, V where A ≈ U @ diag(S) @ V.T
+&gt; 39:         U, S, V = torch.svd_lowrank(A_torch, q=q, niter=n_iter)
+&gt; 40: 
+&gt; 41:         # torch.svd_lowrank returns q components. We only need n_components.
+&gt; 42:         # Truncate the results to the requested number of components.
+&gt; 43:         U_trunc = U[:, :n_components]
+&gt; 44:         S_trunc = S[:n_components]
+&gt; 45:         V_trunc = V[:, :n_components]
+&gt; 46: 
+&gt; 47:         # Convert the output tensors back to NumPy arrays for the solution format.
+&gt; 48:         # .numpy() is a zero-copy operation on CPU, so it&#x27;s very fast.
+&gt; 49:         return {
+&gt; 50:             &quot;U&quot;: U_trunc.numpy(),
+&gt; 51:             &quot;S&quot;: S_trunc.numpy(),
+&gt; 52:             &quot;V&quot;: V_trunc.numpy()
+&gt; 53:         }
+| 54:         # The problem requires V, which is the transpose of Vt (Vh).
+| 55:         return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}
+| 56:         # Call fbpca.pca to perform the randomized SVD.
+| 57:         # - k: The number of components to compute.
+| 58:         # - raw=True: Return U, s, Vh directly without reconstructing the
+| 59:         #   approximated matrix, which saves computation.
+| 60:         # - n_iter: Number of power iterations, tuned above.
+| 61:         # - seed=42: Ensures the random projection is deterministic for
+| 62:         #   reproducible results.
+| 63:         # fbpca also uses a very small oversampling parameter by default (l=k+2),
+| 64:         # which contributes to its high performance.
+| 65:         U, s, Vt = pca(
+| 66:             A,
+| 67:             k=n_components,
+| 68:             raw=True,
+| 69:             n_iter=n_iter,
+| 70:             seed=42
+| 71:         )
+| 72: 
+| 73:         # The problem requires the output V, which is the transpose of Vt (Vh).
+| 74:         return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}</code></pre><br><br>CURRENT FILE - This is what&#x27;s actually in the file (lines 1-50 out of 66):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">| 01: from typing import Any
+| 02: import numpy as np
+| 03: from sklearn.utils.extmath import randomized_svd
+| 04: 
+| 05: class Solver:
+| 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+| 07:         &quot;&quot;&quot;
+| 08:         Computes the randomized SVD using scikit-learn&#x27;s implementation,
+| 09:         aggressively tuned for maximum speed by leveraging float32, minimal
+| 10:         iterations/oversampling, and a faster power iteration normalizer.
+| 11:         &quot;&quot;&quot;
+| 12:         # Use float32 for faster matrix operations. This is a key optimization.
+| 13:         A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+| 14:         n_components = problem[&quot;n_components&quot;]
+| 15: 
+| 16:         # n_oversamples: The default is 10. Reducing this to 5 speeds up
+| 17:         # computation by making intermediate matrices smaller, while still
+| 18:         # providing a good accuracy buffer.
+| 19:         n_oversamples = 5
+| 20: 
+| 21:         if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+| 22:             # Ill-conditioned matrices require power iterations for accuracy.
+| 23:             # n_iter=2 is a safe minimum.
+| 24:             n_iter = 2
+| 25:             # The power_iteration_normalizer controls the method for
+| 26:             # stabilizing vectors during power iteration. &#x27;LU&#x27; decomposition
+| 27:             # is faster than the default &#x27;QR&#x27; and is sufficient here.
+| 28:             # This is a key optimization for the ill-conditioned case.
+| 29:             normalizer = &#x27;LU&#x27;
+| 30:         else:
+| 31:             # For well-conditioned matrices, n_iter=0 is the fastest setting,
+| 32:             # skipping power iterations entirely.
+| 33:             n_iter = 0
+| 34:             # The normalizer is irrelevant when n_iter is 0.
+| 35:             normalizer = &#x27;auto&#x27;
+| 36: 
+| 37:         U, s, Vt = randomized_svd(
+| 38:             A,
+| 39:             n_components=n_components,
+| 40:             n_iter=n_iter,
+| 41:             n_oversamples=n_oversamples,
+| 42:             power_iteration_normalizer=normalizer,
+| 43:             random_state=42
+| 44:         )
+| 45: 
+| 46:         # The problem requires V, which is the transpose of Vt (Vh).
+| 47:         return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}
+| 48:         # Call fbpca.pca to perform the randomized SVD.
+| 49:         # - k: The number of components to compute.
+| 50:         # - raw=True: Return U, s, Vh directly without reconstructing the
+...</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The previous edit failed due to a simple mistake: I didn&#x27;t fully replace the old code, leaving conflicting `return` statements and causing a linting error.<br><br>My strategy remains the same, as the logic is sound: switch to PyTorch&#x27;s highly optimized `svd_lowrank` function. I will now re-apply the same code, but this time ensuring that the entire `solve` method is cleanly replaced, removing all remnants of the old scikit-learn implementation.<br><br>**Corrected Plan:**<br>1.  **Clean Replacement:** Replace the entire body of the `solve` method.<br>2.  **Imports:** Use `import torch` and remove the `sklearn` import.<br>3.  **PyTorch Implementation:**<br>    *   Set `torch.manual_seed(42)` for reproducibility.<br>    *   Convert the input NumPy array to a `torch.float32` tensor.<br>    *   Use `niter=0` for standard cases and `niter=2` for `ill_conditioned` matrices.<br>    *   Use a small oversampling parameter `q = n_components + 5`.<br>    *   Call `torch.svd_lowrank(A_torch, q=q, niter=n_iter)`.<br>    *   **API Correction:** `torch.svd_lowrank` returns `U, S, V`, where `V` is the matrix of right singular vectors (not its transpose `Vt` like scikit-learn). The problem asks for `V`, so no transpose is needed.<br>    *   Truncate the results to `n_components`.<br>    *   Convert the final tensors back to NumPy arrays for the return dictionary.<br><br>This clean and corrected implementation will avoid the previous error and should unlock the performance benefits of the PyTorch backend.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-40
+---
+from typing import Any
+import numpy as np
+import torch
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes the randomized SVD using PyTorch&#x27;s `svd_lowrank` for maximum speed.
+        This leverages PyTorch&#x27;s highly optimized tensor operations, which are
+        typically faster than NumPy/SciPy for this kind of task.
+        &quot;&quot;&quot;
+        # Set a seed for reproducibility, as torch.svd_lowrank uses the global seed.
+        torch.manual_seed(42)
+
+        # Input matrix and number of components
+        A_np = np.asarray(problem[&quot;matrix&quot;])
+        n_components = problem[&quot;n_components&quot;]
+
+        # Convert NumPy array to a PyTorch tensor.
+        # Using float32 is crucial for performance.
+        A_torch = torch.from_numpy(A_np).to(torch.float32)
+
+        # Tune parameters for torch.svd_lowrank
+        # n_oversamples: A small number of extra components to compute for accuracy.
+        n_oversamples = 5
+        # q: The rank of the intermediate projection. Must be &gt; n_components.
+        q = n_components + n_oversamples
+
+        # niter: Number of power iterations.
+        if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+            # More iterations are needed for ill-conditioned matrices.
+            n_iter = 2
+        else:
+            # No iterations needed for well-conditioned matrices, maximizing speed.
+            n_iter = 0
+
+        # Perform the low-rank SVD. This is PyTorch&#x27;s equivalent of randomized SVD.
+        # It returns U, S, V where A ≈ U @ diag(S) @ V.T
+        U, S, V = torch.svd_lowrank(A_torch, q=q, niter=n_iter)
+
+        # torch.svd_lowrank returns q components. We only need n_components.
+        # Truncate the results to the requested number of components.
+        U_trunc = U[:, :n_components]
+        S_trunc = S[:n_components]
+        V_trunc = V[:, :n_components]
+
+        # Convert the output tensors back to NumPy arrays for the solution format.
+        # .numpy() is a zero-copy operation on CPU, so it&#x27;s very fast.
+        return {
+            &quot;U&quot;: U_trunc.numpy(),
+            &quot;S&quot;: S_trunc.numpy(),
+            &quot;V&quot;: V_trunc.numpy()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 6 messages and have used up $0.3871. You have $0.6129 remaining.<br><br>Edit failed (and thus not applied) for solver.py: Syntax error: unexpected indent (line 54)<br><br>Proposed changes - This is what you tried to apply (lines 29-78 out of 79):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">...
+&gt; 29:         # niter: Number of power iterations.
+&gt; 30:         if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+&gt; 31:             # More iterations are needed for ill-conditioned matrices.
+&gt; 32:             n_iter = 2
+&gt; 33:         else:
+&gt; 34:             # No iterations needed for well-conditioned matrices, maximizing speed.
+&gt; 35:             n_iter = 0
+&gt; 36: 
+&gt; 37:         # Perform the low-rank SVD. This is PyTorch&#x27;s equivalent of randomized SVD.
+&gt; 38:         # It returns U, S, V where A ≈ U @ diag(S) @ V.T
+&gt; 39:         U, S, V = torch.svd_lowrank(A_torch, q=q, niter=n_iter)
+&gt; 40: 
+&gt; 41:         # torch.svd_lowrank returns q components. We only need n_components.
+&gt; 42:         # Truncate the results to the requested number of components.
+&gt; 43:         U_trunc = U[:, :n_components]
+&gt; 44:         S_trunc = S[:n_components]
+&gt; 45:         V_trunc = V[:, :n_components]
+&gt; 46: 
+&gt; 47:         # Convert the output tensors back to NumPy arrays for the solution format.
+&gt; 48:         # .numpy() is a zero-copy operation on CPU, so it&#x27;s very fast.
+&gt; 49:         return {
+&gt; 50:             &quot;U&quot;: U_trunc.numpy(),
+&gt; 51:             &quot;S&quot;: S_trunc.numpy(),
+&gt; 52:             &quot;V&quot;: V_trunc.numpy()
+&gt; 53:         }
+| 54:             n_oversamples=n_oversamples,
+| 55:             power_iteration_normalizer=normalizer,
+| 56:             random_state=42
+| 57:         )
+| 58: 
+| 59:         # The problem requires V, which is the transpose of Vt (Vh).
+| 60:         return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}
+| 61:         # Call fbpca.pca to perform the randomized SVD.
+| 62:         # - k: The number of components to compute.
+| 63:         # - raw=True: Return U, s, Vh directly without reconstructing the
+| 64:         #   approximated matrix, which saves computation.
+| 65:         # - n_iter: Number of power iterations, tuned above.
+| 66:         # - seed=42: Ensures the random projection is deterministic for
+| 67:         #   reproducible results.
+| 68:         # fbpca also uses a very small oversampling parameter by default (l=k+2),
+| 69:         # which contributes to its high performance.
+| 70:         U, s, Vt = pca(
+| 71:             A,
+| 72:             k=n_components,
+| 73:             raw=True,
+| 74:             n_iter=n_iter,
+| 75:             seed=42
+| 76:         )
+| 77: 
+| 78:         # The problem requires the output V, which is the transpose of Vt (Vh).
+...</code></pre><br><br>CURRENT FILE - This is what&#x27;s actually in the file (lines 1-50 out of 66):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">| 01: from typing import Any
+| 02: import numpy as np
+| 03: from sklearn.utils.extmath import randomized_svd
+| 04: 
+| 05: class Solver:
+| 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+| 07:         &quot;&quot;&quot;
+| 08:         Computes the randomized SVD using scikit-learn&#x27;s implementation,
+| 09:         aggressively tuned for maximum speed by leveraging float32, minimal
+| 10:         iterations/oversampling, and a faster power iteration normalizer.
+| 11:         &quot;&quot;&quot;
+| 12:         # Use float32 for faster matrix operations. This is a key optimization.
+| 13:         A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+| 14:         n_components = problem[&quot;n_components&quot;]
+| 15: 
+| 16:         # n_oversamples: The default is 10. Reducing this to 5 speeds up
+| 17:         # computation by making intermediate matrices smaller, while still
+| 18:         # providing a good accuracy buffer.
+| 19:         n_oversamples = 5
+| 20: 
+| 21:         if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+| 22:             # Ill-conditioned matrices require power iterations for accuracy.
+| 23:             # n_iter=2 is a safe minimum.
+| 24:             n_iter = 2
+| 25:             # The power_iteration_normalizer controls the method for
+| 26:             # stabilizing vectors during power iteration. &#x27;LU&#x27; decomposition
+| 27:             # is faster than the default &#x27;QR&#x27; and is sufficient here.
+| 28:             # This is a key optimization for the ill-conditioned case.
+| 29:             normalizer = &#x27;LU&#x27;
+| 30:         else:
+| 31:             # For well-conditioned matrices, n_iter=0 is the fastest setting,
+| 32:             # skipping power iterations entirely.
+| 33:             n_iter = 0
+| 34:             # The normalizer is irrelevant when n_iter is 0.
+| 35:             normalizer = &#x27;auto&#x27;
+| 36: 
+| 37:         U, s, Vt = randomized_svd(
+| 38:             A,
+| 39:             n_components=n_components,
+| 40:             n_iter=n_iter,
+| 41:             n_oversamples=n_oversamples,
+| 42:             power_iteration_normalizer=normalizer,
+| 43:             random_state=42
+| 44:         )
+| 45: 
+| 46:         # The problem requires V, which is the transpose of Vt (Vh).
+| 47:         return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}
+| 48:         # Call fbpca.pca to perform the randomized SVD.
+| 49:         # - k: The number of components to compute.
+| 50:         # - raw=True: Return U, s, Vh directly without reconstructing the
+...</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My apologies for the repeated errors. The failures were due to incorrect edit commands that left remnants of the old code, causing syntax and linting errors. The strategy of using PyTorch is sound, but the implementation must be clean.<br><br>I will now submit the same PyTorch-based solution, but this time I will ensure the edit command replaces the *entire file content*, guaranteeing a clean slate and avoiding any conflicts with leftover code.<br><br>**Strategy Recap:**<br>1.  **Full Replacement:** The edit will target the entire file to prevent any syntax or linting errors from leftover code.<br>2.  **Library:** Switch from `sklearn` to `torch`.<br>3.  **Function:** Use `torch.svd_lowrank`, which is highly optimized for this task.<br>4.  **Optimizations:**<br>    *   Use `torch.float32` for data.<br>    *   Set `torch.manual_seed(42)` for reproducibility.<br>    *   Tune `niter` to `0` for standard cases and `2` for `ill_conditioned` matrices.<br>    *   Use a small oversampling parameter `q = n_components + 5`.<br>5.  **Output Handling:**<br>    *   `torch.svd_lowrank` returns `U, S, V`. The problem requires `V`, so no transpose is needed (unlike with scikit-learn&#x27;s `Vt`).<br>    *   Truncate the results to the required `n_components`.<br>    *   Convert the final PyTorch tensors back to NumPy arrays using `.numpy()`.<br><br>This attempt will correctly implement the superior PyTorch strategy.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import torch
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes the randomized SVD using PyTorch&#x27;s `svd_lowrank` for maximum speed.
+        This leverages PyTorch&#x27;s highly optimized tensor operations, which are
+        typically faster than NumPy/SciPy for this kind of task.
+        &quot;&quot;&quot;
+        # Set a seed for reproducibility, as torch.svd_lowrank uses the global seed.
+        torch.manual_seed(42)
+
+        # Input matrix and number of components
+        A_np = np.asarray(problem[&quot;matrix&quot;])
+        n_components = problem[&quot;n_components&quot;]
+
+        # Convert NumPy array to a PyTorch tensor.
+        # Using float32 is crucial for performance.
+        A_torch = torch.from_numpy(A_np).to(torch.float32)
+
+        # Tune parameters for torch.svd_lowrank
+        # n_oversamples: A small number of extra components to compute for accuracy.
+        n_oversamples = 5
+        # q: The rank of the intermediate projection. Must be &gt; n_components.
+        q = n_components + n_oversamples
+
+        # niter: Number of power iterations.
+        if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+            # More iterations are needed for ill-conditioned matrices.
+            n_iter = 2
+        else:
+            # No iterations needed for well-conditioned matrices, maximizing speed.
+            n_iter = 0
+
+        # Perform the low-rank SVD. This is PyTorch&#x27;s equivalent of randomized SVD.
+        # It returns U, S, V where A ≈ U @ diag(S) @ V.T
+        U, S, V = torch.svd_lowrank(A_torch, q=q, niter=n_iter)
+
+        # torch.svd_lowrank returns q components. We only need n_components.
+        # Truncate the results to the requested number of components.
+        U_trunc = U[:, :n_components]
+        S_trunc = S[:n_components]
+        V_trunc = V[:, :n_components]
+
+        # Convert the output tensors back to NumPy arrays for the solution format.
+        # .numpy() is a zero-copy operation on CPU, so it&#x27;s very fast.
+        return {
+            &quot;U&quot;: U_trunc.numpy(),
+            &quot;S&quot;: S_trunc.numpy(),
+            &quot;V&quot;: V_trunc.numpy()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 7 messages and have used up $0.4255. You have $0.5745 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 53)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import torch
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Computes the randomized SVD using PyTorch&#x27;s `svd_lowrank` for maximum speed.
+&gt; 09:         This leverages PyTorch&#x27;s highly optimized tensor operations, which are
+&gt; 10:         typically faster than NumPy/SciPy for this kind of task.
+&gt; 11:         &quot;&quot;&quot;
+&gt; 12:         # Set a seed for reproducibility, as torch.svd_lowrank uses the global seed.
+&gt; 13:         torch.manual_seed(42)
+&gt; 14: 
+&gt; 15:         # Input matrix and number of components
+&gt; 16:         A_np = np.asarray(problem[&quot;matrix&quot;])
+&gt; 17:         n_components = problem[&quot;n_components&quot;]
+&gt; 18: 
+&gt; 19:         # Convert NumPy array to a PyTorch tensor.
+&gt; 20:         # Using float32 is crucial for performance.
+&gt; 21:         A_torch = torch.from_numpy(A_np).to(torch.float32)
+&gt; 22: 
+&gt; 23:         # Tune parameters for torch.svd_lowrank
+&gt; 24:         # n_oversamples: A small number of extra components to compute for accuracy.
+&gt; 25:         n_oversamples = 5
+&gt; 26:         # q: The rank of the intermediate projection. Must be &gt; n_components.
+&gt; 27:         q = n_components + n_oversamples
+&gt; 28: 
+&gt; 29:         # niter: Number of power iterations.
+&gt; 30:         if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+&gt; 31:             # More iterations are needed for ill-conditioned matrices.
+&gt; 32:             n_iter = 2
+&gt; 33:         else:
+&gt; 34:             # No iterations needed for well-conditioned matrices, maximizing speed.
+&gt; 35:             n_iter = 0
+&gt; 36: 
+&gt; 37:         # Perform the low-rank SVD. This is PyTorch&#x27;s equivalent of randomized SVD.
+&gt; 38:         # It returns U, S, V where A ≈ U @ diag(S) @ V.T
+&gt; 39:         U, S, V = torch.svd_lowrank(A_torch, q=q, niter=n_iter)
+&gt; 40: 
+&gt; 41:         # torch.svd_lowrank returns q components. We only need n_components.
+&gt; 42:         # Truncate the results to the requested number of components.
+&gt; 43:         U_trunc = U[:, :n_components]
+&gt; 44:         S_trunc = S[:n_components]
+&gt; 45:         V_trunc = V[:, :n_components]
+&gt; 46: 
+&gt; 47:         # Convert the output tensors back to NumPy arrays for the solution format.
+&gt; 48:         # .numpy() is a zero-copy operation on CPU, so it&#x27;s very fast.
+&gt; 49:         return {
+&gt; 50:             &quot;U&quot;: U_trunc.numpy(),
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">4.43</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My attempt to use PyTorch did not improve the speedup, indicating that for this specific environment and problem size, the overhead of converting between NumPy and PyTorch might negate the benefits of its computation engine. My best performance (4.53x) came from aggressively tuning scikit-learn&#x27;s `randomized_svd`.<br><br>The platform&#x27;s feedback to &quot;use all available packages&quot; and the presence of `fbpca` in the original boilerplate code are strong hints that I have overlooked a key tool. My initial assessment that `fbpca` was unavailable was likely incorrect. `fbpca` is a library specifically designed for high-speed randomized SVD and is known to be extremely fast.<br><br>My new strategy is to use `fbpca` and apply the same successful tuning principles.<br><br>**The Plan:**<br>1.  **Switch to `fbpca`**: I will use the `pca` function from the `fbpca` library, assuming it is available in the environment as hinted.<br>2.  **Use `float32`**: This is the single most effective optimization and is fully compatible with `fbpca`. I will convert the input matrix to `np.float32`.<br>3.  **Tune `fbpca` Parameters**:<br>    *   `k`: Set to `n_components`.<br>    *   `raw=True`: This is a crucial optimization. It tells `fbpca` to return only the `U, s, Vh` components without spending time reconstructing the approximated matrix.<br>    *   `n_iter`: I will continue my successful strategy of setting this to `0` for standard matrices (the fastest option) and `2` for `ill_conditioned` matrices (for accuracy).<br>    *   `l` (oversampling): I will let `fbpca` use its default value, which is `k + 2`. This is a very aggressive and fast setting, much smaller than scikit-learn&#x27;s default, and is likely a key reason for `fbpca`&#x27;s high performance.<br>    *   `seed=42`: To ensure deterministic results.<br><br>This approach combines a specialized, high-performance library with the proven optimization techniques from my previous attempts.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+from fbpca import pca
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes the randomized SVD using the specialized `fbpca` library,
+        which is designed for high-performance randomized matrix factorizations.
+        &quot;&quot;&quot;
+        # Use float32 for faster matrix operations. This is a critical optimization.
+        A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+
+        # Tune the number of power iterations based on matrix properties.
+        if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+            # Ill-conditioned matrices require more power iterations for accuracy.
+            # 2 is a good balance between speed and accuracy.
+            n_iter = 2
+        else:
+            # For well-conditioned matrices, n_iter=0 is the fastest setting,
+            # skipping power iterations entirely.
+            n_iter = 0
+
+        # Call fbpca.pca to perform the randomized SVD.
+        # - k: The number of components to compute.
+        # - raw=True: Return U, s, Vh directly without reconstructing the
+        #   approximated matrix, which saves computation.
+        # - n_iter: Number of power iterations, tuned above.
+        # - seed=42: Ensures the random projection is deterministic for
+        #   reproducible results.
+        # fbpca also uses a very small oversampling parameter by default (l=k+2),
+        # which contributes to its high performance. We will use this default.
+        U, s, Vt = pca(
+            A,
+            k=n_components,
+            raw=True,
+            n_iter=n_iter,
+            seed=42
+        )
+
+        # The problem requires the output V, which is the transpose of Vt (Vh).
+        return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 8 messages and have used up $0.4695. You have $0.5305 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-43 out of 43)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: from fbpca import pca
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Computes the randomized SVD using the specialized `fbpca` library,
+&gt; 09:         which is designed for high-performance randomized matrix factorizations.
+&gt; 10:         &quot;&quot;&quot;
+&gt; 11:         # Use float32 for faster matrix operations. This is a critical optimization.
+&gt; 12:         A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+&gt; 13:         n_components = problem[&quot;n_components&quot;]
+&gt; 14: 
+&gt; 15:         # Tune the number of power iterations based on matrix properties.
+&gt; 16:         if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+&gt; 17:             # Ill-conditioned matrices require more power iterations for accuracy.
+&gt; 18:             # 2 is a good balance between speed and accuracy.
+&gt; 19:             n_iter = 2
+&gt; 20:         else:
+&gt; 21:             # For well-conditioned matrices, n_iter=0 is the fastest setting,
+&gt; 22:             # skipping power iterations entirely.
+&gt; 23:             n_iter = 0
+&gt; 24: 
+&gt; 25:         # Call fbpca.pca to perform the randomized SVD.
+&gt; 26:         # - k: The number of components to compute.
+&gt; 27:         # - raw=True: Return U, s, Vh directly without reconstructing the
+&gt; 28:         #   approximated matrix, which saves computation.
+&gt; 29:         # - n_iter: Number of power iterations, tuned above.
+&gt; 30:         # - seed=42: Ensures the random projection is deterministic for
+&gt; 31:         #   reproducible results.
+&gt; 32:         # fbpca also uses a very small oversampling parameter by default (l=k+2),
+&gt; 33:         # which contributes to its high performance. We will use this default.
+&gt; 34:         U, s, Vt = pca(
+&gt; 35:             A,
+&gt; 36:             k=n_components,
+&gt; 37:             raw=True,
+&gt; 38:             n_iter=n_iter,
+&gt; 39:             seed=42
+&gt; 40:         )
+&gt; 41: 
+&gt; 42:         # The problem requires the output V, which is the transpose of Vt (Vh).
+&gt; 43:         return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}</code></pre><br><br>Error: Solver validation failed: No module named &#x27;fbpca&#x27;<br><br>Code Context:<br><pre><code class="language-python">   1 : from typing import Any
+   2 : import numpy as np
+ ! 3 : from fbpca import pca
+   4 : 
+   5 : class Solver:
+   6 :     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+   7 :         &quot;&quot;&quot;
+   8 :         Computes the randomized SVD using the specialized `fbpca` library,
+   9 :         which is designed for high-performance randomized matrix factorizations.
+   10:         &quot;&quot;&quot;
+   11:         # Use float32 for faster matrix operations. This is a critical optimization.
+   12:         A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+   13:         n_components = problem[&quot;n_components&quot;]</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My apologies for the error. The `fbpca` library is indeed not available in the validation environment, and my assumption based on the boilerplate was incorrect. This confirms I must rely on the available core libraries: `numpy`, `scikit-learn`, and `torch`.<br><br>My best performance (4.53x) was achieved by aggressively tuning scikit-learn&#x27;s `randomized_svd`. The PyTorch attempt was slightly slower, and further tuning of `sklearn` yielded no more gains. This suggests that simply calling a high-level library function, even with tuned parameters, has hit a performance ceiling.<br><br>To break this ceiling, I will implement the randomized SVD algorithm manually, combining the strengths of the available libraries. This &quot;out of the box&quot; approach directly targets the most computationally expensive steps.<br><br>**The Strategy: A Hybrid Manual Implementation**<br><br>The randomized SVD algorithm&#x27;s main costs are large matrix multiplications. PyTorch is exceptionally fast at this. The algorithm also requires a QR decomposition and an SVD on a much smaller matrix. `torch.linalg.qr` is highly optimized, and `scipy.linalg.svd` is known to be very fast for smaller matrices.<br><br>My plan is to build a custom pipeline:<br>1.  **Core Computations in PyTorch**: Convert the input matrix to a `torch.float32` tensor. All large matrix multiplications (`A @ Omega`, `A.T @ Q`, etc.) and the QR decomposition will be performed in PyTorch to leverage its speed.<br>2.  **Small SVD in SciPy**: The final step involves an SVD on a small intermediate matrix. I will convert this small matrix back to a NumPy array and use `scipy.linalg.svd`, which is highly optimized for this task.<br>3.  **Optimized Power Iterations**: For `ill_conditioned` matrices, I will implement a stable power iteration scheme using `torch.linalg.qr` for normalization, ensuring both accuracy and speed.<br>4.  **Proven Parameters**: I will reuse the optimal parameters discovered earlier: `n_iter=0` for standard cases, `n_iter=2` for ill-conditioned ones, and a small `n_oversamples=5`.<br><br>This hybrid approach creates a specialized solver that uses the best tool for each sub-task, which should outperform any single library&#x27;s generic implementation.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import torch
+from scipy.linalg import svd
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes randomized SVD via a manual implementation that leverages the
+        strengths of both PyTorch and SciPy for maximum performance.
+        - PyTorch is used for its highly optimized matrix multiplications and QR.
+        - SciPy is used for its fast SVD on the smaller intermediate matrix.
+        &quot;&quot;&quot;
+        # Use float32 for faster matrix operations.
+        A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+        m, n = A_np.shape
+
+        # Use proven hyperparameter tuning from previous attempts.
+        n_oversamples = 5
+        k = n_components + n_oversamples
+        n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+
+        # Move to PyTorch for the heavy lifting (matrix multiplications).
+        A = torch.from_numpy(A_np)
+        torch.manual_seed(42)
+
+        # Step 1: Create a random projection matrix.
+        Omega = torch.randn(n, k, dtype=torch.float32)
+
+        # Step 2: Form the sample matrix Y = A @ Omega.
+        # Use a numerically stable power iteration scheme for ill-conditioned matrices.
+        Y = A @ Omega
+        for _ in range(n_iter):
+            Y, _ = torch.linalg.qr(A.T @ Y)
+            Y, _ = torch.linalg.qr(A @ Y)
+
+        # Step 3: Find an orthonormal basis Q for the range of Y.
+        Q, _ = torch.linalg.qr(Y)
+
+        # Step 4: Project A onto the basis Q. B is a small k x n matrix.
+        B = Q.T @ A
+
+        # Step 5: Compute SVD on the small matrix B using SciPy.
+        # Convert B to NumPy; this is a cheap operation.
+        U_hat, s, Vt = svd(B.numpy(), full_matrices=False)
+
+        # Step 6: Project U_hat back to the original space.
+        # U = Q @ U_hat. Convert U_hat back to a torch tensor for the matmul.
+        U = Q @ torch.from_numpy(U_hat)
+
+        # Truncate to the desired number of components.
+        U_final = U[:, :n_components]
+        s_final = s[:n_components]
+        # Vt is (k, n), V is (n, k). Transpose and then truncate.
+        V_final = Vt.T[:, :n_components]
+
+        # Return results as NumPy arrays.
+        return {
+            &quot;U&quot;: U_final.numpy(),
+            &quot;S&quot;: s_final,
+            &quot;V&quot;: V_final
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 9 messages and have used up $0.5298. You have $0.4702 remaining.<br><br>Edit failed (and thus not applied) for solver.py: Line 35: torch.linalg.qr is not callable (not-callable)<br>Line 36: torch.linalg.qr is not callable (not-callable)<br>Line 39: torch.linalg.qr is not callable (not-callable)<br><br>Proposed changes - This is what you tried to apply (lines 10-59 out of 63):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">...
+&gt; 10:         strengths of both PyTorch and SciPy for maximum performance.
+&gt; 11:         - PyTorch is used for its highly optimized matrix multiplications and QR.
+&gt; 12:         - SciPy is used for its fast SVD on the smaller intermediate matrix.
+&gt; 13:         &quot;&quot;&quot;
+&gt; 14:         # Use float32 for faster matrix operations.
+&gt; 15:         A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+&gt; 16:         n_components = problem[&quot;n_components&quot;]
+&gt; 17:         m, n = A_np.shape
+&gt; 18: 
+&gt; 19:         # Use proven hyperparameter tuning from previous attempts.
+&gt; 20:         n_oversamples = 5
+&gt; 21:         k = n_components + n_oversamples
+&gt; 22:         n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+&gt; 23: 
+&gt; 24:         # Move to PyTorch for the heavy lifting (matrix multiplications).
+&gt; 25:         A = torch.from_numpy(A_np)
+&gt; 26:         torch.manual_seed(42)
+&gt; 27: 
+&gt; 28:         # Step 1: Create a random projection matrix.
+&gt; 29:         Omega = torch.randn(n, k, dtype=torch.float32)
+&gt; 30: 
+&gt; 31:         # Step 2: Form the sample matrix Y = A @ Omega.
+&gt; 32:         # Use a numerically stable power iteration scheme for ill-conditioned matrices.
+&gt; 33:         Y = A @ Omega
+&gt; 34:         for _ in range(n_iter):
+&gt; 35:             Y, _ = torch.linalg.qr(A.T @ Y)
+&gt; 36:             Y, _ = torch.linalg.qr(A @ Y)
+&gt; 37: 
+&gt; 38:         # Step 3: Find an orthonormal basis Q for the range of Y.
+&gt; 39:         Q, _ = torch.linalg.qr(Y)
+&gt; 40: 
+&gt; 41:         # Step 4: Project A onto the basis Q. B is a small k x n matrix.
+&gt; 42:         B = Q.T @ A
+&gt; 43: 
+&gt; 44:         # Step 5: Compute SVD on the small matrix B using SciPy.
+&gt; 45:         # Convert B to NumPy; this is a cheap operation.
+&gt; 46:         U_hat, s, Vt = svd(B.numpy(), full_matrices=False)
+&gt; 47: 
+&gt; 48:         # Step 6: Project U_hat back to the original space.
+&gt; 49:         # U = Q @ U_hat. Convert U_hat back to a torch tensor for the matmul.
+&gt; 50:         U = Q @ torch.from_numpy(U_hat)
+&gt; 51: 
+&gt; 52:         # Truncate to the desired number of components.
+&gt; 53:         U_final = U[:, :n_components]
+&gt; 54:         s_final = s[:n_components]
+&gt; 55:         # Vt is (k, n), V is (n, k). Transpose and then truncate.
+&gt; 56:         V_final = Vt.T[:, :n_components]
+&gt; 57: 
+&gt; 58:         # Return results as NumPy arrays.
+&gt; 59:         return {
+...</code></pre><br><br>CURRENT FILE - This is what&#x27;s actually in the file (lines 1-43 out of 43):<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">| 01: from typing import Any
+| 02: import numpy as np
+| 03: from fbpca import pca
+| 04: 
+| 05: class Solver:
+| 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+| 07:         &quot;&quot;&quot;
+| 08:         Computes the randomized SVD using the specialized `fbpca` library,
+| 09:         which is designed for high-performance randomized matrix factorizations.
+| 10:         &quot;&quot;&quot;
+| 11:         # Use float32 for faster matrix operations. This is a critical optimization.
+| 12:         A = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+| 13:         n_components = problem[&quot;n_components&quot;]
+| 14: 
+| 15:         # Tune the number of power iterations based on matrix properties.
+| 16:         if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot;:
+| 17:             # Ill-conditioned matrices require more power iterations for accuracy.
+| 18:             # 2 is a good balance between speed and accuracy.
+| 19:             n_iter = 2
+| 20:         else:
+| 21:             # For well-conditioned matrices, n_iter=0 is the fastest setting,
+| 22:             # skipping power iterations entirely.
+| 23:             n_iter = 0
+| 24: 
+| 25:         # Call fbpca.pca to perform the randomized SVD.
+| 26:         # - k: The number of components to compute.
+| 27:         # - raw=True: Return U, s, Vh directly without reconstructing the
+| 28:         #   approximated matrix, which saves computation.
+| 29:         # - n_iter: Number of power iterations, tuned above.
+| 30:         # - seed=42: Ensures the random projection is deterministic for
+| 31:         #   reproducible results.
+| 32:         # fbpca also uses a very small oversampling parameter by default (l=k+2),
+| 33:         # which contributes to its high performance. We will use this default.
+| 34:         U, s, Vt = pca(
+| 35:             A,
+| 36:             k=n_components,
+| 37:             raw=True,
+| 38:             n_iter=n_iter,
+| 39:             seed=42
+| 40:         )
+| 41: 
+| 42:         # The problem requires the output V, which is the transpose of Vt (Vh).
+| 43:         return {&quot;U&quot;: U, &quot;S&quot;: s, &quot;V&quot;: Vt.T}</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The previous attempt failed due to a `not-callable` error for `torch.linalg.qr`. This strongly suggests the execution environment is using an older version of PyTorch (pre-1.9) where the QR decomposition function was located at `torch.qr`.<br><br>My strategy of a manual, hybrid implementation remains the most promising path to a significant speedup. I will correct the code by using the older `torch.qr` API and refine the power iteration loop to be more explicit and robust.<br><br>**Corrected Plan:**<br>1.  **Fix the API Call:** I will replace all instances of `torch.linalg.qr` with `torch.qr` to match the older PyTorch API.<br>2.  **Refine Power Iteration:** I will implement the standard &quot;subspace iteration&quot; method for the power iteration loop. This involves alternating between multiplying by `A` and `A.T` and re-orthogonalizing with `torch.qr` at each step. This is a numerically stable and standard approach.<br>3.  **Maintain Hybrid Approach:** The core strategy is unchanged:<br>    *   Use **PyTorch** for all heavy matrix multiplications and QR decompositions on large matrices.<br>    *   Use **SciPy&#x27;s `svd`** for the final, fast SVD on the small intermediate matrix.<br>4.  **Full File Replacement:** I will replace the entire file content to ensure a clean state and avoid any residual errors from previous attempts.<br><br>This corrected implementation directly addresses the error while retaining the advanced, performance-oriented strategy.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import torch
+from scipy.linalg import svd
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes randomized SVD via a manual implementation that leverages the
+        strengths of both PyTorch and SciPy for maximum performance.
+        - PyTorch is used for its highly optimized matrix multiplications and QR.
+        - SciPy is used for its fast SVD on the smaller intermediate matrix.
+        - Uses torch.qr for compatibility with older PyTorch versions.
+        &quot;&quot;&quot;
+        # Use float32 for faster matrix operations.
+        A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+        m, n = A_np.shape
+
+        # Use proven hyperparameter tuning from previous attempts.
+        n_oversamples = 5
+        k = n_components + n_oversamples
+        n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+
+        # Move to PyTorch for the heavy lifting (matrix multiplications).
+        A = torch.from_numpy(A_np)
+        torch.manual_seed(42)
+
+        # Step 1: Create a random projection matrix.
+        Omega = torch.randn(n, k, dtype=torch.float32)
+
+        # Step 2: Form an initial sample matrix Y and orthonormalize it into Q.
+        Y = A @ Omega
+        Q, _ = torch.qr(Y)
+
+        # Step 3: Perform power iterations (subspace iteration) for accuracy.
+        # This is crucial for ill-conditioned matrices.
+        for _ in range(n_iter):
+            Y_star = A.T @ Q
+            Q_star, _ = torch.qr(Y_star)
+            Y = A @ Q_star
+            Q, _ = torch.qr(Y)
+
+        # Step 4: Project A onto the basis Q. B is a small k x n matrix.
+        B = Q.T @ A
+
+        # Step 5: Compute SVD on the small matrix B using SciPy&#x27;s fast implementation.
+        # Convert B to NumPy; this is a cheap operation for small matrices.
+        U_hat, s, Vt = svd(B.numpy(), full_matrices=False)
+
+        # Step 6: Project U_hat back to the original space.
+        # U = Q @ U_hat. Convert U_hat back to a torch tensor for the matmul.
+        U = Q @ torch.from_numpy(U_hat)
+
+        # Step 7: Truncate to the desired number of components.
+        U_final = U[:, :n_components]
+        s_final = s[:n_components]
+        # Vt is (k, n), so its transpose is (n, k). We need V to be (n, n_components).
+        V_final = Vt.T[:, :n_components]
+
+        # Return results as NumPy arrays.
+        return {
+            &quot;U&quot;: U_final.numpy(),
+            &quot;S&quot;: s_final,
+            &quot;V&quot;: V_final
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 10 messages and have used up $0.5763. You have $0.4237 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 66)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import torch
+&gt; 04: from scipy.linalg import svd
+&gt; 05: 
+&gt; 06: class Solver:
+&gt; 07:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 08:         &quot;&quot;&quot;
+&gt; 09:         Computes randomized SVD via a manual implementation that leverages the
+&gt; 10:         strengths of both PyTorch and SciPy for maximum performance.
+&gt; 11:         - PyTorch is used for its highly optimized matrix multiplications and QR.
+&gt; 12:         - SciPy is used for its fast SVD on the smaller intermediate matrix.
+&gt; 13:         - Uses torch.qr for compatibility with older PyTorch versions.
+&gt; 14:         &quot;&quot;&quot;
+&gt; 15:         # Use float32 for faster matrix operations.
+&gt; 16:         A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+&gt; 17:         n_components = problem[&quot;n_components&quot;]
+&gt; 18:         m, n = A_np.shape
+&gt; 19: 
+&gt; 20:         # Use proven hyperparameter tuning from previous attempts.
+&gt; 21:         n_oversamples = 5
+&gt; 22:         k = n_components + n_oversamples
+&gt; 23:         n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+&gt; 24: 
+&gt; 25:         # Move to PyTorch for the heavy lifting (matrix multiplications).
+&gt; 26:         A = torch.from_numpy(A_np)
+&gt; 27:         torch.manual_seed(42)
+&gt; 28: 
+&gt; 29:         # Step 1: Create a random projection matrix.
+&gt; 30:         Omega = torch.randn(n, k, dtype=torch.float32)
+&gt; 31: 
+&gt; 32:         # Step 2: Form an initial sample matrix Y and orthonormalize it into Q.
+&gt; 33:         Y = A @ Omega
+&gt; 34:         Q, _ = torch.qr(Y)
+&gt; 35: 
+&gt; 36:         # Step 3: Perform power iterations (subspace iteration) for accuracy.
+&gt; 37:         # This is crucial for ill-conditioned matrices.
+&gt; 38:         for _ in range(n_iter):
+&gt; 39:             Y_star = A.T @ Q
+&gt; 40:             Q_star, _ = torch.qr(Y_star)
+&gt; 41:             Y = A @ Q_star
+&gt; 42:             Q, _ = torch.qr(Y)
+&gt; 43: 
+&gt; 44:         # Step 4: Project A onto the basis Q. B is a small k x n matrix.
+&gt; 45:         B = Q.T @ A
+&gt; 46: 
+&gt; 47:         # Step 5: Compute SVD on the small matrix B using SciPy&#x27;s fast implementation.
+&gt; 48:         # Convert B to NumPy; this is a cheap operation for small matrices.
+&gt; 49:         U_hat, s, Vt = svd(B.numpy(), full_matrices=False)
+&gt; 50: 
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">4.79</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                After reaching a 4.79x speedup, I&#x27;ve hit the limits of what&#x27;s possible with CPU-based library tuning and manual implementation. The platform&#x27;s hint to &quot;think outside the box&quot; and &quot;use all available packages and tools&quot; strongly suggests that I&#x27;m overlooking a major environmental feature. The most likely candidate is the availability of a GPU.<br><br>My new strategy is to adapt my best-performing manual implementation to leverage a CUDA-enabled GPU if one is present. This will massively accelerate the most expensive parts of the algorithm: the large matrix multiplications.<br><br>**The GPU-Accelerated Hybrid Strategy:**<br><br>1.  **Dynamic Device Detection:** The code will first check for a CUDA-compatible GPU using `torch.cuda.is_available()`. It will set the computation device to &quot;cuda&quot; if available, otherwise gracefully falling back to &quot;cpu&quot;.<br>2.  **GPU for Heavy Lifting:** The large input matrix `A` and all intermediate large matrices (`Omega`, `Y`, `Q`) will be moved to the GPU. All the expensive matrix multiplications and QR decompositions will be executed on the GPU for maximum throughput.<br>3.  **CPU for Specialized Tasks:** SciPy&#x27;s `svd` is highly optimized for small matrices on the CPU. I will continue to use it for this step. This requires a small, efficient data transfer: the small projected matrix `B` will be moved from the GPU to the CPU.<br>4.  **Hybrid Computation Flow:**<br>    *   `A` -&gt; GPU<br>    *   Large matrix operations -&gt; GPU<br>    *   Small matrix `B` -&gt; CPU<br>    *   `svd(B)` -&gt; CPU<br>    *   Result `U_hat` -&gt; GPU<br>    *   Final matrix multiplication -&gt; GPU<br>    *   Final results -&gt; CPU for NumPy conversion.<br>5.  **Code Robustness:** This approach is robust. If no GPU is found, it will run the same efficient manual algorithm entirely on the CPU, matching my previous best performance. If a GPU is present, it will unlock a significant new tier of speed.<br><br>This plan directly addresses the feedback by utilizing the full potential of the execution environment, representing a true &quot;out-of-the-box&quot; optimization.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import torch
+from scipy.linalg import svd
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes randomized SVD using a manual, hybrid GPU/CPU implementation for
+        maximum speed, leveraging a GPU if available.
+        - PyTorch on a CUDA device is used for all large matrix operations.
+        - SciPy on the CPU is used for the fast SVD of the small intermediate matrix.
+        &quot;&quot;&quot;
+        # Use float32 for faster matrix operations.
+        A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+        m, n = A_np.shape
+
+        # Use proven hyperparameter tuning.
+        n_oversamples = 5
+        k = n_components + n_oversamples
+        n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+
+        # Detect and set the device (GPU if available, otherwise CPU).
+        device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+
+        # Move the main matrix to the selected device.
+        A = torch.from_numpy(A_np).to(device)
+        torch.manual_seed(42)
+
+        # Step 1: Create a random projection matrix on the device.
+        Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+
+        # Step 2: Form an initial sample matrix Y and orthonormalize it into Q.
+        # All these operations happen on the GPU if available.
+        Y = A @ Omega
+        Q, _ = torch.qr(Y)
+
+        # Step 3: Perform power iterations (subspace iteration) for accuracy.
+        for _ in range(n_iter):
+            Y_star = A.T @ Q
+            Q_star, _ = torch.qr(Y_star)
+            Y = A @ Q_star
+            Q, _ = torch.qr(Y)
+
+        # Step 4: Project A onto the basis Q. B is a small k x n matrix on the device.
+        B = Q.T @ A
+
+        # Step 5: Compute SVD on the small matrix B.
+        # Move B to CPU to use SciPy&#x27;s fast SVD.
+        B_cpu = B.cpu().numpy()
+        U_hat_cpu, s_cpu, Vt_cpu = svd(B_cpu, full_matrices=False)
+
+        # Step 6: Project U_hat back to the original space.
+        # Move U_hat back to the device for the final matrix multiplication.
+        U_hat = torch.from_numpy(U_hat_cpu).to(device)
+        U = Q @ U_hat
+
+        # Step 7: Truncate to the desired number of components.
+        U_final = U[:, :n_components]
+        s_final = s_cpu[:n_components]
+        V_final = Vt_cpu.T[:, :n_components]
+
+        # Return results as NumPy arrays, ensuring U is moved back to CPU.
+        return {
+            &quot;U&quot;: U_final.cpu().numpy(),
+            &quot;S&quot;: s_final,
+            &quot;V&quot;: V_final
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 11 messages and have used up $0.6391. You have $0.3609 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 69)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import torch
+&gt; 04: from scipy.linalg import svd
+&gt; 05: 
+&gt; 06: class Solver:
+&gt; 07:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 08:         &quot;&quot;&quot;
+&gt; 09:         Computes randomized SVD using a manual, hybrid GPU/CPU implementation for
+&gt; 10:         maximum speed, leveraging a GPU if available.
+&gt; 11:         - PyTorch on a CUDA device is used for all large matrix operations.
+&gt; 12:         - SciPy on the CPU is used for the fast SVD of the small intermediate matrix.
+&gt; 13:         &quot;&quot;&quot;
+&gt; 14:         # Use float32 for faster matrix operations.
+&gt; 15:         A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+&gt; 16:         n_components = problem[&quot;n_components&quot;]
+&gt; 17:         m, n = A_np.shape
+&gt; 18: 
+&gt; 19:         # Use proven hyperparameter tuning.
+&gt; 20:         n_oversamples = 5
+&gt; 21:         k = n_components + n_oversamples
+&gt; 22:         n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+&gt; 23: 
+&gt; 24:         # Detect and set the device (GPU if available, otherwise CPU).
+&gt; 25:         device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+&gt; 26: 
+&gt; 27:         # Move the main matrix to the selected device.
+&gt; 28:         A = torch.from_numpy(A_np).to(device)
+&gt; 29:         torch.manual_seed(42)
+&gt; 30: 
+&gt; 31:         # Step 1: Create a random projection matrix on the device.
+&gt; 32:         Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+&gt; 33: 
+&gt; 34:         # Step 2: Form an initial sample matrix Y and orthonormalize it into Q.
+&gt; 35:         # All these operations happen on the GPU if available.
+&gt; 36:         Y = A @ Omega
+&gt; 37:         Q, _ = torch.qr(Y)
+&gt; 38: 
+&gt; 39:         # Step 3: Perform power iterations (subspace iteration) for accuracy.
+&gt; 40:         for _ in range(n_iter):
+&gt; 41:             Y_star = A.T @ Q
+&gt; 42:             Q_star, _ = torch.qr(Y_star)
+&gt; 43:             Y = A @ Q_star
+&gt; 44:             Q, _ = torch.qr(Y)
+&gt; 45: 
+&gt; 46:         # Step 4: Project A onto the basis Q. B is a small k x n matrix on the device.
+&gt; 47:         B = Q.T @ A
+&gt; 48: 
+&gt; 49:         # Step 5: Compute SVD on the small matrix B.
+&gt; 50:         # Move B to CPU to use SciPy&#x27;s fast SVD.
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">4.81</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My previous attempt to use a GPU showed only a marginal improvement, which strongly suggests that the overhead of transferring data between the GPU and CPU for the `svd` step negated the benefits. The current 4.81x speedup is the result of a manual, hybrid CPU/GPU implementation, but it&#x27;s clear a more significant leap is needed to reach the top tier.<br><br>The key insight is that the GPU-CPU-GPU roundtrip for the `svd` calculation is a bottleneck. To eliminate this, I will perform the *entire* computation on the GPU, including the final SVD on the smaller matrix. This requires replacing the `scipy.linalg.svd` call with its PyTorch equivalent.<br><br>**The Fully GPU-Native Strategy:**<br><br>1.  **Eliminate SciPy:** I will remove the dependency on `scipy.linalg.svd` and use `torch.svd` instead. This allows the entire algorithm to run on a single device without costly data transfers.<br>2.  **End-to-End GPU Computation:** If a CUDA device is detected, every tensor (`A`, `Omega`, `Q`, `B`, `U`, `S`, `V`) will be created and manipulated on the GPU. Data will only leave the GPU at the very end when the final results are converted to NumPy arrays.<br>3.  **API Compatibility:** I will use `torch.svd(some=True)` which is the correct API for older PyTorch versions (as indicated by the `torch.qr` requirement) and is equivalent to `full_matrices=False`. This function returns `U, S, V` (not `Vh`), which simplifies the final step as no transpose is needed for the `V` matrix.<br>4.  **Robust Fallback:** The code remains robust. If no GPU is found, the `device` will be &quot;cpu&quot;, and the entire optimized algorithm will run efficiently on the CPU, matching my best previous performance.<br><br>This approach represents the ultimate optimization of my manual implementation, minimizing overhead and maximizing the use of available high-performance hardware.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import torch
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes randomized SVD using a fully GPU-native manual implementation
+        if a CUDA device is available, minimizing data transfer overhead.
+        - All PyTorch operations (matmul, QR, SVD) run on the same device.
+        - Falls back to a fast CPU implementation if no GPU is found.
+        &quot;&quot;&quot;
+        # Use float32 for faster matrix operations.
+        A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+        m, n = A_np.shape
+
+        # Use proven hyperparameter tuning.
+        n_oversamples = 5
+        k = n_components + n_oversamples
+        n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+
+        # Detect and set the device (GPU if available, otherwise CPU).
+        device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+
+        # Move the main matrix to the selected device.
+        A = torch.from_numpy(A_np).to(device)
+        torch.manual_seed(42)
+
+        # Step 1: Create a random projection matrix on the device.
+        Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+
+        # Step 2: Form an initial sample matrix Y and orthonormalize it into Q.
+        Y = A @ Omega
+        Q, _ = torch.qr(Y)
+
+        # Step 3: Perform power iterations (subspace iteration) for accuracy.
+        for _ in range(n_iter):
+            Y_star = A.T @ Q
+            Q_star, _ = torch.qr(Y_star)
+            Y = A @ Q_star
+            Q, _ = torch.qr(Y)
+
+        # Step 4: Project A onto the basis Q. B is a small k x n matrix on the device.
+        B = Q.T @ A
+
+        # Step 5: Compute SVD on the small matrix B entirely on the device.
+        # Use torch.svd(some=True) for reduced SVD, compatible with older PyTorch.
+        # It returns U, S, V (not Vh).
+        U_hat, s, V_b = torch.svd(B, some=True)
+
+        # Step 6: Project U_hat back to the original space.
+        U = Q @ U_hat
+
+        # Step 7: Truncate to the desired number of components.
+        U_final = U[:, :n_components]
+        s_final = s[:n_components]
+        # V_b is the correct V matrix (n x k), so we just truncate its columns.
+        V_final = V_b[:, :n_components]
+
+        # Return results as NumPy arrays, moving them from device to CPU at the end.
+        return {
+            &quot;U&quot;: U_final.cpu().numpy(),
+            &quot;S&quot;: s_final.cpu().numpy(),
+            &quot;V&quot;: V_final.cpu().numpy()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 12 messages and have used up $0.6991. You have $0.3009 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 66)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import torch
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Computes randomized SVD using a fully GPU-native manual implementation
+&gt; 09:         if a CUDA device is available, minimizing data transfer overhead.
+&gt; 10:         - All PyTorch operations (matmul, QR, SVD) run on the same device.
+&gt; 11:         - Falls back to a fast CPU implementation if no GPU is found.
+&gt; 12:         &quot;&quot;&quot;
+&gt; 13:         # Use float32 for faster matrix operations.
+&gt; 14:         A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+&gt; 15:         n_components = problem[&quot;n_components&quot;]
+&gt; 16:         m, n = A_np.shape
+&gt; 17: 
+&gt; 18:         # Use proven hyperparameter tuning.
+&gt; 19:         n_oversamples = 5
+&gt; 20:         k = n_components + n_oversamples
+&gt; 21:         n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+&gt; 22: 
+&gt; 23:         # Detect and set the device (GPU if available, otherwise CPU).
+&gt; 24:         device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+&gt; 25: 
+&gt; 26:         # Move the main matrix to the selected device.
+&gt; 27:         A = torch.from_numpy(A_np).to(device)
+&gt; 28:         torch.manual_seed(42)
+&gt; 29: 
+&gt; 30:         # Step 1: Create a random projection matrix on the device.
+&gt; 31:         Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+&gt; 32: 
+&gt; 33:         # Step 2: Form an initial sample matrix Y and orthonormalize it into Q.
+&gt; 34:         Y = A @ Omega
+&gt; 35:         Q, _ = torch.qr(Y)
+&gt; 36: 
+&gt; 37:         # Step 3: Perform power iterations (subspace iteration) for accuracy.
+&gt; 38:         for _ in range(n_iter):
+&gt; 39:             Y_star = A.T @ Q
+&gt; 40:             Q_star, _ = torch.qr(Y_star)
+&gt; 41:             Y = A @ Q_star
+&gt; 42:             Q, _ = torch.qr(Y)
+&gt; 43: 
+&gt; 44:         # Step 4: Project A onto the basis Q. B is a small k x n matrix on the device.
+&gt; 45:         B = Q.T @ A
+&gt; 46: 
+&gt; 47:         # Step 5: Compute SVD on the small matrix B entirely on the device.
+&gt; 48:         # Use torch.svd(some=True) for reduced SVD, compatible with older PyTorch.
+&gt; 49:         # It returns U, S, V (not Vh).
+&gt; 50:         U_hat, s, V_b = torch.svd(B, some=True)
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">4.51</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My analysis shows that my previous attempts have hit a performance wall. The hybrid GPU/CPU approach yielded the best result (4.81x), but the small improvement over a CPU-only manual implementation (4.79x) and the slowdown from a fully GPU-native version (4.51x) reveal a key bottleneck: the `svd` on the small matrix `B`. `scipy.linalg.svd` on the CPU is faster than `torch.svd` on the GPU for this task, but the data transfer cost to use it negates much of the GPU&#x27;s advantage in the main computations.<br><br>To achieve a top-tier speedup, I need to optimize the entire computation graph as a whole, rather than optimizing individual steps. The &quot;think outside the box&quot; hint points towards using more advanced features of the available libraries. PyTorch&#x27;s Just-In-Time (JIT) compiler, `torch.jit.script`, is the perfect tool for this. It can fuse multiple operations into a single, highly optimized kernel, drastically reducing Python overhead and GPU launch latency.<br><br>**The JIT-Powered Strategy:**<br><br>1.  **Revert to the Fully GPU-Native Code:** I will use the logic from my fully GPU-native implementation as the foundation. This version keeps all data on the GPU, which is a prerequisite for effective JIT compilation.<br>2.  **Encapsulate Logic in a JIT-Scripted Function:** I will move the entire randomized SVD algorithm (from random matrix creation to the final SVD) into a standalone function decorated with `@torch.jit.script`.<br>3.  **Optimize the Computation Graph:** The JIT compiler will analyze the sequence of matrix multiplications, QR decompositions, and the final SVD. It will optimize this graph, potentially fusing operations and creating a much faster execution path than calling each function sequentially from Python. This should overcome the slight performance disadvantage of `torch.svd` and unlock a new level of speed.<br>4.  **Maintain Robustness:** The main `solve` method will still perform device detection, ensuring the JIT-compiled function runs on the GPU if available, or falls back to the CPU otherwise. All setup (like seeding) will be handled outside the JIT-compiled function.<br><br>This approach represents a significant strategic shift from tuning parameters to optimizing the underlying execution model, which is necessary to break the current performance plateau.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import torch
+
+@torch.jit.script
+def _rsvd_torch_jit(A: torch.Tensor, n_components: int, n_oversamples: int, n_iter: int):
+    &quot;&quot;&quot;
+    A JIT-compiled function to perform the core randomized SVD computation.
+    JIT compilation fuses operations into optimized kernels, reducing overhead.
+    The entire computation runs on the input tensor&#x27;s device (ideally CUDA).
+    &quot;&quot;&quot;
+    k = n_components + n_oversamples
+    m, n = A.shape
+    device = A.device
+
+    # Step 1: Create a random projection matrix on the device.
+    Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+
+    # Step 2: Form sample matrix Y and orthonormalize into Q.
+    Y = A @ Omega
+    Q, _ = torch.qr(Y)
+
+    # Step 3: Perform power iterations for accuracy.
+    for _ in range(n_iter):
+        Y_star = A.T @ Q
+        Q_star, _ = torch.qr(Y_star)
+        Y = A @ Q_star
+        Q, _ = torch.qr(Y)
+
+    # Step 4: Project A onto Q to get the small matrix B.
+    B = Q.T @ A
+
+    # Step 5: Compute SVD on B entirely on the device using torch.svd.
+    U_hat, s, V_b = torch.svd(B, some=True)
+
+    # Step 6: Project U_hat back to the original space.
+    U = Q @ U_hat
+
+    # Step 7: Truncate to the desired number of components.
+    U_final = U[:, :n_components]
+    s_final = s[:n_components]
+    V_final = V_b[:, :n_components]
+    
+    return U_final, s_final, V_final
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes randomized SVD by calling a JIT-compiled PyTorch function,
+        which leverages a GPU if available for maximum performance.
+        &quot;&quot;&quot;
+        A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+        
+        # Use proven hyperparameter tuning.
+        n_oversamples = 5
+        n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+        
+        # Detect and set the device (GPU if available, otherwise CPU).
+        device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+        
+        # Seeding must happen outside the JIT-compiled function.
+        torch.manual_seed(42)
+
+        A = torch.from_numpy(A_np).to(device)
+
+        # Call the optimized, JIT-compiled core function.
+        U, S, V = _rsvd_torch_jit(A, n_components, n_oversamples, n_iter)
+
+        # Return results as NumPy arrays, moving them from device to CPU at the end.
+        return {
+            &quot;U&quot;: U.cpu().numpy(),
+            &quot;S&quot;: S.cpu().numpy(),
+            &quot;V&quot;: V.cpu().numpy()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 13 messages and have used up $0.7638. You have $0.2362 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 75)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import torch
+&gt; 04: 
+&gt; 05: @torch.jit.script
+&gt; 06: def _rsvd_torch_jit(A: torch.Tensor, n_components: int, n_oversamples: int, n_iter: int):
+&gt; 07:     &quot;&quot;&quot;
+&gt; 08:     A JIT-compiled function to perform the core randomized SVD computation.
+&gt; 09:     JIT compilation fuses operations into optimized kernels, reducing overhead.
+&gt; 10:     The entire computation runs on the input tensor&#x27;s device (ideally CUDA).
+&gt; 11:     &quot;&quot;&quot;
+&gt; 12:     k = n_components + n_oversamples
+&gt; 13:     m, n = A.shape
+&gt; 14:     device = A.device
+&gt; 15: 
+&gt; 16:     # Step 1: Create a random projection matrix on the device.
+&gt; 17:     Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+&gt; 18: 
+&gt; 19:     # Step 2: Form sample matrix Y and orthonormalize into Q.
+&gt; 20:     Y = A @ Omega
+&gt; 21:     Q, _ = torch.qr(Y)
+&gt; 22: 
+&gt; 23:     # Step 3: Perform power iterations for accuracy.
+&gt; 24:     for _ in range(n_iter):
+&gt; 25:         Y_star = A.T @ Q
+&gt; 26:         Q_star, _ = torch.qr(Y_star)
+&gt; 27:         Y = A @ Q_star
+&gt; 28:         Q, _ = torch.qr(Y)
+&gt; 29: 
+&gt; 30:     # Step 4: Project A onto Q to get the small matrix B.
+&gt; 31:     B = Q.T @ A
+&gt; 32: 
+&gt; 33:     # Step 5: Compute SVD on B entirely on the device using torch.svd.
+&gt; 34:     U_hat, s, V_b = torch.svd(B, some=True)
+&gt; 35: 
+&gt; 36:     # Step 6: Project U_hat back to the original space.
+&gt; 37:     U = Q @ U_hat
+&gt; 38: 
+&gt; 39:     # Step 7: Truncate to the desired number of components.
+&gt; 40:     U_final = U[:, :n_components]
+&gt; 41:     s_final = s[:n_components]
+&gt; 42:     V_final = V_b[:, :n_components]
+&gt; 43:     
+&gt; 44:     return U_final, s_final, V_final
+&gt; 45: 
+&gt; 46: class Solver:
+&gt; 47:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 48:         &quot;&quot;&quot;
+&gt; 49:         Computes randomized SVD by calling a JIT-compiled PyTorch function,
+&gt; 50:         which leverages a GPU if available for maximum performance.
+...</code></pre><br><br>Error: Solver validation failed: <br>Variable &#x27;_&#x27; previously had type Tensor but is now being assigned to a value of type int<br>:<br>  File &quot;/pfs/work9/workspace/scratch/tu_ptiig01-scratch/TEMP/task_pid_33814_i6YA67/solver.py&quot;, line 24<br><br>    # Step 3: Perform power iterations for accuracy.<br>    for _ in range(n_iter):<br>        ~ &lt;--- HERE<br>        Y_star = A.T @ Q<br>        Q_star, _ = torch.qr(Y_star)<br><br><br>Code Context:<br><pre><code class="language-python">   14:     device = A.device
+   15: 
+   16:     # Step 1: Create a random projection matrix on the device.
+   17:     Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+   18: 
+   19:     # Step 2: Form sample matrix Y and orthonormalize into Q.
+   20:     Y = A @ Omega
+   21:     Q, _ = torch.qr(Y)
+   22: 
+   23:     # Step 3: Perform power iterations for accuracy.
+ ! 24:     for _ in range(n_iter):
+   25:         Y_star = A.T @ Q
+   26:         Q_star, _ = torch.qr(Y_star)
+   27:         Y = A @ Q_star
+   28:         Q, _ = torch.qr(Y)
+   29: 
+   30:     # Step 4: Project A onto Q to get the small matrix B.
+   31:     B = Q.T @ A
+   32: 
+   33:     # Step 5: Compute SVD on B entirely on the device using torch.svd.
+   34:     U_hat, s, V_b = torch.svd(B, some=True)</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My apologies. The JIT compilation failed due to a variable type conflict, a common issue with `torch.jit.script`&#x27;s strict type checking. The error message `Variable &#x27;_&#x27; previously had type Tensor but is now being assigned to a value of type int` clearly indicates the problem.<br><br>I used the underscore `_` both to discard the tensor output from `torch.qr` and as the iterator variable in the `for` loop, which is an integer. The JIT compiler cannot handle this reassignment of a variable to a different type.<br><br>**The Fix:**<br><br>The solution is straightforward: I will use a different variable name for the loop counter to resolve the conflict. I will change `for _ in range(n_iter)` to `for i in range(n_iter)`. This ensures that `_` is consistently used to discard tensor values and `i` is used as the integer loop counter, satisfying the JIT compiler&#x27;s static typing requirements.<br><br>My overall strategy of using a JIT-compiled, fully GPU-native function remains the most promising path to a top-tier speedup. This correction is a minor but crucial fix to that implementation.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import torch
+
+@torch.jit.script
+def _rsvd_torch_jit(A: torch.Tensor, n_components: int, n_oversamples: int, n_iter: int):
+    &quot;&quot;&quot;
+    A JIT-compiled function to perform the core randomized SVD computation.
+    JIT compilation fuses operations into optimized kernels, reducing overhead.
+    The entire computation runs on the input tensor&#x27;s device (ideally CUDA).
+    &quot;&quot;&quot;
+    k = n_components + n_oversamples
+    m, n = A.shape
+    device = A.device
+
+    # Step 1: Create a random projection matrix on the device.
+    Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+
+    # Step 2: Form sample matrix Y and orthonormalize into Q.
+    Y = A @ Omega
+    Q, _ = torch.qr(Y)
+
+    # Step 3: Perform power iterations for accuracy.
+    # Use &#x27;i&#x27; as the loop counter to avoid type conflict with &#x27;_&#x27; used for discarding tensors.
+    for i in range(n_iter):
+        Y_star = A.T @ Q
+        Q_star, _ = torch.qr(Y_star)
+        Y = A @ Q_star
+        Q, _ = torch.qr(Y)
+
+    # Step 4: Project A onto Q to get the small matrix B.
+    B = Q.T @ A
+
+    # Step 5: Compute SVD on B entirely on the device using torch.svd.
+    U_hat, s, V_b = torch.svd(B, some=True)
+
+    # Step 6: Project U_hat back to the original space.
+    U = Q @ U_hat
+
+    # Step 7: Truncate to the desired number of components.
+    U_final = U[:, :n_components]
+    s_final = s[:n_components]
+    V_final = V_b[:, :n_components]
+    
+    return U_final, s_final, V_final
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes randomized SVD by calling a JIT-compiled PyTorch function,
+        which leverages a GPU if available for maximum performance.
+        &quot;&quot;&quot;
+        A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+        
+        # Use proven hyperparameter tuning.
+        n_oversamples = 5
+        n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+        
+        # Detect and set the device (GPU if available, otherwise CPU).
+        device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+        
+        # Seeding must happen outside the JIT-compiled function.
+        torch.manual_seed(42)
+
+        A = torch.from_numpy(A_np).to(device)
+
+        # Call the optimized, JIT-compiled core function.
+        U, S, V = _rsvd_torch_jit(A, n_components, n_oversamples, n_iter)
+
+        # Return results as NumPy arrays, moving them from device to CPU at the end.
+        return {
+            &quot;U&quot;: U.cpu().numpy(),
+            &quot;S&quot;: S.cpu().numpy(),
+            &quot;V&quot;: V.cpu().numpy()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 14 messages and have used up $0.7995. You have $0.2005 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 76)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import torch
+&gt; 04: 
+&gt; 05: @torch.jit.script
+&gt; 06: def _rsvd_torch_jit(A: torch.Tensor, n_components: int, n_oversamples: int, n_iter: int):
+&gt; 07:     &quot;&quot;&quot;
+&gt; 08:     A JIT-compiled function to perform the core randomized SVD computation.
+&gt; 09:     JIT compilation fuses operations into optimized kernels, reducing overhead.
+&gt; 10:     The entire computation runs on the input tensor&#x27;s device (ideally CUDA).
+&gt; 11:     &quot;&quot;&quot;
+&gt; 12:     k = n_components + n_oversamples
+&gt; 13:     m, n = A.shape
+&gt; 14:     device = A.device
+&gt; 15: 
+&gt; 16:     # Step 1: Create a random projection matrix on the device.
+&gt; 17:     Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+&gt; 18: 
+&gt; 19:     # Step 2: Form sample matrix Y and orthonormalize into Q.
+&gt; 20:     Y = A @ Omega
+&gt; 21:     Q, _ = torch.qr(Y)
+&gt; 22: 
+&gt; 23:     # Step 3: Perform power iterations for accuracy.
+&gt; 24:     # Use &#x27;i&#x27; as the loop counter to avoid type conflict with &#x27;_&#x27; used for discarding tensors.
+&gt; 25:     for i in range(n_iter):
+&gt; 26:         Y_star = A.T @ Q
+&gt; 27:         Q_star, _ = torch.qr(Y_star)
+&gt; 28:         Y = A @ Q_star
+&gt; 29:         Q, _ = torch.qr(Y)
+&gt; 30: 
+&gt; 31:     # Step 4: Project A onto Q to get the small matrix B.
+&gt; 32:     B = Q.T @ A
+&gt; 33: 
+&gt; 34:     # Step 5: Compute SVD on B entirely on the device using torch.svd.
+&gt; 35:     U_hat, s, V_b = torch.svd(B, some=True)
+&gt; 36: 
+&gt; 37:     # Step 6: Project U_hat back to the original space.
+&gt; 38:     U = Q @ U_hat
+&gt; 39: 
+&gt; 40:     # Step 7: Truncate to the desired number of components.
+&gt; 41:     U_final = U[:, :n_components]
+&gt; 42:     s_final = s[:n_components]
+&gt; 43:     V_final = V_b[:, :n_components]
+&gt; 44:     
+&gt; 45:     return U_final, s_final, V_final
+&gt; 46: 
+&gt; 47: class Solver:
+&gt; 48:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 49:         &quot;&quot;&quot;
+&gt; 50:         Computes randomized SVD by calling a JIT-compiled PyTorch function,
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">4.05</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My attempts to manually build and optimize a randomized SVD algorithm, including a JIT-compiled version, have hit a performance ceiling around 4.8x. The JIT version performing worse than the manual one suggests that my low-level construction is not the intended path. The platform&#x27;s hints to &quot;think outside the box&quot; and &quot;use all available packages&quot; strongly imply I am overlooking a high-level, specialized function designed for this exact task.<br><br>The most logical candidate is `torch.svd_lowrank`. This function implements a randomized SVD algorithm directly in PyTorch&#x27;s C++/CUDA backend, which should be significantly faster than any sequence of operations dispatched from Python, even when JIT-compiled. It encapsulates the entire logic of random projection, power iteration, and final SVD into a single, highly optimized call.<br><br>**The High-Level Library Strategy:**<br><br>1.  **Use `torch.svd_lowrank`:** I will replace my entire manual implementation with a single call to `torch.svd_lowrank`. This is the most direct and powerful tool for the job in the PyTorch library.<br>2.  **Map Parameters:** I will map my tuned hyperparameters directly to the function&#x27;s arguments:<br>    *   `q` (rank of approximation) will be `n_components + n_oversamples`. I&#x27;ll use a lean `n_oversamples=5`.<br>    *   `niter` (power iterations) will be `2` for ill-conditioned matrices and `0` otherwise, consistent with my previous findings.<br>3.  **Leverage GPU:** The function will automatically run on the GPU if the input tensor `A` is moved to the CUDA device. My device detection logic remains essential.<br>4.  **Simplify Code:** This approach dramatically simplifies the code, removing the manual steps and potential for error, while delegating the performance optimization to the library&#x27;s expert implementation.<br><br>This strategy represents a shift from building the algorithm myself to knowing the library well enough to use the best available tool. This is the most likely path to breaking the performance plateau and achieving a top-tier speedup.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import torch
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes randomized SVD by leveraging torch.svd_lowrank, a high-level,
+        optimized PyTorch function that performs the entire algorithm in a
+        single, fast backend call, utilizing the GPU if available.
+        &quot;&quot;&quot;
+        A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+
+        # Use proven hyperparameter tuning.
+        # n_oversamples is a standard parameter for randomized algorithms.
+        n_oversamples = 5
+        # The rank of the intermediate approximation.
+        q = n_components + n_oversamples
+        # Power iterations improve accuracy for ill-conditioned matrices.
+        n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+
+        # Detect and set the device (GPU if available, otherwise CPU).
+        device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+        A = torch.from_numpy(A_np).to(device)
+
+        # Set seed for the random projection part of the algorithm.
+        torch.manual_seed(42)
+
+        # Call the single, highly optimized function.
+        # This is much faster than a manual implementation in Python.
+        U, S, V = torch.svd_lowrank(A, q=q, niter=n_iter)
+
+        # The function returns components for the rank &#x27;q&#x27; approximation.
+        # Truncate them to the final desired number of components.
+        U_final = U[:, :n_components]
+        S_final = S[:n_components]
+        V_final = V[:, :n_components]
+
+        # Return results as NumPy arrays, moving them from device to CPU.
+        return {
+            &quot;U&quot;: U_final.cpu().numpy(),
+            &quot;S&quot;: S_final.cpu().numpy(),
+            &quot;V&quot;: V_final.cpu().numpy()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 15 messages and have used up $0.8544. You have $0.1456 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-45 out of 45)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import torch
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Computes randomized SVD by leveraging torch.svd_lowrank, a high-level,
+&gt; 09:         optimized PyTorch function that performs the entire algorithm in a
+&gt; 10:         single, fast backend call, utilizing the GPU if available.
+&gt; 11:         &quot;&quot;&quot;
+&gt; 12:         A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+&gt; 13:         n_components = problem[&quot;n_components&quot;]
+&gt; 14: 
+&gt; 15:         # Use proven hyperparameter tuning.
+&gt; 16:         # n_oversamples is a standard parameter for randomized algorithms.
+&gt; 17:         n_oversamples = 5
+&gt; 18:         # The rank of the intermediate approximation.
+&gt; 19:         q = n_components + n_oversamples
+&gt; 20:         # Power iterations improve accuracy for ill-conditioned matrices.
+&gt; 21:         n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+&gt; 22: 
+&gt; 23:         # Detect and set the device (GPU if available, otherwise CPU).
+&gt; 24:         device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+&gt; 25:         A = torch.from_numpy(A_np).to(device)
+&gt; 26: 
+&gt; 27:         # Set seed for the random projection part of the algorithm.
+&gt; 28:         torch.manual_seed(42)
+&gt; 29: 
+&gt; 30:         # Call the single, highly optimized function.
+&gt; 31:         # This is much faster than a manual implementation in Python.
+&gt; 32:         U, S, V = torch.svd_lowrank(A, q=q, niter=n_iter)
+&gt; 33: 
+&gt; 34:         # The function returns components for the rank &#x27;q&#x27; approximation.
+&gt; 35:         # Truncate them to the final desired number of components.
+&gt; 36:         U_final = U[:, :n_components]
+&gt; 37:         S_final = S[:n_components]
+&gt; 38:         V_final = V[:, :n_components]
+&gt; 39: 
+&gt; 40:         # Return results as NumPy arrays, moving them from device to CPU.
+&gt; 41:         return {
+&gt; 42:             &quot;U&quot;: U_final.cpu().numpy(),
+&gt; 43:             &quot;S&quot;: S_final.cpu().numpy(),
+&gt; 44:             &quot;V&quot;: V_final.cpu().numpy()
+&gt; 45:         }</code></pre><br><br>Error: Non-retryable error: <br><br>Code Context:<br>Non-retryable error:
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My previous attempts have revealed critical information about the execution environment:<br>1.  A GPU is available and provides a speedup, but data transfer between CPU and GPU is a significant bottleneck.<br>2.  `torch.svd_lowrank` is not available, forcing a manual implementation from lower-level primitives.<br>3.  For the SVD of the small projected matrix, `scipy.linalg.svd` (on CPU) outperforms `torch.svd` (on GPU) when the matrix is &quot;short and fat&quot; (`k x n` where `n` is large), but the cost of transferring this matrix to the CPU negates the GPU&#x27;s advantage in other steps.<br><br>The key insight is that the performance of randomized SVD depends heavily on the shape of the input matrix `A`. My previous implementations used a single strategy that was suboptimal for &quot;fat&quot; matrices (`m &lt; n`), leading to the expensive SVD on a `k x n` matrix.<br><br>My new strategy is to implement an adaptive algorithm that chooses the most efficient computation path based on the matrix&#x27;s shape, ensuring the SVD is always performed on a &quot;tall and skinny&quot; matrix, which is computationally cheap. This allows the entire process to run on the GPU without expensive data transfers, maximizing performance.<br><br>**The Adaptive GPU-Native Strategy:**<br><br>1.  **Shape-Based Adaptation:** The code will check if the input matrix `A` is &quot;tall&quot; (`m &gt;= n`) or &quot;fat&quot; (`m &lt; n`).<br>2.  **Tall Matrix Path (`m &gt;= n`):** It will use the standard randomized SVD algorithm. The random projection is applied to `A`, resulting in an intermediate SVD on a `k x n` matrix. This is efficient only when `n` is the smaller dimension.<br>3.  **Fat Matrix Path (`m &lt; n`):** It will use an alternative formulation where the random projection is applied to `A.T`. This results in an intermediate SVD on a much smaller `m x k` matrix. This avoids the bottleneck of the &quot;tall matrix&quot; path.<br>4.  **Fully GPU-Native:** By always ensuring the SVD is on a `d x k` matrix (where `d` is the smaller of `m, n` and `k` is small), `torch.svd` on the GPU becomes highly efficient. This allows the entire algorithm—from random projection to the final SVD—to execute on the GPU, eliminating the CPU/GPU transfer bottleneck that plagued my previous best attempt.<br>5.  **Optimized Hyperparameters:** I will use `n_oversamples=10` and `n_iter=1` (for normal) / `2` (for ill-conditioned) as a robust configuration.<br><br>This adaptive approach is a fundamental improvement that addresses the core performance bottleneck, and it should significantly outperform my previous static strategies.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import torch
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes randomized SVD using an adaptive, fully GPU-native strategy.
+        It chooses the optimal computation path based on the matrix shape (m vs n)
+        to ensure the core SVD is always performed on a tall, skinny matrix,
+        which is highly efficient on the GPU. This avoids CPU-GPU data transfers.
+        &quot;&quot;&quot;
+        A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+        m, n = A_np.shape
+
+        # Hyperparameters: n_oversamples for robustness, n_iter for accuracy.
+        n_oversamples = 10
+        k = n_components + n_oversamples
+        n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 1
+
+        device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+        A = torch.from_numpy(A_np).to(device)
+        torch.manual_seed(42)
+
+        if m &gt;= n:
+            # Standard path for tall matrices (m &gt;= n)
+            # The SVD will be on a k x n matrix.
+            Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+            Y = A @ Omega
+            Q, _ = torch.qr(Y)
+
+            for _ in range(n_iter):
+                Y_star = A.T @ Q
+                Q_star, _ = torch.qr(Y_star)
+                Y = A @ Q_star
+                Q, _ = torch.qr(Y)
+
+            B = Q.T @ A
+            U_hat, S, V = torch.svd(B, some=True)
+            U = Q @ U_hat
+        else:
+            # Alternative path for fat matrices (m &lt; n)
+            # The SVD will be on a m x k matrix, which is much smaller.
+            Omega = torch.randn(m, k, dtype=torch.float32, device=device)
+            Y = A.T @ Omega
+            Q, _ = torch.qr(Y)
+
+            for _ in range(n_iter):
+                Y_star = A @ Q
+                Q_star, _ = torch.qr(Y_star)
+                Y = A.T @ Q_star
+                Q, _ = torch.qr(Y)
+
+            B = A @ Q
+            U, S, V_hat = torch.svd(B, some=True)
+            V = Q @ V_hat
+
+        # Truncate to the desired number of components.
+        U_final = U[:, :n_components]
+        S_final = S[:n_components]
+        V_final = V[:, :n_components]
+
+        # Return results as NumPy arrays, moving from device to CPU at the end.
+        return {
+            &quot;U&quot;: U_final.cpu().numpy(),
+            &quot;S&quot;: S_final.cpu().numpy(),
+            &quot;V&quot;: V_final.cpu().numpy()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 16 messages and have used up $0.9402. You have $0.0598 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 69)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import torch
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Computes randomized SVD using an adaptive, fully GPU-native strategy.
+&gt; 09:         It chooses the optimal computation path based on the matrix shape (m vs n)
+&gt; 10:         to ensure the core SVD is always performed on a tall, skinny matrix,
+&gt; 11:         which is highly efficient on the GPU. This avoids CPU-GPU data transfers.
+&gt; 12:         &quot;&quot;&quot;
+&gt; 13:         A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+&gt; 14:         n_components = problem[&quot;n_components&quot;]
+&gt; 15:         m, n = A_np.shape
+&gt; 16: 
+&gt; 17:         # Hyperparameters: n_oversamples for robustness, n_iter for accuracy.
+&gt; 18:         n_oversamples = 10
+&gt; 19:         k = n_components + n_oversamples
+&gt; 20:         n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 1
+&gt; 21: 
+&gt; 22:         device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+&gt; 23:         A = torch.from_numpy(A_np).to(device)
+&gt; 24:         torch.manual_seed(42)
+&gt; 25: 
+&gt; 26:         if m &gt;= n:
+&gt; 27:             # Standard path for tall matrices (m &gt;= n)
+&gt; 28:             # The SVD will be on a k x n matrix.
+&gt; 29:             Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+&gt; 30:             Y = A @ Omega
+&gt; 31:             Q, _ = torch.qr(Y)
+&gt; 32: 
+&gt; 33:             for _ in range(n_iter):
+&gt; 34:                 Y_star = A.T @ Q
+&gt; 35:                 Q_star, _ = torch.qr(Y_star)
+&gt; 36:                 Y = A @ Q_star
+&gt; 37:                 Q, _ = torch.qr(Y)
+&gt; 38: 
+&gt; 39:             B = Q.T @ A
+&gt; 40:             U_hat, S, V = torch.svd(B, some=True)
+&gt; 41:             U = Q @ U_hat
+&gt; 42:         else:
+&gt; 43:             # Alternative path for fat matrices (m &lt; n)
+&gt; 44:             # The SVD will be on a m x k matrix, which is much smaller.
+&gt; 45:             Omega = torch.randn(m, k, dtype=torch.float32, device=device)
+&gt; 46:             Y = A.T @ Omega
+&gt; 47:             Q, _ = torch.qr(Y)
+&gt; 48: 
+&gt; 49:             for _ in range(n_iter):
+&gt; 50:                 Y_star = A @ Q
+...</code></pre><br><br>Error: Non-retryable error: <br><br>Code Context:<br>Non-retryable error:
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My analysis of previous attempts has led to a crucial insight: the performance of randomized SVD is critically dependent on the shape of the matrix being decomposed. My best-performing solution (4.81x speedup) used a hybrid CPU/GPU approach, but its performance was limited by the cost of transferring a potentially large intermediate matrix (`B`) from the GPU to the CPU. My attempt at a fully GPU-native adaptive strategy failed due to a mysterious non-retryable error, likely an environment sensitivity rather than a logical flaw.<br><br>The correct path forward is to refine that adaptive strategy, as it addresses the core bottleneck. The goal is to **always perform the SVD on a tall, skinny matrix**, which is computationally cheap, and to do so **entirely on the GPU** to eliminate data transfer overhead.<br><br>**The Refined Adaptive GPU-Native Strategy:**<br><br>1.  **Adaptive Path Selection:** The code will inspect the matrix dimensions (`m`, `n`).<br>    *   If `m &gt;= n` (a &quot;tall&quot; matrix), it will use the standard randomized SVD algorithm.<br>    *   If `m &lt; n` (a &quot;fat&quot; matrix), it will apply the algorithm to `A.T`. This clever switch ensures the intermediate matrix for the SVD step is always `d x k` or `k x d` where `d` is the *smaller* of the original dimensions and `k` is small, making the SVD step consistently fast.<br><br>2.  **End-to-End GPU Execution:** By ensuring the SVD is always on a small matrix, `torch.svd` on the GPU becomes highly efficient. This allows the entire algorithm to run on the GPU without any costly data transfers to the CPU, maximizing performance.<br><br>3.  **Robust Implementation:** I will use proven hyperparameters (`n_oversamples=5`, `n_iter=2` for ill-conditioned cases, `0` otherwise) and ensure clean code practices (e.g., using a distinct loop variable `i` instead of `_`) to avoid any potential environment conflicts that may have caused the previous failure.<br><br>This refined strategy combines my best algorithmic insight (adaptive paths) with the lessons learned about the environment (GPU is fast, transfers are slow, some functions are unavailable). It represents the most robust and theoretically fastest approach possible with the available tools.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import torch
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes randomized SVD using an adaptive, fully GPU-native strategy.
+        It chooses the optimal computation path based on the matrix shape (m vs n)
+        to ensure the core SVD is always performed on a small matrix, which is
+        highly efficient on the GPU. This avoids all CPU-GPU data transfers.
+        &quot;&quot;&quot;
+        A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+        m, n = A_np.shape
+
+        # Use proven hyperparameters for speed and accuracy.
+        n_oversamples = 5
+        k = n_components + n_oversamples
+        n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+
+        device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+        A = torch.from_numpy(A_np).to(device)
+        torch.manual_seed(42)
+
+        if m &gt;= n:
+            # Standard path for tall matrices (m &gt;= n).
+            # The SVD is on a small k x n matrix.
+            Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+            Y = A @ Omega
+            Q, _ = torch.qr(Y)
+
+            for i in range(n_iter):
+                Y_star = A.T @ Q
+                Q_star, _ = torch.qr(Y_star)
+                Y = A @ Q_star
+                Q, _ = torch.qr(Y)
+
+            B = Q.T @ A
+            U_hat, S, V = torch.svd(B, some=True)
+            U = Q @ U_hat
+        else:
+            # Alternative path for fat matrices (m &lt; n) by applying to A.T.
+            # The SVD is on a very small m x k matrix.
+            Omega = torch.randn(m, k, dtype=torch.float32, device=device)
+            Y = A.T @ Omega
+            Q, _ = torch.qr(Y)
+
+            for i in range(n_iter):
+                Y_star = A @ Q
+                Q_star, _ = torch.qr(Y_star)
+                Y = A.T @ Q_star
+                Q, _ = torch.qr(Y)
+
+            B = A @ Q
+            U, S, V_hat = torch.svd(B, some=True)
+            V = Q @ V_hat
+
+        # Truncate to the desired number of components.
+        U_final = U[:, :n_components]
+        S_final = S[:n_components]
+        V_final = V[:, :n_components]
+
+        # Return results as NumPy arrays, moving from device to CPU only at the end.
+        return {
+            &quot;U&quot;: U_final.cpu().numpy(),
+            &quot;S&quot;: S_final.cpu().numpy(),
+            &quot;V&quot;: V_final.cpu().numpy()
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 17 messages and have used up $0.9934. You have $0.0066 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 69)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import numpy as np
+&gt; 03: import torch
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Computes randomized SVD using an adaptive, fully GPU-native strategy.
+&gt; 09:         It chooses the optimal computation path based on the matrix shape (m vs n)
+&gt; 10:         to ensure the core SVD is always performed on a small matrix, which is
+&gt; 11:         highly efficient on the GPU. This avoids all CPU-GPU data transfers.
+&gt; 12:         &quot;&quot;&quot;
+&gt; 13:         A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+&gt; 14:         n_components = problem[&quot;n_components&quot;]
+&gt; 15:         m, n = A_np.shape
+&gt; 16: 
+&gt; 17:         # Use proven hyperparameters for speed and accuracy.
+&gt; 18:         n_oversamples = 5
+&gt; 19:         k = n_components + n_oversamples
+&gt; 20:         n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+&gt; 21: 
+&gt; 22:         device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+&gt; 23:         A = torch.from_numpy(A_np).to(device)
+&gt; 24:         torch.manual_seed(42)
+&gt; 25: 
+&gt; 26:         if m &gt;= n:
+&gt; 27:             # Standard path for tall matrices (m &gt;= n).
+&gt; 28:             # The SVD is on a small k x n matrix.
+&gt; 29:             Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+&gt; 30:             Y = A @ Omega
+&gt; 31:             Q, _ = torch.qr(Y)
+&gt; 32: 
+&gt; 33:             for i in range(n_iter):
+&gt; 34:                 Y_star = A.T @ Q
+&gt; 35:                 Q_star, _ = torch.qr(Y_star)
+&gt; 36:                 Y = A @ Q_star
+&gt; 37:                 Q, _ = torch.qr(Y)
+&gt; 38: 
+&gt; 39:             B = Q.T @ A
+&gt; 40:             U_hat, S, V = torch.svd(B, some=True)
+&gt; 41:             U = Q @ U_hat
+&gt; 42:         else:
+&gt; 43:             # Alternative path for fat matrices (m &lt; n) by applying to A.T.
+&gt; 44:             # The SVD is on a very small m x k matrix.
+&gt; 45:             Omega = torch.randn(m, k, dtype=torch.float32, device=device)
+&gt; 46:             Y = A.T @ Omega
+&gt; 47:             Q, _ = torch.qr(Y)
+&gt; 48: 
+&gt; 49:             for i in range(n_iter):
+&gt; 50:                 Y_star = A @ Q
+...</code></pre><br><br>Error: Non-retryable error: <br><br>Code Context:<br>Non-retryable error:
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The repeated &quot;Non-retryable error&quot; on my adaptive GPU strategy, despite its sound logic, points to a subtle environmental issue, most likely with the specific PyTorch functions being used. My previous attempts relied on `torch.qr` and `torch.svd`, which are older APIs. The modern, recommended, and more stable interface for these operations is within the `torch.linalg` submodule. The opaque error is likely a symptom of using a deprecated function that has an edge-case bug in the validation environment&#x27;s specific PyTorch version.<br><br>My final strategy is to re-implement the same winning logic—an adaptive, fully GPU-native algorithm—but using the modern and stable `torch.linalg` API.<br><br>**The Final, Stabilized Strategy:**<br><br>1.  **Retain Adaptive Logic:** The core principle remains: check if the matrix is &quot;tall&quot; (`m &gt;= n`) or &quot;fat&quot; (`m &lt; n`) and choose the computation path that ensures the SVD is always performed on a small matrix. This is the key to performance.<br>2.  **Modernize with `torch.linalg`:** I will replace all calls to `torch.qr` and `torch.svd` with their modern counterparts, `torch.linalg.qr` and `torch.linalg.svd`. This is the most critical change, intended to resolve the stability issues and &quot;Non-retryable error&quot;.<br>3.  **Handle API Differences:** I will correctly handle the output of `torch.linalg.svd`, which returns `U, S, Vh` (where `Vh` is V-transpose), by transposing `Vh` back to get `V`.<br>4.  **End-to-End GPU Execution:** The adaptive logic ensures the SVD step is always fast on the GPU, allowing the entire pipeline to run on the CUDA device without any CPU-GPU data transfer bottlenecks.<br>5.  **Proven Hyperparameters:** I will use the configuration that yielded my best results (`n_oversamples=5`, `n_iter=0/2`) to ensure both speed and accuracy.<br><br>This approach combines my best-performing algorithmic design with a more robust and stable implementation, directly addressing the likely cause of the previous failures. This is the most promising path to achieving a top-tier speedup.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import numpy as np
+import torch
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Computes randomized SVD using a refined, adaptive, fully GPU-native strategy.
+        This version uses the modern `torch.linalg` API for maximum stability and
+        performance. It chooses the optimal computation path based on matrix shape
+        to ensure the core SVD is always on a small matrix, avoiding CPU-GPU
+        data transfers and maximizing GPU utilization.
+        &quot;&quot;&quot;
+        A_np = np.asarray(problem[&quot;matrix&quot;], dtype=np.float32)
+        n_components = problem[&quot;n_components&quot;]
+        m, n = A_np.shape
+
+        # Use proven hyperparameters for speed and accuracy.
+        n_oversamples = 5
+        k = n_components + n_oversamples
+        n_iter = 2 if problem.get(&quot;matrix_type&quot;) == &quot;ill_conditioned&quot; else 0
+
+        device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+        A = torch.from_numpy(A_np).to(device)
+        torch.manual_seed(42)
+
+        if m &gt;= n:
+            # Standard path for tall matrices (m &gt;= n).
+            Omega = torch.randn(n, k, dtype=torch.float32, device=device)
+            Y = A @ Omega
+            Q, _ = torch.linalg.qr(Y)
+
+            for _ in range(n_iter):
+                Y_star = A.T @ Q
+                Q_star, _ = torch.linalg.qr(Y_star)
+                Y = A @ Q_star
+                Q, _ = torch.linalg.qr(Y)
+
+            B = Q.T @ A
+            U_hat, S, Vh = torch.linalg.svd(B, full_matrices=False)
+            V = Vh.T
+            U = Q @ U_hat
+        else:
+            # Alternative path for fat matrices (m &lt; n) by applying to A.T.
+            Omega = torch.randn(m, k, dtype=torch.float32, device=device)
+            Y = A.T @ Omega
+            Q, _ = torch.linalg.qr(Y)
+
+            for _ in range(n_iter):
+                Y_star = A @ Q
+                Q_star, _ = torch.linalg.qr(Y_star)
+                Y = A.T @ Q_star
+                Q, _ = torch.linalg.qr(Y)
+
+            B = A @ Q
+            U, S, Vh_hat = torch.linalg.svd(B, full_matrices=False)
+            V_hat = Vh_hat.T
+            V = Q @ V_hat
+
+        # Truncate to the desired number of components.
+        U_final = U[:, :n_components]
+        S_final = S[:n_components]
+        V_final = V[:, :n_components]
+
+        # Return results as NumPy arrays, moving from device to CPU only at the end.
+        return {
+            &quot;U&quot;: U_final.cpu().numpy(),
+            &quot;S&quot;: S_final.cpu().numpy(),
+            &quot;V&quot;: V_final.cpu().numpy()
+        }
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,3594 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – robust_kalman_filter – Gemini 2.5 Pro</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">robust_kalman_filter</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run current">
+                    <a href="robust_kalman_filter_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (8.63x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="robust_kalman_filter_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (3.47x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="robust_kalman_filter_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (2.06x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="robust_kalman_filter_o4-mini.html">
+                        <div class="run-score" style="background-color: #D2691E; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (0.87x)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">robust_kalman_filter</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Gemini 2.5 Pro</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #006400; font-weight: 600;">8.630x</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">11</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">1</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">94.2 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+Robust Kalman Filter Task (Optimization Formulation)
+
+Based on: https://www.cvxpy.org/examples/applications/robust_kalman.html
+
+This task solves a robust Kalman filtering/smoothing problem by formulating it as a convex optimization problem with robustness to outliers in the measurements.
+
+Given a linear dynamical system with process noise w and measurement noise v:
+  x_{t+1} = A * x_t + B * w_t   (State dynamics)
+  y_t     = C * x_t + v_t       (Measurements)
+
+The goal is to find the state sequence x = [x_0, ..., x_N] and the noise sequences w = [w_0, ..., w_{N-1}], v = [v_0, ..., v_{N-1}] that best explain the observed measurements y = [y_0, ..., y_{N-1}], assuming a known initial state x_0 and in the presence of potential outliers in the measurements.
+
+Problem Formulation:
+
+    minimize_{x, w, v}   sum_{t=0}^{N-1} ( ||w_t||_2^2 + tau * φ(v_t) )
+    subject to           x_{t+1} = A*x_t + B*w_t,    for t = 0, ..., N-1
+                         y_t     = C*x_t + v_t,       for t = 0, ..., N-1
+                         x_0 = x_initial
+
+where:
+    x_t is the state vector at time t (size n).
+    w_t is the process noise vector at time t (size p).
+    v_t is the measurement noise vector at time t (size m).
+    y_t is the measurement vector at time t (size m).
+    A is the state transition matrix (n x n).
+    B is the process noise input matrix (n x p).
+    C is the measurement matrix (m x n).
+    tau &gt; 0 is a parameter weighting the measurement noise cost relative to the process noise cost.
+    φ(v_t) is a robust penalty function (Huber norm) applied to the norm of v_t.
+    M is the threshold parameter for the Huber norm.
+    N is the number of time steps.
+    x_initial is the known initial state.
+
+The Huber norm is defined as:
+    φ(||v_t||) = ||v_t||^2               if ||v_t|| ≤ M
+                 2*M*||v_t|| - M^2       if ||v_t|| &gt; M
+
+This robust formulation is less sensitive to outliers in the measurements compared to the standard Kalman filter, which uses a purely quadratic penalty for v_t.
+
+Input: A dictionary with keys:
+- &quot;A&quot;: A list of n lists of floats (state transition matrix).
+- &quot;B&quot;: A list of n lists of p floats (process noise input matrix).
+- &quot;C&quot;: A list of m lists of n floats (measurement matrix).
+- &quot;y&quot;: A list of N lists (measurements), each inner list has m floats.
+- &quot;x_initial&quot;: A list of n floats (initial state).
+- &quot;tau&quot;: A positive float (noise weighting parameter).
+- &quot;M&quot;: A positive float (Huber threshold parameter).
+
+Example input:
+{
+  &quot;A&quot;: [[0.9]],
+  &quot;B&quot;: [[0.5]],
+  &quot;C&quot;: [[1.0]],
+  &quot;y&quot;: [[1.1], [5.8], [1.2]],
+  &quot;x_initial&quot;: [1.0],
+  &quot;tau&quot;: 2.0,
+  &quot;M&quot;: 3.0
+}
+
+Output: A dictionary with keys:
+- &quot;x_hat&quot;: The estimated state sequence [x_0, x_1, ..., x_N] (list of N+1 lists of n floats).
+- &quot;w_hat&quot;: The estimated process noise sequence [w_0, ..., w_{N-1}] (list of N lists of p floats).
+- &quot;v_hat&quot;: The estimated measurement noise sequence [v_0, ..., v_{N-1}] (list of N lists of m floats).
+
+Example output:
+{
+  &quot;x_hat&quot;: [[1.0], [0.98...], [0.90...], [0.85...]],
+  &quot;w_hat&quot;: [[0.16...], [0.03...], [-0.01...]],
+  &quot;v_hat&quot;: [[0.11...], [4.90...], [0.34...]]
+}
+
+Category: convex_optimization
+
+Below is the reference implementation. Your function should run much quicker.
+
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+| 01: def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+| 02:     &quot;&quot;&quot;
+| 03:     Solve the robust Kalman filtering problem using the Huber loss function.
+| 04: 
+| 05:     :param problem: Dictionary with system matrices, measurements, and parameters
+| 06:     :return: Dictionary with estimated states and noise sequences
+| 07:     
+| 08: 
+| 09:     NOTE: Your solution must pass validation by:
+| 10:     1. Returning correctly formatted output
+| 11:     2. Having no NaN or infinity values
+| 12:     3. Matching expected results within numerical tolerance
+| 13:     &quot;&quot;&quot;
+| 14:     A = np.array(problem[&quot;A&quot;])
+| 15:     B = np.array(problem[&quot;B&quot;])
+| 16:     C = np.array(problem[&quot;C&quot;])
+| 17:     y = np.array(problem[&quot;y&quot;])
+| 18:     x0 = np.array(problem[&quot;x_initial&quot;])
+| 19:     tau = float(problem[&quot;tau&quot;])
+| 20:     M = float(problem[&quot;M&quot;])
+| 21: 
+| 22:     N, m = y.shape
+| 23:     n = A.shape[1]
+| 24:     p = B.shape[1]
+| 25: 
+| 26:     # Variables: x[0]...x[N], w[0]...w[N-1], v[0]...v[N-1]
+| 27:     x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+| 28:     w = cp.Variable((N, p), name=&quot;w&quot;)
+| 29:     v = cp.Variable((N, m), name=&quot;v&quot;)
+| 30: 
+| 31:     # Objective: minimize sum_{t=0}^{N-1}(||w_t||_2^2 + tau * phi(v_t))
+| 32:     # Process noise (quadratic)
+| 33:     process_noise_term = cp.sum_squares(w)
+| 34: 
+| 35:     # Measurement noise (Huber)
+| 36:     measurement_noise_term = tau * cp.sum([cp.huber(cp.norm(v[t, :]), M) for t in range(N)])
+| 37: 
+| 38:     obj = cp.Minimize(process_noise_term + measurement_noise_term)
+| 39: 
+| 40:     # Constraints
+| 41:     constraints = [x[0] == x0]  # Initial state
+| 42: 
+| 43:     # Add dynamics and measurement constraints
+| 44:     for t in range(N):
+| 45:         constraints.append(x[t + 1] == A @ x[t] + B @ w[t])  # Dynamics
+| 46:         constraints.append(y[t] == C @ x[t] + v[t])  # Measurement
+| 47: 
+| 48:     # Solve the problem
+| 49:     prob = cp.Problem(obj, constraints)
+| 50:     try:
+| 51:         prob.solve()
+| 52:     except cp.SolverError as e:
+| 53:         return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+| 54:     except Exception as e:
+| 55:         return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+| 56: 
+| 57:     if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+| 58:         return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+| 59: 
+| 60:     return {
+| 61:         &quot;x_hat&quot;: x.value.tolist(),
+| 62:         &quot;w_hat&quot;: w.value.tolist(),
+| 63:         &quot;v_hat&quot;: v.value.tolist(),
+| 64:     }
+| 65: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+| 001: def is_solution( problem: dict[str, Any], solution: dict[str, Any]) -&gt; bool:
+| 002:     &quot;&quot;&quot;
+| 003:     Verifies feasibility and (near-)optimality of a robust Kalman filter solution.
+| 004: 
+| 005:     Feasibility checks:
+| 006:     - Keys x_hat, w_hat, v_hat present.
+| 007:     - Correct shapes: x_hat in R^(N+1 x n), w_hat,v_hat in R^(N x p/m).
+| 008:     - Dynamics, measurement and initial constraints satisfied to 1e-5.
+| 009:     - All values finite.
+| 010: 
+| 011:     Optimality check:
+| 012:     - Compares objective value to the value from this task&#x27;s own solver.
+| 013:     - Passes if candidate objective is within 1% of optimal value.
+| 014: 
+| 015:     :param problem: Dictionary with problem data
+| 016:     :param solution: Dictionary with proposed solution
+| 017:     :return: True if solution is valid and optimal, False otherwise
+| 018:     &quot;&quot;&quot;
+| 019:     required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+| 020:     if not required.issubset(solution):
+| 021:         logging.error(&quot;Solution missing required keys.&quot;)
+| 022:         return False
+| 023: 
+| 024:     A = np.asarray(problem[&quot;A&quot;])
+| 025:     B = np.asarray(problem[&quot;B&quot;])
+| 026:     C = np.asarray(problem[&quot;C&quot;])
+| 027:     y = np.asarray(problem[&quot;y&quot;])
+| 028:     x0 = np.asarray(problem[&quot;x_initial&quot;])
+| 029:     tau = float(problem[&quot;tau&quot;])
+| 030:     M = float(problem[&quot;M&quot;])
+| 031: 
+| 032:     N, m = y.shape
+| 033:     n = A.shape[1]
+| 034:     p = B.shape[1]
+| 035: 
+| 036:     try:
+| 037:         x_hat = np.asarray(solution[&quot;x_hat&quot;], dtype=float)
+| 038:         w_hat = np.asarray(solution[&quot;w_hat&quot;], dtype=float)
+| 039:         v_hat = np.asarray(solution[&quot;v_hat&quot;], dtype=float)
+| 040:     except Exception as e:
+| 041:         logging.error(f&quot;Non-numeric entries in solution: {e}&quot;)
+| 042:         return False
+| 043: 
+| 044:     # Shape checks
+| 045:     if x_hat.shape != (N + 1, n) or w_hat.shape != (N, p) or v_hat.shape != (N, m):
+| 046:         logging.error(&quot;Solution arrays have incorrect shapes.&quot;)
+| 047:         return False
+| 048: 
+| 049:     if not (np.isfinite(x_hat).all() and np.isfinite(w_hat).all() and np.isfinite(v_hat).all()):
+| 050:         logging.error(&quot;Solution contains non-finite numbers.&quot;)
+| 051:         return False
+| 052: 
+| 053:     # Dynamics &amp; measurement constraints
+| 054:     eps = 1e-5
+| 055:     if np.linalg.norm(x_hat[0] - x0) &gt; eps:
+| 056:         logging.error(&quot;x_hat[0] != x0.&quot;)
+| 057:         return False
+| 058: 
+| 059:     for t in range(N):
+| 060:         if np.linalg.norm(x_hat[t + 1] - (A @ x_hat[t] + B @ w_hat[t])) &gt; eps:
+| 061:             logging.error(f&quot;Dynamics violated at t={t}.&quot;)
+| 062:             return False
+| 063: 
+| 064:     for t in range(N):
+| 065:         if np.linalg.norm(y[t] - (C @ x_hat[t] + v_hat[t])) &gt; eps:
+| 066:             logging.error(f&quot;Measurement violated at t={t}.&quot;)
+| 067:             return False
+| 068: 
+| 069:     # Calculate candidate objective value (with Huber norm)
+| 070:     J_cand = float(np.sum(w_hat**2))
+| 071:     for t in range(N):
+| 072:         val = np.linalg.norm(v_hat[t, :])
+| 073:         if val &lt;= M:
+| 074:             J_cand += tau * val**2
+| 075:         else:
+| 076:             J_cand += tau * (2 * M * val - M**2)
+| 077: 
+| 078:     # Reference optimum
+| 079:     ref = solve(problem)
+| 080:     if not ref[&quot;x_hat&quot;]:  # solver failed - accept feasibility only
+| 081:         logging.warning(&quot;Reference solve failed; skipping optimality test.&quot;)
+| 082:         return True
+| 083: 
+| 084:     w_opt = np.asarray(ref[&quot;w_hat&quot;])
+| 085:     v_opt = np.asarray(ref[&quot;v_hat&quot;])
+| 086: 
+| 087:     # Calculate reference objective value
+| 088:     J_opt = float(np.sum(w_opt**2))
+| 089:     for t in range(N):
+| 090:         val = np.linalg.norm(v_opt[t, :])
+| 091:         if val &lt;= M:
+| 092:             J_opt += tau * val**2
+| 093:         else:
+| 094:             J_opt += tau * (2 * M * val - M**2)
+| 095: 
+| 096:     # Allow 1% tolerance for optimality
+| 097:     if J_cand &gt; J_opt * 1.01:
+| 098:         logging.error(f&quot;Sub-optimal: J={J_cand:.6g} &gt; J_opt={J_opt:.6g} (1% tolerance)&quot;)
+| 099:         return False
+| 100: 
+| 101:     return True
+| 102:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>Robust Kalman Filter Task (Optimization Formulation)
+
+Based on: https://www.cvxpy.org/examples/applications/robust_kalman.html
+
+This task solves a robust Kalman filtering/smoothing problem by formulating it as a convex optimization problem with robustness to outliers in the measurements.
+
+Given a linear dynamical system with process noise w and measurement noise v:
+  x_{t+1} = A * x_t + B * w_t   (State dynamics)
+  y_t     = C * x_t + v_t       (Measurements)
+
+The goal is to find the state sequence x = [x_0, ..., x_N] and the noise sequences w = [w_0, ..., w_{N-1}], v = [v_0, ..., v_{N-1}] that best explain the observed measurements y = [y_0, ..., y_{N-1}], assuming a known initial state x_0 and in the presence of potential outliers in the measurements.
+
+Problem Formulation:
+
+    minimize_{x, w, v}   sum_{t=0}^{N-1} ( ||w_t||_2^2 + tau * φ(v_t) )
+    subject to           x_{t+1} = A*x_t + B*w_t,    for t = 0, ..., N-1
+                         y_t     = C*x_t + v_t,       for t = 0, ..., N-1
+                         x_0 = x_initial
+
+where:
+    x_t is the state vector at time t (size n).
+    w_t is the process noise vector at time t (size p).
+    v_t is the measurement noise vector at time t (size m).
+    y_t is the measurement vector at time t (size m).
+    A is the state transition matrix (n x n).
+    B is the process noise input matrix (n x p).
+    C is the measurement matrix (m x n).
+    tau &gt; 0 is a parameter weighting the measurement noise cost relative to the process noise cost.
+    φ(v_t) is a robust penalty function (Huber norm) applied to the norm of v_t.
+    M is the threshold parameter for the Huber norm.
+    N is the number of time steps.
+    x_initial is the known initial state.
+
+The Huber norm is defined as:
+    φ(||v_t||) = ||v_t||^2               if ||v_t|| ≤ M
+                 2*M*||v_t|| - M^2       if ||v_t|| &gt; M
+
+This robust formulation is less sensitive to outliers in the measurements compared to the standard Kalman filter, which uses a purely quadratic penalty for v_t.
+
+Input: A dictionary with keys:
+- &quot;A&quot;: A list of n lists of floats (state transition matrix).
+- &quot;B&quot;: A list of n lists of p floats (process noise input matrix).
+- &quot;C&quot;: A list of m lists of n floats (measurement matrix).
+- &quot;y&quot;: A list of N lists (measurements), each inner list has m floats.
+- &quot;x_initial&quot;: A list of n floats (initial state).
+- &quot;tau&quot;: A positive float (noise weighting parameter).
+- &quot;M&quot;: A positive float (Huber threshold parameter).
+
+Example input:
+{
+  &quot;A&quot;: [[0.9]],
+  &quot;B&quot;: [[0.5]],
+  &quot;C&quot;: [[1.0]],
+  &quot;y&quot;: [[1.1], [5.8], [1.2]],
+  &quot;x_initial&quot;: [1.0],
+  &quot;tau&quot;: 2.0,
+  &quot;M&quot;: 3.0
+}
+
+Output: A dictionary with keys:
+- &quot;x_hat&quot;: The estimated state sequence [x_0, x_1, ..., x_N] (list of N+1 lists of n floats).
+- &quot;w_hat&quot;: The estimated process noise sequence [w_0, ..., w_{N-1}] (list of N lists of p floats).
+- &quot;v_hat&quot;: The estimated measurement noise sequence [v_0, ..., v_{N-1}] (list of N lists of m floats).
+
+Example output:
+{
+  &quot;x_hat&quot;: [[1.0], [0.98...], [0.90...], [0.85...]],
+  &quot;w_hat&quot;: [[0.16...], [0.03...], [-0.01...]],
+  &quot;v_hat&quot;: [[0.11...], [4.90...], [0.34...]]
+}
+
+Category: convex_optimization</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">from typing import Any
+import cvxpy as cp
+import numpy as np
+
+ def solve(self, problem: dict[str, Any]) -&gt; dict[str, Any]:
+     &quot;&quot;&quot;
+     Solve the robust Kalman filtering problem using the Huber loss function.
+ 
+     :param problem: Dictionary with system matrices, measurements, and parameters
+     :return: Dictionary with estimated states and noise sequences
+     
+ 
+     NOTE: Your solution must pass validation by:
+     1. Returning correctly formatted output
+     2. Having no NaN or infinity values
+     3. Matching expected results within numerical tolerance
+     &quot;&quot;&quot;
+     A = np.array(problem[&quot;A&quot;])
+     B = np.array(problem[&quot;B&quot;])
+     C = np.array(problem[&quot;C&quot;])
+     y = np.array(problem[&quot;y&quot;])
+     x0 = np.array(problem[&quot;x_initial&quot;])
+     tau = float(problem[&quot;tau&quot;])
+     M = float(problem[&quot;M&quot;])
+ 
+     N, m = y.shape
+     n = A.shape[1]
+     p = B.shape[1]
+ 
+     # Variables: x[0]...x[N], w[0]...w[N-1], v[0]...v[N-1]
+     x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+     w = cp.Variable((N, p), name=&quot;w&quot;)
+     v = cp.Variable((N, m), name=&quot;v&quot;)
+ 
+     # Objective: minimize sum_{t=0}^{N-1}(||w_t||_2^2 + tau * phi(v_t))
+     # Process noise (quadratic)
+     process_noise_term = cp.sum_squares(w)
+ 
+     # Measurement noise (Huber)
+     measurement_noise_term = tau * cp.sum([cp.huber(cp.norm(v[t, :]), M) for t in range(N)])
+ 
+     obj = cp.Minimize(process_noise_term + measurement_noise_term)
+ 
+     # Constraints
+     constraints = [x[0] == x0]  # Initial state
+ 
+     # Add dynamics and measurement constraints
+     for t in range(N):
+         constraints.append(x[t + 1] == A @ x[t] + B @ w[t])  # Dynamics
+         constraints.append(y[t] == C @ x[t] + v[t])  # Measurement
+ 
+     # Solve the problem
+     prob = cp.Problem(obj, constraints)
+     try:
+         prob.solve()
+     except cp.SolverError as e:
+         return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+     except Exception as e:
+         return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+ 
+     if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+         return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+ 
+     return {
+         &quot;x_hat&quot;: x.value.tolist(),
+         &quot;w_hat&quot;: w.value.tolist(),
+         &quot;v_hat&quot;: v.value.tolist(),
+     }</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">from typing import Any
+import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the robust Kalman filtering problem using a robust, partially
+        vectorized approach. This version prioritizes correctness and stability
+        by using cvxpy&#x27;s default solver and settings.
+        &quot;&quot;&quot;
+        try:
+            A = np.array(problem[&quot;A&quot;])
+            B = np.array(problem[&quot;B&quot;])
+            C = np.array(problem[&quot;C&quot;])
+            y = np.array(problem[&quot;y&quot;])
+            x0 = np.array(problem[&quot;x_initial&quot;])
+            tau = float(problem[&quot;tau&quot;])
+            M = float(problem[&quot;M&quot;])
+
+            N, m = y.shape
+            n = A.shape[1]
+            p = B.shape[1]
+
+            # Variables: x and w. &#x27;v&#x27; is eliminated algebraically.
+            x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+            w = cp.Variable((N, p), name=&quot;w&quot;)
+
+            # --- Objective Function ---
+            # 1. Process noise term
+            process_noise_term = cp.sum_squares(w)
+
+            # 2. Measurement noise term, with v expressed in terms of x
+            # v_t = y_t - x_t @ C.T
+            v_expr = y - x[:-1] @ C.T
+            v_norms = cp.norm(v_expr, p=2, axis=1)
+            measurement_noise_term = tau * cp.sum(cp.huber(v_norms, M))
+
+            obj = cp.Minimize(process_noise_term + measurement_noise_term)
+
+            # --- Constraints ---
+            # The state dynamics constraint is kept, linking x and w.
+            constraints = [
+                x[0] == x0,
+                x[1:] == x[:-1] @ A.T + w @ B.T,
+            ]
+
+            # Create and solve the problem with default settings for robustness.
+            prob = cp.Problem(obj, constraints)
+            prob.solve(verbose=False) # Let cvxpy choose the solver and params
+
+            # Check for a valid solution.
+            if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None or w.value is None:
+                return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+            # Reconstruct v from the optimal x.
+            x_hat = x.value
+            w_hat = w.value
+            # This is a numpy operation, not cvxpy, so it&#x27;s safe after the solve.
+            v_hat = y - x_hat[:-1] @ C.T
+
+            return {
+                &quot;x_hat&quot;: x_hat.tolist(),
+                &quot;w_hat&quot;: w_hat.tolist(),
+                &quot;v_hat&quot;: v_hat.tolist(),
+            }
+        except (Exception, cp.SolverError):
+            # Fallback for any error during setup or solve.
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/robust_kalman_filter_gemini-2.5-pro_20250625_150746_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/robust_kalman_filter_gemini-2.5-pro_20250625_150746_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I&#x27;ve analyzed the problem, which is a convex optimization task for robust Kalman filtering. The reference implementation uses `cvxpy` with loops, which is known to be slow for problem construction.<br><br>My optimization strategy will be as follows:<br>1.  **Vectorize the problem**: I will rewrite the objective function and constraints using matrix and vector operations to avoid Python loops. This allows `cvxpy` to parse the problem much more efficiently.<br>2.  **Select a fast solver**: `cvxpy` can use several underlying solvers. I&#x27;ll choose `OSQP`, which is highly efficient for the kind of quadratic-like problems we are dealing with, even with the Huber norm which `cvxpy` can transform appropriately.<br>3.  **Tune solver parameters**: I will adjust `OSQP`&#x27;s parameters, such as convergence tolerance and polishing, to trade off a small amount of precision for a significant speed gain, while ensuring the solution remains valid.<br>4.  **Eliminate variables**: I will algebraically eliminate the measurement noise variable `v` from the optimization problem, reducing the total number of variables and constraints the solver has to handle.<br><br>I will start by creating the `solver.py` file with an initial, improved implementation.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the robust Kalman filtering problem using the Huber loss function.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;A&quot;])
+        B = np.array(problem[&quot;B&quot;])
+        C = np.array(problem[&quot;C&quot;])
+        y = np.array(problem[&quot;y&quot;])
+        x0 = np.array(problem[&quot;x_initial&quot;])
+        tau = float(problem[&quot;tau&quot;])
+        M = float(problem[&quot;M&quot;])
+
+        N, m = y.shape
+        n = A.shape[1]
+        p = B.shape[1]
+
+        # Variables: x[0]...x[N], w[0]...w[N-1], v[0]...v[N-1]
+        x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+        w = cp.Variable((N, p), name=&quot;w&quot;)
+        v = cp.Variable((N, m), name=&quot;v&quot;)
+
+        # Objective: minimize sum_{t=0}^{N-1}(||w_t||_2^2 + tau * phi(v_t))
+        process_noise_term = cp.sum_squares(w)
+        
+        # Measurement noise (Huber) - vectorized
+        v_norms = cp.norm(v, p=2, axis=1)
+        measurement_noise_term = tau * cp.sum(cp.huber(v_norms, M))
+
+        obj = cp.Minimize(process_noise_term + measurement_noise_term)
+
+        # Constraints - vectorized
+        constraints = [
+            x[0] == x0,
+            x[1:] == x[:-1] @ A.T + w @ B.T,
+            y == x[:-1] @ C.T + v,
+        ]
+
+        # Solve the problem
+        prob = cp.Problem(obj, constraints)
+        try:
+            # Using a specific solver can be faster. OSQP is good for this type of problem.
+            prob.solve(solver=cp.OSQP, warm_start=True)
+        except cp.SolverError:
+            # Fallback to SCS if OSQP fails
+            try:
+                prob.solve(solver=cp.SCS)
+            except cp.SolverError:
+                 return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+        except Exception:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+        if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+        return {
+            &quot;x_hat&quot;: x.value.tolist(),
+            &quot;w_hat&quot;: w.value.tolist(),
+            &quot;v_hat&quot;: v.value.tolist(),
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.1779. You have $0.8221 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 64)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import cvxpy as cp
+&gt; 03: import numpy as np
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solve the robust Kalman filtering problem using the Huber loss function.
+&gt; 09:         &quot;&quot;&quot;
+&gt; 10:         A = np.array(problem[&quot;A&quot;])
+&gt; 11:         B = np.array(problem[&quot;B&quot;])
+&gt; 12:         C = np.array(problem[&quot;C&quot;])
+&gt; 13:         y = np.array(problem[&quot;y&quot;])
+&gt; 14:         x0 = np.array(problem[&quot;x_initial&quot;])
+&gt; 15:         tau = float(problem[&quot;tau&quot;])
+&gt; 16:         M = float(problem[&quot;M&quot;])
+&gt; 17: 
+&gt; 18:         N, m = y.shape
+&gt; 19:         n = A.shape[1]
+&gt; 20:         p = B.shape[1]
+&gt; 21: 
+&gt; 22:         # Variables: x[0]...x[N], w[0]...w[N-1], v[0]...v[N-1]
+&gt; 23:         x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+&gt; 24:         w = cp.Variable((N, p), name=&quot;w&quot;)
+&gt; 25:         v = cp.Variable((N, m), name=&quot;v&quot;)
+&gt; 26: 
+&gt; 27:         # Objective: minimize sum_{t=0}^{N-1}(||w_t||_2^2 + tau * phi(v_t))
+&gt; 28:         process_noise_term = cp.sum_squares(w)
+&gt; 29:         
+&gt; 30:         # Measurement noise (Huber) - vectorized
+&gt; 31:         v_norms = cp.norm(v, p=2, axis=1)
+&gt; 32:         measurement_noise_term = tau * cp.sum(cp.huber(v_norms, M))
+&gt; 33: 
+&gt; 34:         obj = cp.Minimize(process_noise_term + measurement_noise_term)
+&gt; 35: 
+&gt; 36:         # Constraints - vectorized
+&gt; 37:         constraints = [
+&gt; 38:             x[0] == x0,
+&gt; 39:             x[1:] == x[:-1] @ A.T + w @ B.T,
+&gt; 40:             y == x[:-1] @ C.T + v,
+&gt; 41:         ]
+&gt; 42: 
+&gt; 43:         # Solve the problem
+&gt; 44:         prob = cp.Problem(obj, constraints)
+&gt; 45:         try:
+&gt; 46:             # Using a specific solver can be faster. OSQP is good for this type of problem.
+&gt; 47:             prob.solve(solver=cp.OSQP, warm_start=True)
+&gt; 48:         except cp.SolverError:
+&gt; 49:             # Fallback to SCS if OSQP fails
+&gt; 50:             try:
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">7.88</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge other"> Invalid Command</span>
+            </div>
+            <div class="message-content">
+                An analysis of the initial vectorized solution reveals further optimization opportunities. The current implementation, while faster than a looped approach, still defines three separate `cvxpy` variables (`x`, `w`, `v`) and their corresponding constraints. This increases the complexity and size of the problem sent to the underlying solver.<br><br>My enhanced optimization strategy focuses on two key areas:<br><br>1.  **Aggressive Variable Elimination**: I will algebraically eliminate both the process noise `w` and measurement noise `v` from the optimization problem. By expressing them as functions of the state variable `x`, I can formulate the entire problem using only `x` as the optimization variable.<br>    *   From the system dynamics: `w[t] = (x[t+1] - x[t] @ A.T) @ pinv(B.T)`<br>    *   From the measurement equation: `v[t] = y[t] - x[t] @ C.T`<br>    This reduces the number of variables and constraints significantly, leading to a much smaller and faster problem for the solver to handle. The required matrix inverse (`pinv(B.T)`) is pre-calculated using NumPy for efficiency.<br><br>2.  **Solver Parameter Tuning**: I will continue to use the `OSQP` solver, which is highly effective for this class of problems. However, I will fine-tune its parameters to prioritize speed over high precision, a common trade-off in performance-critical applications.<br>    *   `polish=False`: Disabling the final high-accuracy polishing step provides a substantial speedup.<br>    *   `eps_abs`/`eps_rel`: I will relax the convergence tolerances. Since the evaluation accepts `OPTIMAL_INACCURATE` solutions, a slightly less precise result that is found much faster is preferable.<br><br>This combined approach of minimizing the problem formulation and tuning the solver will yield a significant performance improvement over the simple vectorization.<br><br><pre><code class="language-python">from typing import Any
+import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the robust Kalman filtering problem by eliminating noise variables
+        and using a tuned OSQP solver.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;A&quot;])
+        B = np.array(problem[&quot;B&quot;])
+        C = np.array(problem[&quot;C&quot;])
+        y = np.array(problem[&quot;y&quot;])
+        x0 = np.array(problem[&quot;x_initial&quot;])
+        tau = float(problem[&quot;tau&quot;])
+        M = float(problem[&quot;M&quot;])
+
+        N, m = y.shape
+        n = A.shape[1]
+
+        # Pre-compute matrix transposes and the pseudoinverse of B.T
+        # This avoids re-computation and keeps the CVXPY expression clean.
+        AT = A.T
+        CT = C.T
+        # pinv(B.T) is used to express w in terms of x.
+        # w_t @ B.T = x_{t+1} - x_t @ A.T  =&gt;  w_t = (x_{t+1} - x_t @ A.T) @ pinv(B.T)
+        B_T_inv = np.linalg.pinv(B.T)
+
+        # The only optimization variable is the state sequence x.
+        x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+
+        # --- Express objective function solely in terms of x ---
+
+        # 1. Process noise term: ||w||^2
+        # Express w using x and pre-computed matrices.
+        w_expr = (x[1:] - x[:-1] @ AT) @ B_T_inv
+        process_noise_term = cp.sum_squares(w_expr)
+
+        # 2. Measurement noise term: tau * sum(huber(||v_t||))
+        # Express v using x. v_t = y_t - x_t @ C.T
+        v_expr = y - x[:-1] @ CT
+        v_norms = cp.norm(v_expr, p=2, axis=1)
+        measurement_noise_term = tau * cp.sum(cp.huber(v_norms, M))
+
+        obj = cp.Minimize(process_noise_term + measurement_noise_term)
+
+        # The only constraint is the initial state.
+        constraints = [x[0] == x0]
+
+        # Create the problem and solve with tuned OSQP parameters for speed.
+        prob = cp.Problem(obj, constraints)
+        try:
+            # polish=False and increased tolerances give a significant speedup.
+            prob.solve(solver=cp.OSQP, warm_start=True, polish=False, eps_abs=1e-4, eps_rel=1e-4)
+        except (cp.SolverError, Exception):
+            # If the solver fails for any reason, return an empty solution.
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+        # Check if a valid solution was found.
+        if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+        # Reconstruct the optimal w and v from the optimal x.
+        x_hat = x.value
+        w_hat = (x_hat[1:] - x_hat[:-1] @ AT) @ B_T_inv
+        v_hat = y - x_hat[:-1] @ CT
+
+        return {
+            &quot;x_hat&quot;: x_hat.tolist(),
+            &quot;w_hat&quot;: w_hat.tolist(),
+            &quot;v_hat&quot;: v_hat.tolist(),
+        }</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.2279. You have $0.7721 remaining.<br><br>Error: Command parsing failed<br>Command parsing failed. <br>Remember to include one and only one command in each message. Important: remember to include all arguments for each command.<br>Remember to sandwich your command in between ``` and ```. <br>IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.<br><br>Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:<br>- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:<br>  ```<br>  edit <br>  file: &lt;file_name&gt;<br>  lines: &lt;start_line&gt;-&lt;end_line&gt;<br>  ---<br>  &lt;new_content&gt;<br>  ---<br>  ```<br><br>  The command will:<br>  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)<br>  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;<br>  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file<br>  <br>  Example:<br>  edit<br>  file: solver.py<br>  lines: 5-7<br>  ---<br>  def improved_function():<br>      print(&quot;Optimized solution&quot;)<br>  ---<br>- `ls`: List all files in the current working directory.<br>- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).<br>- `revert`: Revert the code to the best-performing version thus far.<br>- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: <br>  ```<br>  reference [1,2,3,4]<br>  ```<br>- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: <br>  ```<br>  eval_input [1,2,3,4]<br>  ```<br>- `eval`: Run evaluation on the current solution and report the results.<br>- `delete`: Delete a range of lines from a file using the format:<br>  ```<br>  delete<br>  file: &lt;file_name&gt;<br>  lines: &lt;start_line&gt;-&lt;end_line&gt;<br><br>  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)<br>  <br>  Example:<br>  ```<br>  delete<br>  file: solver.py<br>  lines: 5-10<br>  ```<br>- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.<br>  Example:<br>  ```<br>  profile solver.py [1, 2, 3]<br>  ```<br>- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.<br>  Example: <br>  ```<br>  profile_lines solver.py 1,2,3 [1, 2, 3]<br>  ```
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I apologize for the formatting error. I will now resubmit the optimized code using the correct `edit` command format.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the robust Kalman filtering problem by eliminating noise variables
+        and using a tuned OSQP solver.
+        &quot;&quot;&quot;
+        A = np.array(problem[&quot;A&quot;])
+        B = np.array(problem[&quot;B&quot;])
+        C = np.array(problem[&quot;C&quot;])
+        y = np.array(problem[&quot;y&quot;])
+        x0 = np.array(problem[&quot;x_initial&quot;])
+        tau = float(problem[&quot;tau&quot;])
+        M = float(problem[&quot;M&quot;])
+
+        N, m = y.shape
+        n = A.shape[1]
+
+        # Pre-compute matrix transposes and the pseudoinverse of B.T
+        # This avoids re-computation and keeps the CVXPY expression clean.
+        AT = A.T
+        CT = C.T
+        # pinv(B.T) is used to express w in terms of x.
+        # w_t @ B.T = x_{t+1} - x_t @ A.T  =&gt;  w_t = (x_{t+1} - x_t @ A.T) @ pinv(B.T)
+        B_T_inv = np.linalg.pinv(B.T)
+
+        # The only optimization variable is the state sequence x.
+        x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+
+        # --- Express objective function solely in terms of x ---
+
+        # 1. Process noise term: ||w||^2
+        # Express w using x and pre-computed matrices.
+        w_expr = (x[1:] - x[:-1] @ AT) @ B_T_inv
+        process_noise_term = cp.sum_squares(w_expr)
+
+        # 2. Measurement noise term: tau * sum(huber(||v_t||))
+        # Express v using x. v_t = y_t - x_t @ C.T
+        v_expr = y - x[:-1] @ CT
+        v_norms = cp.norm(v_expr, p=2, axis=1)
+        measurement_noise_term = tau * cp.sum(cp.huber(v_norms, M))
+
+        obj = cp.Minimize(process_noise_term + measurement_noise_term)
+
+        # The only constraint is the initial state.
+        constraints = [x[0] == x0]
+
+        # Create the problem and solve with tuned OSQP parameters for speed.
+        prob = cp.Problem(obj, constraints)
+        try:
+            # polish=False and increased tolerances give a significant speedup.
+            prob.solve(solver=cp.OSQP, warm_start=True, polish=False, eps_abs=1e-4, eps_rel=1e-4)
+        except (cp.SolverError, Exception):
+            # If the solver fails for any reason, return an empty solution.
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+        # Check if a valid solution was found.
+        if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+        # Reconstruct the optimal w and v from the optimal x.
+        x_hat = x.value
+        w_hat = (x_hat[1:] - x_hat[:-1] @ AT) @ B_T_inv
+        v_hat = y - x_hat[:-1] @ CT
+
+        return {
+            &quot;x_hat&quot;: x_hat.tolist(),
+            &quot;w_hat&quot;: w_hat.tolist(),
+            &quot;v_hat&quot;: v_hat.tolist(),
+        }
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.2444. You have $0.7556 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 73)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import cvxpy as cp
+&gt; 03: import numpy as np
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solve the robust Kalman filtering problem by eliminating noise variables
+&gt; 09:         and using a tuned OSQP solver.
+&gt; 10:         &quot;&quot;&quot;
+&gt; 11:         A = np.array(problem[&quot;A&quot;])
+&gt; 12:         B = np.array(problem[&quot;B&quot;])
+&gt; 13:         C = np.array(problem[&quot;C&quot;])
+&gt; 14:         y = np.array(problem[&quot;y&quot;])
+&gt; 15:         x0 = np.array(problem[&quot;x_initial&quot;])
+&gt; 16:         tau = float(problem[&quot;tau&quot;])
+&gt; 17:         M = float(problem[&quot;M&quot;])
+&gt; 18: 
+&gt; 19:         N, m = y.shape
+&gt; 20:         n = A.shape[1]
+&gt; 21: 
+&gt; 22:         # Pre-compute matrix transposes and the pseudoinverse of B.T
+&gt; 23:         # This avoids re-computation and keeps the CVXPY expression clean.
+&gt; 24:         AT = A.T
+&gt; 25:         CT = C.T
+&gt; 26:         # pinv(B.T) is used to express w in terms of x.
+&gt; 27:         # w_t @ B.T = x_{t+1} - x_t @ A.T  =&gt;  w_t = (x_{t+1} - x_t @ A.T) @ pinv(B.T)
+&gt; 28:         B_T_inv = np.linalg.pinv(B.T)
+&gt; 29: 
+&gt; 30:         # The only optimization variable is the state sequence x.
+&gt; 31:         x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+&gt; 32: 
+&gt; 33:         # --- Express objective function solely in terms of x ---
+&gt; 34: 
+&gt; 35:         # 1. Process noise term: ||w||^2
+&gt; 36:         # Express w using x and pre-computed matrices.
+&gt; 37:         w_expr = (x[1:] - x[:-1] @ AT) @ B_T_inv
+&gt; 38:         process_noise_term = cp.sum_squares(w_expr)
+&gt; 39: 
+&gt; 40:         # 2. Measurement noise term: tau * sum(huber(||v_t||))
+&gt; 41:         # Express v using x. v_t = y_t - x_t @ C.T
+&gt; 42:         v_expr = y - x[:-1] @ CT
+&gt; 43:         v_norms = cp.norm(v_expr, p=2, axis=1)
+&gt; 44:         measurement_noise_term = tau * cp.sum(cp.huber(v_norms, M))
+&gt; 45: 
+&gt; 46:         obj = cp.Minimize(process_noise_term + measurement_noise_term)
+&gt; 47: 
+&gt; 48:         # The only constraint is the initial state.
+&gt; 49:         constraints = [x[0] == x0]
+&gt; 50: 
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 100%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The evaluation failed because my `solve` method returned `None` for all test cases, causing a `TypeError` in the validation script. A Python function returns `None` implicitly if it terminates due to an uncaught exception. My previous code had a `try...except` block that only wrapped the `prob.solve()` call, leaving the problem formulation and result reconstruction code unprotected.<br><br>The error was systematic (100% of solutions were invalid), suggesting a fundamental issue in the problem formulation that was raising an exception for all test cases, rather than a sporadic solver failure. The variable elimination technique, while powerful, can be sensitive to the properties of the matrices (e.g., dimensions, rank). An unexpected matrix shape in a test case could lead to a `numpy` or `cvxpy` error during the creation of the optimization expressions.<br><br>To fix this, I will wrap the entire body of the `solve` method in a single, comprehensive `try...except` block. This ensures that any exception, whether it occurs during data parsing, problem formulation, solving, or result reconstruction, is caught. Upon catching any exception, the function will return a valid empty solution dictionary (`{&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}`). This prevents the `None` return value, resolves the `TypeError` in the evaluation harness, and makes the solver robust to unexpected problem data.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the robust Kalman filtering problem by eliminating noise variables
+        and using a tuned OSQP solver. This version includes robust error handling.
+        &quot;&quot;&quot;
+        try:
+            A = np.array(problem[&quot;A&quot;])
+            B = np.array(problem[&quot;B&quot;])
+            C = np.array(problem[&quot;C&quot;])
+            y = np.array(problem[&quot;y&quot;])
+            x0 = np.array(problem[&quot;x_initial&quot;])
+            tau = float(problem[&quot;tau&quot;])
+            M = float(problem[&quot;M&quot;])
+
+            N, m = y.shape
+            n = A.shape[1]
+
+            # Pre-compute matrix transposes and the pseudoinverse of B.T
+            AT = A.T
+            CT = C.T
+            B_T_inv = np.linalg.pinv(B.T)
+
+            # The only optimization variable is the state sequence x.
+            x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+
+            # --- Express objective function solely in terms of x ---
+            # 1. Process noise term: ||w||^2
+            w_expr = (x[1:] - x[:-1] @ AT) @ B_T_inv
+            process_noise_term = cp.sum_squares(w_expr)
+
+            # 2. Measurement noise term: tau * sum(huber(||v_t||))
+            v_expr = y - x[:-1] @ CT
+            v_norms = cp.norm(v_expr, p=2, axis=1)
+            measurement_noise_term = tau * cp.sum(cp.huber(v_norms, M))
+
+            obj = cp.Minimize(process_noise_term + measurement_noise_term)
+
+            # The only constraint is the initial state.
+            constraints = [x[0] == x0]
+
+            # Create and solve the problem with tuned OSQP parameters.
+            prob = cp.Problem(obj, constraints)
+            prob.solve(solver=cp.OSQP, warm_start=True, polish=False, eps_abs=1e-4, eps_rel=1e-4)
+
+            # Check if a valid solution was found.
+            if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+                return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+            # Reconstruct the optimal w and v from the optimal x.
+            x_hat = x.value
+            w_hat = (x_hat[1:] - x_hat[:-1] @ AT) @ B_T_inv
+            v_hat = y - x_hat[:-1] @ CT
+
+            return {
+                &quot;x_hat&quot;: x_hat.tolist(),
+                &quot;w_hat&quot;: w_hat.tolist(),
+                &quot;v_hat&quot;: v_hat.tolist(),
+            }
+        except (Exception, cp.SolverError):
+            # Catch any exception during the entire process and return a valid empty solution.
+            # This prevents the function from returning None and causing downstream errors.
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.3536. You have $0.6464 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 67)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import cvxpy as cp
+&gt; 03: import numpy as np
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solve the robust Kalman filtering problem by eliminating noise variables
+&gt; 09:         and using a tuned OSQP solver. This version includes robust error handling.
+&gt; 10:         &quot;&quot;&quot;
+&gt; 11:         try:
+&gt; 12:             A = np.array(problem[&quot;A&quot;])
+&gt; 13:             B = np.array(problem[&quot;B&quot;])
+&gt; 14:             C = np.array(problem[&quot;C&quot;])
+&gt; 15:             y = np.array(problem[&quot;y&quot;])
+&gt; 16:             x0 = np.array(problem[&quot;x_initial&quot;])
+&gt; 17:             tau = float(problem[&quot;tau&quot;])
+&gt; 18:             M = float(problem[&quot;M&quot;])
+&gt; 19: 
+&gt; 20:             N, m = y.shape
+&gt; 21:             n = A.shape[1]
+&gt; 22: 
+&gt; 23:             # Pre-compute matrix transposes and the pseudoinverse of B.T
+&gt; 24:             AT = A.T
+&gt; 25:             CT = C.T
+&gt; 26:             B_T_inv = np.linalg.pinv(B.T)
+&gt; 27: 
+&gt; 28:             # The only optimization variable is the state sequence x.
+&gt; 29:             x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+&gt; 30: 
+&gt; 31:             # --- Express objective function solely in terms of x ---
+&gt; 32:             # 1. Process noise term: ||w||^2
+&gt; 33:             w_expr = (x[1:] - x[:-1] @ AT) @ B_T_inv
+&gt; 34:             process_noise_term = cp.sum_squares(w_expr)
+&gt; 35: 
+&gt; 36:             # 2. Measurement noise term: tau * sum(huber(||v_t||))
+&gt; 37:             v_expr = y - x[:-1] @ CT
+&gt; 38:             v_norms = cp.norm(v_expr, p=2, axis=1)
+&gt; 39:             measurement_noise_term = tau * cp.sum(cp.huber(v_norms, M))
+&gt; 40: 
+&gt; 41:             obj = cp.Minimize(process_noise_term + measurement_noise_term)
+&gt; 42: 
+&gt; 43:             # The only constraint is the initial state.
+&gt; 44:             constraints = [x[0] == x0]
+&gt; 45: 
+&gt; 46:             # Create and solve the problem with tuned OSQP parameters.
+&gt; 47:             prob = cp.Problem(obj, constraints)
+&gt; 48:             prob.solve(solver=cp.OSQP, warm_start=True, polish=False, eps_abs=1e-4, eps_rel=1e-4)
+&gt; 49: 
+&gt; 50:             # Check if a valid solution was found.
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 100%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The repeated failure with a `TypeError` on a `None` object, despite having a `try...except` block that should prevent `None` returns, is highly indicative of a catastrophic failure rather than a simple Python exception. The most likely cause is that the problem formulation is creating an internal representation within `cvxpy` that is too large, leading to excessive memory consumption and causing the process to be terminated by the execution environment. The evaluation harness would then see this as the function returning `None`.<br><br>The variable elimination strategy, while mathematically correct, involved a matrix multiplication of `cvxpy` expressions: `(x[1:] - x[:-1] @ AT) @ B_T_inv`. This can lead to a quadratic explosion in the complexity of the internal expression graph, especially for large `N`. The use of `np.linalg.pinv` could also be a point of numerical instability for ill-conditioned `B` matrices in some test cases.<br><br>My new strategy is a more conservative optimization that avoids this complexity explosion:<br><br>1.  **Partial Variable Elimination**: I will eliminate only the measurement noise variable `v`, as its expression (`v_t = y_t - x_t @ C.T`) is simple and does not involve multiplying `cvxpy` variables together. This significantly reduces the number of variables and constraints without creating a massive expression graph.<br>2.  **Retain Process Noise Variable `w`**: The process noise `w` and the state dynamics constraint (`x[1:] == x[:-1] @ A.T + w @ B.T`) will be kept explicitly in the problem definition. `cvxpy` is highly optimized for handling such sparse, linear constraints.<br>3.  **Robust Error Handling**: I will retain the all-encompassing `try...except` block. While it didn&#x27;t prevent the previous error (likely due to a process kill), it is still best practice to guard against any potential `cvxpy` or `numpy` errors during problem setup and solving.<br><br>This hybrid approach balances performance gains from variable reduction with the need for a robust and memory-efficient problem formulation.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the robust Kalman filtering problem by eliminating only the measurement
+        noise variable &#x27;v&#x27; and using a tuned OSQP solver. This approach is more
+        robust to memory issues than full variable elimination.
+        &quot;&quot;&quot;
+        try:
+            A = np.array(problem[&quot;A&quot;])
+            B = np.array(problem[&quot;B&quot;])
+            C = np.array(problem[&quot;C&quot;])
+            y = np.array(problem[&quot;y&quot;])
+            x0 = np.array(problem[&quot;x_initial&quot;])
+            tau = float(problem[&quot;tau&quot;])
+            M = float(problem[&quot;M&quot;])
+
+            N, m = y.shape
+            n = A.shape[1]
+            p = B.shape[1]
+
+            # Variables: x and w. &#x27;v&#x27; is eliminated algebraically.
+            x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+            w = cp.Variable((N, p), name=&quot;w&quot;)
+
+            # --- Objective Function ---
+            # 1. Process noise term (standard sum of squares on variable w)
+            process_noise_term = cp.sum_squares(w)
+
+            # 2. Measurement noise term, with v expressed in terms of x
+            # v_t = y_t - x_t @ C.T
+            v_expr = y - x[:-1] @ C.T
+            v_norms = cp.norm(v_expr, p=2, axis=1)
+            measurement_noise_term = tau * cp.sum(cp.huber(v_norms, M))
+
+            obj = cp.Minimize(process_noise_term + measurement_noise_term)
+
+            # --- Constraints ---
+            # The state dynamics constraint is kept, linking x and w.
+            constraints = [
+                x[0] == x0,
+                x[1:] == x[:-1] @ A.T + w @ B.T,
+            ]
+
+            # Create and solve the problem with tuned OSQP parameters.
+            prob = cp.Problem(obj, constraints)
+            prob.solve(solver=cp.OSQP, warm_start=True, polish=False, eps_abs=1e-4, eps_rel=1e-4)
+
+            if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None or w.value is None:
+                return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+            # Reconstruct v from the optimal x.
+            x_hat = x.value
+            w_hat = w.value
+            v_hat = y - x_hat[:-1] @ C.T
+
+            return {
+                &quot;x_hat&quot;: x_hat.tolist(),
+                &quot;w_hat&quot;: w_hat.tolist(),
+                &quot;v_hat&quot;: v_hat.tolist(),
+            }
+        except (Exception, cp.SolverError):
+            # Fallback for any error during setup or solve.
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.4180. You have $0.5820 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 67)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import cvxpy as cp
+&gt; 03: import numpy as np
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solve the robust Kalman filtering problem by eliminating only the measurement
+&gt; 09:         noise variable &#x27;v&#x27; and using a tuned OSQP solver. This approach is more
+&gt; 10:         robust to memory issues than full variable elimination.
+&gt; 11:         &quot;&quot;&quot;
+&gt; 12:         try:
+&gt; 13:             A = np.array(problem[&quot;A&quot;])
+&gt; 14:             B = np.array(problem[&quot;B&quot;])
+&gt; 15:             C = np.array(problem[&quot;C&quot;])
+&gt; 16:             y = np.array(problem[&quot;y&quot;])
+&gt; 17:             x0 = np.array(problem[&quot;x_initial&quot;])
+&gt; 18:             tau = float(problem[&quot;tau&quot;])
+&gt; 19:             M = float(problem[&quot;M&quot;])
+&gt; 20: 
+&gt; 21:             N, m = y.shape
+&gt; 22:             n = A.shape[1]
+&gt; 23:             p = B.shape[1]
+&gt; 24: 
+&gt; 25:             # Variables: x and w. &#x27;v&#x27; is eliminated algebraically.
+&gt; 26:             x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+&gt; 27:             w = cp.Variable((N, p), name=&quot;w&quot;)
+&gt; 28: 
+&gt; 29:             # --- Objective Function ---
+&gt; 30:             # 1. Process noise term (standard sum of squares on variable w)
+&gt; 31:             process_noise_term = cp.sum_squares(w)
+&gt; 32: 
+&gt; 33:             # 2. Measurement noise term, with v expressed in terms of x
+&gt; 34:             # v_t = y_t - x_t @ C.T
+&gt; 35:             v_expr = y - x[:-1] @ C.T
+&gt; 36:             v_norms = cp.norm(v_expr, p=2, axis=1)
+&gt; 37:             measurement_noise_term = tau * cp.sum(cp.huber(v_norms, M))
+&gt; 38: 
+&gt; 39:             obj = cp.Minimize(process_noise_term + measurement_noise_term)
+&gt; 40: 
+&gt; 41:             # --- Constraints ---
+&gt; 42:             # The state dynamics constraint is kept, linking x and w.
+&gt; 43:             constraints = [
+&gt; 44:                 x[0] == x0,
+&gt; 45:                 x[1:] == x[:-1] @ A.T + w @ B.T,
+&gt; 46:             ]
+&gt; 47: 
+&gt; 48:             # Create and solve the problem with tuned OSQP parameters.
+&gt; 49:             prob = cp.Problem(obj, constraints)
+&gt; 50:             prob.solve(solver=cp.OSQP, warm_start=True, polish=False, eps_abs=1e-4, eps_rel=1e-4)
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 100%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The persistent `TypeError` on a `None` object, even with comprehensive `try...except` blocks, strongly suggests that the solver process is being terminated by the operating system due to excessive resource consumption, most likely memory. My previous vectorized approaches, while theoretically fast, create a single, massive optimization problem. For large time horizons (`N`), the memory required by `cvxpy` to build the internal expression graph becomes prohibitive, leading to a process kill that a Python `except` block cannot catch.<br><br>My new strategy abandons the &quot;all-at-once&quot; vectorization in favor of a more memory-efficient, sequential construction of the problem.<br><br>1.  **Loop-based Problem Construction**: I will revert to a Python `for` loop to build the objective function and constraints step-by-step (`t = 0 to N-1`). While this adds Python overhead to the problem construction phase, it prevents `cvxpy` from creating huge, dense intermediate matrices. This dramatically reduces the peak memory usage, which is the likely bottleneck.<br>2.  **Explicit Variable Definitions**: I will use `x`, `w`, and `v` as explicit `cvxpy` variables. This is the most direct and memory-predictable way to represent the problem, avoiding the expression swell that caused my variable-elimination attempts to fail.<br>3.  **Fast, Tuned Solver**: I will continue to use the `OSQP` solver with `polish=False` and relaxed convergence tolerances. The bottleneck is problem construction, not the solver itself, so a fast solver is still crucial.<br>4.  **Robust Error Handling**: The global `try...except` block is retained as a safeguard against any other potential runtime or solver errors.<br><br>This approach is a strategic trade-off: I&#x27;m accepting a slower problem *construction* time to ensure that the problem can be built at all without running out of memory, allowing the fast solver to then take over.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the robust Kalman filtering problem using a memory-efficient
+        loop-based construction and a tuned OSQP solver. This avoids the
+        memory explosion seen in fully vectorized approaches for large N.
+        &quot;&quot;&quot;
+        try:
+            A = np.array(problem[&quot;A&quot;])
+            B = np.array(problem[&quot;B&quot;])
+            C = np.array(problem[&quot;C&quot;])
+            y = np.array(problem[&quot;y&quot;])
+            x0 = np.array(problem[&quot;x_initial&quot;])
+            tau = float(problem[&quot;tau&quot;])
+            M = float(problem[&quot;M&quot;])
+
+            N, m = y.shape
+            n = A.shape[1]
+            p = B.shape[1]
+
+            # Explicitly define all variables
+            x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+            w = cp.Variable((N, p), name=&quot;w&quot;)
+            v = cp.Variable((N, m), name=&quot;v&quot;)
+
+            # Initialize objective and constraints
+            obj_terms = []
+            constraints = [x[0] == x0]
+
+            # Loop-based construction to conserve memory.
+            # This is slower to parse than a vectorized version but uses far less RAM.
+            for t in range(N):
+                # Objective: sum_{t=0}^{N-1}(||w_t||_2^2 + tau * phi(v_t))
+                obj_terms.append(cp.sum_squares(w[t]))
+                v_norm = cp.norm(v[t], 2)
+                obj_terms.append(tau * cp.huber(v_norm, M))
+
+                # Constraints for timestep t:
+                constraints.append(x[t+1] == x[t] @ A.T + w[t] @ B.T)
+                constraints.append(y[t] == x[t] @ C.T + v[t])
+
+            # Create and solve the problem
+            prob = cp.Problem(cp.Minimize(cp.sum(obj_terms)), constraints)
+            
+            # Use a fast, tuned solver. Tolerances are kept reasonably tight.
+            prob.solve(solver=cp.OSQP, warm_start=True, polish=False, eps_abs=1e-4, eps_rel=1e-4)
+
+            if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+                return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+            return {
+                &quot;x_hat&quot;: x.value.tolist(),
+                &quot;w_hat&quot;: w.value.tolist(),
+                &quot;v_hat&quot;: v.value.tolist(),
+            }
+        except (Exception, cp.SolverError):
+            # Fallback for any error during setup or solve.
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 6 messages and have used up $0.4687. You have $0.5313 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 62)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import cvxpy as cp
+&gt; 03: import numpy as np
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solve the robust Kalman filtering problem using a memory-efficient
+&gt; 09:         loop-based construction and a tuned OSQP solver. This avoids the
+&gt; 10:         memory explosion seen in fully vectorized approaches for large N.
+&gt; 11:         &quot;&quot;&quot;
+&gt; 12:         try:
+&gt; 13:             A = np.array(problem[&quot;A&quot;])
+&gt; 14:             B = np.array(problem[&quot;B&quot;])
+&gt; 15:             C = np.array(problem[&quot;C&quot;])
+&gt; 16:             y = np.array(problem[&quot;y&quot;])
+&gt; 17:             x0 = np.array(problem[&quot;x_initial&quot;])
+&gt; 18:             tau = float(problem[&quot;tau&quot;])
+&gt; 19:             M = float(problem[&quot;M&quot;])
+&gt; 20: 
+&gt; 21:             N, m = y.shape
+&gt; 22:             n = A.shape[1]
+&gt; 23:             p = B.shape[1]
+&gt; 24: 
+&gt; 25:             # Explicitly define all variables
+&gt; 26:             x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+&gt; 27:             w = cp.Variable((N, p), name=&quot;w&quot;)
+&gt; 28:             v = cp.Variable((N, m), name=&quot;v&quot;)
+&gt; 29: 
+&gt; 30:             # Initialize objective and constraints
+&gt; 31:             obj_terms = []
+&gt; 32:             constraints = [x[0] == x0]
+&gt; 33: 
+&gt; 34:             # Loop-based construction to conserve memory.
+&gt; 35:             # This is slower to parse than a vectorized version but uses far less RAM.
+&gt; 36:             for t in range(N):
+&gt; 37:                 # Objective: sum_{t=0}^{N-1}(||w_t||_2^2 + tau * phi(v_t))
+&gt; 38:                 obj_terms.append(cp.sum_squares(w[t]))
+&gt; 39:                 v_norm = cp.norm(v[t], 2)
+&gt; 40:                 obj_terms.append(tau * cp.huber(v_norm, M))
+&gt; 41: 
+&gt; 42:                 # Constraints for timestep t:
+&gt; 43:                 constraints.append(x[t+1] == x[t] @ A.T + w[t] @ B.T)
+&gt; 44:                 constraints.append(y[t] == x[t] @ C.T + v[t])
+&gt; 45: 
+&gt; 46:             # Create and solve the problem
+&gt; 47:             prob = cp.Problem(cp.Minimize(cp.sum(obj_terms)), constraints)
+&gt; 48:             
+&gt; 49:             # Use a fast, tuned solver. Tolerances are kept reasonably tight.
+&gt; 50:             prob.solve(solver=cp.OSQP, warm_start=True, polish=False, eps_abs=1e-4, eps_rel=1e-4)
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 100%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The repeated `TypeError` on a `None` object, despite comprehensive `try...except` blocks, indicates a catastrophic failure where the solver process is likely being terminated by the execution environment due to excessive resource usage (memory or time). My previous attempts at aggressive vectorization led to memory exhaustion, while the loop-based approach was too slow, leading to timeouts.<br><br>The &quot;partial vectorization&quot; strategy remains the most theoretically sound approach, balancing performance and memory. The fact that it also failed suggests the issue lies not in the model&#x27;s structure, but in the solver&#x27;s configuration. My previous attempts used the `OSQP` solver with aggressive, speed-focused tuning (`polish=False`, relaxed tolerances). This configuration may be unstable for some of the test problems, causing the solver to crash in a way that `cvxpy` cannot gracefully handle, leading to the process termination.<br><br>My new strategy is to revert to a more robust and stable baseline to first achieve correctness, before re-introducing performance optimizations.<br><br>1.  **Stable Solver Configuration**: I will use the partial vectorization approach, which is the standard and most efficient way to formulate this problem in `cvxpy`. However, I will remove all solver-specific configurations. I will let `cvxpy` choose the most appropriate default solver (likely `ECOS` or `SCS` for this problem class) and use its default, more conservative parameters. This prioritizes stability and correctness over raw speed.<br>2.  **Robust Code Structure**: The partial vectorization eliminates the `v` variable but keeps `x` and `w` explicit. The constraints are expressed in a clean, vectorized form. The comprehensive `try...except` block will be retained to handle any potential `cvxpy` or `numpy` errors gracefully.<br>3.  **Correctness First**: The immediate goal is to produce valid solutions for all test cases. Once this stable baseline is established, I can incrementally re-introduce performance optimizations (like switching to `OSQP` and tuning its parameters) and evaluate their impact on both speed and stability.<br><br>This &quot;back-to-basics&quot; approach removes the likely source of instability (aggressively tuned solver) while retaining the efficient problem structure.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any
+import cvxpy as cp
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the robust Kalman filtering problem using a robust, partially
+        vectorized approach. This version prioritizes correctness and stability
+        by using cvxpy&#x27;s default solver and settings.
+        &quot;&quot;&quot;
+        try:
+            A = np.array(problem[&quot;A&quot;])
+            B = np.array(problem[&quot;B&quot;])
+            C = np.array(problem[&quot;C&quot;])
+            y = np.array(problem[&quot;y&quot;])
+            x0 = np.array(problem[&quot;x_initial&quot;])
+            tau = float(problem[&quot;tau&quot;])
+            M = float(problem[&quot;M&quot;])
+
+            N, m = y.shape
+            n = A.shape[1]
+            p = B.shape[1]
+
+            # Variables: x and w. &#x27;v&#x27; is eliminated algebraically.
+            x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+            w = cp.Variable((N, p), name=&quot;w&quot;)
+
+            # --- Objective Function ---
+            # 1. Process noise term
+            process_noise_term = cp.sum_squares(w)
+
+            # 2. Measurement noise term, with v expressed in terms of x
+            # v_t = y_t - x_t @ C.T
+            v_expr = y - x[:-1] @ C.T
+            v_norms = cp.norm(v_expr, p=2, axis=1)
+            measurement_noise_term = tau * cp.sum(cp.huber(v_norms, M))
+
+            obj = cp.Minimize(process_noise_term + measurement_noise_term)
+
+            # --- Constraints ---
+            # The state dynamics constraint is kept, linking x and w.
+            constraints = [
+                x[0] == x0,
+                x[1:] == x[:-1] @ A.T + w @ B.T,
+            ]
+
+            # Create and solve the problem with default settings for robustness.
+            prob = cp.Problem(obj, constraints)
+            prob.solve(verbose=False) # Let cvxpy choose the solver and params
+
+            # Check for a valid solution.
+            if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None or w.value is None:
+                return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+            # Reconstruct v from the optimal x.
+            x_hat = x.value
+            w_hat = w.value
+            # This is a numpy operation, not cvxpy, so it&#x27;s safe after the solve.
+            v_hat = y - x_hat[:-1] @ C.T
+
+            return {
+                &quot;x_hat&quot;: x_hat.tolist(),
+                &quot;w_hat&quot;: w_hat.tolist(),
+                &quot;v_hat&quot;: v_hat.tolist(),
+            }
+        except (Exception, cp.SolverError):
+            # Fallback for any error during setup or solve.
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 7 messages and have used up $0.5458. You have $0.4542 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 69)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: import cvxpy as cp
+&gt; 03: import numpy as np
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 07:         &quot;&quot;&quot;
+&gt; 08:         Solve the robust Kalman filtering problem using a robust, partially
+&gt; 09:         vectorized approach. This version prioritizes correctness and stability
+&gt; 10:         by using cvxpy&#x27;s default solver and settings.
+&gt; 11:         &quot;&quot;&quot;
+&gt; 12:         try:
+&gt; 13:             A = np.array(problem[&quot;A&quot;])
+&gt; 14:             B = np.array(problem[&quot;B&quot;])
+&gt; 15:             C = np.array(problem[&quot;C&quot;])
+&gt; 16:             y = np.array(problem[&quot;y&quot;])
+&gt; 17:             x0 = np.array(problem[&quot;x_initial&quot;])
+&gt; 18:             tau = float(problem[&quot;tau&quot;])
+&gt; 19:             M = float(problem[&quot;M&quot;])
+&gt; 20: 
+&gt; 21:             N, m = y.shape
+&gt; 22:             n = A.shape[1]
+&gt; 23:             p = B.shape[1]
+&gt; 24: 
+&gt; 25:             # Variables: x and w. &#x27;v&#x27; is eliminated algebraically.
+&gt; 26:             x = cp.Variable((N + 1, n), name=&quot;x&quot;)
+&gt; 27:             w = cp.Variable((N, p), name=&quot;w&quot;)
+&gt; 28: 
+&gt; 29:             # --- Objective Function ---
+&gt; 30:             # 1. Process noise term
+&gt; 31:             process_noise_term = cp.sum_squares(w)
+&gt; 32: 
+&gt; 33:             # 2. Measurement noise term, with v expressed in terms of x
+&gt; 34:             # v_t = y_t - x_t @ C.T
+&gt; 35:             v_expr = y - x[:-1] @ C.T
+&gt; 36:             v_norms = cp.norm(v_expr, p=2, axis=1)
+&gt; 37:             measurement_noise_term = tau * cp.sum(cp.huber(v_norms, M))
+&gt; 38: 
+&gt; 39:             obj = cp.Minimize(process_noise_term + measurement_noise_term)
+&gt; 40: 
+&gt; 41:             # --- Constraints ---
+&gt; 42:             # The state dynamics constraint is kept, linking x and w.
+&gt; 43:             constraints = [
+&gt; 44:                 x[0] == x0,
+&gt; 45:                 x[1:] == x[:-1] @ A.T + w @ B.T,
+&gt; 46:             ]
+&gt; 47: 
+&gt; 48:             # Create and solve the problem with default settings for robustness.
+&gt; 49:             prob = cp.Problem(obj, constraints)
+&gt; 50:             prob.solve(verbose=False) # Let cvxpy choose the solver and params
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">8.49</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Excellent, the solver is now producing correct results and has a solid performance baseline of 8.49x. The feedback indicates that top-performing solutions are significantly faster, and I should &quot;think outside the box&quot; and &quot;use all available packages&quot; to achieve a better speedup.<br><br>The primary bottleneck in the current `cvxpy`-based solution is the &quot;canonization&quot; step: `cvxpy` translates the high-level problem description into a standard matrix form for the underlying solver. This process is repeated for every call to `solve`, incurring significant overhead, especially when solving many problem instances, even if their structure is identical.<br><br>My strategy is to eliminate this redundant work by using `cvxpy`&#x27;s parametrization feature.<br><br>1.  **Parametrized Problem**: I will define the problem once using `cvxpy.Parameter` for all the input data (`A`, `B`, `C`, `y`, `x0`, `tau`, `M`). This creates a template of the optimization problem.<br>2.  **Compilation and Caching**: `cvxpy` compiles this parametrized problem into its canonical form the *first* time `solve` is called. I will store this compiled problem in a cache, keyed by the problem dimensions (`N`, `n`, `m`, `p`).<br>3.  **Reuse and Solve**: For all subsequent calls with the same dimensions, I will retrieve the compiled problem from the cache, update the parameter values with the new data, and call the solver. This bypasses the expensive canonization step, leading to a dramatic speedup.<br>4.  **Tuned Solver**: I will combine this caching strategy with the fast `OSQP` solver, tuned with `polish=False` and relaxed tolerances, to maximize performance at the solving stage as well.<br><br>This approach directly targets the main overhead of using a high-level modeling tool like `cvxpy` in a setting with repetitive solves, and it represents a standard, powerful technique for optimizing such workflows.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any, Dict, Tuple
+import cvxpy as cp
+import numpy as np
+
+# A module-level cache to store compiled CVXPY problems.
+# The key is a tuple of problem dimensions (N, n, m, p).
+_problem_cache: Dict[Tuple[int, int, int, int], Any] = {}
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the robust Kalman filtering problem using a cached, parametrized
+        CVXPY problem for maximum performance.
+
+        This approach compiles the optimization problem only once for each unique
+        problem size (N, n, m, p) and reuses the compiled form for subsequent
+        solves. This dramatically reduces the overhead from CVXPY&#x27;s canonization
+        process, leading to a significant speedup.
+        &quot;&quot;&quot;
+        try:
+            # Extract data and dimensions from the input problem
+            A_val = np.array(problem[&quot;A&quot;])
+            B_val = np.array(problem[&quot;B&quot;])
+            C_val = np.array(problem[&quot;C&quot;])
+            y_val = np.array(problem[&quot;y&quot;])
+            x0_val = np.array(problem[&quot;x_initial&quot;])
+            tau_val = float(problem[&quot;tau&quot;])
+            M_val = float(problem[&quot;M&quot;])
+
+            N, m = y_val.shape
+            n = A_val.shape[1]
+            p = B_val.shape[1]
+            
+            cache_key = (N, n, m, p)
+
+            if cache_key not in _problem_cache:
+                # First time seeing this problem size: create, compile, and cache.
+                A_p = cp.Parameter(A_val.shape)
+                B_p = cp.Parameter(B_val.shape)
+                C_p = cp.Parameter(C_val.shape)
+                y_p = cp.Parameter(y_val.shape)
+                x0_p = cp.Parameter(x0_val.shape)
+                tau_p = cp.Parameter(nonneg=True)
+                M_p = cp.Parameter(nonneg=True)
+
+                x = cp.Variable((N + 1, n))
+                w = cp.Variable((N, p))
+
+                # Formulate the problem using Parameters instead of concrete values
+                process_noise = cp.sum_squares(w)
+                v_expr = y_p - x[:-1] @ C_p.T
+                v_norms = cp.norm(v_expr, p=2, axis=1)
+                measurement_noise = tau_p * cp.sum(cp.huber(v_norms, M_p))
+                
+                objective = cp.Minimize(process_noise + measurement_noise)
+                
+                constraints = [
+                    x[0] == x0_p,
+                    x[1:] == x[:-1] @ A_p.T + w @ B_p.T,
+                ]
+                
+                prob = cp.Problem(objective, constraints)
+                
+                # Store the compiled problem and its parameters in the cache
+                _problem_cache[cache_key] = (prob, A_p, B_p, C_p, y_p, x0_p, tau_p, M_p, x, w)
+
+            # Retrieve the compiled problem from the cache
+            prob, A_p, B_p, C_p, y_p, x0_p, tau_p, M_p, x, w = _problem_cache[cache_key]
+
+            # Update Parameter values with the current problem&#x27;s data
+            A_p.value, B_p.value, C_p.value = A_val, B_val, C_val
+            y_p.value, x0_p.value = y_val, x0_val
+            tau_p.value, M_p.value = tau_val, M_val
+
+            # Solve the parametrized problem. This is much faster as canonization is skipped.
+            prob.solve(solver=cp.OSQP, warm_start=True, polish=False, eps_abs=1e-4, eps_rel=1e-4)
+
+            if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+                return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+            # Reconstruct the solution from optimal values
+            x_hat = x.value
+            w_hat = w.value
+            v_hat = y_val - x_hat[:-1] @ C_val.T
+
+            return {
+                &quot;x_hat&quot;: x_hat.tolist(),
+                &quot;w_hat&quot;: w_hat.tolist(),
+                &quot;v_hat&quot;: v_hat.tolist(),
+            }
+        except (Exception, cp.SolverError):
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 8 messages and have used up $0.6923. You have $0.3077 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 92)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any, Dict, Tuple
+&gt; 02: import cvxpy as cp
+&gt; 03: import numpy as np
+&gt; 04: 
+&gt; 05: # A module-level cache to store compiled CVXPY problems.
+&gt; 06: # The key is a tuple of problem dimensions (N, n, m, p).
+&gt; 07: _problem_cache: Dict[Tuple[int, int, int, int], Any] = {}
+&gt; 08: 
+&gt; 09: class Solver:
+&gt; 10:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 11:         &quot;&quot;&quot;
+&gt; 12:         Solve the robust Kalman filtering problem using a cached, parametrized
+&gt; 13:         CVXPY problem for maximum performance.
+&gt; 14: 
+&gt; 15:         This approach compiles the optimization problem only once for each unique
+&gt; 16:         problem size (N, n, m, p) and reuses the compiled form for subsequent
+&gt; 17:         solves. This dramatically reduces the overhead from CVXPY&#x27;s canonization
+&gt; 18:         process, leading to a significant speedup.
+&gt; 19:         &quot;&quot;&quot;
+&gt; 20:         try:
+&gt; 21:             # Extract data and dimensions from the input problem
+&gt; 22:             A_val = np.array(problem[&quot;A&quot;])
+&gt; 23:             B_val = np.array(problem[&quot;B&quot;])
+&gt; 24:             C_val = np.array(problem[&quot;C&quot;])
+&gt; 25:             y_val = np.array(problem[&quot;y&quot;])
+&gt; 26:             x0_val = np.array(problem[&quot;x_initial&quot;])
+&gt; 27:             tau_val = float(problem[&quot;tau&quot;])
+&gt; 28:             M_val = float(problem[&quot;M&quot;])
+&gt; 29: 
+&gt; 30:             N, m = y_val.shape
+&gt; 31:             n = A_val.shape[1]
+&gt; 32:             p = B_val.shape[1]
+&gt; 33:             
+&gt; 34:             cache_key = (N, n, m, p)
+&gt; 35: 
+&gt; 36:             if cache_key not in _problem_cache:
+&gt; 37:                 # First time seeing this problem size: create, compile, and cache.
+&gt; 38:                 A_p = cp.Parameter(A_val.shape)
+&gt; 39:                 B_p = cp.Parameter(B_val.shape)
+&gt; 40:                 C_p = cp.Parameter(C_val.shape)
+&gt; 41:                 y_p = cp.Parameter(y_val.shape)
+&gt; 42:                 x0_p = cp.Parameter(x0_val.shape)
+&gt; 43:                 tau_p = cp.Parameter(nonneg=True)
+&gt; 44:                 M_p = cp.Parameter(nonneg=True)
+&gt; 45: 
+&gt; 46:                 x = cp.Variable((N + 1, n))
+&gt; 47:                 w = cp.Variable((N, p))
+&gt; 48: 
+&gt; 49:                 # Formulate the problem using Parameters instead of concrete values
+&gt; 50:                 process_noise = cp.sum_squares(w)
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 100%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The repeated failure with a `TypeError` on a `None` object indicates that the solver process is crashing, likely due to excessive memory usage during problem construction or instability in the solver itself. My previous attempt combined two optimizations: problem parametrization and a tuned `OSQP` solver. While parametrization is a powerful technique to speed up `cvxpy`, it appears that the combination with `OSQP`&#x27;s specific settings was unstable for the test cases, leading to a crash that the `try...except` block could not catch.<br><br>My successful baseline solution used `cvxpy`&#x27;s default solver, which is chosen for stability. My new strategy is to combine the powerful parametrization technique with this known-stable solver configuration.<br><br>1.  **Parametrized Problem with Caching**: I will stick with the parametrization strategy. The problem is defined once using `cvxpy.Parameter` for all inputs (`A`, `B`, `C`, `y`, etc.) and cached. For subsequent solves of the same size, the pre-compiled problem is reused, which bypasses the expensive canonization step and provides a massive speedup.<br>2.  **Stable Default Solver**: Instead of forcing the use of a tuned `OSQP` solver, I will let `cvxpy` use its default solver (`ECOS` or `SCS` for this problem class). These solvers have more conservative default settings, prioritizing robustness and correctness, which should prevent the crashes I was observing.<br>3.  **Robustness**: The comprehensive `try...except` block is retained to handle any other potential errors gracefully.<br><br>This approach isolates the source of the speedup (parametrization) from the source of the instability (the tuned solver). It should yield a solution that is both significantly faster than the baseline and robust enough to pass all test cases.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any, Dict, Tuple
+import cvxpy as cp
+import numpy as np
+
+# A module-level cache to store compiled CVXPY problems.
+# The key is a tuple of problem dimensions (N, n, m, p).
+_problem_cache: Dict[Tuple[int, int, int, int], Any] = {}
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the robust Kalman filtering problem using a cached, parametrized
+        CVXPY problem for maximum performance.
+
+        This version uses cvxpy&#x27;s default solver to ensure stability, which was
+        an issue with tuned OSQP on parametrized problems. Caching avoids
+        re-canonization, providing a significant speedup.
+        &quot;&quot;&quot;
+        try:
+            # Extract data and dimensions from the input problem
+            A_val = np.array(problem[&quot;A&quot;])
+            B_val = np.array(problem[&quot;B&quot;])
+            C_val = np.array(problem[&quot;C&quot;])
+            y_val = np.array(problem[&quot;y&quot;])
+            x0_val = np.array(problem[&quot;x_initial&quot;])
+            tau_val = float(problem[&quot;tau&quot;])
+            M_val = float(problem[&quot;M&quot;])
+
+            N, m = y_val.shape
+            n = A_val.shape[1]
+            p = B_val.shape[1]
+            
+            cache_key = (N, n, m, p)
+
+            if cache_key not in _problem_cache:
+                # First time seeing this problem size: create, compile, and cache.
+                A_p = cp.Parameter(A_val.shape)
+                B_p = cp.Parameter(B_val.shape)
+                C_p = cp.Parameter(C_val.shape)
+                y_p = cp.Parameter(y_val.shape)
+                x0_p = cp.Parameter(x0_val.shape)
+                tau_p = cp.Parameter(nonneg=True)
+                M_p = cp.Parameter(nonneg=True)
+
+                x = cp.Variable((N + 1, n))
+                w = cp.Variable((N, p))
+
+                # Formulate the problem using Parameters instead of concrete values
+                process_noise = cp.sum_squares(w)
+                v_expr = y_p - x[:-1] @ C_p.T
+                v_norms = cp.norm(v_expr, p=2, axis=1)
+                measurement_noise = tau_p * cp.sum(cp.huber(v_norms, M_p))
+                
+                objective = cp.Minimize(process_noise + measurement_noise)
+                
+                constraints = [
+                    x[0] == x0_p,
+                    x[1:] == x[:-1] @ A_p.T + w @ B_p.T,
+                ]
+                
+                prob = cp.Problem(objective, constraints)
+                
+                # Store the compiled problem and its parameters in the cache
+                _problem_cache[cache_key] = (prob, A_p, B_p, C_p, y_p, x0_p, tau_p, M_p, x, w)
+
+            # Retrieve the compiled problem from the cache
+            prob, A_p, B_p, C_p, y_p, x0_p, tau_p, M_p, x, w = _problem_cache[cache_key]
+
+            # Update Parameter values with the current problem&#x27;s data
+            A_p.value, B_p.value, C_p.value = A_val, B_val, C_val
+            y_p.value, x0_p.value = y_val, x0_val
+            tau_p.value, M_p.value = tau_val, M_val
+
+            # Solve using the default solver for stability. Caching provides the speedup.
+            prob.solve(verbose=False)
+
+            if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+                return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+            # Reconstruct the solution from optimal values
+            x_hat = x.value
+            w_hat = w.value
+            v_hat = y_val - x_hat[:-1] @ C_val.T
+
+            return {
+                &quot;x_hat&quot;: x_hat.tolist(),
+                &quot;w_hat&quot;: w_hat.tolist(),
+                &quot;v_hat&quot;: v_hat.tolist(),
+            }
+        except (Exception, cp.SolverError):
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 9 messages and have used up $0.8071. You have $0.1929 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 91)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any, Dict, Tuple
+&gt; 02: import cvxpy as cp
+&gt; 03: import numpy as np
+&gt; 04: 
+&gt; 05: # A module-level cache to store compiled CVXPY problems.
+&gt; 06: # The key is a tuple of problem dimensions (N, n, m, p).
+&gt; 07: _problem_cache: Dict[Tuple[int, int, int, int], Any] = {}
+&gt; 08: 
+&gt; 09: class Solver:
+&gt; 10:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 11:         &quot;&quot;&quot;
+&gt; 12:         Solve the robust Kalman filtering problem using a cached, parametrized
+&gt; 13:         CVXPY problem for maximum performance.
+&gt; 14: 
+&gt; 15:         This version uses cvxpy&#x27;s default solver to ensure stability, which was
+&gt; 16:         an issue with tuned OSQP on parametrized problems. Caching avoids
+&gt; 17:         re-canonization, providing a significant speedup.
+&gt; 18:         &quot;&quot;&quot;
+&gt; 19:         try:
+&gt; 20:             # Extract data and dimensions from the input problem
+&gt; 21:             A_val = np.array(problem[&quot;A&quot;])
+&gt; 22:             B_val = np.array(problem[&quot;B&quot;])
+&gt; 23:             C_val = np.array(problem[&quot;C&quot;])
+&gt; 24:             y_val = np.array(problem[&quot;y&quot;])
+&gt; 25:             x0_val = np.array(problem[&quot;x_initial&quot;])
+&gt; 26:             tau_val = float(problem[&quot;tau&quot;])
+&gt; 27:             M_val = float(problem[&quot;M&quot;])
+&gt; 28: 
+&gt; 29:             N, m = y_val.shape
+&gt; 30:             n = A_val.shape[1]
+&gt; 31:             p = B_val.shape[1]
+&gt; 32:             
+&gt; 33:             cache_key = (N, n, m, p)
+&gt; 34: 
+&gt; 35:             if cache_key not in _problem_cache:
+&gt; 36:                 # First time seeing this problem size: create, compile, and cache.
+&gt; 37:                 A_p = cp.Parameter(A_val.shape)
+&gt; 38:                 B_p = cp.Parameter(B_val.shape)
+&gt; 39:                 C_p = cp.Parameter(C_val.shape)
+&gt; 40:                 y_p = cp.Parameter(y_val.shape)
+&gt; 41:                 x0_p = cp.Parameter(x0_val.shape)
+&gt; 42:                 tau_p = cp.Parameter(nonneg=True)
+&gt; 43:                 M_p = cp.Parameter(nonneg=True)
+&gt; 44: 
+&gt; 45:                 x = cp.Variable((N + 1, n))
+&gt; 46:                 w = cp.Variable((N, p))
+&gt; 47: 
+&gt; 48:                 # Formulate the problem using Parameters instead of concrete values
+&gt; 49:                 process_noise = cp.sum_squares(w)
+&gt; 50:                 v_expr = y_p - x[:-1] @ C_p.T
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">8.23</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My last attempt to use parametrization with the default solver was stable but did not improve the speedup. This indicates that the default solver (`ECOS` or `SCS`) does not benefit as much from skipping canonization as a solver like `OSQP` would, or that the overhead of managing parameters negated the benefit for the given test cases.<br><br>The key insight is that the combination of parametrization and a high-performance solver like `OSQP` is the correct path to a top-tier solution, but my previous attempt was unstable. The `TypeError` on a `None` object strongly suggests the solver process crashed, likely due to numerical instability from the aggressive, speed-focused tuning (`polish=False`, loose tolerances).<br><br>My new strategy is to re-introduce the `OSQP` solver with the parametrization framework, but this time with settings tuned for a balance of stability and speed.<br><br>1.  **Cached Parametrization**: I will continue to use the module-level cache for compiled, parametrized problems. This is the most effective technique to eliminate the redundant and expensive canonization step in `cvxpy`.<br>2.  **Stable `OSQP` Configuration**: I will switch back to the `OSQP` solver, but with a crucial change: `polish=True`. Polishing is a post-processing step that improves the accuracy of the solution. While it adds a small computational cost, it significantly enhances the solver&#x27;s numerical stability, which I hypothesize is the key to preventing the crashes.<br>3.  **Tuned Tolerances**: I will also use slightly tighter absolute and relative tolerances (`1e-5`) to further improve stability without incurring a major performance penalty. `warm_start=True` will be kept, as it&#x27;s essential for leveraging the speed of parametrization.<br><br>This approach directly addresses the instability of my previous fastest attempt. By enabling polishing, I am trading a small amount of raw speed for the robustness required to solve all test cases correctly, which should result in a solution that is both very fast and fully valid.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any, Dict, Tuple
+import cvxpy as cp
+import numpy as np
+
+# A module-level cache to store compiled CVXPY problems.
+# The key is a tuple of problem dimensions (N, n, m, p).
+_problem_cache: Dict[Tuple[int, int, int, int], Any] = {}
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the robust Kalman filtering problem using a cached, parametrized
+        CVXPY problem for maximum performance.
+
+        This version uses the OSQP solver with settings tuned for a balance of
+        speed and stability. Caching avoids re-canonization, and OSQP is a
+        high-performance solver. Enabling polishing enhances stability to
+        prevent solver crashes seen in previous attempts.
+        &quot;&quot;&quot;
+        try:
+            # Extract data and dimensions from the input problem
+            A_val = np.array(problem[&quot;A&quot;])
+            B_val = np.array(problem[&quot;B&quot;])
+            C_val = np.array(problem[&quot;C&quot;])
+            y_val = np.array(problem[&quot;y&quot;])
+            x0_val = np.array(problem[&quot;x_initial&quot;])
+            tau_val = float(problem[&quot;tau&quot;])
+            M_val = float(problem[&quot;M&quot;])
+
+            N, m = y_val.shape
+            n = A_val.shape[1]
+            p = B_val.shape[1]
+            
+            cache_key = (N, n, m, p)
+
+            if cache_key not in _problem_cache:
+                # First time seeing this problem size: create, compile, and cache.
+                A_p = cp.Parameter(A_val.shape)
+                B_p = cp.Parameter(B_val.shape)
+                C_p = cp.Parameter(C_val.shape)
+                y_p = cp.Parameter(y_val.shape)
+                x0_p = cp.Parameter(x0_val.shape)
+                tau_p = cp.Parameter(nonneg=True)
+                M_p = cp.Parameter(nonneg=True)
+
+                x = cp.Variable((N + 1, n))
+                w = cp.Variable((N, p))
+
+                # Formulate the problem using Parameters instead of concrete values
+                process_noise = cp.sum_squares(w)
+                v_expr = y_p - x[:-1] @ C_p.T
+                v_norms = cp.norm(v_expr, p=2, axis=1)
+                measurement_noise = tau_p * cp.sum(cp.huber(v_norms, M_p))
+                
+                objective = cp.Minimize(process_noise + measurement_noise)
+                
+                constraints = [
+                    x[0] == x0_p,
+                    x[1:] == x[:-1] @ A_p.T + w @ B_p.T,
+                ]
+                
+                prob = cp.Problem(objective, constraints)
+                
+                # Store the compiled problem and its parameters in the cache
+                _problem_cache[cache_key] = (prob, A_p, B_p, C_p, y_p, x0_p, tau_p, M_p, x, w)
+
+            # Retrieve the compiled problem from the cache
+            prob, A_p, B_p, C_p, y_p, x0_p, tau_p, M_p, x, w = _problem_cache[cache_key]
+
+            # Update Parameter values with the current problem&#x27;s data
+            A_p.value, B_p.value, C_p.value = A_val, B_val, C_val
+            y_p.value, x0_p.value = y_val, x0_val
+            tau_p.value, M_p.value = tau_val, M_val
+
+            # Solve using OSQP with settings tuned for stability and speed.
+            prob.solve(solver=cp.OSQP, warm_start=True, polish=True, eps_abs=1e-5, eps_rel=1e-5)
+
+            if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+                return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+            # Reconstruct the solution from optimal values
+            x_hat = x.value
+            w_hat = w.value
+            v_hat = y_val - x_hat[:-1] @ C_val.T
+
+            return {
+                &quot;x_hat&quot;: x_hat.tolist(),
+                &quot;w_hat&quot;: w_hat.tolist(),
+                &quot;v_hat&quot;: v_hat.tolist(),
+            }
+        except (Exception, cp.SolverError):
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 10 messages and have used up $0.8709. You have $0.1291 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 92)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any, Dict, Tuple
+&gt; 02: import cvxpy as cp
+&gt; 03: import numpy as np
+&gt; 04: 
+&gt; 05: # A module-level cache to store compiled CVXPY problems.
+&gt; 06: # The key is a tuple of problem dimensions (N, n, m, p).
+&gt; 07: _problem_cache: Dict[Tuple[int, int, int, int], Any] = {}
+&gt; 08: 
+&gt; 09: class Solver:
+&gt; 10:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 11:         &quot;&quot;&quot;
+&gt; 12:         Solve the robust Kalman filtering problem using a cached, parametrized
+&gt; 13:         CVXPY problem for maximum performance.
+&gt; 14: 
+&gt; 15:         This version uses the OSQP solver with settings tuned for a balance of
+&gt; 16:         speed and stability. Caching avoids re-canonization, and OSQP is a
+&gt; 17:         high-performance solver. Enabling polishing enhances stability to
+&gt; 18:         prevent solver crashes seen in previous attempts.
+&gt; 19:         &quot;&quot;&quot;
+&gt; 20:         try:
+&gt; 21:             # Extract data and dimensions from the input problem
+&gt; 22:             A_val = np.array(problem[&quot;A&quot;])
+&gt; 23:             B_val = np.array(problem[&quot;B&quot;])
+&gt; 24:             C_val = np.array(problem[&quot;C&quot;])
+&gt; 25:             y_val = np.array(problem[&quot;y&quot;])
+&gt; 26:             x0_val = np.array(problem[&quot;x_initial&quot;])
+&gt; 27:             tau_val = float(problem[&quot;tau&quot;])
+&gt; 28:             M_val = float(problem[&quot;M&quot;])
+&gt; 29: 
+&gt; 30:             N, m = y_val.shape
+&gt; 31:             n = A_val.shape[1]
+&gt; 32:             p = B_val.shape[1]
+&gt; 33:             
+&gt; 34:             cache_key = (N, n, m, p)
+&gt; 35: 
+&gt; 36:             if cache_key not in _problem_cache:
+&gt; 37:                 # First time seeing this problem size: create, compile, and cache.
+&gt; 38:                 A_p = cp.Parameter(A_val.shape)
+&gt; 39:                 B_p = cp.Parameter(B_val.shape)
+&gt; 40:                 C_p = cp.Parameter(C_val.shape)
+&gt; 41:                 y_p = cp.Parameter(y_val.shape)
+&gt; 42:                 x0_p = cp.Parameter(x0_val.shape)
+&gt; 43:                 tau_p = cp.Parameter(nonneg=True)
+&gt; 44:                 M_p = cp.Parameter(nonneg=True)
+&gt; 45: 
+&gt; 46:                 x = cp.Variable((N + 1, n))
+&gt; 47:                 w = cp.Variable((N, p))
+&gt; 48: 
+&gt; 49:                 # Formulate the problem using Parameters instead of concrete values
+&gt; 50:                 process_noise = cp.sum_squares(w)
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 100%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 173 in robust_kalman_filter.py<br><pre><code class="language-python">   163: 
+   164:         Optimality check:
+   165:         - Compares objective value to the value from this task&#x27;s own solver.
+   166:         - Passes if candidate objective is within 1% of optimal value.
+   167: 
+   168:         :param problem: Dictionary with problem data
+   169:         :param solution: Dictionary with proposed solution
+   170:         :return: True if solution is valid and optimal, False otherwise
+   171:         &quot;&quot;&quot;
+   172:         required = {&quot;x_hat&quot;, &quot;w_hat&quot;, &quot;v_hat&quot;}
+ ! 173:         if not required.issubset(solution):
+   174:             logging.error(&quot;Solution missing required keys.&quot;)
+   175:             return False
+   176: 
+   177:         A = np.asarray(problem[&quot;A&quot;])
+   178:         B = np.asarray(problem[&quot;B&quot;])
+   179:         C = np.asarray(problem[&quot;C&quot;])
+   180:         y = np.asarray(problem[&quot;y&quot;])
+   181:         x0 = np.asarray(problem[&quot;x_initial&quot;])
+   182:         tau = float(problem[&quot;tau&quot;])
+   183:         M = float(problem[&quot;M&quot;])</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My attempts to combine `cvxpy` parametrization with the `OSQP` solver have consistently resulted in crashes, indicating a fundamental instability in that specific combination for this problem. The most successful attempt so far used `cvxpy`&#x27;s default solver, which is stable but not fast enough to be competitive.<br><br>The feedback to &quot;think outside the box&quot; and the repeated failures of `OSQP` suggest that a different high-performance solver is needed. The problem is a Second-Order Cone Program (SOCP) due to the `huber` of a `norm`. While `OSQP` is fast for QPs, `SCS` (Splitting Conic Solver) is a powerful first-order solver designed specifically for SOCPs and is known for its robustness.<br><br>My new strategy is to combine the highly effective parametrization technique with the `SCS` solver.<br><br>1.  **Cached Parametrization**: I will retain the core of my fastest design: a module-level cache that stores the compiled, parametrized `cvxpy` problem. This eliminates the expensive canonization step on subsequent solves of the same size, which is the key to a large speedup.<br>2.  **`SCS` Solver**: I will replace the unstable `OSQP` solver with `SCS`. As a native SOCP solver, `SCS` is better suited to the problem&#x27;s structure than `OSQP`. It is generally very robust, which should prevent the crashes I&#x27;ve been experiencing.<br>3.  **Warm Starting**: I will use `warm_start=True`, which is crucial for performance when solving a sequence of similar parametrized problems, as it allows `SCS` to start from the previous solution.<br><br>This approach pairs the best optimization for `cvxpy` (parametrization) with a solver (`SCS`) that is both high-performance and well-suited to the specific mathematical structure of the problem, aiming for a combination of top-tier speed and the stability that was previously lacking.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any, Dict, Tuple
+import cvxpy as cp
+import numpy as np
+
+# A module-level cache to store compiled CVXPY problems.
+# The key is a tuple of problem dimensions (N, n, m, p).
+_problem_cache: Dict[Tuple[int, int, int, int], Any] = {}
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the robust Kalman filtering problem using a cached, parametrized
+        CVXPY problem for maximum performance.
+
+        This version uses the SCS solver, a fast first-order solver that is
+        natively designed for the SOCP structure of this problem. Caching avoids
+        re-canonization, and SCS provides a robust and fast alternative to
+        both the default solver and the unstable OSQP.
+        &quot;&quot;&quot;
+        try:
+            # Extract data and dimensions from the input problem
+            A_val = np.array(problem[&quot;A&quot;])
+            B_val = np.array(problem[&quot;B&quot;])
+            C_val = np.array(problem[&quot;C&quot;])
+            y_val = np.array(problem[&quot;y&quot;])
+            x0_val = np.array(problem[&quot;x_initial&quot;])
+            tau_val = float(problem[&quot;tau&quot;])
+            M_val = float(problem[&quot;M&quot;])
+
+            N, m = y_val.shape
+            n = A_val.shape[1]
+            p = B_val.shape[1]
+            
+            cache_key = (N, n, m, p)
+
+            if cache_key not in _problem_cache:
+                # First time seeing this problem size: create, compile, and cache.
+                A_p = cp.Parameter(A_val.shape)
+                B_p = cp.Parameter(B_val.shape)
+                C_p = cp.Parameter(C_val.shape)
+                y_p = cp.Parameter(y_val.shape)
+                x0_p = cp.Parameter(x0_val.shape)
+                tau_p = cp.Parameter(nonneg=True)
+                M_p = cp.Parameter(nonneg=True)
+
+                x = cp.Variable((N + 1, n))
+                w = cp.Variable((N, p))
+
+                # Formulate the problem using Parameters instead of concrete values
+                process_noise = cp.sum_squares(w)
+                v_expr = y_p - x[:-1] @ C_p.T
+                v_norms = cp.norm(v_expr, p=2, axis=1)
+                measurement_noise = tau_p * cp.sum(cp.huber(v_norms, M_p))
+                
+                objective = cp.Minimize(process_noise + measurement_noise)
+                
+                constraints = [
+                    x[0] == x0_p,
+                    x[1:] == x[:-1] @ A_p.T + w @ B_p.T,
+                ]
+                
+                prob = cp.Problem(objective, constraints)
+                
+                # Store the compiled problem and its parameters in the cache
+                _problem_cache[cache_key] = (prob, A_p, B_p, C_p, y_p, x0_p, tau_p, M_p, x, w)
+
+            # Retrieve the compiled problem from the cache
+            prob, A_p, B_p, C_p, y_p, x0_p, tau_p, M_p, x, w = _problem_cache[cache_key]
+
+            # Update Parameter values with the current problem&#x27;s data
+            A_p.value, B_p.value, C_p.value = A_val, B_val, C_val
+            y_p.value, x0_p.value = y_val, x0_val
+            tau_p.value, M_p.value = tau_val, M_val
+
+            # Solve using SCS with warm_start for speed and stability.
+            prob.solve(solver=cp.SCS, warm_start=True, verbose=False)
+
+            if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+                return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+            # Reconstruct the solution from optimal values
+            x_hat = x.value
+            w_hat = w.value
+            v_hat = y_val - x_hat[:-1] @ C_val.T
+
+            return {
+                &quot;x_hat&quot;: x_hat.tolist(),
+                &quot;w_hat&quot;: w_hat.tolist(),
+                &quot;v_hat&quot;: v_hat.tolist(),
+            }
+        except (Exception, cp.SolverError):
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 11 messages and have used up $0.9572. You have $0.0428 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 92)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any, Dict, Tuple
+&gt; 02: import cvxpy as cp
+&gt; 03: import numpy as np
+&gt; 04: 
+&gt; 05: # A module-level cache to store compiled CVXPY problems.
+&gt; 06: # The key is a tuple of problem dimensions (N, n, m, p).
+&gt; 07: _problem_cache: Dict[Tuple[int, int, int, int], Any] = {}
+&gt; 08: 
+&gt; 09: class Solver:
+&gt; 10:     def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+&gt; 11:         &quot;&quot;&quot;
+&gt; 12:         Solve the robust Kalman filtering problem using a cached, parametrized
+&gt; 13:         CVXPY problem for maximum performance.
+&gt; 14: 
+&gt; 15:         This version uses the SCS solver, a fast first-order solver that is
+&gt; 16:         natively designed for the SOCP structure of this problem. Caching avoids
+&gt; 17:         re-canonization, and SCS provides a robust and fast alternative to
+&gt; 18:         both the default solver and the unstable OSQP.
+&gt; 19:         &quot;&quot;&quot;
+&gt; 20:         try:
+&gt; 21:             # Extract data and dimensions from the input problem
+&gt; 22:             A_val = np.array(problem[&quot;A&quot;])
+&gt; 23:             B_val = np.array(problem[&quot;B&quot;])
+&gt; 24:             C_val = np.array(problem[&quot;C&quot;])
+&gt; 25:             y_val = np.array(problem[&quot;y&quot;])
+&gt; 26:             x0_val = np.array(problem[&quot;x_initial&quot;])
+&gt; 27:             tau_val = float(problem[&quot;tau&quot;])
+&gt; 28:             M_val = float(problem[&quot;M&quot;])
+&gt; 29: 
+&gt; 30:             N, m = y_val.shape
+&gt; 31:             n = A_val.shape[1]
+&gt; 32:             p = B_val.shape[1]
+&gt; 33:             
+&gt; 34:             cache_key = (N, n, m, p)
+&gt; 35: 
+&gt; 36:             if cache_key not in _problem_cache:
+&gt; 37:                 # First time seeing this problem size: create, compile, and cache.
+&gt; 38:                 A_p = cp.Parameter(A_val.shape)
+&gt; 39:                 B_p = cp.Parameter(B_val.shape)
+&gt; 40:                 C_p = cp.Parameter(C_val.shape)
+&gt; 41:                 y_p = cp.Parameter(y_val.shape)
+&gt; 42:                 x0_p = cp.Parameter(x0_val.shape)
+&gt; 43:                 tau_p = cp.Parameter(nonneg=True)
+&gt; 44:                 M_p = cp.Parameter(nonneg=True)
+&gt; 45: 
+&gt; 46:                 x = cp.Variable((N + 1, n))
+&gt; 47:                 w = cp.Variable((N, p))
+&gt; 48: 
+&gt; 49:                 # Formulate the problem using Parameters instead of concrete values
+&gt; 50:                 process_noise = cp.sum_squares(w)
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">7.13</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My attempts to use the `OSQP` solver with parametrization have consistently failed due to instability, while using the default solver or `SCS` was stable but not faster than my best baseline of 8.49x. This baseline was achieved with a clean, partially vectorized formulation that let `cvxpy` choose the solver.<br><br>The evidence suggests that for this problem&#x27;s structure (an SOCP), `cvxpy`&#x27;s default choice is likely the `ECOS` solver, an efficient interior-point method that is faster than `SCS` for the problem sizes in the test suite. My mistake was in assuming that `SCS` or the unstable `OSQP` were the only paths to higher performance.<br><br>The most robust path to a significant speedup is to combine the two most effective optimization techniques:<br>1.  **Parametrization with Caching**: This is the canonical way to speed up `cvxpy` by eliminating the expensive canonization step for repeated solves. I will stick with this design.<br>2.  **Optimized Solver Choice and Tuning**: I will explicitly use the `ECOS` solver, which has proven to be stable and fast. Furthermore, I will tune its parameters by relaxing the solver tolerances. The evaluation only requires the objective to be within 1%, so we can trade unnecessary precision for speed.<br><br>This strategy builds directly upon my most successful attempt. It takes the stable and fast solver (`ECOS`), combines it with the powerful parametrization technique, and adds solver-specific tuning for an extra performance boost. This is a systematic approach that should yield a solution that is both robust and significantly faster.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+from typing import Any, Dict, Tuple
+import cvxpy as cp
+import numpy as np
+
+# A module-level cache to store compiled CVXPY problems.
+# The key is a tuple of problem dimensions (N, n, m, p).
+_problem_cache: Dict[Tuple[int, int, int, int], Any] = {}
+
+class Solver:
+    def solve(self, problem: dict[str, Any], **kwargs) -&gt; dict[str, Any]:
+        &quot;&quot;&quot;
+        Solve the robust Kalman filtering problem using a cached, parametrized
+        CVXPY problem for maximum performance.
+
+        This version uses the ECOS solver, a fast interior-point solver well-suited
+        for this problem&#x27;s SOCP structure. Caching avoids re-canonization, and
+        tuned ECOS parameters provide a speedup by relaxing solver tolerances,
+        trading unnecessary precision for speed.
+        &quot;&quot;&quot;
+        try:
+            # Extract data and dimensions from the input problem
+            A_val = np.array(problem[&quot;A&quot;])
+            B_val = np.array(problem[&quot;B&quot;])
+            C_val = np.array(problem[&quot;C&quot;])
+            y_val = np.array(problem[&quot;y&quot;])
+            x0_val = np.array(problem[&quot;x_initial&quot;])
+            tau_val = float(problem[&quot;tau&quot;])
+            M_val = float(problem[&quot;M&quot;])
+
+            N, m = y_val.shape
+            n = A_val.shape[1]
+            p = B_val.shape[1]
+            
+            cache_key = (N, n, m, p)
+
+            if cache_key not in _problem_cache:
+                # First time seeing this problem size: create, compile, and cache.
+                A_p = cp.Parameter(A_val.shape)
+                B_p = cp.Parameter(B_val.shape)
+                C_p = cp.Parameter(C_val.shape)
+                y_p = cp.Parameter(y_val.shape)
+                x0_p = cp.Parameter(x0_val.shape)
+                tau_p = cp.Parameter(nonneg=True)
+                M_p = cp.Parameter(nonneg=True)
+
+                x = cp.Variable((N + 1, n))
+                w = cp.Variable((N, p))
+
+                # Formulate the problem using Parameters instead of concrete values
+                process_noise = cp.sum_squares(w)
+                v_expr = y_p - x[:-1] @ C_p.T
+                v_norms = cp.norm(v_expr, p=2, axis=1)
+                measurement_noise = tau_p * cp.sum(cp.huber(v_norms, M_p))
+                
+                objective = cp.Minimize(process_noise + measurement_noise)
+                
+                constraints = [
+                    x[0] == x0_p,
+                    x[1:] == x[:-1] @ A_p.T + w @ B_p.T,
+                ]
+                
+                prob = cp.Problem(objective, constraints)
+                
+                # Store the compiled problem and its parameters in the cache
+                _problem_cache[cache_key] = (prob, A_p, B_p, C_p, y_p, x0_p, tau_p, M_p, x, w)
+
+            # Retrieve the compiled problem from the cache
+            prob, A_p, B_p, C_p, y_p, x0_p, tau_p, M_p, x, w = _problem_cache[cache_key]
+
+            # Update Parameter values with the current problem&#x27;s data
+            A_p.value, B_p.value, C_p.value = A_val, B_val, C_val
+            y_p.value, x0_p.value = y_val, x0_val
+            tau_p.value, M_p.value = tau_val, M_val
+
+            # Solve using ECOS with tuned tolerances. ECOS does not support warm_start.
+            prob.solve(solver=cp.ECOS, verbose=False, feastol=1e-4, abstol=1e-4, reltol=1e-4)
+
+            if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or x.value is None:
+                return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+
+            # Reconstruct the solution from optimal values
+            x_hat = x.value
+            w_hat = w.value
+            v_hat = y_val - x_hat[:-1] @ C_val.T
+
+            return {
+                &quot;x_hat&quot;: x_hat.tolist(),
+                &quot;w_hat&quot;: w_hat.tolist(),
+                &quot;v_hat&quot;: v_hat.tolist(),
+            }
+        except (Exception, cp.SolverError):
+            return {&quot;x_hat&quot;: [], &quot;w_hat&quot;: [], &quot;v_hat&quot;: []}
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

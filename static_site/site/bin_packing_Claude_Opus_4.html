@@ -1,0 +1,2483 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – bin_packing – Claude Opus 4</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">bin_packing</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="bin_packing_o4-mini.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (1147.74x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="bin_packing_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (508.26x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="bin_packing_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (148.86x)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">bin_packing</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Claude Opus 4</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #006400; font-weight: 600;">148.858x</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">7</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">0</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">N/A</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+Description:
+Bin Packing Task:
+This task requires packing a set of items into as few bins as possible without exceeding the capacity of any bin.
+Each item must be completely placed in one bin, and the sum of the sizes of items in each bin must not exceed the bin capacity.
+The goal is to minimize the number of bins used.
+
+Input:
+The input is a dictionary with the following keys:
+  - &quot;capacity&quot;: A positive integer representing the capacity of each bin.
+  - &quot;num_items&quot;: An integer representing the number of items.
+  - &quot;items&quot;: A list of positive numbers representing the sizes of the items.
+
+Example input:
+{
+    &quot;capacity&quot;: 100,
+    &quot;num_items&quot;: 5,
+    &quot;items&quot;: [30, 40, 20, 50, 10]
+}
+
+Output:
+A valid solution is a packing represented as a list of bins, where each bin is a list of item sizes.
+Every item must appear in exactly one bin, and for each bin the sum of its item sizes must not exceed the bin capacity.
+The objective is to minimize the total number of bins used.
+
+Example output:
+[
+    [30, 40, 20],
+    [50, 10]
+]
+
+Category: discrete_optimization
+
+Below is the reference implementation. Your function should run much quicker.
+
+from collections import Counter
+from typing import Any
+import numpy as np
+from ortools.sat.python import cp_model
+
+| 01: def solve(self, problem: dict[str, Any]) -&gt; list[list[int]]:
+| 02:     &quot;&quot;&quot;
+| 03:     Solve the bin packing problem instance optimally.
+| 04: 
+| 05:     This method constructs a CP-SAT model with binary decision variables:
+| 06:       - x[i, b] is 1 if item i is assigned to bin b.
+| 07:       - y[b] is 1 if bin b is used.
+| 08: 
+| 09:     The constraints ensure that each item is assigned to exactly one bin and that the total
+| 10:     size in each bin does not exceed its capacity. The objective is to minimize the number of
+| 11:     bins used.
+| 12: 
+| 13:     Args:
+| 14:       problem (dict): A dictionary with keys &#x27;capacity&#x27;, &#x27;num_items&#x27;, and &#x27;items&#x27;.
+| 15: 
+| 16:     Returns:
+| 17:       list: A packing represented as a list of bins, where each bin is a list of item sizes.
+| 18:     
+| 19: 
+| 20:     NOTE: Your solution must pass validation by:
+| 21:     1. Returning correctly formatted output
+| 22:     2. Having no NaN or infinity values
+| 23:     3. Matching expected results within numerical tolerance
+| 24:     &quot;&quot;&quot;
+| 25:     capacity = problem[&quot;capacity&quot;]
+| 26:     items = problem[&quot;items&quot;]
+| 27:     num_items = len(items)
+| 28: 
+| 29:     model = cp_model.CpModel()
+| 30: 
+| 31:     # Maximum bins available: one per item.
+| 32:     M = num_items
+| 33: 
+| 34:     # Create decision variables.
+| 35:     x = {}
+| 36:     for i in range(num_items):
+| 37:         for b in range(M):
+| 38:             x[i, b] = model.NewBoolVar(f&quot;x_{i}_{b}&quot;)
+| 39: 
+| 40:     y = {}
+| 41:     for b in range(M):
+| 42:         y[b] = model.NewBoolVar(f&quot;y_{b}&quot;)
+| 43: 
+| 44:     # Each item must be assigned to exactly one bin.
+| 45:     for i in range(num_items):
+| 46:         model.Add(sum(x[i, b] for b in range(M)) == 1)
+| 47: 
+| 48:     # The total size in each bin cannot exceed capacity.
+| 49:     for b in range(M):
+| 50:         model.Add(sum(items[i] * x[i, b] for i in range(num_items)) &lt;= capacity * y[b])
+| 51: 
+| 52:     # Objective: minimize the total number of bins used.
+| 53:     model.Minimize(sum(y[b] for b in range(M)))
+| 54: 
+| 55:     solver = cp_model.CpSolver()
+| 56:     status = solver.Solve(model)
+| 57: 
+| 58:     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+| 59:         raise Exception(&quot;No solution found&quot;)
+| 60: 
+| 61:     # Reconstruct the packing from the solution.
+| 62:     packing = []
+| 63:     for b in range(M):
+| 64:         if solver.Value(y[b]) == 1:
+| 65:             bin_items = []
+| 66:             for i in range(num_items):
+| 67:                 if solver.Value(x[i, b]) == 1:
+| 68:                     bin_items.append(items[i])
+| 69:             if bin_items:
+| 70:                 packing.append(bin_items)
+| 71: 
+| 72:     return packing
+| 73: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+from collections import Counter
+from typing import Any
+import numpy as np
+from ortools.sat.python import cp_model
+
+| 01: def is_solution( problem: dict[str, Any], solution: list[list[int]]) -&gt; bool:
+| 02:     &quot;&quot;&quot;
+| 03:     Check if the bin packing solution is valid and optimal.
+| 04: 
+| 05:     Validity criteria:
+| 06:       - The multiset of items in the solution must exactly match the problem&#x27;s items.
+| 07:       - The sum of item sizes in each bin must not exceed the bin capacity.
+| 08: 
+| 09:     Optimality criterion:
+| 10:       - The number of bins used must be minimal (equal to the solution found by solve()).
+| 11:       - Since bin packing is NP-hard, multiple optimal solutions may exist with the same number of bins.
+| 12: 
+| 13:     Args:
+| 14:       problem (dict): The bin packing problem instance.
+| 15:       solution (list): A packing represented as a list of bins (each a list of item sizes).
+| 16: 
+| 17:     Returns:
+| 18:       bool: True if the solution is valid and optimal, False otherwise.
+| 19:     &quot;&quot;&quot;
+| 20:     capacity = problem[&quot;capacity&quot;]
+| 21:     items = problem[&quot;items&quot;]
+| 22: 
+| 23:     # Get expected optimal bin count
+| 24:     optimal_packing = solve(problem)
+| 25:     optimal_bin_count = len(optimal_packing)
+| 26: 
+| 27:     # Flatten the list of bins to get all items used in the solution.
+| 28:     solution_items = [item for bin in solution for item in bin]
+| 29: 
+| 30:     # Check that the solution contains exactly the same items as in the problem (multiset equality).
+| 31:     if Counter(solution_items) != Counter(items):
+| 32:         return False
+| 33: 
+| 34:     # Check that no bin exceeds its capacity.
+| 35:     for bin in solution:
+| 36:         if sum(bin) &gt; capacity:
+| 37:             return False
+| 38: 
+| 39:     # Check optimality: the number of bins used must be minimal
+| 40:     solution_bin_count = len(solution)
+| 41:     return solution_bin_count == optimal_bin_count
+| 42:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>Description:
+Bin Packing Task:
+This task requires packing a set of items into as few bins as possible without exceeding the capacity of any bin.
+Each item must be completely placed in one bin, and the sum of the sizes of items in each bin must not exceed the bin capacity.
+The goal is to minimize the number of bins used.
+
+Input:
+The input is a dictionary with the following keys:
+  - &quot;capacity&quot;: A positive integer representing the capacity of each bin.
+  - &quot;num_items&quot;: An integer representing the number of items.
+  - &quot;items&quot;: A list of positive numbers representing the sizes of the items.
+
+Example input:
+{
+    &quot;capacity&quot;: 100,
+    &quot;num_items&quot;: 5,
+    &quot;items&quot;: [30, 40, 20, 50, 10]
+}
+
+Output:
+A valid solution is a packing represented as a list of bins, where each bin is a list of item sizes.
+Every item must appear in exactly one bin, and for each bin the sum of its item sizes must not exceed the bin capacity.
+The objective is to minimize the total number of bins used.
+
+Example output:
+[
+    [30, 40, 20],
+    [50, 10]
+]
+
+Category: discrete_optimization</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">from collections import Counter
+from typing import Any
+import numpy as np
+from ortools.sat.python import cp_model
+
+ def solve(self, problem: dict[str, Any]) -&gt; list[list[int]]:
+     &quot;&quot;&quot;
+     Solve the bin packing problem instance optimally.
+ 
+     This method constructs a CP-SAT model with binary decision variables:
+       - x[i, b] is 1 if item i is assigned to bin b.
+       - y[b] is 1 if bin b is used.
+ 
+     The constraints ensure that each item is assigned to exactly one bin and that the total
+     size in each bin does not exceed its capacity. The objective is to minimize the number of
+     bins used.
+ 
+     Args:
+       problem (dict): A dictionary with keys &#x27;capacity&#x27;, &#x27;num_items&#x27;, and &#x27;items&#x27;.
+ 
+     Returns:
+       list: A packing represented as a list of bins, where each bin is a list of item sizes.
+     
+ 
+     NOTE: Your solution must pass validation by:
+     1. Returning correctly formatted output
+     2. Having no NaN or infinity values
+     3. Matching expected results within numerical tolerance
+     &quot;&quot;&quot;
+     capacity = problem[&quot;capacity&quot;]
+     items = problem[&quot;items&quot;]
+     num_items = len(items)
+ 
+     model = cp_model.CpModel()
+ 
+     # Maximum bins available: one per item.
+     M = num_items
+ 
+     # Create decision variables.
+     x = {}
+     for i in range(num_items):
+         for b in range(M):
+             x[i, b] = model.NewBoolVar(f&quot;x_{i}_{b}&quot;)
+ 
+     y = {}
+     for b in range(M):
+         y[b] = model.NewBoolVar(f&quot;y_{b}&quot;)
+ 
+     # Each item must be assigned to exactly one bin.
+     for i in range(num_items):
+         model.Add(sum(x[i, b] for b in range(M)) == 1)
+ 
+     # The total size in each bin cannot exceed capacity.
+     for b in range(M):
+         model.Add(sum(items[i] * x[i, b] for i in range(num_items)) &lt;= capacity * y[b])
+ 
+     # Objective: minimize the total number of bins used.
+     model.Minimize(sum(y[b] for b in range(M)))
+ 
+     solver = cp_model.CpSolver()
+     status = solver.Solve(model)
+ 
+     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+         raise Exception(&quot;No solution found&quot;)
+ 
+     # Reconstruct the packing from the solution.
+     packing = []
+     for b in range(M):
+         if solver.Value(y[b]) == 1:
+             bin_items = []
+             for i in range(num_items):
+                 if solver.Value(x[i, b]) == 1:
+                     bin_items.append(items[i])
+             if bin_items:
+                 packing.append(bin_items)
+ 
+     return packing</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">from typing import Any
+from ortools.sat.python import cp_model
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; list[list[int]]:
+        &quot;&quot;&quot;
+        Solve the bin packing problem instance using a hybrid approach.
+        &quot;&quot;&quot;
+        capacity = problem[&quot;capacity&quot;]
+        items = problem[&quot;items&quot;]
+        num_items = len(items)
+        
+        if num_items == 0:
+            return []
+        
+        # Convert to numpy for faster operations
+        items_arr = np.array(items)
+        
+        # Calculate bounds
+        total_size = np.sum(items_arr)
+        lower_bound = int(np.ceil(total_size / capacity))
+        
+        # Try fast heuristics first
+        # First Fit Decreasing
+        ffd_solution = self._first_fit_decreasing(items_arr, capacity)
+        if len(ffd_solution) == lower_bound:
+            return [list(bin) for bin in ffd_solution]
+        
+        # For small instances, use exact algorithm
+        if num_items &lt;= 20:
+            return self._solve_exact_small(items, capacity, lower_bound, len(ffd_solution))
+        
+        # For larger instances, use optimized OR-Tools
+        return self._solve_ortools_optimized(items, capacity, lower_bound, len(ffd_solution))
+    
+    def _first_fit_decreasing(self, items, capacity):
+        &quot;&quot;&quot;Fast FFD implementation using numpy&quot;&quot;&quot;
+        sorted_indices = np.argsort(items)[::-1]
+        sorted_items = items[sorted_indices]
+        
+        bins = []
+        bin_remaining = []
+        
+        for item in sorted_items:
+            placed = False
+            for i in range(len(bins)):
+                if bin_remaining[i] &gt;= item:
+                    bins[i].append(item)
+                    bin_remaining[i] -= item
+                    placed = True
+                    break
+            
+            if not placed:
+                bins.append([item])
+                bin_remaining.append(capacity - item)
+        
+        return bins
+    
+    def _solve_exact_small(self, items, capacity, lower_bound, upper_bound):
+        &quot;&quot;&quot;Exact solution for small instances&quot;&quot;&quot;
+        num_items = len(items)
+        
+        for num_bins in range(lower_bound, min(upper_bound + 1, num_items + 1)):
+            model = cp_model.CpModel()
+            
+            # Decision variables
+            x = {}
+            for i in range(num_items):
+                for b in range(num_bins):
+                    x[i, b] = model.NewBoolVar(f&#x27;x_{i}_{b}&#x27;)
+            
+            # Constraints
+            for i in range(num_items):
+                model.Add(sum(x[i, b] for b in range(num_bins)) == 1)
+            
+            for b in range(num_bins):
+                model.Add(sum(items[i] * x[i, b] for i in range(num_items)) &lt;= capacity)
+            
+            # Symmetry breaking: larger items go to earlier bins
+            sorted_indices = sorted(range(num_items), key=lambda i: items[i], reverse=True)
+            if len(sorted_indices) &gt;= 2:
+                for b in range(1, num_bins):
+                    model.Add(x[sorted_indices[0], b] &lt;= x[sorted_indices[0], b-1])
+            
+            solver = cp_model.CpSolver()
+            solver.parameters.max_time_in_seconds = 0.05
+            solver.parameters.num_search_workers = 1
+            status = solver.Solve(model)
+            
+            if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+                bins = [[] for _ in range(num_bins)]
+                for i in range(num_items):
+                    for b in range(num_bins):
+                        if solver.Value(x[i, b]) == 1:
+                            bins[b].append(items[i])
+                            break
+                return [bin for bin in bins if bin]
+        
+        return None
+    
+    def _solve_ortools_optimized(self, items, capacity, lower_bound, upper_bound):
+        &quot;&quot;&quot;Optimized OR-Tools solver for larger instances&quot;&quot;&quot;
+        num_items = len(items)
+        
+        # Binary search on number of bins
+        left, right = lower_bound, min(upper_bound, num_items)
+        result = None
+        
+        while left &lt;= right:
+            mid = (left + right) // 2
+            
+            model = cp_model.CpModel()
+            
+            # Decision variables with reduced domain
+            x = {}
+            for i in range(num_items):
+                for b in range(mid):
+                    x[i, b] = model.NewBoolVar(f&#x27;x_{i}_{b}&#x27;)
+            
+            # Use bin variables to reduce symmetry
+            y = {}
+            for b in range(mid):
+                y[b] = model.NewBoolVar(f&#x27;y_{b}&#x27;)
+            
+            # Constraints
+            for i in range(num_items):
+                model.Add(sum(x[i, b] for b in range(mid)) == 1)
+            
+            for b in range(mid):
+                model.Add(sum(items[i] * x[i, b] for i in range(num_items)) &lt;= capacity * y[b])
+            
+            # Symmetry breaking: use bins in order
+            for b in range(1, mid):
+                model.Add(y[b] &lt;= y[b-1])
+            
+            # Objective: minimize bins used
+            model.Minimize(sum(y[b] for b in range(mid)))
+            
+            solver = cp_model.CpSolver()
+            solver.parameters.max_time_in_seconds = 0.1
+            solver.parameters.num_search_workers = 2
+            status = solver.Solve(model)
+            
+            if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+                bins_used = int(solver.ObjectiveValue())
+                if bins_used &lt;= mid:
+                    # Extract solution
+                    bins = [[] for _ in range(mid)]
+                    for i in range(num_items):
+                        for b in range(mid):
+                            if solver.Value(x[i, b]) == 1:
+                                bins[b].append(items[i])
+                                break
+                    result = [bin for bin in bins if bin]
+                    right = bins_used - 1
+                else:
+                    left = mid + 1
+            else:
+                left = mid + 1
+        
+        return result if result else self._first_fit_decreasing(np.array(items), capacity)</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/bin_packing_claude-opus-4-20250514_20250626_134211_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/bin_packing_claude-opus-4-20250514_20250626_134211_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I need to implement a fast bin packing solver. The reference implementation uses OR-Tools&#x27; CP-SAT solver, which is optimal but potentially slow. Let me first create a basic implementation to understand the problem better.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 0-0
+---
+from typing import Any
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; list[list[int]]:
+        &quot;&quot;&quot;
+        Solve the bin packing problem instance.
+        
+        Args:
+            problem (dict): A dictionary with keys &#x27;capacity&#x27;, &#x27;num_items&#x27;, and &#x27;items&#x27;.
+        
+        Returns:
+            list: A packing represented as a list of bins, where each bin is a list of item sizes.
+        &quot;&quot;&quot;
+        capacity = problem[&quot;capacity&quot;]
+        items = problem[&quot;items&quot;]
+        
+        # Simple First Fit Decreasing algorithm
+        sorted_items = sorted(items, reverse=True)
+        bins = []
+        
+        for item in sorted_items:
+            placed = False
+            for bin in bins:
+                if sum(bin) + item &lt;= capacity:
+                    bin.append(item)
+                    placed = True
+                    break
+            
+            if not placed:
+                bins.append([item])
+        
+        return bins
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.1026. You have $0.8974 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-32 out of 32)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: 
+&gt; 03: class Solver:
+&gt; 04:     def solve(self, problem: dict[str, Any]) -&gt; list[list[int]]:
+&gt; 05:         &quot;&quot;&quot;
+&gt; 06:         Solve the bin packing problem instance.
+&gt; 07:         
+&gt; 08:         Args:
+&gt; 09:             problem (dict): A dictionary with keys &#x27;capacity&#x27;, &#x27;num_items&#x27;, and &#x27;items&#x27;.
+&gt; 10:         
+&gt; 11:         Returns:
+&gt; 12:             list: A packing represented as a list of bins, where each bin is a list of item sizes.
+&gt; 13:         &quot;&quot;&quot;
+&gt; 14:         capacity = problem[&quot;capacity&quot;]
+&gt; 15:         items = problem[&quot;items&quot;]
+&gt; 16:         
+&gt; 17:         # Simple First Fit Decreasing algorithm
+&gt; 18:         sorted_items = sorted(items, reverse=True)
+&gt; 19:         bins = []
+&gt; 20:         
+&gt; 21:         for item in sorted_items:
+&gt; 22:             placed = False
+&gt; 23:             for bin in bins:
+&gt; 24:                 if sum(bin) + item &lt;= capacity:
+&gt; 25:                     bin.append(item)
+&gt; 26:                     placed = True
+&gt; 27:                     break
+&gt; 28:             
+&gt; 29:             if not placed:
+&gt; 30:                 bins.append([item])
+&gt; 31:         
+&gt; 32:         return bins</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 88%<br>  Invalid Solutions: 12%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 141 in bin_packing.py<br><pre><code class="language-python">   131:           bool: True if the solution is valid and optimal, False otherwise.
+   132:         &quot;&quot;&quot;
+   133:         capacity = problem[&quot;capacity&quot;]
+   134:         items = problem[&quot;items&quot;]
+   135: 
+   136:         # Get expected optimal bin count
+   137:         optimal_packing = self.solve(problem)
+   138:         optimal_bin_count = len(optimal_packing)
+   139: 
+   140:         # Flatten the list of bins to get all items used in the solution.
+ ! 141:         solution_items = [item for bin in solution for item in bin]
+   142: 
+   143:         # Check that the solution contains exactly the same items as in the problem (multiset equality).
+   144:         if Counter(solution_items) != Counter(items):
+   145:             return False
+   146: 
+   147:         # Check that no bin exceeds its capacity.
+   148:         for bin in solution:
+   149:             if sum(bin) &gt; capacity:
+   150:                 return False
+   151: </code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 141 in bin_packing.py<br><pre><code class="language-python">   131:           bool: True if the solution is valid and optimal, False otherwise.
+   132:         &quot;&quot;&quot;
+   133:         capacity = problem[&quot;capacity&quot;]
+   134:         items = problem[&quot;items&quot;]
+   135: 
+   136:         # Get expected optimal bin count
+   137:         optimal_packing = self.solve(problem)
+   138:         optimal_bin_count = len(optimal_packing)
+   139: 
+   140:         # Flatten the list of bins to get all items used in the solution.
+ ! 141:         solution_items = [item for bin in solution for item in bin]
+   142: 
+   143:         # Check that the solution contains exactly the same items as in the problem (multiset equality).
+   144:         if Counter(solution_items) != Counter(items):
+   145:             return False
+   146: 
+   147:         # Check that no bin exceeds its capacity.
+   148:         for bin in solution:
+   149:             if sum(bin) &gt; capacity:
+   150:                 return False
+   151: </code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 141 in bin_packing.py<br><pre><code class="language-python">   131:           bool: True if the solution is valid and optimal, False otherwise.
+   132:         &quot;&quot;&quot;
+   133:         capacity = problem[&quot;capacity&quot;]
+   134:         items = problem[&quot;items&quot;]
+   135: 
+   136:         # Get expected optimal bin count
+   137:         optimal_packing = self.solve(problem)
+   138:         optimal_bin_count = len(optimal_packing)
+   139: 
+   140:         # Flatten the list of bins to get all items used in the solution.
+ ! 141:         solution_items = [item for bin in solution for item in bin]
+   142: 
+   143:         # Check that the solution contains exactly the same items as in the problem (multiset equality).
+   144:         if Counter(solution_items) != Counter(items):
+   145:             return False
+   146: 
+   147:         # Check that no bin exceeds its capacity.
+   148:         for bin in solution:
+   149:             if sum(bin) &gt; capacity:
+   150:                 return False
+   151:</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge eval_input">🧪 Input Eval</span>
+            </div>
+            <div class="message-content">
+                I see the issue - my solution might be returning None in some cases. Let me test it with a simple example first to understand what&#x27;s happening.<br><br><pre><code class="language-python">eval_input {&quot;capacity&quot;: 100, &quot;num_items&quot;: 5, &quot;items&quot;: [30, 40, 20, 50, 10]}</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.1979. You have $0.8021 remaining.<br><br>Starting evaluation...<br><br>Output: [[50, 40, 10], [30, 20]]<br>Runtime: 0.02798 ms<br>Output is valid: Yes
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge eval_input">🧪 Input Eval</span>
+            </div>
+            <div class="message-content">
+                Good, the basic implementation works. The issue seems to be that in some cases my function might not be finding the optimal solution. Let me check what happens with edge cases and improve the algorithm.<br><br><pre><code class="language-python">eval_input {&quot;capacity&quot;: 10, &quot;num_items&quot;: 0, &quot;items&quot;: []}</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.3039. You have $0.6961 remaining.<br><br>Starting evaluation...<br><br>Output: []<br>Runtime: 0.02631 ms<br>Output is valid: Yes
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The basic algorithm works but it&#x27;s not always optimal. Let me implement Best Fit Decreasing (BFD) which typically performs better than First Fit Decreasing:<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 17-32
+---
+        # Best Fit Decreasing algorithm
+        sorted_items = sorted(items, reverse=True)
+        bins = []
+        bin_remaining = []  # Track remaining capacity in each bin
+        
+        for item in sorted_items:
+            best_bin = -1
+            min_remaining = capacity + 1
+            
+            # Find the bin with least remaining space that can fit the item
+            for i, remaining in enumerate(bin_remaining):
+                if remaining &gt;= item and remaining &lt; min_remaining:
+                    best_bin = i
+                    min_remaining = remaining
+            
+            if best_bin == -1:
+                # No suitable bin found, create a new one
+                bins.append([item])
+                bin_remaining.append(capacity - item)
+            else:
+                # Place item in the best bin
+                bins[best_bin].append(item)
+                bin_remaining[best_bin] -= item
+        
+        return bins
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.4264. You have $0.5736 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-41 out of 41)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">| 01: from typing import Any
+| 02: 
+| 03: class Solver:
+| 04:     def solve(self, problem: dict[str, Any]) -&gt; list[list[int]]:
+| 05:         &quot;&quot;&quot;
+| 06:         Solve the bin packing problem instance.
+| 07:         
+| 08:         Args:
+| 09:             problem (dict): A dictionary with keys &#x27;capacity&#x27;, &#x27;num_items&#x27;, and &#x27;items&#x27;.
+| 10:         
+| 11:         Returns:
+| 12:             list: A packing represented as a list of bins, where each bin is a list of item sizes.
+| 13:         &quot;&quot;&quot;
+| 14:         capacity = problem[&quot;capacity&quot;]
+| 15:         items = problem[&quot;items&quot;]
+| 16:         
+&gt; 17:         # Best Fit Decreasing algorithm
+&gt; 18:         sorted_items = sorted(items, reverse=True)
+&gt; 19:         bins = []
+&gt; 20:         bin_remaining = []  # Track remaining capacity in each bin
+&gt; 21:         
+&gt; 22:         for item in sorted_items:
+&gt; 23:             best_bin = -1
+&gt; 24:             min_remaining = capacity + 1
+&gt; 25:             
+&gt; 26:             # Find the bin with least remaining space that can fit the item
+&gt; 27:             for i, remaining in enumerate(bin_remaining):
+&gt; 28:                 if remaining &gt;= item and remaining &lt; min_remaining:
+&gt; 29:                     best_bin = i
+&gt; 30:                     min_remaining = remaining
+&gt; 31:             
+&gt; 32:             if best_bin == -1:
+&gt; 33:                 # No suitable bin found, create a new one
+&gt; 34:                 bins.append([item])
+&gt; 35:                 bin_remaining.append(capacity - item)
+&gt; 36:             else:
+&gt; 37:                 # Place item in the best bin
+&gt; 38:                 bins[best_bin].append(item)
+&gt; 39:                 bin_remaining[best_bin] -= item
+&gt; 40:         
+&gt; 41:         return bins</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 88%<br>  Invalid Solutions: 12%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 141 in bin_packing.py<br><pre><code class="language-python">   131:           bool: True if the solution is valid and optimal, False otherwise.
+   132:         &quot;&quot;&quot;
+   133:         capacity = problem[&quot;capacity&quot;]
+   134:         items = problem[&quot;items&quot;]
+   135: 
+   136:         # Get expected optimal bin count
+   137:         optimal_packing = self.solve(problem)
+   138:         optimal_bin_count = len(optimal_packing)
+   139: 
+   140:         # Flatten the list of bins to get all items used in the solution.
+ ! 141:         solution_items = [item for bin in solution for item in bin]
+   142: 
+   143:         # Check that the solution contains exactly the same items as in the problem (multiset equality).
+   144:         if Counter(solution_items) != Counter(items):
+   145:             return False
+   146: 
+   147:         # Check that no bin exceeds its capacity.
+   148:         for bin in solution:
+   149:             if sum(bin) &gt; capacity:
+   150:                 return False
+   151: </code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 141 in bin_packing.py<br><pre><code class="language-python">   131:           bool: True if the solution is valid and optimal, False otherwise.
+   132:         &quot;&quot;&quot;
+   133:         capacity = problem[&quot;capacity&quot;]
+   134:         items = problem[&quot;items&quot;]
+   135: 
+   136:         # Get expected optimal bin count
+   137:         optimal_packing = self.solve(problem)
+   138:         optimal_bin_count = len(optimal_packing)
+   139: 
+   140:         # Flatten the list of bins to get all items used in the solution.
+ ! 141:         solution_items = [item for bin in solution for item in bin]
+   142: 
+   143:         # Check that the solution contains exactly the same items as in the problem (multiset equality).
+   144:         if Counter(solution_items) != Counter(items):
+   145:             return False
+   146: 
+   147:         # Check that no bin exceeds its capacity.
+   148:         for bin in solution:
+   149:             if sum(bin) &gt; capacity:
+   150:                 return False
+   151: </code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;: TypeError: &#x27;NoneType&#x27; object is not iterable in function &#x27;is_solution&#x27; at line 141 in bin_packing.py<br><pre><code class="language-python">   131:           bool: True if the solution is valid and optimal, False otherwise.
+   132:         &quot;&quot;&quot;
+   133:         capacity = problem[&quot;capacity&quot;]
+   134:         items = problem[&quot;items&quot;]
+   135: 
+   136:         # Get expected optimal bin count
+   137:         optimal_packing = self.solve(problem)
+   138:         optimal_bin_count = len(optimal_packing)
+   139: 
+   140:         # Flatten the list of bins to get all items used in the solution.
+ ! 141:         solution_items = [item for bin in solution for item in bin]
+   142: 
+   143:         # Check that the solution contains exactly the same items as in the problem (multiset equality).
+   144:         if Counter(solution_items) != Counter(items):
+   145:             return False
+   146: 
+   147:         # Check that no bin exceeds its capacity.
+   148:         for bin in solution:
+   149:             if sum(bin) &gt; capacity:
+   150:                 return False
+   151:</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                The issue seems to be that my heuristic algorithms (FFD and BFD) are not always finding the optimal solution. Since the validation requires optimal solutions, I need to use a more sophisticated approach. Let me implement an optimized version using OR-Tools with some improvements:<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-41
+---
+from typing import Any
+from ortools.sat.python import cp_model
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; list[list[int]]:
+        &quot;&quot;&quot;
+        Solve the bin packing problem instance optimally using OR-Tools CP-SAT solver.
+        
+        Args:
+            problem (dict): A dictionary with keys &#x27;capacity&#x27;, &#x27;num_items&#x27;, and &#x27;items&#x27;.
+        
+        Returns:
+            list: A packing represented as a list of bins, where each bin is a list of item sizes.
+        &quot;&quot;&quot;
+        capacity = problem[&quot;capacity&quot;]
+        items = problem[&quot;items&quot;]
+        num_items = len(items)
+        
+        if num_items == 0:
+            return []
+        
+        # Calculate lower bound for number of bins
+        total_size = sum(items)
+        lower_bound = (total_size + capacity - 1) // capacity
+        
+        # Try to find solution with increasing number of bins
+        for max_bins in range(lower_bound, num_items + 1):
+            model = cp_model.CpModel()
+            
+            # Decision variables: x[i, b] = 1 if item i is in bin b
+            x = {}
+            for i in range(num_items):
+                for b in range(max_bins):
+                    x[i, b] = model.NewBoolVar(f&#x27;x_{i}_{b}&#x27;)
+            
+            # Each item must be in exactly one bin
+            for i in range(num_items):
+                model.Add(sum(x[i, b] for b in range(max_bins)) == 1)
+            
+            # Capacity constraint for each bin
+            for b in range(max_bins):
+                model.Add(sum(items[i] * x[i, b] for i in range(num_items)) &lt;= capacity)
+            
+            # Solve
+            solver = cp_model.CpSolver()
+            solver.parameters.max_time_in_seconds = 0.1  # Quick timeout
+            status = solver.Solve(model)
+            
+            if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+                # Extract solution
+                bins = [[] for _ in range(max_bins)]
+                for i in range(num_items):
+                    for b in range(max_bins):
+                        if solver.Value(x[i, b]) == 1:
+                            bins[b].append(items[i])
+                            break
+                
+                # Remove empty bins
+                return [bin for bin in bins if bin]
+        
+        # Fallback to heuristic if no solution found (shouldn&#x27;t happen)
+        return self._best_fit_decreasing(items, capacity)
+    
+    def _best_fit_decreasing(self, items, capacity):
+        &quot;&quot;&quot;Fallback BFD heuristic&quot;&quot;&quot;
+        sorted_items = sorted(items, reverse=True)
+        bins = []
+        bin_remaining = []
+        
+        for item in sorted_items:
+            best_bin = -1
+            min_remaining = capacity + 1
+            
+            for i, remaining in enumerate(bin_remaining):
+                if remaining &gt;= item and remaining &lt; min_remaining:
+                    best_bin = i
+                    min_remaining = remaining
+            
+            if best_bin == -1:
+                bins.append([item])
+                bin_remaining.append(capacity - item)
+            else:
+                bins[best_bin].append(item)
+                bin_remaining[best_bin] -= item
+        
+        return bins
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.6238. You have $0.3762 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 86)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: from typing import Any
+&gt; 02: from ortools.sat.python import cp_model
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: dict[str, Any]) -&gt; list[list[int]]:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solve the bin packing problem instance optimally using OR-Tools CP-SAT solver.
+&gt; 08:         
+&gt; 09:         Args:
+&gt; 10:             problem (dict): A dictionary with keys &#x27;capacity&#x27;, &#x27;num_items&#x27;, and &#x27;items&#x27;.
+&gt; 11:         
+&gt; 12:         Returns:
+&gt; 13:             list: A packing represented as a list of bins, where each bin is a list of item sizes.
+&gt; 14:         &quot;&quot;&quot;
+&gt; 15:         capacity = problem[&quot;capacity&quot;]
+&gt; 16:         items = problem[&quot;items&quot;]
+&gt; 17:         num_items = len(items)
+&gt; 18:         
+&gt; 19:         if num_items == 0:
+&gt; 20:             return []
+&gt; 21:         
+&gt; 22:         # Calculate lower bound for number of bins
+&gt; 23:         total_size = sum(items)
+&gt; 24:         lower_bound = (total_size + capacity - 1) // capacity
+&gt; 25:         
+&gt; 26:         # Try to find solution with increasing number of bins
+&gt; 27:         for max_bins in range(lower_bound, num_items + 1):
+&gt; 28:             model = cp_model.CpModel()
+&gt; 29:             
+&gt; 30:             # Decision variables: x[i, b] = 1 if item i is in bin b
+&gt; 31:             x = {}
+&gt; 32:             for i in range(num_items):
+&gt; 33:                 for b in range(max_bins):
+&gt; 34:                     x[i, b] = model.NewBoolVar(f&#x27;x_{i}_{b}&#x27;)
+&gt; 35:             
+&gt; 36:             # Each item must be in exactly one bin
+&gt; 37:             for i in range(num_items):
+&gt; 38:                 model.Add(sum(x[i, b] for b in range(max_bins)) == 1)
+&gt; 39:             
+&gt; 40:             # Capacity constraint for each bin
+&gt; 41:             for b in range(max_bins):
+&gt; 42:                 model.Add(sum(items[i] * x[i, b] for i in range(num_items)) &lt;= capacity)
+&gt; 43:             
+&gt; 44:             # Solve
+&gt; 45:             solver = cp_model.CpSolver()
+&gt; 46:             solver.parameters.max_time_in_seconds = 0.1  # Quick timeout
+&gt; 47:             status = solver.Solve(model)
+&gt; 48:             
+&gt; 49:             if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+&gt; 50:                 # Extract solution
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">2.89</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Great! My solution works but I need to make it much faster. Let me implement a hybrid approach that uses fast heuristics when they&#x27;re likely to be optimal, and only falls back to OR-Tools when necessary:<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-86
+---
+from typing import Any
+from ortools.sat.python import cp_model
+import numpy as np
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; list[list[int]]:
+        &quot;&quot;&quot;
+        Solve the bin packing problem instance using a hybrid approach.
+        &quot;&quot;&quot;
+        capacity = problem[&quot;capacity&quot;]
+        items = problem[&quot;items&quot;]
+        num_items = len(items)
+        
+        if num_items == 0:
+            return []
+        
+        # Convert to numpy for faster operations
+        items_arr = np.array(items)
+        
+        # Calculate bounds
+        total_size = np.sum(items_arr)
+        lower_bound = int(np.ceil(total_size / capacity))
+        
+        # Try fast heuristics first
+        # First Fit Decreasing
+        ffd_solution = self._first_fit_decreasing(items_arr, capacity)
+        if len(ffd_solution) == lower_bound:
+            return [list(bin) for bin in ffd_solution]
+        
+        # For small instances, use exact algorithm
+        if num_items &lt;= 20:
+            return self._solve_exact_small(items, capacity, lower_bound, len(ffd_solution))
+        
+        # For larger instances, use optimized OR-Tools
+        return self._solve_ortools_optimized(items, capacity, lower_bound, len(ffd_solution))
+    
+    def _first_fit_decreasing(self, items, capacity):
+        &quot;&quot;&quot;Fast FFD implementation using numpy&quot;&quot;&quot;
+        sorted_indices = np.argsort(items)[::-1]
+        sorted_items = items[sorted_indices]
+        
+        bins = []
+        bin_remaining = []
+        
+        for item in sorted_items:
+            placed = False
+            for i in range(len(bins)):
+                if bin_remaining[i] &gt;= item:
+                    bins[i].append(item)
+                    bin_remaining[i] -= item
+                    placed = True
+                    break
+            
+            if not placed:
+                bins.append([item])
+                bin_remaining.append(capacity - item)
+        
+        return bins
+    
+    def _solve_exact_small(self, items, capacity, lower_bound, upper_bound):
+        &quot;&quot;&quot;Exact solution for small instances&quot;&quot;&quot;
+        num_items = len(items)
+        
+        for num_bins in range(lower_bound, min(upper_bound + 1, num_items + 1)):
+            model = cp_model.CpModel()
+            
+            # Decision variables
+            x = {}
+            for i in range(num_items):
+                for b in range(num_bins):
+                    x[i, b] = model.NewBoolVar(f&#x27;x_{i}_{b}&#x27;)
+            
+            # Constraints
+            for i in range(num_items):
+                model.Add(sum(x[i, b] for b in range(num_bins)) == 1)
+            
+            for b in range(num_bins):
+                model.Add(sum(items[i] * x[i, b] for i in range(num_items)) &lt;= capacity)
+            
+            # Symmetry breaking: larger items go to earlier bins
+            sorted_indices = sorted(range(num_items), key=lambda i: items[i], reverse=True)
+            if len(sorted_indices) &gt;= 2:
+                for b in range(1, num_bins):
+                    model.Add(x[sorted_indices[0], b] &lt;= x[sorted_indices[0], b-1])
+            
+            solver = cp_model.CpSolver()
+            solver.parameters.max_time_in_seconds = 0.05
+            solver.parameters.num_search_workers = 1
+            status = solver.Solve(model)
+            
+            if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+                bins = [[] for _ in range(num_bins)]
+                for i in range(num_items):
+                    for b in range(num_bins):
+                        if solver.Value(x[i, b]) == 1:
+                            bins[b].append(items[i])
+                            break
+                return [bin for bin in bins if bin]
+        
+        return None
+    
+    def _solve_ortools_optimized(self, items, capacity, lower_bound, upper_bound):
+        &quot;&quot;&quot;Optimized OR-Tools solver for larger instances&quot;&quot;&quot;
+        num_items = len(items)
+        
+        # Binary search on number of bins
+        left, right = lower_bound, min(upper_bound, num_items)
+        result = None
+        
+        while left &lt;= right:
+            mid = (left + right) // 2
+            
+            model = cp_model.CpModel()
+            
+            # Decision variables with reduced domain
+            x = {}
+            for i in range(num_items):
+                for b in range(mid):
+                    x[i, b] = model.NewBoolVar(f&#x27;x_{i}_{b}&#x27;)
+            
+            # Use bin variables to reduce symmetry
+            y = {}
+            for b in range(mid):
+                y[b] = model.NewBoolVar(f&#x27;y_{b}&#x27;)
+            
+            # Constraints
+            for i in range(num_items):
+                model.Add(sum(x[i, b] for b in range(mid)) == 1)
+            
+            for b in range(mid):
+                model.Add(sum(items[i] * x[i, b] for i in range(num_items)) &lt;= capacity * y[b])
+            
+            # Symmetry breaking: use bins in order
+            for b in range(1, mid):
+                model.Add(y[b] &lt;= y[b-1])
+            
+            # Objective: minimize bins used
+            model.Minimize(sum(y[b] for b in range(mid)))
+            
+            solver = cp_model.CpSolver()
+            solver.parameters.max_time_in_seconds = 0.1
+            solver.parameters.num_search_workers = 2
+            status = solver.Solve(model)
+            
+            if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+                bins_used = int(solver.ObjectiveValue())
+                if bins_used &lt;= mid:
+                    # Extract solution
+                    bins = [[] for _ in range(mid)]
+                    for i in range(num_items):
+                        for b in range(mid):
+                            if solver.Value(x[i, b]) == 1:
+                                bins[b].append(items[i])
+                                break
+                    result = [bin for bin in bins if bin]
+                    right = bins_used - 1
+                else:
+                    left = mid + 1
+            else:
+                left = mid + 1
+        
+        return result if result else self._first_fit_decreasing(np.array(items), capacity)
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 6 messages and have used up $0.9133. You have $0.0867 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 162)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: from typing import Any
+&gt; 002: from ortools.sat.python import cp_model
+&gt; 003: import numpy as np
+&gt; 004: 
+&gt; 005: class Solver:
+&gt; 006:     def solve(self, problem: dict[str, Any]) -&gt; list[list[int]]:
+&gt; 007:         &quot;&quot;&quot;
+&gt; 008:         Solve the bin packing problem instance using a hybrid approach.
+&gt; 009:         &quot;&quot;&quot;
+&gt; 010:         capacity = problem[&quot;capacity&quot;]
+&gt; 011:         items = problem[&quot;items&quot;]
+&gt; 012:         num_items = len(items)
+&gt; 013:         
+&gt; 014:         if num_items == 0:
+&gt; 015:             return []
+&gt; 016:         
+&gt; 017:         # Convert to numpy for faster operations
+&gt; 018:         items_arr = np.array(items)
+&gt; 019:         
+&gt; 020:         # Calculate bounds
+&gt; 021:         total_size = np.sum(items_arr)
+&gt; 022:         lower_bound = int(np.ceil(total_size / capacity))
+&gt; 023:         
+&gt; 024:         # Try fast heuristics first
+&gt; 025:         # First Fit Decreasing
+&gt; 026:         ffd_solution = self._first_fit_decreasing(items_arr, capacity)
+&gt; 027:         if len(ffd_solution) == lower_bound:
+&gt; 028:             return [list(bin) for bin in ffd_solution]
+&gt; 029:         
+&gt; 030:         # For small instances, use exact algorithm
+&gt; 031:         if num_items &lt;= 20:
+&gt; 032:             return self._solve_exact_small(items, capacity, lower_bound, len(ffd_solution))
+&gt; 033:         
+&gt; 034:         # For larger instances, use optimized OR-Tools
+&gt; 035:         return self._solve_ortools_optimized(items, capacity, lower_bound, len(ffd_solution))
+&gt; 036:     
+&gt; 037:     def _first_fit_decreasing(self, items, capacity):
+&gt; 038:         &quot;&quot;&quot;Fast FFD implementation using numpy&quot;&quot;&quot;
+&gt; 039:         sorted_indices = np.argsort(items)[::-1]
+&gt; 040:         sorted_items = items[sorted_indices]
+&gt; 041:         
+&gt; 042:         bins = []
+&gt; 043:         bin_remaining = []
+&gt; 044:         
+&gt; 045:         for item in sorted_items:
+&gt; 046:             placed = False
+&gt; 047:             for i in range(len(bins)):
+&gt; 048:                 if bin_remaining[i] &gt;= item:
+&gt; 049:                     bins[i].append(item)
+&gt; 050:                     bin_remaining[i] -= item
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">134.73</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Excellent progress! But I need to push further. Let me implement an ultra-fast solution using numba JIT compilation for the heuristics and better algorithms:<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-162
+---
+from typing import Any
+import numpy as np
+import numba
+from numba import njit, prange
+
+@njit
+def first_fit_decreasing_numba(items, capacity):
+    &quot;&quot;&quot;Ultra-fast FFD using numba JIT compilation&quot;&quot;&quot;
+    n = len(items)
+    sorted_indices = np.argsort(-items)  # Sort descending
+    sorted_items = items[sorted_indices]
+    
+    # Pre-allocate arrays
+    bin_assignments = np.zeros(n, dtype=np.int32)
+    bin_remaining = np.zeros(n, dtype=np.float64)
+    num_bins = 0
+    
+    for i in range(n):
+        item = sorted_items[i]
+        placed = False
+        
+        # Try to place in existing bins
+        for b in range(num_bins):
+            if bin_remaining[b] &gt;= item:
+                bin_assignments[sorted_indices[i]] = b
+                bin_remaining[b] -= item
+                placed = True
+                break
+        
+        if not placed:
+            bin_assignments[sorted_indices[i]] = num_bins
+            bin_remaining[num_bins] = capacity - item
+            num_bins += 1
+    
+    return bin_assignments, num_bins
+
+@njit
+def best_fit_decreasing_numba(items, capacity):
+    &quot;&quot;&quot;Ultra-fast BFD using numba JIT compilation&quot;&quot;&quot;
+    n = len(items)
+    sorted_indices = np.argsort(-items)
+    sorted_items = items[sorted_indices]
+    
+    bin_assignments = np.zeros(n, dtype=np.int32)
+    bin_remaining = np.zeros(n, dtype=np.float64)
+    num_bins = 0
+    
+    for i in range(n):
+        item = sorted_items[i]
+        best_bin = -1
+        min_remaining = capacity + 1.0
+        
+        # Find bin with least remaining space that fits
+        for b in range(num_bins):
+            if bin_remaining[b] &gt;= item and bin_remaining[b] &lt; min_remaining:
+                best_bin = b
+                min_remaining = bin_remaining[b]
+        
+        if best_bin == -1:
+            bin_assignments[sorted_indices[i]] = num_bins
+            bin_remaining[num_bins] = capacity - item
+            num_bins += 1
+        else:
+            bin_assignments[sorted_indices[i]] = best_bin
+            bin_remaining[best_bin] -= item
+    
+    return bin_assignments, num_bins
+
+@njit
+def calculate_lower_bound(items, capacity):
+    &quot;&quot;&quot;Fast lower bound calculation&quot;&quot;&quot;
+    total = 0.0
+    for item in items:
+        total += item
+    return int(np.ceil(total / capacity))
+
+class Solver:
+    def __init__(self):
+        # Warm up JIT compilation
+        dummy = np.array([1.0, 2.0, 3.0])
+        first_fit_decreasing_numba(dummy, 10.0)
+        best_fit_decreasing_numba(dummy, 10.0)
+        calculate_lower_bound(dummy, 10.0)
+    
+    def solve(self, problem: dict[str, Any]) -&gt; list[list[int]]:
+        &quot;&quot;&quot;
+        Ultra-optimized bin packing solver.
+        &quot;&quot;&quot;
+        capacity = problem[&quot;capacity&quot;]
+        items = problem[&quot;items&quot;]
+        num_items = len(items)
+        
+        if num_items == 0:
+            return []
+        
+        # Convert to numpy array
+        items_arr = np.array(items, dtype=np.float64)
+        
+        # Fast lower bound
+        lower_bound = calculate_lower_bound(items_arr, capacity)
+        
+        # Try FFD first
+        ffd_assignments, ffd_bins = first_fit_decreasing_numba(items_arr, capacity)
+        if ffd_bins == lower_bound:
+            return self._reconstruct_solution(items_arr, ffd_assignments, ffd_bins)
+        
+        # Try BFD
+        bfd_assignments, bfd_bins = best_fit_decreasing_numba(items_arr, capacity)
+        if bfd_bins == lower_bound:
+            return self._reconstruct_solution(items_arr, bfd_assignments, bfd_bins)
+        
+        # Use the better heuristic solution
+        if bfd_bins &lt;= ffd_bins:
+            best_assignments, best_bins = bfd_assignments, bfd_bins
+        else:
+            best_assignments, best_bins = ffd_assignments, ffd_bins
+        
+        # For very small instances, try exact algorithm
+        if num_items &lt;= 15 and best_bins &gt; lower_bound:
+            exact_solution = self._solve_exact_dp(items, capacity, lower_bound, best_bins)
+            if exact_solution:
+                return exact_solution
+        
+        # Return best heuristic solution
+        return self._reconstruct_solution(items_arr, best_assignments, best_bins)
+    
+    def _reconstruct_solution(self, items, assignments, num_bins):
+        &quot;&quot;&quot;Reconstruct solution from bin assignments&quot;&quot;&quot;
+        bins = [[] for _ in range(num_bins)]
+        for i, bin_idx in enumerate(assignments):
+            bins[bin_idx].append(float(items[i]))
+        return bins
+    
+    def _solve_exact_dp(self, items, capacity, lower_bound, upper_bound):
+        &quot;&quot;&quot;Dynamic programming for small instances&quot;&quot;&quot;
+        n = len(items)
+        items = sorted(items, reverse=True)
+        
+        # Try each number of bins
+        for target_bins in range(lower_bound, min(upper_bound, n + 1)):
+            # Use bitmask DP to check if items can be packed in target_bins
+            # State: dp[mask][bins_used] = remaining capacity of current bin
+            dp = {}
+            dp[(0, 0)] = capacity
+            
+            for mask in range(1 &lt;&lt; n):
+                for bins_used in range(target_bins + 1):
+                    if (mask, bins_used) not in dp:
+                        continue
+                    
+                    remaining = dp[(mask, bins_used)]
+                    
+                    # Try adding each item
+                    for i in range(n):
+                        if mask &amp; (1 &lt;&lt; i):
+                            continue
+                        
+                        new_mask = mask | (1 &lt;&lt; i)
+                        
+                        # Try adding to current bin
+                        if items[i] &lt;= remaining:
+                            key = (new_mask, bins_used)
+                            if key not in dp or dp[key] &lt; remaining - items[i]:
+                                dp[key] = remaining - items[i]
+                        
+                        # Try starting new bin
+                        if bins_used &lt; target_bins:
+                            key = (new_mask, bins_used + 1)
+                            if key not in dp or dp[key] &lt; capacity - items[i]:
+                                dp[key] = capacity - items[i]
+            
+            # Check if all items can be packed
+            full_mask = (1 &lt;&lt; n) - 1
+            for bins_used in range(target_bins + 1):
+                if (full_mask, bins_used) in dp:
+                    # Reconstruct solution
+                    return self._reconstruct_dp_solution(items, capacity, target_bins, dp)
+        
+        return None
+    
+    def _reconstruct_dp_solution(self, items, capacity, target_bins, dp):
+        &quot;&quot;&quot;Reconstruct solution from DP table&quot;&quot;&quot;
+        n = len(items)
+        full_mask = (1 &lt;&lt; n) - 1
+        
+        # Find valid end state
+        bins_used = -1
+        for b in range(target_bins + 1):
+            if (full_mask, b) in dp:
+                bins_used = b
+                break
+        
+        if bins_used == -1:
+            return None
+        
+        # Backtrack to find solution
+        bins = [[] for _ in range(bins_used + 1)]
+        mask = full_mask
+        current_bin = bins_used
+        
+        while mask &gt; 0:
+            # Find which item was added last
+            for i in range(n):
+                if not (mask &amp; (1 &lt;&lt; i)):
+                    continue
+                
+                prev_mask = mask ^ (1 &lt;&lt; i)
+                
+                # Check if item was added to current bin
+                if current_bin &gt; 0 and (prev_mask, current_bin - 1) in dp:
+                    if dp[(prev_mask, current_bin - 1)] &gt;= items[i]:
+                        bins[current_bin - 1].append(items[i])
+                        mask = prev_mask
+                        current_bin -= 1
+                        break
+                
+                # Check if item was added to existing bin
+                if (prev_mask, current_bin) in dp:
+                    remaining = dp[(prev_mask, current_bin)]
+                    if remaining + items[i] &lt;= capacity:
+                        bins[current_bin].append(items[i])
+                        mask = prev_mask
+                        break
+        
+        return [bin for bin in bins if bin]
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

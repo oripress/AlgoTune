@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – pde_burgers1d – Claude Opus 4</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">pde_burgers1d</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="pde_burgers1d_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (4.17x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="pde_burgers1d_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (4.03x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="pde_burgers1d_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (3.43x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="pde_burgers1d_o4-mini.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (1.59x)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">pde_burgers1d</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Claude Opus 4</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #006400; font-weight: 600;">4.027x</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">7</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">0</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">116.8 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+1D Burgers&#x27; Equation Solver Task:
+
+This task involves solving the one-dimensional Burgers&#x27; equation, a fundamental nonlinear partial differential equation that combines both advection and diffusion. The equation is given by:
+
+$\frac{\partial u}{\partial t} + u \frac{\partial u}{\partial x} = \nu \frac{\partial^2 u}{\partial x^2}$
+
+Where:
+- u(x,t) is the velocity field
+- ν is the viscosity coefficient
+- The term u∂u/∂x represents nonlinear advection (wave propagation)
+- The term ν∂²u/∂x² represents diffusion (smoothing)
+
+The problem is solved using the method of lines with an upwind scheme for the advection term and central differences for the diffusion term:
+
+$\frac{du_i}{dt} = -u_i \frac{du}{dx}\bigg|_i + \nu \frac{u_{i+1} - 2u_i + u_{i-1}}{(\Delta x)^2}$
+
+Where ∂u/∂x is computed using upwind differencing based on the sign of u to maintain numerical stability.
+
+The system uses Dirichlet boundary conditions (u=0 at both ends) and an initial condition designed to develop shocks, using either a sine wave or carefully positioned Gaussian bumps with small random perturbations.
+
+Input:
+A dictionary with the following keys:
+- `t0`: Initial time (float)
+- `t1`: Final time (float, fixed at 0.5)
+- `y0`: Initial velocity at each interior grid point (list of floats)
+- `params`: Dictionary containing:
+  - `nu`: Viscosity coefficient (float, fixed at 0.005)
+  - `dx`: Grid spacing (float)
+  - `num_points`: Number of interior grid points (integer, scales as 20 * n)
+- `x_grid`: Spatial coordinates of interior grid points (list of floats)
+
+Example input:
+```
+{
+  &quot;t0&quot;: 0.0,
+  &quot;t1&quot;: 0.5,
+  &quot;y0&quot;: [0.0, 0.3, 0.5, ..., -0.2],  # Values at each grid point
+  &quot;params&quot;: {
+    &quot;nu&quot;: 0.005,
+    &quot;dx&quot;: 0.0476,
+    &quot;num_points&quot;: 80
+  },
+  &quot;x_grid&quot;: [-0.95, -0.91, ..., 0.95]  # Interior grid points
+}
+```
+
+Output:
+A list of floating-point numbers representing the solution u(x,t1) at each interior grid point.
+
+Example output:
+```
+[0.0, 0.02, 0.08, ..., -0.04]
+```
+
+Category: differential_equation
+
+Below is the reference implementation. Your function should run much quicker.
+
+from typing import Any
+import numpy as np
+from scipy.integrate import solve_ivp
+
+| 01: def _solve( problem: dict[str, np.ndarray | float], debug=True) -&gt; Any:
+| 02:     y0 = np.array(problem[&quot;y0&quot;])
+| 03:     t0, t1 = problem[&quot;t0&quot;], problem[&quot;t1&quot;]
+| 04:     params = problem[&quot;params&quot;]
+| 05: 
+| 06:     def burgers_equation(t, u):
+| 07:         # Extract parameters
+| 08:         nu = params[&quot;nu&quot;]
+| 09:         dx = params[&quot;dx&quot;]
+| 10: 
+| 11:         # Apply method of lines: discretize spatial derivatives
+| 12:         # Pad array for boundary conditions (u=0 at boundaries)
+| 13:         u_padded = np.pad(u, 1, mode=&quot;constant&quot;, constant_values=0)
+| 14: 
+| 15:         # For Burgers&#x27; equation, we need to discretize:
+| 16:         # du/dt + u * du/dx = nu * d²u/dx²
+| 17: 
+| 18:         # First compute diffusion term (second derivative) using central difference
+| 19:         diffusion_term = (u_padded[2:] - 2 * u_padded[1:-1] + u_padded[:-2]) / (dx**2)
+| 20: 
+| 21:         # For the advection term (u * du/dx), use an upwind scheme for stability
+| 22:         # Implementation of a simple upwind scheme based on sign of u:
+| 23:         u_centered = u_padded[1:-1]  # u at current point
+| 24: 
+| 25:         # Forward difference (for u &lt; 0)
+| 26:         du_dx_forward = (u_padded[2:] - u_padded[1:-1]) / dx
+| 27: 
+| 28:         # Backward difference (for u &gt; 0)
+| 29:         du_dx_backward = (u_padded[1:-1] - u_padded[:-2]) / dx
+| 30: 
+| 31:         # Choose appropriate differencing based on sign of u (upwind scheme)
+| 32:         advection_term = np.where(
+| 33:             u_centered &gt;= 0,
+| 34:             u_centered * du_dx_backward,  # Use backward difference when u ≥ 0
+| 35:             u_centered * du_dx_forward,  # Use forward difference when u &lt; 0
+| 36:         )
+| 37: 
+| 38:         # Combine terms: du/dt = -u*du/dx + nu*d²u/dx²
+| 39:         du_dt = -advection_term + nu * diffusion_term
+| 40: 
+| 41:         return du_dt
+| 42: 
+| 43:     # Set solver parameters
+| 44:     rtol = 1e-6
+| 45:     atol = 1e-6
+| 46: 
+| 47:     method = &quot;RK45&quot;
+| 48:     t_eval = np.linspace(t0, t1, 100) if debug else None
+| 49: 
+| 50:     sol = solve_ivp(
+| 51:         burgers_equation,
+| 52:         [t0, t1],
+| 53:         y0,
+| 54:         method=method,
+| 55:         rtol=rtol,
+| 56:         atol=atol,
+| 57:         t_eval=t_eval,
+| 58:         dense_output=debug,
+| 59:     )
+| 60: 
+| 61:     if not sol.success:
+| 62: 
+| 63:     return sol
+| 64: 
+| 65: 
+| 66: def solve(self, problem: dict[str, np.ndarray | float]) -&gt; dict[str, list[float]]:
+| 67:     sol = self._solve(problem, debug=False)
+| 68: 
+| 69:     # Extract final state
+| 70:     if sol.success:
+| 71:         return sol.y[:, -1].tolist()  # Get final state
+| 72:     else:
+| 73:         raise RuntimeError(f&quot;Solver failed: {sol.message}&quot;)
+| 74: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+from typing import Any
+import numpy as np
+from scipy.integrate import solve_ivp
+
+| 01: def is_solution( problem: dict[str, Any], solution: dict[str, list[float]]) -&gt; bool:
+| 02:     if not all(k in problem for k in [&quot;params&quot;, &quot;y0&quot;, &quot;t0&quot;, &quot;t1&quot;]):
+| 03:         logging.error(&quot;Problem dictionary missing required keys.&quot;)
+| 04:         return False
+| 05: 
+| 06:     proposed_list = solution
+| 07: 
+| 08:     try:
+| 09:         y0_arr = np.array(problem[&quot;y0&quot;])
+| 10:         proposed_array = np.array(proposed_list, dtype=float)
+| 11:     except Exception:
+| 12:         logging.error(&quot;Could not convert &#x27;y_final&#x27; or &#x27;y0&#x27; to numpy arrays.&quot;)
+| 13:         return False
+| 14: 
+| 15:     if proposed_array.shape != y0_arr.shape:
+| 16:         logging.error(f&quot;Output shape {proposed_array.shape} != input shape {y0_arr.shape}.&quot;)
+| 17:         return False
+| 18:     if not np.all(np.isfinite(proposed_array)):
+| 19:         logging.error(&quot;Proposed &#x27;y_final&#x27; contains non-finite values.&quot;)
+| 20:         return False
+| 21: 
+| 22:     try:
+| 23:         ref_solution = solve(problem)
+| 24:         ref_array = np.array(ref_solution)
+| 25:     except Exception as e:
+| 26:         logging.error(f&quot;Error computing reference solution: {e}&quot;)
+| 27:         return False
+| 28: 
+| 29:     if ref_array.shape != y0_arr.shape:
+| 30:         logging.error(f&quot;Reference shape {ref_array.shape} mismatch input {y0_arr.shape}.&quot;)
+| 31:         return False
+| 32:     if not np.all(np.isfinite(ref_array)):
+| 33:         logging.error(&quot;Reference solution contains non-finite values.&quot;)
+| 34:         return False
+| 35: 
+| 36:     rtol, atol = 1e-5, 1e-8
+| 37:     if not np.allclose(proposed_array, ref_array, rtol=rtol, atol=atol):
+| 38:         abs_diff = np.max(np.abs(proposed_array - ref_array))
+| 39:         rel_diff = np.max(
+| 40:             np.abs((proposed_array - ref_array) / (atol + rtol * np.abs(ref_array)))
+| 41:         )
+| 42:         logging.error(
+| 43:             f&quot;Solution verification failed: max abs err={abs_diff:.3g}, max rel err={rel_diff:.3g}&quot;
+| 44:         )
+| 45:         return False
+| 46: 
+| 47:     return True
+| 48:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>1D Burgers&#x27; Equation Solver Task:
+
+This task involves solving the one-dimensional Burgers&#x27; equation, a fundamental nonlinear partial differential equation that combines both advection and diffusion. The equation is given by:
+
+$\frac{\partial u}{\partial t} + u \frac{\partial u}{\partial x} = \nu \frac{\partial^2 u}{\partial x^2}$
+
+Where:
+- u(x,t) is the velocity field
+- ν is the viscosity coefficient
+- The term u∂u/∂x represents nonlinear advection (wave propagation)
+- The term ν∂²u/∂x² represents diffusion (smoothing)
+
+The problem is solved using the method of lines with an upwind scheme for the advection term and central differences for the diffusion term:
+
+$\frac{du_i}{dt} = -u_i \frac{du}{dx}\bigg|_i + \nu \frac{u_{i+1} - 2u_i + u_{i-1}}{(\Delta x)^2}$
+
+Where ∂u/∂x is computed using upwind differencing based on the sign of u to maintain numerical stability.
+
+The system uses Dirichlet boundary conditions (u=0 at both ends) and an initial condition designed to develop shocks, using either a sine wave or carefully positioned Gaussian bumps with small random perturbations.
+
+Input:
+A dictionary with the following keys:
+- `t0`: Initial time (float)
+- `t1`: Final time (float, fixed at 0.5)
+- `y0`: Initial velocity at each interior grid point (list of floats)
+- `params`: Dictionary containing:
+  - `nu`: Viscosity coefficient (float, fixed at 0.005)
+  - `dx`: Grid spacing (float)
+  - `num_points`: Number of interior grid points (integer, scales as 20 * n)
+- `x_grid`: Spatial coordinates of interior grid points (list of floats)
+
+Example input:
+```
+{
+  &quot;t0&quot;: 0.0,
+  &quot;t1&quot;: 0.5,
+  &quot;y0&quot;: [0.0, 0.3, 0.5, ..., -0.2],  # Values at each grid point
+  &quot;params&quot;: {
+    &quot;nu&quot;: 0.005,
+    &quot;dx&quot;: 0.0476,
+    &quot;num_points&quot;: 80
+  },
+  &quot;x_grid&quot;: [-0.95, -0.91, ..., 0.95]  # Interior grid points
+}
+```
+
+Output:
+A list of floating-point numbers representing the solution u(x,t1) at each interior grid point.
+
+Example output:
+```
+[0.0, 0.02, 0.08, ..., -0.04]
+```
+
+Category: differential_equation</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">from typing import Any
+import numpy as np
+from scipy.integrate import solve_ivp
+
+ def _solve( problem: dict[str, np.ndarray | float], debug=True) -&gt; Any:
+     y0 = np.array(problem[&quot;y0&quot;])
+     t0, t1 = problem[&quot;t0&quot;], problem[&quot;t1&quot;]
+     params = problem[&quot;params&quot;]
+ 
+     def burgers_equation(t, u):
+         # Extract parameters
+         nu = params[&quot;nu&quot;]
+         dx = params[&quot;dx&quot;]
+ 
+         # Apply method of lines: discretize spatial derivatives
+         # Pad array for boundary conditions (u=0 at boundaries)
+         u_padded = np.pad(u, 1, mode=&quot;constant&quot;, constant_values=0)
+ 
+         # For Burgers&#x27; equation, we need to discretize:
+         # du/dt + u * du/dx = nu * d²u/dx²
+ 
+         # First compute diffusion term (second derivative) using central difference
+         diffusion_term = (u_padded[2:] - 2 * u_padded[1:-1] + u_padded[:-2]) / (dx**2)
+ 
+         # For the advection term (u * du/dx), use an upwind scheme for stability
+         # Implementation of a simple upwind scheme based on sign of u:
+         u_centered = u_padded[1:-1]  # u at current point
+ 
+         # Forward difference (for u &lt; 0)
+         du_dx_forward = (u_padded[2:] - u_padded[1:-1]) / dx
+ 
+         # Backward difference (for u &gt; 0)
+         du_dx_backward = (u_padded[1:-1] - u_padded[:-2]) / dx
+ 
+         # Choose appropriate differencing based on sign of u (upwind scheme)
+         advection_term = np.where(
+             u_centered &gt;= 0,
+             u_centered * du_dx_backward,  # Use backward difference when u ≥ 0
+             u_centered * du_dx_forward,  # Use forward difference when u &lt; 0
+         )
+ 
+         # Combine terms: du/dt = -u*du/dx + nu*d²u/dx²
+         du_dt = -advection_term + nu * diffusion_term
+ 
+         return du_dt
+ 
+     # Set solver parameters
+     rtol = 1e-6
+     atol = 1e-6
+ 
+     method = &quot;RK45&quot;
+     t_eval = np.linspace(t0, t1, 100) if debug else None
+ 
+     sol = solve_ivp(
+         burgers_equation,
+         [t0, t1],
+         y0,
+         method=method,
+         rtol=rtol,
+         atol=atol,
+         t_eval=t_eval,
+         dense_output=debug,
+     )
+ 
+     if not sol.success:
+ 
+     return sol
+ 
+ 
+ def solve(self, problem: dict[str, np.ndarray | float]) -&gt; dict[str, list[float]]:
+     sol = self._solve(problem, debug=False)
+ 
+     # Extract final state
+     if sol.success:
+         return sol.y[:, -1].tolist()  # Get final state
+     else:
+         raise RuntimeError(f&quot;Solver failed: {sol.message}&quot;)</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">import numpy as np
+from scipy.integrate import solve_ivp
+import numba
+
+class Solver:
+    def __init__(self):
+        # Pre-compile the numba function
+        self._burgers_rhs = self._create_burgers_rhs()
+    
+    @staticmethod
+    @numba.jit(nopython=True)
+    def _burgers_equation_numba(u, nu, dx):
+        &quot;&quot;&quot;Compute the right-hand side of Burgers&#x27; equation using numba.&quot;&quot;&quot;
+        n = len(u)
+        du_dt = np.zeros(n)
+        
+        # Handle boundaries (u=0 at both ends)
+        # Interior points
+        for i in range(n):
+            # Get values with boundary conditions
+            u_left = u[i-1] if i &gt; 0 else 0.0
+            u_center = u[i]
+            u_right = u[i+1] if i &lt; n-1 else 0.0
+            
+            # Diffusion term: nu * d²u/dx²
+            diffusion = nu * (u_right - 2*u_center + u_left) / (dx*dx)
+            
+            # Advection term with upwind scheme: u * du/dx
+            if u_center &gt;= 0:
+                # Use backward difference
+                du_dx = (u_center - u_left) / dx
+            else:
+                # Use forward difference
+                du_dx = (u_right - u_center) / dx
+            
+            advection = u_center * du_dx
+            
+            # Combine terms
+            du_dt[i] = -advection + diffusion
+        
+        return du_dt
+    
+    def _create_burgers_rhs(self):
+        &quot;&quot;&quot;Create a closure for the RHS function.&quot;&quot;&quot;
+        burgers_numba = self._burgers_equation_numba
+        
+        def burgers_rhs(t, u, nu, dx):
+            return burgers_numba(u, nu, dx)
+        
+        return burgers_rhs
+    
+    def solve(self, problem, **kwargs):
+        &quot;&quot;&quot;Solve the Burgers&#x27; equation.&quot;&quot;&quot;
+        y0 = np.array(problem[&quot;y0&quot;])
+        t0 = problem[&quot;t0&quot;]
+        t1 = problem[&quot;t1&quot;]
+        nu = problem[&quot;params&quot;][&quot;nu&quot;]
+        dx = problem[&quot;params&quot;][&quot;dx&quot;]
+        
+        # Create RHS function with parameters
+        def rhs(t, u):
+            return self._burgers_rhs(t, u, nu, dx)
+        
+        # Solve using RK45
+        sol = solve_ivp(
+            rhs,
+            [t0, t1],
+            y0,
+            method=&#x27;RK45&#x27;,
+            rtol=1e-6,
+            atol=1e-6
+        )
+        
+        if not sol.success:
+            raise RuntimeError(f&quot;Solver failed: {sol.message}&quot;)
+        
+        return sol.y[:, -1].tolist()</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/pde_burgers1d_claude-opus-4-20250514_20250625_150045_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/pde_burgers1d_claude-opus-4-20250514_20250625_150045_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge ls">📄 List Files</span>
+            </div>
+            <div class="message-content">
+                I need to solve the 1D Burgers&#x27; equation more efficiently than the reference implementation. Let me start by examining the problem and creating an initial solver.<br><br><pre><code class="language-python">ls</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.0863. You have $0.9137 remaining.<br><br>File list:<br>solver.py
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge view_file">👁️ View File</span>
+            </div>
+            <div class="message-content">
+                Let me first look at the existing solver.py file to see what&#x27;s there.<br><br><pre><code class="language-python">view_file solver.py</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.1755. You have $0.8245 remaining.<br><br>File: solver.py (lines 0-0 out of 0)
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Let me create an initial solver implementation using numba to speed up the computation of the Burgers&#x27; equation.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-1
+---
+import numpy as np
+from scipy.integrate import solve_ivp
+import numba
+
+class Solver:
+    def __init__(self):
+        # Pre-compile the numba function
+        self._burgers_rhs = self._create_burgers_rhs()
+    
+    @staticmethod
+    @numba.jit(nopython=True)
+    def _burgers_equation_numba(u, nu, dx):
+        &quot;&quot;&quot;Compute the right-hand side of Burgers&#x27; equation using numba.&quot;&quot;&quot;
+        n = len(u)
+        du_dt = np.zeros(n)
+        
+        # Handle boundaries (u=0 at both ends)
+        # Interior points
+        for i in range(n):
+            # Get values with boundary conditions
+            u_left = u[i-1] if i &gt; 0 else 0.0
+            u_center = u[i]
+            u_right = u[i+1] if i &lt; n-1 else 0.0
+            
+            # Diffusion term: nu * d²u/dx²
+            diffusion = nu * (u_right - 2*u_center + u_left) / (dx*dx)
+            
+            # Advection term with upwind scheme: u * du/dx
+            if u_center &gt;= 0:
+                # Use backward difference
+                du_dx = (u_center - u_left) / dx
+            else:
+                # Use forward difference
+                du_dx = (u_right - u_center) / dx
+            
+            advection = u_center * du_dx
+            
+            # Combine terms
+            du_dt[i] = -advection + diffusion
+        
+        return du_dt
+    
+    def _create_burgers_rhs(self):
+        &quot;&quot;&quot;Create a closure for the RHS function.&quot;&quot;&quot;
+        burgers_numba = self._burgers_equation_numba
+        
+        def burgers_rhs(t, u, nu, dx):
+            return burgers_numba(u, nu, dx)
+        
+        return burgers_rhs
+    
+    def solve(self, problem, **kwargs):
+        &quot;&quot;&quot;Solve the Burgers&#x27; equation.&quot;&quot;&quot;
+        y0 = np.array(problem[&quot;y0&quot;])
+        t0 = problem[&quot;t0&quot;]
+        t1 = problem[&quot;t1&quot;]
+        nu = problem[&quot;params&quot;][&quot;nu&quot;]
+        dx = problem[&quot;params&quot;][&quot;dx&quot;]
+        
+        # Create RHS function with parameters
+        def rhs(t, u):
+            return self._burgers_rhs(t, u, nu, dx)
+        
+        # Solve using RK45
+        sol = solve_ivp(
+            rhs,
+            [t0, t1],
+            y0,
+            method=&#x27;RK45&#x27;,
+            rtol=1e-6,
+            atol=1e-6
+        )
+        
+        if not sol.success:
+            raise RuntimeError(f&quot;Solver failed: {sol.message}&quot;)
+        
+        return sol.y[:, -1].tolist()
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.3184. You have $0.6816 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 77)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from scipy.integrate import solve_ivp
+&gt; 03: import numba
+&gt; 04: 
+&gt; 05: class Solver:
+&gt; 06:     def __init__(self):
+&gt; 07:         # Pre-compile the numba function
+&gt; 08:         self._burgers_rhs = self._create_burgers_rhs()
+&gt; 09:     
+&gt; 10:     @staticmethod
+&gt; 11:     @numba.jit(nopython=True)
+&gt; 12:     def _burgers_equation_numba(u, nu, dx):
+&gt; 13:         &quot;&quot;&quot;Compute the right-hand side of Burgers&#x27; equation using numba.&quot;&quot;&quot;
+&gt; 14:         n = len(u)
+&gt; 15:         du_dt = np.zeros(n)
+&gt; 16:         
+&gt; 17:         # Handle boundaries (u=0 at both ends)
+&gt; 18:         # Interior points
+&gt; 19:         for i in range(n):
+&gt; 20:             # Get values with boundary conditions
+&gt; 21:             u_left = u[i-1] if i &gt; 0 else 0.0
+&gt; 22:             u_center = u[i]
+&gt; 23:             u_right = u[i+1] if i &lt; n-1 else 0.0
+&gt; 24:             
+&gt; 25:             # Diffusion term: nu * d²u/dx²
+&gt; 26:             diffusion = nu * (u_right - 2*u_center + u_left) / (dx*dx)
+&gt; 27:             
+&gt; 28:             # Advection term with upwind scheme: u * du/dx
+&gt; 29:             if u_center &gt;= 0:
+&gt; 30:                 # Use backward difference
+&gt; 31:                 du_dx = (u_center - u_left) / dx
+&gt; 32:             else:
+&gt; 33:                 # Use forward difference
+&gt; 34:                 du_dx = (u_right - u_center) / dx
+&gt; 35:             
+&gt; 36:             advection = u_center * du_dx
+&gt; 37:             
+&gt; 38:             # Combine terms
+&gt; 39:             du_dt[i] = -advection + diffusion
+&gt; 40:         
+&gt; 41:         return du_dt
+&gt; 42:     
+&gt; 43:     def _create_burgers_rhs(self):
+&gt; 44:         &quot;&quot;&quot;Create a closure for the RHS function.&quot;&quot;&quot;
+&gt; 45:         burgers_numba = self._burgers_equation_numba
+&gt; 46:         
+&gt; 47:         def burgers_rhs(t, u, nu, dx):
+&gt; 48:             return burgers_numba(u, nu, dx)
+&gt; 49:         
+&gt; 50:         return burgers_rhs
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">4.02</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Good start with 4.02x speedup using numba! But I need to think outside the box. Since the problem has fixed parameters (nu=0.005, t1=0.5), I can use a more specialized approach. Let me try using JAX with a custom time-stepping scheme optimized for this specific Burgers&#x27; equation.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-77
+---
+import numpy as np
+import jax
+import jax.numpy as jnp
+from jax import jit
+
+class Solver:
+    def __init__(self):
+        # Pre-compile JAX functions
+        self._step_fn = jit(self._rk4_step)
+        self._burgers_rhs = jit(self._burgers_equation_jax)
+    
+    @staticmethod
+    def _burgers_equation_jax(u, nu, dx):
+        &quot;&quot;&quot;Compute RHS of Burgers&#x27; equation using JAX.&quot;&quot;&quot;
+        # Pad for boundary conditions
+        u_padded = jnp.pad(u, 1, mode=&#x27;constant&#x27;, constant_values=0)
+        
+        # Diffusion term: nu * d²u/dx²
+        diffusion = nu * (u_padded[2:] - 2*u_padded[1:-1] + u_padded[:-2]) / (dx*dx)
+        
+        # Advection term with upwind scheme
+        u_center = u_padded[1:-1]
+        
+        # Forward and backward differences
+        du_dx_forward = (u_padded[2:] - u_padded[1:-1]) / dx
+        du_dx_backward = (u_padded[1:-1] - u_padded[:-2]) / dx
+        
+        # Upwind scheme
+        advection = jnp.where(
+            u_center &gt;= 0,
+            u_center * du_dx_backward,
+            u_center * du_dx_forward
+        )
+        
+        return -advection + diffusion
+    
+    def _rk4_step(self, u, dt, nu, dx):
+        &quot;&quot;&quot;Single RK4 step.&quot;&quot;&quot;
+        k1 = self._burgers_rhs(u, nu, dx)
+        k2 = self._burgers_rhs(u + 0.5*dt*k1, nu, dx)
+        k3 = self._burgers_rhs(u + 0.5*dt*k2, nu, dx)
+        k4 = self._burgers_rhs(u + dt*k3, nu, dx)
+        
+        return u + dt * (k1 + 2*k2 + 2*k3 + k4) / 6
+    
+    def solve(self, problem, **kwargs):
+        &quot;&quot;&quot;Solve using custom RK4 with adaptive timestep.&quot;&quot;&quot;
+        y0 = jnp.array(problem[&quot;y0&quot;])
+        t0 = problem[&quot;t0&quot;]
+        t1 = problem[&quot;t1&quot;]
+        nu = problem[&quot;params&quot;][&quot;nu&quot;]
+        dx = problem[&quot;params&quot;][&quot;dx&quot;]
+        
+        # Start with an aggressive timestep
+        # For nu=0.005 and typical dx values, CFL condition gives us a good starting point
+        dt_max = 0.5 * dx * dx / nu  # Diffusion stability limit
+        dt = min(0.01, dt_max)  # Start conservatively
+        
+        u = y0
+        t = t0
+        
+        # Time stepping loop
+        while t &lt; t1:
+            if t + dt &gt; t1:
+                dt = t1 - t
+            
+            # Take a step
+            u_new = self._step_fn(u, dt, nu, dx)
+            
+            # Simple adaptive timestep based on maximum change
+            max_change = jnp.max(jnp.abs(u_new - u))
+            
+            if max_change &gt; 0.1:
+                # Reduce timestep
+                dt *= 0.5
+                continue
+            else:
+                # Accept step
+                u = u_new
+                t += dt
+                
+                # Try to increase timestep if change is small
+                if max_change &lt; 0.01:
+                    dt = min(dt * 1.5, dt_max)
+        
+        return np.array(u).tolist()
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.5124. You have $0.4876 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 86)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: import jax
+&gt; 03: import jax.numpy as jnp
+&gt; 04: from jax import jit
+&gt; 05: 
+&gt; 06: class Solver:
+&gt; 07:     def __init__(self):
+&gt; 08:         # Pre-compile JAX functions
+&gt; 09:         self._step_fn = jit(self._rk4_step)
+&gt; 10:         self._burgers_rhs = jit(self._burgers_equation_jax)
+&gt; 11:     
+&gt; 12:     @staticmethod
+&gt; 13:     def _burgers_equation_jax(u, nu, dx):
+&gt; 14:         &quot;&quot;&quot;Compute RHS of Burgers&#x27; equation using JAX.&quot;&quot;&quot;
+&gt; 15:         # Pad for boundary conditions
+&gt; 16:         u_padded = jnp.pad(u, 1, mode=&#x27;constant&#x27;, constant_values=0)
+&gt; 17:         
+&gt; 18:         # Diffusion term: nu * d²u/dx²
+&gt; 19:         diffusion = nu * (u_padded[2:] - 2*u_padded[1:-1] + u_padded[:-2]) / (dx*dx)
+&gt; 20:         
+&gt; 21:         # Advection term with upwind scheme
+&gt; 22:         u_center = u_padded[1:-1]
+&gt; 23:         
+&gt; 24:         # Forward and backward differences
+&gt; 25:         du_dx_forward = (u_padded[2:] - u_padded[1:-1]) / dx
+&gt; 26:         du_dx_backward = (u_padded[1:-1] - u_padded[:-2]) / dx
+&gt; 27:         
+&gt; 28:         # Upwind scheme
+&gt; 29:         advection = jnp.where(
+&gt; 30:             u_center &gt;= 0,
+&gt; 31:             u_center * du_dx_backward,
+&gt; 32:             u_center * du_dx_forward
+&gt; 33:         )
+&gt; 34:         
+&gt; 35:         return -advection + diffusion
+&gt; 36:     
+&gt; 37:     def _rk4_step(self, u, dt, nu, dx):
+&gt; 38:         &quot;&quot;&quot;Single RK4 step.&quot;&quot;&quot;
+&gt; 39:         k1 = self._burgers_rhs(u, nu, dx)
+&gt; 40:         k2 = self._burgers_rhs(u + 0.5*dt*k1, nu, dx)
+&gt; 41:         k3 = self._burgers_rhs(u + 0.5*dt*k2, nu, dx)
+&gt; 42:         k4 = self._burgers_rhs(u + dt*k3, nu, dx)
+&gt; 43:         
+&gt; 44:         return u + dt * (k1 + 2*k2 + 2*k3 + k4) / 6
+&gt; 45:     
+&gt; 46:     def solve(self, problem, **kwargs):
+&gt; 47:         &quot;&quot;&quot;Solve using custom RK4 with adaptive timestep.&quot;&quot;&quot;
+&gt; 48:         y0 = jnp.array(problem[&quot;y0&quot;])
+&gt; 49:         t0 = problem[&quot;t0&quot;]
+&gt; 50:         t1 = problem[&quot;t1&quot;]
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 1%<br>  Timeouts: 99%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br><pre><code class="language-python">  156:         if not all(k in problem for k in [&quot;params&quot;, &quot;y0&quot;, &quot;t0&quot;, &quot;t1&quot;]):
+  157:             logging.error(&quot;Problem dictionary missing required keys.&quot;)
+  158:             return False
+  159: 
+  160:         proposed_list = solution
+  161: 
+  162:         try:
+  163:             y0_arr = np.array(problem[&quot;y0&quot;])
+  164:             proposed_array = np.array(proposed_list, dtype=float)
+  165:         except Exception:
+  166:             logging.error(&quot;Could not convert &#x27;y_final&#x27; or &#x27;y0&#x27; to numpy arrays.&quot;)
+  167:             return False
+  168: 
+  169:         if proposed_array.shape != y0_arr.shape:
+  170:             logging.error(f&quot;Output shape {proposed_array.shape} != input shape {y0_arr.shape}.&quot;)
+&gt; 171:             return False</code></pre><br><br>Invalid Example #2:<br><pre><code class="language-python">  156:         if not all(k in problem for k in [&quot;params&quot;, &quot;y0&quot;, &quot;t0&quot;, &quot;t1&quot;]):
+  157:             logging.error(&quot;Problem dictionary missing required keys.&quot;)
+  158:             return False
+  159: 
+  160:         proposed_list = solution
+  161: 
+  162:         try:
+  163:             y0_arr = np.array(problem[&quot;y0&quot;])
+  164:             proposed_array = np.array(proposed_list, dtype=float)
+  165:         except Exception:
+  166:             logging.error(&quot;Could not convert &#x27;y_final&#x27; or &#x27;y0&#x27; to numpy arrays.&quot;)
+  167:             return False
+  168: 
+  169:         if proposed_array.shape != y0_arr.shape:
+  170:             logging.error(f&quot;Output shape {proposed_array.shape} != input shape {y0_arr.shape}.&quot;)
+&gt; 171:             return False</code></pre><br><br>Invalid Example #3:<br><pre><code class="language-python">  156:         if not all(k in problem for k in [&quot;params&quot;, &quot;y0&quot;, &quot;t0&quot;, &quot;t1&quot;]):
+  157:             logging.error(&quot;Problem dictionary missing required keys.&quot;)
+  158:             return False
+  159: 
+  160:         proposed_list = solution
+  161: 
+  162:         try:
+  163:             y0_arr = np.array(problem[&quot;y0&quot;])
+  164:             proposed_array = np.array(proposed_list, dtype=float)
+  165:         except Exception:
+  166:             logging.error(&quot;Could not convert &#x27;y_final&#x27; or &#x27;y0&#x27; to numpy arrays.&quot;)
+  167:             return False
+  168: 
+  169:         if proposed_array.shape != y0_arr.shape:
+  170:             logging.error(f&quot;Output shape {proposed_array.shape} != input shape {y0_arr.shape}.&quot;)
+&gt; 171:             return False</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge revert">↩️ Revert Changes</span>
+            </div>
+            <div class="message-content">
+                The JAX implementation is timing out. Let me revert to the working numba solution and optimize it further.<br><br><pre><code class="language-python">revert</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.6527. You have $0.3473 remaining.<br><br>Successfully reverted to last saved state.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Now let me optimize the numba implementation further by using a custom RK4 solver with fixed timestep and better vectorization.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-77
+---
+import numpy as np
+import numba
+
+class Solver:
+    def __init__(self):
+        # Pre-compile numba functions
+        pass
+    
+    @staticmethod
+    @numba.jit(nopython=True, fastmath=True)
+    def _burgers_rhs_vectorized(u, nu, dx, du_dt):
+        &quot;&quot;&quot;Vectorized RHS computation.&quot;&quot;&quot;
+        n = len(u)
+        dx_inv = 1.0 / dx
+        dx2_inv = dx_inv * dx_inv
+        nu_dx2 = nu * dx2_inv
+        
+        # Interior points
+        for i in range(1, n-1):
+            u_left = u[i-1]
+            u_center = u[i]
+            u_right = u[i+1]
+            
+            # Diffusion term
+            diffusion = nu_dx2 * (u_right - 2*u_center + u_left)
+            
+            # Advection with upwind
+            if u_center &gt;= 0:
+                du_dx = (u_center - u_left) * dx_inv
+            else:
+                du_dx = (u_right - u_center) * dx_inv
+            
+            du_dt[i] = -u_center * du_dx + diffusion
+        
+        # Boundary points
+        # i = 0
+        u_center = u[0]
+        u_right = u[1]
+        diffusion = nu_dx2 * (u_right - 2*u_center)
+        if u_center &gt;= 0:
+            du_dx = u_center * dx_inv
+        else:
+            du_dx = (u_right - u_center) * dx_inv
+        du_dt[0] = -u_center * du_dx + diffusion
+        
+        # i = n-1
+        u_left = u[n-2]
+        u_center = u[n-1]
+        diffusion = nu_dx2 * (-2*u_center + u_left)
+        if u_center &gt;= 0:
+            du_dx = (u_center - u_left) * dx_inv
+        else:
+            du_dx = -u_center * dx_inv
+        du_dt[n-1] = -u_center * du_dx + diffusion
+    
+    @staticmethod
+    @numba.jit(nopython=True, fastmath=True)
+    def _solve_burgers(y0, t0, t1, nu, dx):
+        &quot;&quot;&quot;Custom RK4 solver optimized for Burgers equation.&quot;&quot;&quot;
+        # Choose timestep based on CFL condition
+        dt_cfl = 0.9 * dx * dx / nu  # Diffusion stability
+        dt = min(0.001, dt_cfl)
+        
+        n_steps = int(np.ceil((t1 - t0) / dt))
+        dt = (t1 - t0) / n_steps
+        
+        u = y0.copy()
+        k1 = np.zeros_like(u)
+        k2 = np.zeros_like(u)
+        k3 = np.zeros_like(u)
+        k4 = np.zeros_like(u)
+        u_temp = np.zeros_like(u)
+        
+        # Time stepping
+        for _ in range(n_steps):
+            # RK4 stages
+            Solver._burgers_rhs_vectorized(u, nu, dx, k1)
+            
+            for i in range(len(u)):
+                u_temp[i] = u[i] + 0.5 * dt * k1[i]
+            Solver._burgers_rhs_vectorized(u_temp, nu, dx, k2)
+            
+            for i in range(len(u)):
+                u_temp[i] = u[i] + 0.5 * dt * k2[i]
+            Solver._burgers_rhs_vectorized(u_temp, nu, dx, k3)
+            
+            for i in range(len(u)):
+                u_temp[i] = u[i] + dt * k3[i]
+            Solver._burgers_rhs_vectorized(u_temp, nu, dx, k4)
+            
+            # Update
+            for i in range(len(u)):
+                u[i] += dt * (k1[i] + 2*k2[i] + 2*k3[i] + k4[i]) / 6.0
+        
+        return u
+    
+    def solve(self, problem, **kwargs):
+        &quot;&quot;&quot;Solve the Burgers&#x27; equation.&quot;&quot;&quot;
+        y0 = np.array(problem[&quot;y0&quot;])
+        t0 = problem[&quot;t0&quot;]
+        t1 = problem[&quot;t1&quot;]
+        nu = problem[&quot;params&quot;][&quot;nu&quot;]
+        dx = problem[&quot;params&quot;][&quot;dx&quot;]
+        
+        result = self._solve_burgers(y0, t0, t1, nu, dx)
+        return result.tolist()
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 6 messages and have used up $0.8948. You have $0.1052 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 106)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: import numba
+&gt; 003: 
+&gt; 004: class Solver:
+&gt; 005:     def __init__(self):
+&gt; 006:         # Pre-compile numba functions
+&gt; 007:         pass
+&gt; 008:     
+&gt; 009:     @staticmethod
+&gt; 010:     @numba.jit(nopython=True, fastmath=True)
+&gt; 011:     def _burgers_rhs_vectorized(u, nu, dx, du_dt):
+&gt; 012:         &quot;&quot;&quot;Vectorized RHS computation.&quot;&quot;&quot;
+&gt; 013:         n = len(u)
+&gt; 014:         dx_inv = 1.0 / dx
+&gt; 015:         dx2_inv = dx_inv * dx_inv
+&gt; 016:         nu_dx2 = nu * dx2_inv
+&gt; 017:         
+&gt; 018:         # Interior points
+&gt; 019:         for i in range(1, n-1):
+&gt; 020:             u_left = u[i-1]
+&gt; 021:             u_center = u[i]
+&gt; 022:             u_right = u[i+1]
+&gt; 023:             
+&gt; 024:             # Diffusion term
+&gt; 025:             diffusion = nu_dx2 * (u_right - 2*u_center + u_left)
+&gt; 026:             
+&gt; 027:             # Advection with upwind
+&gt; 028:             if u_center &gt;= 0:
+&gt; 029:                 du_dx = (u_center - u_left) * dx_inv
+&gt; 030:             else:
+&gt; 031:                 du_dx = (u_right - u_center) * dx_inv
+&gt; 032:             
+&gt; 033:             du_dt[i] = -u_center * du_dx + diffusion
+&gt; 034:         
+&gt; 035:         # Boundary points
+&gt; 036:         # i = 0
+&gt; 037:         u_center = u[0]
+&gt; 038:         u_right = u[1]
+&gt; 039:         diffusion = nu_dx2 * (u_right - 2*u_center)
+&gt; 040:         if u_center &gt;= 0:
+&gt; 041:             du_dx = u_center * dx_inv
+&gt; 042:         else:
+&gt; 043:             du_dx = (u_right - u_center) * dx_inv
+&gt; 044:         du_dt[0] = -u_center * du_dx + diffusion
+&gt; 045:         
+&gt; 046:         # i = n-1
+&gt; 047:         u_left = u[n-2]
+&gt; 048:         u_center = u[n-1]
+&gt; 049:         diffusion = nu_dx2 * (-2*u_center + u_left)
+&gt; 050:         if u_center &gt;= 0:
+...</code></pre><br><br>During: Pass nopython_type_inference in function &#x27;solve&#x27; at line 105 in solver.py<br><br>Code Context:<br><pre><code class="language-python">   95 :         return u
+   96 : 
+   97 :     def solve(self, problem, **kwargs):
+   98 :         &quot;&quot;&quot;Solve the Burgers&#x27; equation.&quot;&quot;&quot;
+   99 :         y0 = np.array(problem[&quot;y0&quot;])
+   100:         t0 = problem[&quot;t0&quot;]
+   101:         t1 = problem[&quot;t1&quot;]
+   102:         nu = problem[&quot;params&quot;][&quot;nu&quot;]
+   103:         dx = problem[&quot;params&quot;][&quot;dx&quot;]
+   104: 
+ ! 105:         result = self._solve_burgers(y0, t0, t1, nu, dx)
+   106:         return result.tolist()</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I need to fix the method call since it&#x27;s a static method.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 105-105
+---
+        result = Solver._solve_burgers(y0, t0, t1, nu, dx)
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

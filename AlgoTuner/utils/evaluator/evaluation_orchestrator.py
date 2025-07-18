@@ -89,8 +89,8 @@ class EvaluationOrchestrator:
             problem, metadata = self._extract_problem_data(problem_data)
             problem_id = metadata.get("id", f"problem_{i+1}")
             
-            # Get warmup problem (previous problem in dataset, wrapping around)
-            warmup_idx = (i - 1) % len(dataset)
+            # Get warmup problem (next problem in dataset, wrapping around)
+            warmup_idx = (i + 1) % len(dataset)
             warmup_problem_data = dataset[warmup_idx]
             warmup_problem, _ = self._extract_problem_data(warmup_problem_data)
             

@@ -1,0 +1,4219 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – btsp – Gemini 2.5 Pro</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">btsp</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="btsp_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (2.76x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="btsp_o4-mini.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (2.63x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="btsp_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (1.62x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="btsp_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #B22222; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (Fail)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">btsp</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Gemini 2.5 Pro</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #006400; font-weight: 600;">1.624x</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">12</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">2</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">13.5 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+Bottleneck Traveling Salesman Problem (BTSP)  
+Given a set of cities and the travel times between each pair, the task is to find a tour that visits each city exactly once and returns to the starting city while minimizing the longest single-day travel time. Unlike the classic Traveling Salesman Problem, the objective is to minimize the maximum travel time for any single leg of the journey, ensuring that no single travel day is excessively long.  
+
+Input: A distance matrix representing the travel times between each pair of cities. The weights will always be positive and symmetric.
+
+Example input:  
+[
+    [0, 10, 20, 30],
+    [10, 0, 25, 35],
+    [20, 25, 0, 15],
+    [30, 35, 15, 0]
+]
+
+Output: A list of city indices representing the order in which the cities are visited in the optimal tour, such that the longest single travel time between consecutive cities is minimized. The first city also needs to be the last city.
+
+Example output:  
+[0, 1, 2, 3, 0]
+
+Category: discrete_optimization
+
+Below is the reference implementation. Your function should run much quicker.
+
+import itertools
+import math
+import random
+import time
+from enum import Enum
+import networkx as nx
+import numpy as np
+from pysat.solvers import Solver as SATSolver
+
+| 01: def solve(self, problem: list[list[float]]) -&gt; list[int]:
+| 02:     &quot;&quot;&quot;
+| 03:     Solve the BTSP problem.
+| 04:     Returns a tour as a list of city indices starting and ending at city 0.
+| 05:     
+| 06: 
+| 07:     NOTE: Your solution must pass validation by:
+| 08:     1. Returning correctly formatted output
+| 09:     2. Having no NaN or infinity values
+| 10:     3. Matching expected results within numerical tolerance
+| 11:     &quot;&quot;&quot;
+| 12:     n = len(problem)
+| 13:     if n &lt;= 1:
+| 14:         return [0, 0]
+| 15: 
+| 16:     # Create a complete graph from the distance matrix.
+| 17:     graph = nx.Graph()
+| 18:     for i, j in itertools.combinations(range(n), 2):
+| 19:         graph.add_edge(i, j, weight=problem[i][j])
+| 20: 
+| 21:     solver = BottleneckTSPSolver(graph)
+| 22:     sol = solver.optimize_bottleneck()
+| 23:     if sol is None:
+| 24:         return []
+| 25: 
+| 26:     # Build the tour graph from the solution edges.
+| 27:     tour_graph = nx.Graph()
+| 28:     for i, j in sol:
+| 29:         tour_graph.add_edge(i, j, weight=problem[i][j])
+| 30: 
+| 31:     # Recover the tour using depth-first search starting at node 0.
+| 32:     path = list(nx.dfs_preorder_nodes(tour_graph, source=0))
+| 33:     path.append(0)
+| 34:     return path
+| 35: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+import itertools
+import math
+import random
+import time
+from enum import Enum
+import networkx as nx
+import numpy as np
+from pysat.solvers import Solver as SATSolver
+
+| 01: def is_solution( problem: list[list[float]], solution: list[int]) -&gt; bool:
+| 02:     &quot;&quot;&quot;
+| 03:     Checks if a given solution is a valid and optimal tour for the instance.
+| 04: 
+| 05:     Args:
+| 06:         problem: The distance matrix representing the problem instance.
+| 07:         solution: A list of city indices representing the candidate tour.
+| 08: 
+| 09:     Returns:
+| 10:         True if the solution is valid and optimal, False otherwise.
+| 11:     &quot;&quot;&quot;
+| 12:     n = len(problem)
+| 13: 
+| 14:     # 1. Basic Validity Checks
+| 15:     if not solution:
+| 16:         logging.error(&quot;Solution is empty.&quot;)
+| 17:         return False
+| 18:     if solution[0] != solution[-1]:
+| 19:         logging.error(&quot;Tour must start and end at the same city.&quot;)
+| 20:         return False
+| 21:     if len(solution) != n + 1:
+| 22:         logging.error(f&quot;Tour length should be {n + 1}, but got {len(solution)}.&quot;)
+| 23:         return False
+| 24:     visited_cities = set(solution[:-1])
+| 25:     if len(visited_cities) != n:
+| 26:         logging.error(
+| 27:             f&quot;Tour must visit all {n} cities exactly once (found {len(visited_cities)} unique cities).&quot;
+| 28:         )
+| 29:         return False
+| 30:     expected_cities = set(range(n))
+| 31:     if visited_cities != expected_cities:
+| 32:         logging.error(f&quot;Tour visited cities {visited_cities}, but expected {expected_cities}.&quot;)
+| 33:         return False
+| 34: 
+| 35:     # 2. Calculate Bottleneck of the Provided Solution
+| 36:     try:
+| 37:         solution_edges = list(zip(solution[:-1], solution[1:]))
+| 38:         solution_bottleneck = max(problem[u][v] for u, v in solution_edges)
+| 39:     except IndexError:
+| 40:         logging.error(
+| 41:             &quot;Could not calculate bottleneck for the provided solution due to invalid city indices.&quot;
+| 42:         )
+| 43:         return False
+| 44: 
+| 45:     # 3. Calculate Optimal Bottleneck by solving the instance
+| 46:     optimal_solution = solve(problem)
+| 47:     if not optimal_solution:
+| 48:         # Should not happen for valid instances unless solver fails unexpectedly
+| 49:         logging.error(&quot;Failed to find an optimal solution using the solver.&quot;)
+| 50:         return False
+| 51: 
+| 52:     try:
+| 53:         optimal_edges = list(zip(optimal_solution[:-1], optimal_solution[1:]))
+| 54:         optimal_bottleneck = max(problem[u][v] for u, v in optimal_edges)
+| 55:     except IndexError:
+| 56:         logging.error(
+| 57:             &quot;Could not calculate bottleneck for the optimal solution due to invalid city indices.&quot;
+| 58:         )
+| 59:         return False  # Or raise an error, as this indicates an internal solver issue
+| 60: 
+| 61:     # 4. Compare Bottlenecks (using a small tolerance for float comparison)
+| 62:     is_optimal = abs(solution_bottleneck - optimal_bottleneck) &lt; 1e-9
+| 63:     if not is_optimal:
+| 64:         logging.info(
+| 65:             f&quot;Solution is valid but not optimal (Solution bottleneck: {solution_bottleneck}, Optimal bottleneck: {optimal_bottleneck}).&quot;
+| 66:         )
+| 67: 
+| 68:     return is_optimal
+| 69:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>Bottleneck Traveling Salesman Problem (BTSP)  
+Given a set of cities and the travel times between each pair, the task is to find a tour that visits each city exactly once and returns to the starting city while minimizing the longest single-day travel time. Unlike the classic Traveling Salesman Problem, the objective is to minimize the maximum travel time for any single leg of the journey, ensuring that no single travel day is excessively long.  
+
+Input: A distance matrix representing the travel times between each pair of cities. The weights will always be positive and symmetric.
+
+Example input:  
+[
+    [0, 10, 20, 30],
+    [10, 0, 25, 35],
+    [20, 25, 0, 15],
+    [30, 35, 15, 0]
+]
+
+Output: A list of city indices representing the order in which the cities are visited in the optimal tour, such that the longest single travel time between consecutive cities is minimized. The first city also needs to be the last city.
+
+Example output:  
+[0, 1, 2, 3, 0]
+
+Category: discrete_optimization</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">import itertools
+import math
+import random
+import time
+from enum import Enum
+import networkx as nx
+import numpy as np
+from pysat.solvers import Solver as SATSolver
+
+ def solve(self, problem: list[list[float]]) -&gt; list[int]:
+     &quot;&quot;&quot;
+     Solve the BTSP problem.
+     Returns a tour as a list of city indices starting and ending at city 0.
+     
+ 
+     NOTE: Your solution must pass validation by:
+     1. Returning correctly formatted output
+     2. Having no NaN or infinity values
+     3. Matching expected results within numerical tolerance
+     &quot;&quot;&quot;
+     n = len(problem)
+     if n &lt;= 1:
+         return [0, 0]
+ 
+     # Create a complete graph from the distance matrix.
+     graph = nx.Graph()
+     for i, j in itertools.combinations(range(n), 2):
+         graph.add_edge(i, j, weight=problem[i][j])
+ 
+     solver = BottleneckTSPSolver(graph)
+     sol = solver.optimize_bottleneck()
+     if sol is None:
+         return []
+ 
+     # Build the tour graph from the solution edges.
+     tour_graph = nx.Graph()
+     for i, j in sol:
+         tour_graph.add_edge(i, j, weight=problem[i][j])
+ 
+     # Recover the tour using depth-first search starting at node 0.
+     path = list(nx.dfs_preorder_nodes(tour_graph, source=0))
+     path.append(0)
+     return path</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">import numpy as np
+from typing import Any, List, Optional
+import numba
+
+# Numba-jitted helper functions are defined at the top level for optimal performance.
+
+@numba.jit(nopython=True)
+def _find_hamiltonian_cycle_jit(n: int, adj_matrix: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    A recursive utility to find a Hamiltonian cycle using a simple backtracking search.
+    This version is optimized with Numba but does not use complex heuristics,
+    prioritizing correctness and simplicity.
+    &quot;&quot;&quot;
+    if pos == n:
+        # Check if the last vertex is connected to the starting vertex (0)
+        return adj_matrix[path[n - 1], path[0]]
+
+    last_vertex = path[pos - 1]
+    
+    # Iterate through all vertices as potential next candidates
+    for v in range(n):
+        # Check if vertex v is adjacent to the last vertex and not yet visited
+        if adj_matrix[last_vertex, v] and not visited[v]:
+            path[pos] = v
+            visited[v] = True
+
+            if _find_hamiltonian_cycle_jit(n, adj_matrix, path, pos + 1, visited):
+                return True
+
+            # Backtrack
+            visited[v] = False
+    
+    return False
+
+@numba.jit(nopython=True)
+def _is_connected(n: int, adj_matrix: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    Checks if the graph is connected using BFS on a dense adjacency matrix.
+    &quot;&quot;&quot;
+    if n &lt;= 1:
+        return True
+    
+    q = np.zeros(n, dtype=np.int32)
+    q[0] = 0
+    head, tail = 0, 1
+    
+    visited = np.zeros(n, dtype=np.bool_)
+    visited[0] = True
+    count = 1
+    
+    while head &lt; tail:
+        u = q[head]
+        head += 1
+        
+        for v in range(n):
+            if adj_matrix[u, v] and not visited[v]:
+                visited[v] = True
+                q[tail] = v
+                tail += 1
+                count += 1
+    
+    return count == n
+
+class Solver:
+    def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+        &quot;&quot;&quot;
+        Solves the Bottleneck Traveling Salesman Problem using a combination of
+        binary search on edge weights and a Numba-accelerated backtracking search.
+        &quot;&quot;&quot;
+        n = len(problem)
+        
+        if n == 0:
+            return []
+        if n &lt;= 2:
+            return list(range(n)) + [0]
+
+        problem_np = np.array(problem, dtype=np.float64)
+
+        iu = np.triu_indices(n, k=1)
+        unique_weights = np.unique(problem_np[iu])
+
+        low, high = 0, len(unique_weights) - 1
+        optimal_tour = []
+        
+        while low &lt;= high:
+            mid_idx = (low + high) // 2
+            w_max = unique_weights[mid_idx]
+            
+            path = self._check_for_hamiltonian_cycle(n, problem_np, w_max)
+            
+            if path:
+                optimal_tour = path
+                high = mid_idx - 1
+            else:
+                low = mid_idx + 1
+        
+        return optimal_tour + [0] if optimal_tour else []
+
+    def _check_for_hamiltonian_cycle(self, n: int, problem_np: np.ndarray, w_max: float) -&gt; Optional[List[int]]:
+        &quot;&quot;&quot;
+        Checks if a Hamiltonian cycle exists for a given max weight w_max.
+        Returns the path if found, otherwise None.
+        &quot;&quot;&quot;
+        adj_matrix = problem_np &lt;= w_max
+        
+        # Pruning 1: Degree check. Every vertex must have at least 2 edges.
+        if np.any(np.sum(adj_matrix, axis=1) &lt; 2):
+            return None
+            
+        # Pruning 2: Connectivity check.
+        if not _is_connected(n, adj_matrix):
+            return None
+
+        # If pruning passes, attempt the full backtracking search.
+        path = np.full(n, -1, dtype=np.int32)
+        visited = np.zeros(n, dtype=np.bool_)
+        path[0] = 0
+        visited[0] = True
+        
+        if _find_hamiltonian_cycle_jit(n, adj_matrix, path, 1, visited):
+            return path.tolist()
+        
+        return None
+        neighbors_arr = np.empty(n, dtype=np.int32)
+        neighbor_degrees_arr = np.empty(n, dtype=np.int32)
+        
+        if _find_hamiltonian_cycle_jit_heuristic(n, adj_matrix, degrees.astype(np.int32), path, 1, visited, neighbors_arr, neighbor_degrees_arr):
+            return path.tolist()
+        
+        return None</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/btsp_gemini-2.5-pro_20250701_044015_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/btsp_gemini-2.5-pro_20250701_044015_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I need to solve the Bottleneck Traveling Salesman Problem. The goal is to find a tour that visits every city and minimizes the longest single edge in the tour.<br><br>A standard and effective approach for this problem is to perform a search over the possible bottleneck values. The possible bottleneck values are the unique edge weights in the distance matrix.<br><br>My strategy will be:<br>1.  Extract all unique edge weights from the input distance matrix and sort them in ascending order.<br>2.  Iterate through these sorted weights. Each weight is a candidate for the optimal bottleneck `W`.<br>3.  For each candidate weight `W`, construct a graph containing only edges with weights less than or equal to `W`.<br>4.  Check if this graph contains a Hamiltonian cycle (a tour visiting all cities).<br>5.  The first weight `W` for which a Hamiltonian cycle exists is the optimal bottleneck. The corresponding tour is a valid solution.<br><br>To check for a Hamiltonian cycle, I will use a backtracking (depth-first search) algorithm. This approach is generally more efficient than brute-forcing all permutations. I&#x27;ll start with a pure Python implementation, using NumPy for efficient handling of the distance matrix. If performance becomes an issue, I will consider optimizations like Numba or Cython for the computationally intensive backtracking part.<br><br>I will start by creating the `solver.py` file with this initial implementation.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-100
+---
+import numpy as np
+from typing import Any, List
+
+class Solver:
+    def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+        &quot;&quot;&quot;
+        Solves the Bottleneck Traveling Salesman Problem.
+        &quot;&quot;&quot;
+        n = len(problem)
+        
+        if n == 0:
+            return []
+        if n &lt;= 2:
+            # For n=1, [0,0]. For n=2, [0,1,0]
+            return list(range(n)) + [0]
+
+        problem_np = np.array(problem, dtype=np.float64)
+
+        # 1. Extract and sort unique edge weights
+        if n &gt; 1:
+            iu = np.triu_indices(n, k=1)
+            unique_weights = np.unique(problem_np[iu])
+        else:
+            unique_weights = np.array([])
+
+        # 2. Iterate through weights to find the minimal bottleneck
+        for w_max in unique_weights:
+            # Build adjacency list for the graph with edges &lt;= w_max
+            adj = [[] for _ in range(n)]
+            for i in range(n):
+                for j in range(i + 1, n):
+                    if problem_np[i, j] &lt;= w_max:
+                        adj[i].append(j)
+                        adj[j].append(i)
+            
+            if n &gt; 0 and any(len(adj[i]) &lt; 2 for i in range(n)):
+                continue
+
+            # 3. Find a Hamiltonian cycle in the current graph using backtracking
+            path = [-1] * n
+            visited = [False] * n
+            
+            path[0] = 0
+            visited[0] = True
+            
+            if self._find_hamiltonian_cycle(n, adj, path, 1, visited):
+                return path + [0]
+        
+        return []
+
+    def _find_hamiltonian_cycle(self, n: int, adj: List[List[int]], path: List[int], pos: int, visited: List[bool]) -&gt; bool:
+        &quot;&quot;&quot;
+        A recursive utility to find a Hamiltonian cycle.
+        &quot;&quot;&quot;
+        if pos == n:
+            # Check if the last vertex is connected to the starting vertex (0)
+            if path[0] in adj[path[n - 1]]:
+                return True
+            return False
+
+        # Try all neighbors of the previously added vertex
+        for v in adj[path[pos - 1]]:
+            if not visited[v]:
+                path[pos] = v
+                visited[v] = True
+
+                if self._find_hamiltonian_cycle(n, adj, path, pos + 1, visited):
+                    return True
+
+                # Backtrack
+                visited[v] = False
+        
+        return False
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.0853. You have $0.9147 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 73)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from typing import Any, List
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solves the Bottleneck Traveling Salesman Problem.
+&gt; 08:         &quot;&quot;&quot;
+&gt; 09:         n = len(problem)
+&gt; 10:         
+&gt; 11:         if n == 0:
+&gt; 12:             return []
+&gt; 13:         if n &lt;= 2:
+&gt; 14:             # For n=1, [0,0]. For n=2, [0,1,0]
+&gt; 15:             return list(range(n)) + [0]
+&gt; 16: 
+&gt; 17:         problem_np = np.array(problem, dtype=np.float64)
+&gt; 18: 
+&gt; 19:         # 1. Extract and sort unique edge weights
+&gt; 20:         if n &gt; 1:
+&gt; 21:             iu = np.triu_indices(n, k=1)
+&gt; 22:             unique_weights = np.unique(problem_np[iu])
+&gt; 23:         else:
+&gt; 24:             unique_weights = np.array([])
+&gt; 25: 
+&gt; 26:         # 2. Iterate through weights to find the minimal bottleneck
+&gt; 27:         for w_max in unique_weights:
+&gt; 28:             # Build adjacency list for the graph with edges &lt;= w_max
+&gt; 29:             adj = [[] for _ in range(n)]
+&gt; 30:             for i in range(n):
+&gt; 31:                 for j in range(i + 1, n):
+&gt; 32:                     if problem_np[i, j] &lt;= w_max:
+&gt; 33:                         adj[i].append(j)
+&gt; 34:                         adj[j].append(i)
+&gt; 35:             
+&gt; 36:             if n &gt; 0 and any(len(adj[i]) &lt; 2 for i in range(n)):
+&gt; 37:                 continue
+&gt; 38: 
+&gt; 39:             # 3. Find a Hamiltonian cycle in the current graph using backtracking
+&gt; 40:             path = [-1] * n
+&gt; 41:             visited = [False] * n
+&gt; 42:             
+&gt; 43:             path[0] = 0
+&gt; 44:             visited[0] = True
+&gt; 45:             
+&gt; 46:             if self._find_hamiltonian_cycle(n, adj, path, 1, visited):
+&gt; 47:                 return path + [0]
+&gt; 48:         
+&gt; 49:         return []
+&gt; 50: 
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">1.41</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge other"> Invalid Command</span>
+            </div>
+            <div class="message-content">
+                An effective approach to the Bottleneck Traveling Salesman Problem is to search over the possible bottleneck values. The optimal bottleneck must be one of the edge weights present in the problem&#x27;s distance matrix. This allows us to reframe the problem from finding a specific tour to finding the minimum possible maximum edge weight (`w_max`) that still permits a full tour.<br><br>My optimization strategy is built on three core ideas:<br><br>1.  **Binary Search on Edge Weights**: Instead of linearly checking each unique edge weight from smallest to largest, I perform a binary search on the sorted array of unique weights. This drastically reduces the number of Hamiltonian cycle checks from `O(N^2)` to `O(log(N^2))`, providing a significant algorithmic speedup.<br><br>2.  **JIT Compilation with Numba**: The most computationally intensive part of this approach is repeatedly checking for the existence of a Hamiltonian cycle, which is an NP-complete problem. I use a backtracking (depth-first search) algorithm for this check. To accelerate this critical section, I&#x27;ve implemented the backtracking logic and its helper functions (like the graph connectivity check) as top-level functions decorated with `@numba.jit(nopython=True)`. Numba compiles these Python functions into highly optimized machine code, making them run at speeds comparable to C or Fortran.<br><br>3.  **Aggressive Pruning**: Before launching the expensive backtracking search for a Hamiltonian cycle, I apply two fast, necessary (but not sufficient) checks to prune the search space:<br>    *   **Degree Check**: For a Hamiltonian cycle to exist, every city (vertex) must have at least two available routes (degree &gt;= 2) within the allowed `w_max`. This is checked efficiently using NumPy&#x27;s array operations.<br>    *   **Connectivity Check**: The graph formed by the allowed edges must be connected. A disconnected graph cannot contain a tour visiting all cities. I use a fast, Numba-jitted Breadth-First Search (BFS) to verify connectivity.<br><br>This combination of a superior search strategy (binary search), low-level code optimization (Numba), and intelligent pruning results in a highly efficient and robust solver.<br><br><pre><code class="language-python">import numpy as np
+from typing import Any, List, Optional
+import numba
+
+# Numba-jitted helper functions are defined at the top level for optimal performance.
+
+@numba.jit(nopython=True)
+def _find_hamiltonian_cycle_jit(n: int, adj_matrix: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    A recursive utility to find a Hamiltonian cycle, optimized with Numba.
+    It performs a backtracking search.
+    &quot;&quot;&quot;
+    # If all vertices are included in the path
+    if pos == n:
+        # And if there is an edge from the last included vertex to the first vertex
+        return adj_matrix[path[n - 1], path[0]]
+
+    # Try different vertices as the next candidate in the path
+    last_vertex = path[pos - 1]
+    # Iterate through all vertices to find a valid next step
+    for v in range(n):
+        # Check if this vertex is an adjacent, unvisited vertex
+        if adj_matrix[last_vertex, v] and not visited[v]:
+            path[pos] = v
+            visited[v] = True
+
+            # Recur to construct the rest of the path
+            if _find_hamiltonian_cycle_jit(n, adj_matrix, path, pos + 1, visited):
+                return True
+
+            # If adding vertex v doesn&#x27;t lead to a solution, backtrack
+            visited[v] = False
+
+    return False
+
+@numba.jit(nopython=True)
+def _is_connected(n: int, adj_matrix: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    Checks if the graph is connected using BFS. Optimized for Numba.
+    A graph with 0 or 1 vertices is considered connected.
+    &quot;&quot;&quot;
+    if n &lt;= 1:
+        return True
+    
+    # Queue for BFS, implemented with a NumPy array and head/tail pointers
+    q = np.zeros(n, dtype=np.int32)
+    q[0] = 0
+    head = 0
+    tail = 1
+    
+    visited = np.zeros(n, dtype=np.bool_)
+    visited[0] = True
+    count = 1
+    
+    while head &lt; tail:
+        u = q[head]
+        head += 1
+        
+        for v in range(n):
+            if adj_matrix[u, v] and not visited[v]:
+                visited[v] = True
+                q[tail] = v
+                tail += 1
+                count += 1
+    
+    # If the number of visited vertices is not equal to the total number of vertices,
+    # the graph is not connected.
+    return count == n
+
+
+class Solver:
+    def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+        &quot;&quot;&quot;
+        Solves the Bottleneck Traveling Salesman Problem using a combination of
+        binary search on edge weights, Numba-accelerated backtracking, and
+        aggressive graph-based pruning.
+        &quot;&quot;&quot;
+        n = len(problem)
+        
+        if n == 0:
+            return []
+        if n &lt;= 2:
+            return list(range(n)) + [0]
+
+        problem_np = np.array(problem, dtype=np.float64)
+
+        # 1. Extract and sort unique edge weights for binary searching.
+        iu = np.triu_indices(n, k=1)
+        unique_weights = np.unique(problem_np[iu])
+
+        # 2. Binary search for the minimal bottleneck weight.
+        low, high = 0, len(unique_weights) - 1
+        optimal_tour = []
+        
+        while low &lt;= high:
+            mid_idx = (low + high) // 2
+            w_max = unique_weights[mid_idx]
+            
+            path = self._check_for_hamiltonian_cycle(n, problem_np, w_max)
+            
+            if path:
+                # Found a tour, so this w_max is achievable.
+                # Store it and try for an even smaller bottleneck.
+                optimal_tour = path
+                high = mid_idx - 1
+            else:
+                # No tour found, the bottleneck is too restrictive.
+                # Need to allow longer edges.
+                low = mid_idx + 1
+        
+        return optimal_tour + [0] if optimal_tour else []
+
+    def _check_for_hamiltonian_cycle(self, n: int, problem_np: np.ndarray, w_max: float) -&gt; Optional[List[int]]:
+        &quot;&quot;&quot;
+        Checks if a Hamiltonian cycle exists for a given max weight w_max.
+        Returns the path if found, otherwise None.
+        &quot;&quot;&quot;
+        # Create an adjacency matrix for the graph with edges &lt;= w_max
+        adj_matrix = problem_np &lt;= w_max
+        
+        # Pruning 1: Degree check. A necessary condition for a Hamiltonian cycle.
+        if np.any(np.sum(adj_matrix, axis=1) &lt; 2):
+            return None
+            
+        # Pruning 2: Connectivity check. Another necessary condition.
+        if not _is_connected(n, adj_matrix):
+            return None
+
+        # If pruning passes, attempt to find a Hamiltonian cycle using backtracking.
+        path = np.full(n, -1, dtype=np.int32)
+        visited = np.zeros(n, dtype=np.bool_)
+        
+        # Start the path at vertex 0
+        path[0] = 0
+        visited[0] = True
+        
+        if _find_hamiltonian_cycle_jit(n, adj_matrix, path, 1, visited):
+            return path.tolist()
+        
+        return None</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.1630. You have $0.8370 remaining.<br><br>Error: Command parsing failed<br>Command parsing failed. <br>Remember to include one and only one command in each message. Important: remember to include all arguments for each command.<br>Remember to sandwich your command in between ``` and ```. <br>IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.<br><br>Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:<br>- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:<br>  ```<br>  edit <br>  file: &lt;file_name&gt;<br>  lines: &lt;start_line&gt;-&lt;end_line&gt;<br>  ---<br>  &lt;new_content&gt;<br>  ---<br>  ```<br><br>  The command will:<br>  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)<br>  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;<br>  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file<br>  <br>  Example:<br>  edit<br>  file: solver.py<br>  lines: 5-7<br>  ---<br>  def improved_function():<br>      print(&quot;Optimized solution&quot;)<br>  ---<br>- `ls`: List all files in the current working directory.<br>- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).<br>- `revert`: Revert the code to the best-performing version thus far.<br>- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: <br>  ```<br>  reference [1,2,3,4]<br>  ```<br>- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: <br>  ```<br>  eval_input [1,2,3,4]<br>  ```<br>- `eval`: Run evaluation on the current solution and report the results.<br>- `delete`: Delete a range of lines from a file using the format:<br>  ```<br>  delete<br>  file: &lt;file_name&gt;<br>  lines: &lt;start_line&gt;-&lt;end_line&gt;<br><br>  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)<br>  <br>  Example:<br>  ```<br>  delete<br>  file: solver.py<br>  lines: 5-10<br>  ```<br>- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.<br>  Example:<br>  ```<br>  profile solver.py [1, 2, 3]<br>  ```<br>- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.<br>  Example: <br>  ```<br>  profile_lines solver.py 1,2,3 [1, 2, 3]<br>  ```
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                <pre><code class="language-python">edit
+file: solver.py
+lines: 1-150
+---
+import numpy as np
+from typing import Any, List, Optional
+import numba
+
+# Numba-jitted helper functions are defined at the top level for optimal performance.
+
+@numba.jit(nopython=True)
+def _find_hamiltonian_cycle_jit(n: int, adj_matrix: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    A recursive utility to find a Hamiltonian cycle, optimized with Numba.
+    It performs a backtracking search.
+    &quot;&quot;&quot;
+    # If all vertices are included in the path
+    if pos == n:
+        # And if there is an edge from the last included vertex to the first vertex
+        return adj_matrix[path[n - 1], path[0]]
+
+    # Try different vertices as the next candidate in the path
+    last_vertex = path[pos - 1]
+    # Iterate through all vertices to find a valid next step
+    for v in range(n):
+        # Check if this vertex is an adjacent, unvisited vertex
+        if adj_matrix[last_vertex, v] and not visited[v]:
+            path[pos] = v
+            visited[v] = True
+
+            # Recur to construct the rest of the path
+            if _find_hamiltonian_cycle_jit(n, adj_matrix, path, pos + 1, visited):
+                return True
+
+            # If adding vertex v doesn&#x27;t lead to a solution, backtrack
+            visited[v] = False
+
+    return False
+
+@numba.jit(nopython=True)
+def _is_connected(n: int, adj_matrix: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    Checks if the graph is connected using BFS. Optimized for Numba.
+    A graph with 0 or 1 vertices is considered connected.
+    &quot;&quot;&quot;
+    if n &lt;= 1:
+        return True
+    
+    # Queue for BFS, implemented with a NumPy array and head/tail pointers
+    q = np.zeros(n, dtype=np.int32)
+    q[0] = 0
+    head = 0
+    tail = 1
+    
+    visited = np.zeros(n, dtype=np.bool_)
+    visited[0] = True
+    count = 1
+    
+    while head &lt; tail:
+        u = q[head]
+        head += 1
+        
+        for v in range(n):
+            if adj_matrix[u, v] and not visited[v]:
+                visited[v] = True
+                q[tail] = v
+                tail += 1
+                count += 1
+    
+    # If the number of visited vertices is not equal to the total number of vertices,
+    # the graph is not connected.
+    return count == n
+
+
+class Solver:
+    def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+        &quot;&quot;&quot;
+        Solves the Bottleneck Traveling Salesman Problem using a combination of
+        binary search on edge weights, Numba-accelerated backtracking, and
+        aggressive graph-based pruning.
+        &quot;&quot;&quot;
+        n = len(problem)
+        
+        if n == 0:
+            return []
+        if n &lt;= 2:
+            return list(range(n)) + [0]
+
+        problem_np = np.array(problem, dtype=np.float64)
+
+        # 1. Extract and sort unique edge weights for binary searching.
+        iu = np.triu_indices(n, k=1)
+        unique_weights = np.unique(problem_np[iu])
+
+        # 2. Binary search for the minimal bottleneck weight.
+        low, high = 0, len(unique_weights) - 1
+        optimal_tour = []
+        
+        while low &lt;= high:
+            mid_idx = (low + high) // 2
+            w_max = unique_weights[mid_idx]
+            
+            path = self._check_for_hamiltonian_cycle(n, problem_np, w_max)
+            
+            if path:
+                # Found a tour, so this w_max is achievable.
+                # Store it and try for an even smaller bottleneck.
+                optimal_tour = path
+                high = mid_idx - 1
+            else:
+                # No tour found, the bottleneck is too restrictive.
+                # Need to allow longer edges.
+                low = mid_idx + 1
+        
+        return optimal_tour + [0] if optimal_tour else []
+
+    def _check_for_hamiltonian_cycle(self, n: int, problem_np: np.ndarray, w_max: float) -&gt; Optional[List[int]]:
+        &quot;&quot;&quot;
+        Checks if a Hamiltonian cycle exists for a given max weight w_max.
+        Returns the path if found, otherwise None.
+        &quot;&quot;&quot;
+        # Create an adjacency matrix for the graph with edges &lt;= w_max
+        adj_matrix = problem_np &lt;= w_max
+        
+        # Pruning 1: Degree check. A necessary condition for a Hamiltonian cycle.
+        if np.any(np.sum(adj_matrix, axis=1) &lt; 2):
+            return None
+            
+        # Pruning 2: Connectivity check. Another necessary condition.
+        if not _is_connected(n, adj_matrix):
+            return None
+
+        # If pruning passes, attempt to find a Hamiltonian cycle using backtracking.
+        path = np.full(n, -1, dtype=np.int32)
+        visited = np.zeros(n, dtype=np.bool_)
+        
+        # Start the path at vertex 0
+        path[0] = 0
+        visited[0] = True
+        
+        if _find_hamiltonian_cycle_jit(n, adj_matrix, path, 1, visited):
+            return path.tolist()
+        
+        return None
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.1844. You have $0.8156 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 139)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, List, Optional
+&gt; 003: import numba
+&gt; 004: 
+&gt; 005: # Numba-jitted helper functions are defined at the top level for optimal performance.
+&gt; 006: 
+&gt; 007: @numba.jit(nopython=True)
+&gt; 008: def _find_hamiltonian_cycle_jit(n: int, adj_matrix: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+&gt; 009:     &quot;&quot;&quot;
+&gt; 010:     A recursive utility to find a Hamiltonian cycle, optimized with Numba.
+&gt; 011:     It performs a backtracking search.
+&gt; 012:     &quot;&quot;&quot;
+&gt; 013:     # If all vertices are included in the path
+&gt; 014:     if pos == n:
+&gt; 015:         # And if there is an edge from the last included vertex to the first vertex
+&gt; 016:         return adj_matrix[path[n - 1], path[0]]
+&gt; 017: 
+&gt; 018:     # Try different vertices as the next candidate in the path
+&gt; 019:     last_vertex = path[pos - 1]
+&gt; 020:     # Iterate through all vertices to find a valid next step
+&gt; 021:     for v in range(n):
+&gt; 022:         # Check if this vertex is an adjacent, unvisited vertex
+&gt; 023:         if adj_matrix[last_vertex, v] and not visited[v]:
+&gt; 024:             path[pos] = v
+&gt; 025:             visited[v] = True
+&gt; 026: 
+&gt; 027:             # Recur to construct the rest of the path
+&gt; 028:             if _find_hamiltonian_cycle_jit(n, adj_matrix, path, pos + 1, visited):
+&gt; 029:                 return True
+&gt; 030: 
+&gt; 031:             # If adding vertex v doesn&#x27;t lead to a solution, backtrack
+&gt; 032:             visited[v] = False
+&gt; 033: 
+&gt; 034:     return False
+&gt; 035: 
+&gt; 036: @numba.jit(nopython=True)
+&gt; 037: def _is_connected(n: int, adj_matrix: np.ndarray) -&gt; bool:
+&gt; 038:     &quot;&quot;&quot;
+&gt; 039:     Checks if the graph is connected using BFS. Optimized for Numba.
+&gt; 040:     A graph with 0 or 1 vertices is considered connected.
+&gt; 041:     &quot;&quot;&quot;
+&gt; 042:     if n &lt;= 1:
+&gt; 043:         return True
+&gt; 044:     
+&gt; 045:     # Queue for BFS, implemented with a NumPy array and head/tail pointers
+&gt; 046:     q = np.zeros(n, dtype=np.int32)
+&gt; 047:     q[0] = 0
+&gt; 048:     head = 0
+&gt; 049:     tail = 1
+&gt; 050:     
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">3.17</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge other"> Invalid Command</span>
+            </div>
+            <div class="message-content">
+                My analysis indicates that the primary performance bottleneck in my previous solution was the repeated, expensive check for a Hamiltonian cycle, which has worst-case exponential time complexity. While Numba provided a significant constant-factor speedup, the underlying algorithm&#x27;s complexity remained the main issue.<br><br>To achieve a more substantial performance gain, I&#x27;ve focused on optimizing the most performance-critical component: the graph traversal within the jitted functions. My refined strategy is as follows:<br><br>1.  **Retain the Optimal High-Level Algorithm**: The binary search over sorted edge weights is the correct and most efficient high-level approach. It reduces the number of decision problem instances we need to solve from `O(N^2)` to `O(log(N^2))`.<br><br>2.  **Optimized Graph Representation**: Instead of passing a dense `N x N` adjacency matrix to the Numba-jitted functions, I now convert the graph into a more efficient **Compressed Sparse Row (CSR)**-like format. This format uses two arrays: one (`neighbors`) to store a flattened list of all edges, and another (`indices`) to point to the start of each vertex&#x27;s neighbor list within the first array.<br><br>3.  **Accelerated JIT Functions**: Both the connectivity check (using Breadth-First Search) and the Hamiltonian cycle backtracking search have been rewritten to work with this CSR representation. This provides a significant advantage:<br>    *   **Faster Traversal**: Instead of iterating through all `N` potential vertices at each step to find a neighbor (a `O(N)` operation), the new functions can directly access the list of actual neighbors for a given vertex in `O(degree(v))` time.<br>    *   **Improved Cache Locality**: The CSR format stores neighbors contiguously in memory, which can lead to better cache performance during traversal.<br><br>4.  **Efficient Pipeline**: Within each step of the binary search, the CSR representation is built once. It is then used by both the fast connectivity-check prerequisite and, if that passes, the more expensive Hamiltonian cycle search. This avoids redundant computations and streamlines the process for each candidate bottleneck weight.<br><br>This change from a dense matrix to a sparse representation within the performance-critical, Numba-jitted loops directly targets the innermost computations of the algorithm, yielding a significant speedup, especially on the larger, sparser graphs generated by lower candidate bottleneck weights.<br><br><pre><code class="language-python">import numpy as np
+from typing import Any, List, Optional
+import numba
+
+# --- Numba-jitted helper functions using CSR-like graph representation ---
+
+@numba.jit(nopython=True)
+def _find_hamiltonian_cycle_jit(n: int, indices: np.ndarray, neighbors: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    A recursive utility to find a Hamiltonian cycle using backtracking.
+    This version uses a CSR-like graph representation for efficient neighbor lookup.
+    &quot;&quot;&quot;
+    if pos == n:
+        # Check if the last vertex is connected to the starting vertex (0)
+        last_v = path[n - 1]
+        start_node = path[0]
+        
+        start_idx, end_idx = indices[last_v], indices[last_v + 1]
+        for i in range(start_idx, end_idx):
+            if neighbors[i] == start_node:
+                return True
+        return False
+
+    last_vertex = path[pos - 1]
+    
+    # Iterate through neighbors of the previously added vertex
+    start_idx, end_idx = indices[last_vertex], indices[last_vertex + 1]
+    for i in range(start_idx, end_idx):
+        v = neighbors[i]
+        if not visited[v]:
+            path[pos] = v
+            visited[v] = True
+
+            if _find_hamiltonian_cycle_jit(n, indices, neighbors, path, pos + 1, visited):
+                return True
+
+            # Backtrack
+            visited[v] = False
+    
+    return False
+
+@numba.jit(nopython=True)
+def _is_connected_jit(n: int, indices: np.ndarray, neighbors: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    Checks if the graph is connected using BFS. Optimized for Numba and
+    uses a CSR-like graph representation.
+    &quot;&quot;&quot;
+    if n &lt;= 1:
+        return True
+    
+    q = np.zeros(n, dtype=np.int32)
+    q[0] = 0
+    head, tail = 0, 1
+    
+    visited = np.zeros(n, dtype=np.bool_)
+    visited[0] = True
+    count = 1
+    
+    while head &lt; tail:
+        u = q[head]
+        head += 1
+        
+        start_idx, end_idx = indices[u], indices[u + 1]
+        for i in range(start_idx, end_idx):
+            v = neighbors[i]
+            if not visited[v]:
+                visited[v] = True
+                q[tail] = v
+                tail += 1
+                count += 1
+    
+    return count == n
+
+
+class Solver:
+    def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+        &quot;&quot;&quot;
+        Solves the Bottleneck Traveling Salesman Problem using a combination of
+        binary search on edge weights, Numba-accelerated backtracking on a
+        CSR graph representation, and aggressive graph-based pruning.
+        &quot;&quot;&quot;
+        n = len(problem)
+        
+        if n == 0:
+            return []
+        if n &lt;= 2:
+            return list(range(n)) + [0]
+
+        problem_np = np.array(problem, dtype=np.float64)
+
+        # 1. Extract and sort unique edge weights for binary searching.
+        iu = np.triu_indices(n, k=1)
+        unique_weights = np.unique(problem_np[iu])
+
+        # 2. Binary search for the minimal bottleneck weight.
+        low, high = 0, len(unique_weights) - 1
+        optimal_tour = []
+        
+        while low &lt;= high:
+            mid_idx = (low + high) // 2
+            w_max = unique_weights[mid_idx]
+            
+            path = self._check_for_hamiltonian_cycle(n, problem_np, w_max)
+            
+            if path:
+                optimal_tour = path
+                high = mid_idx - 1
+            else:
+                low = mid_idx + 1
+        
+        return optimal_tour + [0] if optimal_tour else []
+
+    def _check_for_hamiltonian_cycle(self, n: int, problem_np: np.ndarray, w_max: float) -&gt; Optional[List[int]]:
+        &quot;&quot;&quot;
+        Checks if a Hamiltonian cycle exists for a given max weight w_max.
+        Returns the path if found, otherwise None.
+        &quot;&quot;&quot;
+        adj_matrix = problem_np &lt;= w_max
+        
+        # Pruning 1: Degree check. Every vertex must have at least 2 edges.
+        if np.any(np.sum(adj_matrix, axis=1) &lt; 2):
+            return None
+            
+        # Build a CSR-like representation (indices and neighbors arrays) for Numba.
+        indices = np.zeros(n + 1, dtype=np.int32)
+        neighbors_list = []
+        current_idx = 0
+        for i in range(n):
+            node_neighbors = np.where(adj_matrix[i])[0]
+            neighbors_list.extend(node_neighbors)
+            current_idx += len(node_neighbors)
+            indices[i + 1] = current_idx
+        neighbors = np.array(neighbors_list, dtype=np.int32)
+
+        # Pruning 2: Connectivity check using the efficient CSR representation.
+        if not _is_connected_jit(n, indices, neighbors):
+            return None
+
+        # If pruning passes, attempt the full backtracking search.
+        path = np.full(n, -1, dtype=np.int32)
+        visited = np.zeros(n, dtype=np.bool_)
+        path[0] = 0
+        visited[0] = True
+        
+        if _find_hamiltonian_cycle_jit(n, indices, neighbors, path, 1, visited):
+            return path.tolist()
+        
+        return None</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.2962. You have $0.7038 remaining.<br><br>Error: Command parsing failed<br>Command parsing failed. <br>Remember to include one and only one command in each message. Important: remember to include all arguments for each command.<br>Remember to sandwich your command in between ``` and ```. <br>IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.<br><br>Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:<br>- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:<br>  ```<br>  edit <br>  file: &lt;file_name&gt;<br>  lines: &lt;start_line&gt;-&lt;end_line&gt;<br>  ---<br>  &lt;new_content&gt;<br>  ---<br>  ```<br><br>  The command will:<br>  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)<br>  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;<br>  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file<br>  <br>  Example:<br>  edit<br>  file: solver.py<br>  lines: 5-7<br>  ---<br>  def improved_function():<br>      print(&quot;Optimized solution&quot;)<br>  ---<br>- `ls`: List all files in the current working directory.<br>- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).<br>- `revert`: Revert the code to the best-performing version thus far.<br>- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: <br>  ```<br>  reference [1,2,3,4]<br>  ```<br>- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: <br>  ```<br>  eval_input [1,2,3,4]<br>  ```<br>- `eval`: Run evaluation on the current solution and report the results.<br>- `delete`: Delete a range of lines from a file using the format:<br>  ```<br>  delete<br>  file: &lt;file_name&gt;<br>  lines: &lt;start_line&gt;-&lt;end_line&gt;<br><br>  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)<br>  <br>  Example:<br>  ```<br>  delete<br>  file: solver.py<br>  lines: 5-10<br>  ```<br>- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.<br>  Example:<br>  ```<br>  profile solver.py [1, 2, 3]<br>  ```<br>- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.<br>  Example: <br>  ```<br>  profile_lines solver.py 1,2,3 [1, 2, 3]<br>  ```
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I apologize for the formatting error in my previous message. I have corrected the command structure.<br><br>My analysis indicates that while the overall algorithm (binary search + Numba-jitted backtracking) is sound, the construction of the graph representation inside the binary search loop was a performance bottleneck. My previous implementation used a Python loop and list appends to build the CSR-like structure, which is inefficient.<br><br>To address this, I have vectorized the CSR construction using NumPy. The new implementation works as follows:<br><br>1.  **Optimized CSR Creation**: Instead of iterating through each row of the adjacency matrix in Python, I now use `np.where(adj_matrix)` once. This function is highly optimized and returns all edge coordinates (`rows`, `cols`) in C-style (row-major) order. Because the `rows` are naturally grouped, the `cols` array directly corresponds to the flattened neighbor lists needed for the CSR `neighbors` array.<br>2.  **Vectorized Index Calculation**: The CSR `indices` array (which stores the pointers to the start of each vertex&#x27;s neighbor list) is now calculated efficiently using `np.cumsum` on the pre-computed vertex degrees.<br>3.  **Efficient Pipeline**: This fully vectorized CSR construction is significantly faster and is performed at each step of the binary search. The resulting `indices` and `neighbors` arrays are then passed to the existing, highly-optimized Numba functions for connectivity and Hamiltonian cycle checks.<br><br>This change replaces a slow, iterative Python process with a fast, vectorized NumPy equivalent within the most frequently executed part of the algorithm, leading to a substantial performance improvement.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-200
+---
+import numpy as np
+from typing import Any, List, Optional
+import numba
+
+# --- Numba-jitted helper functions using CSR-like graph representation ---
+
+@numba.jit(nopython=True)
+def _find_hamiltonian_cycle_jit(n: int, indices: np.ndarray, neighbors: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    A recursive utility to find a Hamiltonian cycle using backtracking.
+    This version uses a CSR-like graph representation for efficient neighbor lookup.
+    &quot;&quot;&quot;
+    if pos == n:
+        # Check if the last vertex is connected to the starting vertex (0)
+        last_v = path[n - 1]
+        start_node = path[0]
+        
+        start_idx, end_idx = indices[last_v], indices[last_v + 1]
+        for i in range(start_idx, end_idx):
+            if neighbors[i] == start_node:
+                return True
+        return False
+
+    last_vertex = path[pos - 1]
+    
+    # Iterate through neighbors of the previously added vertex
+    start_idx, end_idx = indices[last_vertex], indices[last_vertex + 1]
+    for i in range(start_idx, end_idx):
+        v = neighbors[i]
+        if not visited[v]:
+            path[pos] = v
+            visited[v] = True
+
+            if _find_hamiltonian_cycle_jit(n, indices, neighbors, path, pos + 1, visited):
+                return True
+
+            # Backtrack
+            visited[v] = False
+    
+    return False
+
+@numba.jit(nopython=True)
+def _is_connected_jit(n: int, indices: np.ndarray, neighbors: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    Checks if the graph is connected using BFS. Optimized for Numba and
+    uses a CSR-like graph representation.
+    &quot;&quot;&quot;
+    if n &lt;= 1:
+        return True
+    
+    q = np.zeros(n, dtype=np.int32)
+    q[0] = 0
+    head, tail = 0, 1
+    
+    visited = np.zeros(n, dtype=np.bool_)
+    visited[0] = True
+    count = 1
+    
+    while head &lt; tail:
+        u = q[head]
+        head += 1
+        
+        start_idx, end_idx = indices[u], indices[u + 1]
+        for i in range(start_idx, end_idx):
+            v = neighbors[i]
+            if not visited[v]:
+                visited[v] = True
+                q[tail] = v
+                tail += 1
+                count += 1
+    
+    return count == n
+
+
+class Solver:
+    def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+        &quot;&quot;&quot;
+        Solves the Bottleneck Traveling Salesman Problem using a combination of
+        binary search on edge weights, Numba-accelerated backtracking on a
+        CSR graph representation, and aggressive graph-based pruning.
+        &quot;&quot;&quot;
+        n = len(problem)
+        
+        if n == 0:
+            return []
+        if n &lt;= 2:
+            return list(range(n)) + [0]
+
+        problem_np = np.array(problem, dtype=np.float64)
+
+        # 1. Extract and sort unique edge weights for binary searching.
+        iu = np.triu_indices(n, k=1)
+        unique_weights = np.unique(problem_np[iu])
+
+        # 2. Binary search for the minimal bottleneck weight.
+        low, high = 0, len(unique_weights) - 1
+        optimal_tour = []
+        
+        while low &lt;= high:
+            mid_idx = (low + high) // 2
+            w_max = unique_weights[mid_idx]
+            
+            path = self._check_for_hamiltonian_cycle(n, problem_np, w_max)
+            
+            if path:
+                optimal_tour = path
+                high = mid_idx - 1
+            else:
+                low = mid_idx + 1
+        
+        return optimal_tour + [0] if optimal_tour else []
+
+    def _check_for_hamiltonian_cycle(self, n: int, problem_np: np.ndarray, w_max: float) -&gt; Optional[List[int]]:
+        &quot;&quot;&quot;
+        Checks if a Hamiltonian cycle exists for a given max weight w_max.
+        Returns the path if found, otherwise None.
+        &quot;&quot;&quot;
+        adj_matrix = problem_np &lt;= w_max
+        
+        # Pruning 1: Degree check. Every vertex must have at least 2 edges.
+        degrees = np.sum(adj_matrix, axis=1, dtype=np.int32)
+        if np.any(degrees &lt; 2):
+            return None
+            
+        # Build a CSR-like representation (indices and neighbors arrays) for Numba.
+        # This is a highly optimized way to build the CSR structure using NumPy.
+        indices = np.zeros(n + 1, dtype=np.int32)
+        indices[1:] = np.cumsum(degrees)
+        
+        # np.where returns indices in row-major order, which is perfect for CSR.
+        _rows, cols = np.where(adj_matrix)
+        neighbors = cols.astype(np.int32)
+
+        # Pruning 2: Connectivity check using the efficient CSR representation.
+        if not _is_connected_jit(n, indices, neighbors):
+            return None
+
+        # If pruning passes, attempt the full backtracking search.
+        path = np.full(n, -1, dtype=np.int32)
+        visited = np.zeros(n, dtype=np.bool_)
+        path[0] = 0
+        visited[0] = True
+        
+        if _find_hamiltonian_cycle_jit(n, indices, neighbors, path, 1, visited):
+            return path.tolist()
+        
+        return None
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.3502. You have $0.6498 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 146)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, List, Optional
+&gt; 003: import numba
+&gt; 004: 
+&gt; 005: # --- Numba-jitted helper functions using CSR-like graph representation ---
+&gt; 006: 
+&gt; 007: @numba.jit(nopython=True)
+&gt; 008: def _find_hamiltonian_cycle_jit(n: int, indices: np.ndarray, neighbors: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+&gt; 009:     &quot;&quot;&quot;
+&gt; 010:     A recursive utility to find a Hamiltonian cycle using backtracking.
+&gt; 011:     This version uses a CSR-like graph representation for efficient neighbor lookup.
+&gt; 012:     &quot;&quot;&quot;
+&gt; 013:     if pos == n:
+&gt; 014:         # Check if the last vertex is connected to the starting vertex (0)
+&gt; 015:         last_v = path[n - 1]
+&gt; 016:         start_node = path[0]
+&gt; 017:         
+&gt; 018:         start_idx, end_idx = indices[last_v], indices[last_v + 1]
+&gt; 019:         for i in range(start_idx, end_idx):
+&gt; 020:             if neighbors[i] == start_node:
+&gt; 021:                 return True
+&gt; 022:         return False
+&gt; 023: 
+&gt; 024:     last_vertex = path[pos - 1]
+&gt; 025:     
+&gt; 026:     # Iterate through neighbors of the previously added vertex
+&gt; 027:     start_idx, end_idx = indices[last_vertex], indices[last_vertex + 1]
+&gt; 028:     for i in range(start_idx, end_idx):
+&gt; 029:         v = neighbors[i]
+&gt; 030:         if not visited[v]:
+&gt; 031:             path[pos] = v
+&gt; 032:             visited[v] = True
+&gt; 033: 
+&gt; 034:             if _find_hamiltonian_cycle_jit(n, indices, neighbors, path, pos + 1, visited):
+&gt; 035:                 return True
+&gt; 036: 
+&gt; 037:             # Backtrack
+&gt; 038:             visited[v] = False
+&gt; 039:     
+&gt; 040:     return False
+&gt; 041: 
+&gt; 042: @numba.jit(nopython=True)
+&gt; 043: def _is_connected_jit(n: int, indices: np.ndarray, neighbors: np.ndarray) -&gt; bool:
+&gt; 044:     &quot;&quot;&quot;
+&gt; 045:     Checks if the graph is connected using BFS. Optimized for Numba and
+&gt; 046:     uses a CSR-like graph representation.
+&gt; 047:     &quot;&quot;&quot;
+&gt; 048:     if n &lt;= 1:
+&gt; 049:         return True
+&gt; 050:     
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">2.47</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My previous attempt to vectorize the CSR graph construction resulted in a performance regression. This indicates that for the given problem scales, the overhead of `np.where` and `np.cumsum` outweighed the benefits of avoiding a Python loop. The most likely cause is the memory allocation for the large intermediate arrays created by `np.where`.<br><br>I will revert to the structure that achieved the 3.17x speedup, which used a Python loop for CSR creation, as it was demonstrably more effective. However, to push performance further, I am introducing a powerful new optimization: a **search heuristic**.<br><br>The efficiency of a backtracking algorithm is highly dependent on the order in which it explores branches of the search tree. By making smarter choices first, we can find a valid solution more quickly or prune dead-end branches earlier.<br><br>My new strategy incorporates an adaptation of **Warnsdorff&#x27;s Rule**:<br>1.  **High-Level Algorithm**: The optimal binary search over sorted edge weights remains unchanged.<br>2.  **Heuristic-Guided CSR Construction**: The core innovation is in how the CSR graph representation is built inside the `_check_for_hamiltonian_cycle` method.<br>    *   First, I calculate the degree of every vertex in the current graph (where edges are `&lt;= w_max`).<br>    *   Then, for each vertex `u`, when I determine its neighbors, I don&#x27;t add them to the neighbor list in an arbitrary order.<br>    *   Instead, I sort these neighbors based on their own degrees, in ascending order.<br>3.  **Optimized Backtracking**: The `_find_hamiltonian_cycle_jit` function (which remains unchanged) will now naturally explore paths by prioritizing moves to vertices with fewer connections. This heuristic helps to resolve the most constrained parts of the tour first, drastically reducing the size of the search space that needs to be explored and avoiding &quot;trap&quot; states late in the search.<br><br>This change intelligently guides the most expensive part of the algorithm without altering its fundamental correctness, trading a small, efficient sorting cost at the graph-building stage for potentially massive savings in the recursive search.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-200
+---
+import numpy as np
+from typing import Any, List, Optional
+import numba
+
+# --- Numba-jitted helper functions using CSR-like graph representation ---
+
+@numba.jit(nopython=True)
+def _find_hamiltonian_cycle_jit(n: int, indices: np.ndarray, neighbors: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    A recursive utility to find a Hamiltonian cycle using backtracking.
+    This version uses a CSR-like graph representation for efficient neighbor lookup.
+    The order of neighbors provided to this function is critical for performance.
+    &quot;&quot;&quot;
+    if pos == n:
+        # Check if the last vertex is connected to the starting vertex (0)
+        last_v = path[n - 1]
+        start_node = path[0]
+        
+        start_idx, end_idx = indices[last_v], indices[last_v + 1]
+        for i in range(start_idx, end_idx):
+            if neighbors[i] == start_node:
+                return True
+        return False
+
+    last_vertex = path[pos - 1]
+    
+    # Iterate through neighbors of the previously added vertex.
+    # The heuristic is applied before this function is called, by sorting the neighbors array.
+    start_idx, end_idx = indices[last_vertex], indices[last_vertex + 1]
+    for i in range(start_idx, end_idx):
+        v = neighbors[i]
+        if not visited[v]:
+            path[pos] = v
+            visited[v] = True
+
+            if _find_hamiltonian_cycle_jit(n, indices, neighbors, path, pos + 1, visited):
+                return True
+
+            # Backtrack
+            visited[v] = False
+    
+    return False
+
+@numba.jit(nopython=True)
+def _is_connected_jit(n: int, indices: np.ndarray, neighbors: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    Checks if the graph is connected using BFS. Optimized for Numba and
+    uses a CSR-like graph representation.
+    &quot;&quot;&quot;
+    if n &lt;= 1:
+        return True
+    
+    q = np.zeros(n, dtype=np.int32)
+    q[0] = 0
+    head, tail = 0, 1
+    
+    visited = np.zeros(n, dtype=np.bool_)
+    visited[0] = True
+    count = 1
+    
+    while head &lt; tail:
+        u = q[head]
+        head += 1
+        
+        start_idx, end_idx = indices[u], indices[u + 1]
+        for i in range(start_idx, end_idx):
+            v = neighbors[i]
+            if not visited[v]:
+                visited[v] = True
+                q[tail] = v
+                tail += 1
+                count += 1
+    
+    return count == n
+
+
+class Solver:
+    def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+        &quot;&quot;&quot;
+        Solves the Bottleneck Traveling Salesman Problem using a combination of
+        binary search on edge weights, Numba-accelerated backtracking on a
+        CSR graph representation, and aggressive graph-based pruning.
+        The backtracking is guided by a Warnsdorff&#x27;s-like heuristic.
+        &quot;&quot;&quot;
+        n = len(problem)
+        
+        if n == 0:
+            return []
+        if n &lt;= 2:
+            return list(range(n)) + [0]
+
+        problem_np = np.array(problem, dtype=np.float64)
+
+        # 1. Extract and sort unique edge weights for binary searching.
+        iu = np.triu_indices(n, k=1)
+        unique_weights = np.unique(problem_np[iu])
+
+        # 2. Binary search for the minimal bottleneck weight.
+        low, high = 0, len(unique_weights) - 1
+        optimal_tour = []
+        
+        while low &lt;= high:
+            mid_idx = (low + high) // 2
+            w_max = unique_weights[mid_idx]
+            
+            path = self._check_for_hamiltonian_cycle(n, problem_np, w_max)
+            
+            if path:
+                optimal_tour = path
+                high = mid_idx - 1
+            else:
+                low = mid_idx + 1
+        
+        return optimal_tour + [0] if optimal_tour else []
+
+    def _check_for_hamiltonian_cycle(self, n: int, problem_np: np.ndarray, w_max: float) -&gt; Optional[List[int]]:
+        &quot;&quot;&quot;
+        Checks if a Hamiltonian cycle exists for a given max weight w_max.
+        Returns the path if found, otherwise None.
+        &quot;&quot;&quot;
+        adj_matrix = problem_np &lt;= w_max
+        
+        degrees = np.sum(adj_matrix, axis=1)
+        if np.any(degrees &lt; 2):
+            return None
+            
+        # Build a CSR-like representation with neighbors sorted by their degree (heuristic)
+        indices = np.zeros(n + 1, dtype=np.int32)
+        neighbors_list = []
+        current_idx = 0
+        for i in range(n):
+            # Find neighbors
+            node_neighbor_indices = np.where(adj_matrix[i])[0]
+            
+            # Get degrees of those neighbors
+            neighbor_degrees = degrees[node_neighbor_indices]
+            
+            # Sort neighbors by their degree (Warnsdorff&#x27;s-like heuristic)
+            # This guides the search to more constrained nodes first.
+            sorted_neighbor_indices = node_neighbor_indices[np.argsort(neighbor_degrees)]
+            
+            neighbors_list.extend(sorted_neighbor_indices)
+            current_idx += len(sorted_neighbor_indices)
+            indices[i + 1] = current_idx
+            
+        neighbors = np.array(neighbors_list, dtype=np.int32)
+
+        # Pruning 2: Connectivity check using the efficient CSR representation.
+        if not _is_connected_jit(n, indices, neighbors):
+            return None
+
+        # If pruning passes, attempt the full backtracking search.
+        path = np.full(n, -1, dtype=np.int32)
+        visited = np.zeros(n, dtype=np.bool_)
+        path[0] = 0
+        visited[0] = True
+        
+        if _find_hamiltonian_cycle_jit(n, indices, neighbors, path, 1, visited):
+            return path.tolist()
+        
+        return None
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 6 messages and have used up $0.4083. You have $0.5917 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 160)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, List, Optional
+&gt; 003: import numba
+&gt; 004: 
+&gt; 005: # --- Numba-jitted helper functions using CSR-like graph representation ---
+&gt; 006: 
+&gt; 007: @numba.jit(nopython=True)
+&gt; 008: def _find_hamiltonian_cycle_jit(n: int, indices: np.ndarray, neighbors: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+&gt; 009:     &quot;&quot;&quot;
+&gt; 010:     A recursive utility to find a Hamiltonian cycle using backtracking.
+&gt; 011:     This version uses a CSR-like graph representation for efficient neighbor lookup.
+&gt; 012:     The order of neighbors provided to this function is critical for performance.
+&gt; 013:     &quot;&quot;&quot;
+&gt; 014:     if pos == n:
+&gt; 015:         # Check if the last vertex is connected to the starting vertex (0)
+&gt; 016:         last_v = path[n - 1]
+&gt; 017:         start_node = path[0]
+&gt; 018:         
+&gt; 019:         start_idx, end_idx = indices[last_v], indices[last_v + 1]
+&gt; 020:         for i in range(start_idx, end_idx):
+&gt; 021:             if neighbors[i] == start_node:
+&gt; 022:                 return True
+&gt; 023:         return False
+&gt; 024: 
+&gt; 025:     last_vertex = path[pos - 1]
+&gt; 026:     
+&gt; 027:     # Iterate through neighbors of the previously added vertex.
+&gt; 028:     # The heuristic is applied before this function is called, by sorting the neighbors array.
+&gt; 029:     start_idx, end_idx = indices[last_vertex], indices[last_vertex + 1]
+&gt; 030:     for i in range(start_idx, end_idx):
+&gt; 031:         v = neighbors[i]
+&gt; 032:         if not visited[v]:
+&gt; 033:             path[pos] = v
+&gt; 034:             visited[v] = True
+&gt; 035: 
+&gt; 036:             if _find_hamiltonian_cycle_jit(n, indices, neighbors, path, pos + 1, visited):
+&gt; 037:                 return True
+&gt; 038: 
+&gt; 039:             # Backtrack
+&gt; 040:             visited[v] = False
+&gt; 041:     
+&gt; 042:     return False
+&gt; 043: 
+&gt; 044: @numba.jit(nopython=True)
+&gt; 045: def _is_connected_jit(n: int, indices: np.ndarray, neighbors: np.ndarray) -&gt; bool:
+&gt; 046:     &quot;&quot;&quot;
+&gt; 047:     Checks if the graph is connected using BFS. Optimized for Numba and
+&gt; 048:     uses a CSR-like graph representation.
+&gt; 049:     &quot;&quot;&quot;
+&gt; 050:     if n &lt;= 1:
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">2.18</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My analysis of the previous attempts reveals a critical insight: the overhead of constructing complex data structures like a CSR graph or a pre-sorted neighbor list in Python/NumPy for every candidate bottleneck weight outweighs the benefits of faster lookups within the Numba-jitted functions. The best-performing version (3.17x speedup) was the simplest one, which passed a dense adjacency matrix directly to Numba and let the JIT-compiler handle the loops.<br><br>My new strategy builds upon this successful foundation while incorporating the powerful heuristic that failed previously due to slow implementation. The key is to move the heuristic&#x27;s logic *entirely inside the Numba-jitted code*.<br><br>1.  **Return to the Leanest Core Structure**: I am reverting the `_check_for_hamiltonian_cycle` method to its most efficient form. It will create a dense adjacency matrix, calculate vertex degrees once, and perform the fast degree and connectivity pre-checks. No complex graph transformations will occur at the Python level.<br><br>2.  **Heuristic-Guided Backtracking in Numba**: I have designed a new JIT-compiled backtracking function, `_find_hamiltonian_cycle_jit_heuristic`. This function accepts the dense adjacency matrix and the pre-calculated `degrees` array.<br>    *   At each step of the recursion, instead of iterating through potential next vertices in their default order (0 to N-1), it first identifies all valid neighbors.<br>    *   It then sorts these neighbors on-the-fly based on their degrees (in ascending order), using a simple and JIT-compatible insertion sort. This is an adaptation of Warnsdorff&#x27;s rule.<br>    *   The recursion then proceeds by exploring paths to the most constrained vertices (those with the fewest connections) first.<br><br>This approach combines the best of all previous attempts:<br>*   It maintains the optimal high-level binary search algorithm.<br>*   It avoids all expensive Python-level data structure manipulation inside the main loop.<br>*   It integrates a powerful search heuristic directly into the most performance-critical, JIT-compiled part of the code, where its computational cost is minimal compared to the massive reduction in the search space it provides.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-200
+---
+import numpy as np
+from typing import Any, List, Optional
+import numba
+
+# Numba-jitted helper functions are defined at the top level for optimal performance.
+
+@numba.jit(nopython=True)
+def _find_hamiltonian_cycle_jit_heuristic(n: int, adj_matrix: np.ndarray, degrees: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    A recursive utility to find a Hamiltonian cycle, optimized with Numba.
+    It performs a backtracking search, guided by a Warnsdorff&#x27;s-like heuristic
+    (visiting nodes with fewer connections first) to prune the search tree.
+    &quot;&quot;&quot;
+    if pos == n:
+        # And if there is an edge from the last included vertex to the first vertex
+        return adj_matrix[path[n - 1], path[0]]
+
+    last_vertex = path[pos - 1]
+
+    # --- Heuristic Implementation ---
+    # 1. Find all neighbors of the current vertex
+    neighbors_list = []
+    for v_candidate in range(n):
+        if adj_matrix[last_vertex, v_candidate]:
+            neighbors_list.append(v_candidate)
+    
+    num_neighbors = len(neighbors_list)
+    if num_neighbors == 0:
+        return False
+
+    neighbors = np.array(neighbors_list, dtype=np.int32)
+    neighbor_degrees = np.empty(num_neighbors, dtype=np.int32)
+    for i in range(num_neighbors):
+        neighbor_degrees[i] = degrees[neighbors[i]]
+
+    # 2. Sort neighbors by their degree using a simple insertion sort.
+    # This is efficient for the small number of neighbors in the graph.
+    for i in range(1, num_neighbors):
+        key_deg = neighbor_degrees[i]
+        key_v = neighbors[i]
+        j = i - 1
+        while j &gt;= 0 and neighbor_degrees[j] &gt; key_deg:
+            neighbor_degrees[j + 1] = neighbor_degrees[j]
+            neighbors[j + 1] = neighbors[j]
+            j -= 1
+        neighbor_degrees[j + 1] = key_deg
+        neighbors[j + 1] = key_v
+    # --- End Heuristic ---
+
+    # 3. Iterate through the heuristically sorted neighbors
+    for v in neighbors:
+        if not visited[v]:
+            path[pos] = v
+            visited[v] = True
+
+            if _find_hamiltonian_cycle_jit_heuristic(n, adj_matrix, degrees, path, pos + 1, visited):
+                return True
+
+            # Backtrack
+            visited[v] = False
+
+    return False
+
+@numba.jit(nopython=True)
+def _is_connected(n: int, adj_matrix: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    Checks if the graph is connected using BFS on a dense adjacency matrix.
+    &quot;&quot;&quot;
+    if n &lt;= 1:
+        return True
+    
+    q = np.zeros(n, dtype=np.int32)
+    q[0] = 0
+    head, tail = 0, 1
+    
+    visited = np.zeros(n, dtype=np.bool_)
+    visited[0] = True
+    count = 1
+    
+    while head &lt; tail:
+        u = q[head]
+        head += 1
+        
+        for v in range(n):
+            if adj_matrix[u, v] and not visited[v]:
+                visited[v] = True
+                q[tail] = v
+                tail += 1
+                count += 1
+    
+    return count == n
+
+
+class Solver:
+    def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+        &quot;&quot;&quot;
+        Solves the Bottleneck Traveling Salesman Problem using a combination of
+        binary search on edge weights and a Numba-accelerated, heuristic-guided
+        backtracking search.
+        &quot;&quot;&quot;
+        n = len(problem)
+        
+        if n == 0:
+            return []
+        if n &lt;= 2:
+            return list(range(n)) + [0]
+
+        problem_np = np.array(problem, dtype=np.float64)
+
+        iu = np.triu_indices(n, k=1)
+        unique_weights = np.unique(problem_np[iu])
+
+        low, high = 0, len(unique_weights) - 1
+        optimal_tour = []
+        
+        while low &lt;= high:
+            mid_idx = (low + high) // 2
+            w_max = unique_weights[mid_idx]
+            
+            path = self._check_for_hamiltonian_cycle(n, problem_np, w_max)
+            
+            if path:
+                optimal_tour = path
+                high = mid_idx - 1
+            else:
+                low = mid_idx + 1
+        
+        return optimal_tour + [0] if optimal_tour else []
+
+    def _check_for_hamiltonian_cycle(self, n: int, problem_np: np.ndarray, w_max: float) -&gt; Optional[List[int]]:
+        &quot;&quot;&quot;
+        Checks if a Hamiltonian cycle exists for a given max weight w_max.
+        Returns the path if found, otherwise None.
+        &quot;&quot;&quot;
+        adj_matrix = problem_np &lt;= w_max
+        
+        # Pruning 1: Degree check.
+        degrees = np.sum(adj_matrix, axis=1)
+        if np.any(degrees &lt; 2):
+            return None
+            
+        # Pruning 2: Connectivity check.
+        if not _is_connected(n, adj_matrix):
+            return None
+
+        # If pruning passes, attempt the full backtracking search with the heuristic.
+        path = np.full(n, -1, dtype=np.int32)
+        visited = np.zeros(n, dtype=np.bool_)
+        path[0] = 0
+        visited[0] = True
+        
+        if _find_hamiltonian_cycle_jit_heuristic(n, adj_matrix, degrees.astype(np.int32), path, 1, visited):
+            return path.tolist()
+        
+        return None
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 7 messages and have used up $0.4852. You have $0.5148 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 154)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, List, Optional
+&gt; 003: import numba
+&gt; 004: 
+&gt; 005: # Numba-jitted helper functions are defined at the top level for optimal performance.
+&gt; 006: 
+&gt; 007: @numba.jit(nopython=True)
+&gt; 008: def _find_hamiltonian_cycle_jit_heuristic(n: int, adj_matrix: np.ndarray, degrees: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+&gt; 009:     &quot;&quot;&quot;
+&gt; 010:     A recursive utility to find a Hamiltonian cycle, optimized with Numba.
+&gt; 011:     It performs a backtracking search, guided by a Warnsdorff&#x27;s-like heuristic
+&gt; 012:     (visiting nodes with fewer connections first) to prune the search tree.
+&gt; 013:     &quot;&quot;&quot;
+&gt; 014:     if pos == n:
+&gt; 015:         # And if there is an edge from the last included vertex to the first vertex
+&gt; 016:         return adj_matrix[path[n - 1], path[0]]
+&gt; 017: 
+&gt; 018:     last_vertex = path[pos - 1]
+&gt; 019: 
+&gt; 020:     # --- Heuristic Implementation ---
+&gt; 021:     # 1. Find all neighbors of the current vertex
+&gt; 022:     neighbors_list = []
+&gt; 023:     for v_candidate in range(n):
+&gt; 024:         if adj_matrix[last_vertex, v_candidate]:
+&gt; 025:             neighbors_list.append(v_candidate)
+&gt; 026:     
+&gt; 027:     num_neighbors = len(neighbors_list)
+&gt; 028:     if num_neighbors == 0:
+&gt; 029:         return False
+&gt; 030: 
+&gt; 031:     neighbors = np.array(neighbors_list, dtype=np.int32)
+&gt; 032:     neighbor_degrees = np.empty(num_neighbors, dtype=np.int32)
+&gt; 033:     for i in range(num_neighbors):
+&gt; 034:         neighbor_degrees[i] = degrees[neighbors[i]]
+&gt; 035: 
+&gt; 036:     # 2. Sort neighbors by their degree using a simple insertion sort.
+&gt; 037:     # This is efficient for the small number of neighbors in the graph.
+&gt; 038:     for i in range(1, num_neighbors):
+&gt; 039:         key_deg = neighbor_degrees[i]
+&gt; 040:         key_v = neighbors[i]
+&gt; 041:         j = i - 1
+&gt; 042:         while j &gt;= 0 and neighbor_degrees[j] &gt; key_deg:
+&gt; 043:             neighbor_degrees[j + 1] = neighbor_degrees[j]
+&gt; 044:             neighbors[j + 1] = neighbors[j]
+&gt; 045:             j -= 1
+&gt; 046:         neighbor_degrees[j + 1] = key_deg
+&gt; 047:         neighbors[j + 1] = key_v
+&gt; 048:     # --- End Heuristic ---
+&gt; 049: 
+&gt; 050:     # 3. Iterate through the heuristically sorted neighbors
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 96%<br>  Invalid Solutions: 0%<br>  Timeouts: 4%<br><br><br>Snapshot not saved - no valid solutions
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My previous attempt failed due to timeouts, indicating that the heuristic-guided search, while powerful in theory, was implemented inefficiently. The primary bottleneck was the creation of Python lists and their conversion to NumPy arrays at every single step of the recursion within the Numba-jitted function. This frequent memory allocation and data conversion overhead proved to be extremely costly.<br><br>My new strategy corrects this flaw by re-engineering the core recursive function to be fully compatible with Numba&#x27;s performance model, eliminating all dynamic memory allocations from the recursive loop.<br><br>1.  **Elimination of Dynamic Allocations**: The new `_find_hamiltonian_cycle_jit_heuristic` function now pre-allocates fixed-size NumPy arrays (`neighbors`, `neighbor_degrees`) at the beginning of each call. Instead of appending to a list, it populates these arrays and keeps a counter (`num_neighbors`). This avoids the overhead of dynamic resizing and type conversions that plagued the previous version.<br><br>2.  **Efficient In-Place Sorting**: The heuristic of sorting neighbors by their degree is now performed on these pre-allocated arrays. I use a simple, JIT-compatible insertion sort that operates on the populated slice of the arrays (`0` to `num_neighbors`). This is highly efficient for the typically small number of neighbors a vertex has in the graphs being tested.<br><br>3.  **Streamlined Logic**: The process of finding neighbors and their corresponding degrees is now done in a single pass, further reducing overhead.<br><br>This refined approach maintains the powerful search-space pruning of the Warnsdorff&#x27;s-like heuristic while implementing it in a way that is highly optimized for Numba&#x27;s JIT compilation. By removing the performance-killing allocations from the recursive heart of the algorithm, this version should be significantly faster and avoid the timeouts that caused the previous failure.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-200
+---
+import numpy as np
+from typing import Any, List, Optional
+import numba
+
+# Numba-jitted helper functions are defined at the top level for optimal performance.
+
+@numba.jit(nopython=True)
+def _find_hamiltonian_cycle_jit_heuristic(n: int, adj_matrix: np.ndarray, degrees: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    A recursive utility to find a Hamiltonian cycle, optimized with Numba.
+    It performs a backtracking search, guided by a Warnsdorff&#x27;s-like heuristic
+    (visiting nodes with fewer connections first) to prune the search tree.
+    This version uses pre-allocated static arrays to avoid allocation in the recursion.
+    &quot;&quot;&quot;
+    if pos == n:
+        # And if there is an edge from the last included vertex to the first vertex
+        return adj_matrix[path[n - 1], path[0]]
+
+    last_vertex = path[pos - 1]
+
+    # --- Heuristic Implementation with Static Arrays ---
+    # 1. Find neighbors and their degrees, storing them in pre-allocated arrays.
+    neighbors = np.empty(n, dtype=np.int32)
+    neighbor_degrees = np.empty(n, dtype=np.int32)
+    num_neighbors = 0
+    for v_candidate in range(n):
+        if adj_matrix[last_vertex, v_candidate]:
+            neighbors[num_neighbors] = v_candidate
+            neighbor_degrees[num_neighbors] = degrees[v_candidate]
+            num_neighbors += 1
+    
+    if num_neighbors == 0:
+        return False
+
+    # 2. Sort the first `num_neighbors` elements based on degree using insertion sort.
+    # This is efficient for the small number of neighbors and JIT-friendly.
+    for i in range(1, num_neighbors):
+        key_deg = neighbor_degrees[i]
+        key_v = neighbors[i]
+        j = i - 1
+        while j &gt;= 0 and neighbor_degrees[j] &gt; key_deg:
+            neighbor_degrees[j + 1] = neighbor_degrees[j]
+            neighbors[j + 1] = neighbors[j]
+            j -= 1
+        neighbor_degrees[j + 1] = key_deg
+        neighbors[j + 1] = key_v
+    # --- End Heuristic ---
+
+    # 3. Iterate through the heuristically sorted neighbors
+    for i in range(num_neighbors):
+        v = neighbors[i]
+        if not visited[v]:
+            path[pos] = v
+            visited[v] = True
+
+            if _find_hamiltonian_cycle_jit_heuristic(n, adj_matrix, degrees, path, pos + 1, visited):
+                return True
+
+            # Backtrack
+            visited[v] = False
+
+    return False
+
+@numba.jit(nopython=True)
+def _is_connected(n: int, adj_matrix: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    Checks if the graph is connected using BFS on a dense adjacency matrix.
+    &quot;&quot;&quot;
+    if n &lt;= 1:
+        return True
+    
+    q = np.zeros(n, dtype=np.int32)
+    q[0] = 0
+    head, tail = 0, 1
+    
+    visited = np.zeros(n, dtype=np.bool_)
+    visited[0] = True
+    count = 1
+    
+    while head &lt; tail:
+        u = q[head]
+        head += 1
+        
+        for v in range(n):
+            if adj_matrix[u, v] and not visited[v]:
+                visited[v] = True
+                q[tail] = v
+                tail += 1
+                count += 1
+    
+    return count == n
+
+
+class Solver:
+    def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+        &quot;&quot;&quot;
+        Solves the Bottleneck Traveling Salesman Problem using a combination of
+        binary search on edge weights and a Numba-accelerated, heuristic-guided
+        backtracking search.
+        &quot;&quot;&quot;
+        n = len(problem)
+        
+        if n == 0:
+            return []
+        if n &lt;= 2:
+            return list(range(n)) + [0]
+
+        problem_np = np.array(problem, dtype=np.float64)
+
+        iu = np.triu_indices(n, k=1)
+        unique_weights = np.unique(problem_np[iu])
+
+        low, high = 0, len(unique_weights) - 1
+        optimal_tour = []
+        
+        while low &lt;= high:
+            mid_idx = (low + high) // 2
+            w_max = unique_weights[mid_idx]
+            
+            path = self._check_for_hamiltonian_cycle(n, problem_np, w_max)
+            
+            if path:
+                optimal_tour = path
+                high = mid_idx - 1
+            else:
+                low = mid_idx + 1
+        
+        return optimal_tour + [0] if optimal_tour else []
+
+    def _check_for_hamiltonian_cycle(self, n: int, problem_np: np.ndarray, w_max: float) -&gt; Optional[List[int]]:
+        &quot;&quot;&quot;
+        Checks if a Hamiltonian cycle exists for a given max weight w_max.
+        Returns the path if found, otherwise None.
+        &quot;&quot;&quot;
+        adj_matrix = problem_np &lt;= w_max
+        
+        # Pruning 1: Degree check.
+        degrees = np.sum(adj_matrix, axis=1)
+        if np.any(degrees &lt; 2):
+            return None
+            
+        # Pruning 2: Connectivity check.
+        if not _is_connected(n, adj_matrix):
+            return None
+
+        # If pruning passes, attempt the full backtracking search with the heuristic.
+        path = np.full(n, -1, dtype=np.int32)
+        visited = np.zeros(n, dtype=np.bool_)
+        path[0] = 0
+        visited[0] = True
+        
+        if _find_hamiltonian_cycle_jit_heuristic(n, adj_matrix, degrees.astype(np.int32), path, 1, visited):
+            return path.tolist()
+        
+        return None
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 8 messages and have used up $0.5523. You have $0.4477 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 154)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, List, Optional
+&gt; 003: import numba
+&gt; 004: 
+&gt; 005: # Numba-jitted helper functions are defined at the top level for optimal performance.
+&gt; 006: 
+&gt; 007: @numba.jit(nopython=True)
+&gt; 008: def _find_hamiltonian_cycle_jit_heuristic(n: int, adj_matrix: np.ndarray, degrees: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+&gt; 009:     &quot;&quot;&quot;
+&gt; 010:     A recursive utility to find a Hamiltonian cycle, optimized with Numba.
+&gt; 011:     It performs a backtracking search, guided by a Warnsdorff&#x27;s-like heuristic
+&gt; 012:     (visiting nodes with fewer connections first) to prune the search tree.
+&gt; 013:     This version uses pre-allocated static arrays to avoid allocation in the recursion.
+&gt; 014:     &quot;&quot;&quot;
+&gt; 015:     if pos == n:
+&gt; 016:         # And if there is an edge from the last included vertex to the first vertex
+&gt; 017:         return adj_matrix[path[n - 1], path[0]]
+&gt; 018: 
+&gt; 019:     last_vertex = path[pos - 1]
+&gt; 020: 
+&gt; 021:     # --- Heuristic Implementation with Static Arrays ---
+&gt; 022:     # 1. Find neighbors and their degrees, storing them in pre-allocated arrays.
+&gt; 023:     neighbors = np.empty(n, dtype=np.int32)
+&gt; 024:     neighbor_degrees = np.empty(n, dtype=np.int32)
+&gt; 025:     num_neighbors = 0
+&gt; 026:     for v_candidate in range(n):
+&gt; 027:         if adj_matrix[last_vertex, v_candidate]:
+&gt; 028:             neighbors[num_neighbors] = v_candidate
+&gt; 029:             neighbor_degrees[num_neighbors] = degrees[v_candidate]
+&gt; 030:             num_neighbors += 1
+&gt; 031:     
+&gt; 032:     if num_neighbors == 0:
+&gt; 033:         return False
+&gt; 034: 
+&gt; 035:     # 2. Sort the first `num_neighbors` elements based on degree using insertion sort.
+&gt; 036:     # This is efficient for the small number of neighbors and JIT-friendly.
+&gt; 037:     for i in range(1, num_neighbors):
+&gt; 038:         key_deg = neighbor_degrees[i]
+&gt; 039:         key_v = neighbors[i]
+&gt; 040:         j = i - 1
+&gt; 041:         while j &gt;= 0 and neighbor_degrees[j] &gt; key_deg:
+&gt; 042:             neighbor_degrees[j + 1] = neighbor_degrees[j]
+&gt; 043:             neighbors[j + 1] = neighbors[j]
+&gt; 044:             j -= 1
+&gt; 045:         neighbor_degrees[j + 1] = key_deg
+&gt; 046:         neighbors[j + 1] = key_v
+&gt; 047:     # --- End Heuristic ---
+&gt; 048: 
+&gt; 049:     # 3. Iterate through the heuristically sorted neighbors
+&gt; 050:     for i in range(num_neighbors):
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 98%<br>  Invalid Solutions: 0%<br>  Timeouts: 2%<br><br><br>Snapshot not saved - no valid solutions
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My previous attempt timed out on a small fraction of cases, which indicates that the core algorithm is effective but needs a final performance push. The bottleneck remains the heuristic-guided backtracking search, specifically the overhead within the recursive calls. My analysis showed that allocating helper arrays (`neighbors`, `neighbor_degrees`) at every step of the recursion, even with Numba, was the likely cause of the slowdown.<br><br>To eliminate this overhead, I have re-engineered the solution to prevent any memory allocations within the recursive function:<br><br>1.  **Pre-allocation of Helper Arrays**: The helper arrays used by the heuristic (`neighbors_arr`, `neighbor_degrees_arr`) are now allocated only once in the Python-level wrapper function, `_check_for_hamiltonian_cycle`.<br><br>2.  **Passing Arrays by Reference**: These pre-allocated arrays are now passed as arguments down through every call in the recursion stack. The recursive function `_find_hamiltonian_cycle_jit_heuristic` no longer creates its own arrays; it simply reuses the ones it receives.<br><br>3.  **Zero-Allocation Recursion**: This change ensures that the most performance-critical part of the code—the recursive backtracking search—performs zero memory allocations. It only reads from and writes to existing memory locations. This is a highly efficient pattern that is perfectly suited for Numba&#x27;s JIT compilation.<br><br>This optimization directly targets the source of the previous timeouts. By removing the allocation overhead from the recursive loop, the time taken for each step of the search is significantly reduced, allowing the solver to explore the search space much more rapidly and complete all test cases within the time limit.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-200
+---
+import numpy as np
+from typing import Any, List, Optional
+import numba
+
+# Numba-jitted helper functions are defined at the top level for optimal performance.
+
+@numba.jit(nopython=True)
+def _find_hamiltonian_cycle_jit_heuristic(n: int, adj_matrix: np.ndarray, degrees: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray, neighbors: np.ndarray, neighbor_degrees: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    A recursive utility to find a Hamiltonian cycle, optimized with Numba.
+    It performs a backtracking search, guided by a Warnsdorff&#x27;s-like heuristic
+    (visiting nodes with fewer connections first) to prune the search tree.
+    This version uses pre-allocated static arrays passed as arguments to avoid allocation in the recursion.
+    &quot;&quot;&quot;
+    if pos == n:
+        # And if there is an edge from the last included vertex to the first vertex
+        return adj_matrix[path[n - 1], path[0]]
+
+    last_vertex = path[pos - 1]
+
+    # --- Heuristic Implementation with Passed Static Arrays ---
+    # 1. Find neighbors and their degrees, storing them in the passed arrays.
+    num_neighbors = 0
+    for v_candidate in range(n):
+        if adj_matrix[last_vertex, v_candidate]:
+            neighbors[num_neighbors] = v_candidate
+            neighbor_degrees[num_neighbors] = degrees[v_candidate]
+            num_neighbors += 1
+    
+    if num_neighbors == 0:
+        return False
+
+    # 2. Sort the first `num_neighbors` elements based on degree using insertion sort.
+    # This is efficient for the small number of neighbors and JIT-friendly.
+    for i in range(1, num_neighbors):
+        key_deg = neighbor_degrees[i]
+        key_v = neighbors[i]
+        j = i - 1
+        while j &gt;= 0 and neighbor_degrees[j] &gt; key_deg:
+            neighbor_degrees[j + 1] = neighbor_degrees[j]
+            neighbors[j + 1] = neighbors[j]
+            j -= 1
+        neighbor_degrees[j + 1] = key_deg
+        neighbors[j + 1] = key_v
+    # --- End Heuristic ---
+
+    # 3. Iterate through the heuristically sorted neighbors
+    for i in range(num_neighbors):
+        v = neighbors[i]
+        if not visited[v]:
+            path[pos] = v
+            visited[v] = True
+
+            if _find_hamiltonian_cycle_jit_heuristic(n, adj_matrix, degrees, path, pos + 1, visited, neighbors, neighbor_degrees):
+                return True
+
+            # Backtrack
+            visited[v] = False
+
+    return False
+
+@numba.jit(nopython=True)
+def _is_connected(n: int, adj_matrix: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    Checks if the graph is connected using BFS on a dense adjacency matrix.
+    &quot;&quot;&quot;
+    if n &lt;= 1:
+        return True
+    
+    q = np.zeros(n, dtype=np.int32)
+    q[0] = 0
+    head, tail = 0, 1
+    
+    visited = np.zeros(n, dtype=np.bool_)
+    visited[0] = True
+    count = 1
+    
+    while head &lt; tail:
+        u = q[head]
+        head += 1
+        
+        for v in range(n):
+            if adj_matrix[u, v] and not visited[v]:
+                visited[v] = True
+                q[tail] = v
+                tail += 1
+                count += 1
+    
+    return count == n
+
+
+class Solver:
+    def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+        &quot;&quot;&quot;
+        Solves the Bottleneck Traveling Salesman Problem using a combination of
+        binary search on edge weights and a Numba-accelerated, heuristic-guided
+        backtracking search.
+        &quot;&quot;&quot;
+        n = len(problem)
+        
+        if n == 0:
+            return []
+        if n &lt;= 2:
+            return list(range(n)) + [0]
+
+        problem_np = np.array(problem, dtype=np.float64)
+
+        iu = np.triu_indices(n, k=1)
+        unique_weights = np.unique(problem_np[iu])
+
+        low, high = 0, len(unique_weights) - 1
+        optimal_tour = []
+        
+        while low &lt;= high:
+            mid_idx = (low + high) // 2
+            w_max = unique_weights[mid_idx]
+            
+            path = self._check_for_hamiltonian_cycle(n, problem_np, w_max)
+            
+            if path:
+                optimal_tour = path
+                high = mid_idx - 1
+            else:
+                low = mid_idx + 1
+        
+        return optimal_tour + [0] if optimal_tour else []
+
+    def _check_for_hamiltonian_cycle(self, n: int, problem_np: np.ndarray, w_max: float) -&gt; Optional[List[int]]:
+        &quot;&quot;&quot;
+        Checks if a Hamiltonian cycle exists for a given max weight w_max.
+        Returns the path if found, otherwise None.
+        &quot;&quot;&quot;
+        adj_matrix = problem_np &lt;= w_max
+        
+        # Pruning 1: Degree check.
+        degrees = np.sum(adj_matrix, axis=1)
+        if np.any(degrees &lt; 2):
+            return None
+            
+        # Pruning 2: Connectivity check.
+        if not _is_connected(n, adj_matrix):
+            return None
+
+        # If pruning passes, attempt the full backtracking search with the heuristic.
+        path = np.full(n, -1, dtype=np.int32)
+        visited = np.zeros(n, dtype=np.bool_)
+        path[0] = 0
+        visited[0] = True
+        
+        # Pre-allocate helper arrays for the recursive function to prevent
+        # allocation inside the recursion.
+        neighbors_arr = np.empty(n, dtype=np.int32)
+        neighbor_degrees_arr = np.empty(n, dtype=np.int32)
+        
+        if _find_hamiltonian_cycle_jit_heuristic(n, adj_matrix, degrees.astype(np.int32), path, 1, visited, neighbors_arr, neighbor_degrees_arr):
+            return path.tolist()
+        
+        return None
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 9 messages and have used up $0.6267. You have $0.3733 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 157)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, List, Optional
+&gt; 003: import numba
+&gt; 004: 
+&gt; 005: # Numba-jitted helper functions are defined at the top level for optimal performance.
+&gt; 006: 
+&gt; 007: @numba.jit(nopython=True)
+&gt; 008: def _find_hamiltonian_cycle_jit_heuristic(n: int, adj_matrix: np.ndarray, degrees: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray, neighbors: np.ndarray, neighbor_degrees: np.ndarray) -&gt; bool:
+&gt; 009:     &quot;&quot;&quot;
+&gt; 010:     A recursive utility to find a Hamiltonian cycle, optimized with Numba.
+&gt; 011:     It performs a backtracking search, guided by a Warnsdorff&#x27;s-like heuristic
+&gt; 012:     (visiting nodes with fewer connections first) to prune the search tree.
+&gt; 013:     This version uses pre-allocated static arrays passed as arguments to avoid allocation in the recursion.
+&gt; 014:     &quot;&quot;&quot;
+&gt; 015:     if pos == n:
+&gt; 016:         # And if there is an edge from the last included vertex to the first vertex
+&gt; 017:         return adj_matrix[path[n - 1], path[0]]
+&gt; 018: 
+&gt; 019:     last_vertex = path[pos - 1]
+&gt; 020: 
+&gt; 021:     # --- Heuristic Implementation with Passed Static Arrays ---
+&gt; 022:     # 1. Find neighbors and their degrees, storing them in the passed arrays.
+&gt; 023:     num_neighbors = 0
+&gt; 024:     for v_candidate in range(n):
+&gt; 025:         if adj_matrix[last_vertex, v_candidate]:
+&gt; 026:             neighbors[num_neighbors] = v_candidate
+&gt; 027:             neighbor_degrees[num_neighbors] = degrees[v_candidate]
+&gt; 028:             num_neighbors += 1
+&gt; 029:     
+&gt; 030:     if num_neighbors == 0:
+&gt; 031:         return False
+&gt; 032: 
+&gt; 033:     # 2. Sort the first `num_neighbors` elements based on degree using insertion sort.
+&gt; 034:     # This is efficient for the small number of neighbors and JIT-friendly.
+&gt; 035:     for i in range(1, num_neighbors):
+&gt; 036:         key_deg = neighbor_degrees[i]
+&gt; 037:         key_v = neighbors[i]
+&gt; 038:         j = i - 1
+&gt; 039:         while j &gt;= 0 and neighbor_degrees[j] &gt; key_deg:
+&gt; 040:             neighbor_degrees[j + 1] = neighbor_degrees[j]
+&gt; 041:             neighbors[j + 1] = neighbors[j]
+&gt; 042:             j -= 1
+&gt; 043:         neighbor_degrees[j + 1] = key_deg
+&gt; 044:         neighbors[j + 1] = key_v
+&gt; 045:     # --- End Heuristic ---
+&gt; 046: 
+&gt; 047:     # 3. Iterate through the heuristically sorted neighbors
+&gt; 048:     for i in range(num_neighbors):
+&gt; 049:         v = neighbors[i]
+&gt; 050:         if not visited[v]:
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 53%<br>  Invalid Solutions: 47%<br>  Timeouts: 0%<br><br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  321:             optimal_edges = list(zip(optimal_solution[:-1], optimal_solution[1:]))
+  322:             optimal_bottleneck = max(problem[u][v] for u, v in optimal_edges)
+  323:         except IndexError:
+  324:             logging.error(
+  325:                 &quot;Could not calculate bottleneck for the optimal solution due to invalid city indices.&quot;
+  326:             )
+  327:             return False  # Or raise an error, as this indicates an internal solver issue
+  328: 
+  329:         # 4. Compare Bottlenecks (using a small tolerance for float comparison)
+  330:         is_optimal = abs(solution_bottleneck - optimal_bottleneck) &lt; 1e-9
+  331:         if not is_optimal:
+  332:             logging.info(
+  333:                 f&quot;Solution is valid but not optimal (Solution bottleneck: {solution_bottleneck}, Optimal bottleneck: {optimal_bottleneck}).&quot;
+  334:             )
+  335: 
+&gt; 336:         return is_optimal</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  321:             optimal_edges = list(zip(optimal_solution[:-1], optimal_solution[1:]))
+  322:             optimal_bottleneck = max(problem[u][v] for u, v in optimal_edges)
+  323:         except IndexError:
+  324:             logging.error(
+  325:                 &quot;Could not calculate bottleneck for the optimal solution due to invalid city indices.&quot;
+  326:             )
+  327:             return False  # Or raise an error, as this indicates an internal solver issue
+  328: 
+  329:         # 4. Compare Bottlenecks (using a small tolerance for float comparison)
+  330:         is_optimal = abs(solution_bottleneck - optimal_bottleneck) &lt; 1e-9
+  331:         if not is_optimal:
+  332:             logging.info(
+  333:                 f&quot;Solution is valid but not optimal (Solution bottleneck: {solution_bottleneck}, Optimal bottleneck: {optimal_bottleneck}).&quot;
+  334:             )
+  335: 
+&gt; 336:         return is_optimal</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  321:             optimal_edges = list(zip(optimal_solution[:-1], optimal_solution[1:]))
+  322:             optimal_bottleneck = max(problem[u][v] for u, v in optimal_edges)
+  323:         except IndexError:
+  324:             logging.error(
+  325:                 &quot;Could not calculate bottleneck for the optimal solution due to invalid city indices.&quot;
+  326:             )
+  327:             return False  # Or raise an error, as this indicates an internal solver issue
+  328: 
+  329:         # 4. Compare Bottlenecks (using a small tolerance for float comparison)
+  330:         is_optimal = abs(solution_bottleneck - optimal_bottleneck) &lt; 1e-9
+  331:         if not is_optimal:
+  332:             logging.info(
+  333:                 f&quot;Solution is valid but not optimal (Solution bottleneck: {solution_bottleneck}, Optimal bottleneck: {optimal_bottleneck}).&quot;
+  334:             )
+  335: 
+&gt; 336:         return is_optimal</code></pre><br><br><br>Snapshot not saved - no valid solutions
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My previous attempt, while fast, produced incorrect solutions. This is a critical failure that indicates a subtle bug in the heuristic-guided backtracking search. An incorrect solution means my algorithm failed to find a tour for a given bottleneck weight when one actually existed, causing the binary search to settle on a sub-optimal (larger) bottleneck.<br><br>The most complex and therefore most likely source of this error is the Warnsdorff&#x27;s-like heuristic I implemented. While designed to improve performance, it seems to have introduced a flaw that prevents the exhaustive search required for correctness.<br><br>To fix this, I am prioritizing correctness over raw speed. I have reverted the core search algorithm to a simpler, more robust backtracking implementation.<br><br>1.  **Removed Flawed Heuristic**: I have completely removed the complex `_find_hamiltonian_cycle_jit_heuristic` function. The logic for sorting neighbors by degree has been eliminated.<br>2.  **Simple, Correct Backtracking**: I have replaced it with `_find_hamiltonian_cycle_jit`, a straightforward, Numba-jitted backtracking function. This function iterates through all potential next vertices (`0` to `n-1`) and checks for adjacency and whether the vertex has been visited. This is a textbook implementation that guarantees it will find a path if one exists in the graph defined by the current bottleneck.<br>3.  **Streamlined Wrapper**: The `_check_for_hamiltonian_cycle` function has been simplified accordingly. It no longer needs to calculate the `degrees` array or pre-allocate helper arrays for the heuristic, reducing complexity and potential sources of error. The essential pruning steps (degree-2 check and connectivity check) are retained to ensure reasonable performance.<br><br>This change trades the aggressive (and flawed) optimization of the previous version for a fundamentally sound and correct search strategy. While potentially slower, it is guaranteed to find the optimal solution.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-150
+---
+import numpy as np
+from typing import Any, List, Optional
+import numba
+
+# Numba-jitted helper functions are defined at the top level for optimal performance.
+
+@numba.jit(nopython=True)
+def _find_hamiltonian_cycle_jit(n: int, adj_matrix: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    A recursive utility to find a Hamiltonian cycle using a simple backtracking search.
+    This version is optimized with Numba but does not use complex heuristics,
+    prioritizing correctness and simplicity.
+    &quot;&quot;&quot;
+    if pos == n:
+        # Check if the last vertex is connected to the starting vertex (0)
+        return adj_matrix[path[n - 1], path[0]]
+
+    last_vertex = path[pos - 1]
+    
+    # Iterate through all vertices as potential next candidates
+    for v in range(n):
+        # Check if vertex v is adjacent to the last vertex and not yet visited
+        if adj_matrix[last_vertex, v] and not visited[v]:
+            path[pos] = v
+            visited[v] = True
+
+            if _find_hamiltonian_cycle_jit(n, adj_matrix, path, pos + 1, visited):
+                return True
+
+            # Backtrack
+            visited[v] = False
+    
+    return False
+
+@numba.jit(nopython=True)
+def _is_connected(n: int, adj_matrix: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    Checks if the graph is connected using BFS on a dense adjacency matrix.
+    &quot;&quot;&quot;
+    if n &lt;= 1:
+        return True
+    
+    q = np.zeros(n, dtype=np.int32)
+    q[0] = 0
+    head, tail = 0, 1
+    
+    visited = np.zeros(n, dtype=np.bool_)
+    visited[0] = True
+    count = 1
+    
+    while head &lt; tail:
+        u = q[head]
+        head += 1
+        
+        for v in range(n):
+            if adj_matrix[u, v] and not visited[v]:
+                visited[v] = True
+                q[tail] = v
+                tail += 1
+                count += 1
+    
+    return count == n
+
+
+class Solver:
+    def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+        &quot;&quot;&quot;
+        Solves the Bottleneck Traveling Salesman Problem using a combination of
+        binary search on edge weights and a Numba-accelerated backtracking search.
+        &quot;&quot;&quot;
+        n = len(problem)
+        
+        if n == 0:
+            return []
+        if n &lt;= 2:
+            return list(range(n)) + [0]
+
+        problem_np = np.array(problem, dtype=np.float64)
+
+        iu = np.triu_indices(n, k=1)
+        unique_weights = np.unique(problem_np[iu])
+
+        low, high = 0, len(unique_weights) - 1
+        optimal_tour = []
+        
+        while low &lt;= high:
+            mid_idx = (low + high) // 2
+            w_max = unique_weights[mid_idx]
+            
+            path = self._check_for_hamiltonian_cycle(n, problem_np, w_max)
+            
+            if path:
+                optimal_tour = path
+                high = mid_idx - 1
+            else:
+                low = mid_idx + 1
+        
+        return optimal_tour + [0] if optimal_tour else []
+
+    def _check_for_hamiltonian_cycle(self, n: int, problem_np: np.ndarray, w_max: float) -&gt; Optional[List[int]]:
+        &quot;&quot;&quot;
+        Checks if a Hamiltonian cycle exists for a given max weight w_max.
+        Returns the path if found, otherwise None.
+        &quot;&quot;&quot;
+        adj_matrix = problem_np &lt;= w_max
+        
+        # Pruning 1: Degree check. Every vertex must have at least 2 edges.
+        if np.any(np.sum(adj_matrix, axis=1) &lt; 2):
+            return None
+            
+        # Pruning 2: Connectivity check.
+        if not _is_connected(n, adj_matrix):
+            return None
+
+        # If pruning passes, attempt the full backtracking search.
+        path = np.full(n, -1, dtype=np.int32)
+        visited = np.zeros(n, dtype=np.bool_)
+        path[0] = 0
+        visited[0] = True
+        
+        if _find_hamiltonian_cycle_jit(n, adj_matrix, path, 1, visited):
+            return path.tolist()
+        
+        return None
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 10 messages and have used up $0.7444. You have $0.2556 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 130)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, List, Optional
+&gt; 003: import numba
+&gt; 004: 
+&gt; 005: # Numba-jitted helper functions are defined at the top level for optimal performance.
+&gt; 006: 
+&gt; 007: @numba.jit(nopython=True)
+&gt; 008: def _find_hamiltonian_cycle_jit(n: int, adj_matrix: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray) -&gt; bool:
+&gt; 009:     &quot;&quot;&quot;
+&gt; 010:     A recursive utility to find a Hamiltonian cycle using a simple backtracking search.
+&gt; 011:     This version is optimized with Numba but does not use complex heuristics,
+&gt; 012:     prioritizing correctness and simplicity.
+&gt; 013:     &quot;&quot;&quot;
+&gt; 014:     if pos == n:
+&gt; 015:         # Check if the last vertex is connected to the starting vertex (0)
+&gt; 016:         return adj_matrix[path[n - 1], path[0]]
+&gt; 017: 
+&gt; 018:     last_vertex = path[pos - 1]
+&gt; 019:     
+&gt; 020:     # Iterate through all vertices as potential next candidates
+&gt; 021:     for v in range(n):
+&gt; 022:         # Check if vertex v is adjacent to the last vertex and not yet visited
+&gt; 023:         if adj_matrix[last_vertex, v] and not visited[v]:
+&gt; 024:             path[pos] = v
+&gt; 025:             visited[v] = True
+&gt; 026: 
+&gt; 027:             if _find_hamiltonian_cycle_jit(n, adj_matrix, path, pos + 1, visited):
+&gt; 028:                 return True
+&gt; 029: 
+&gt; 030:             # Backtrack
+&gt; 031:             visited[v] = False
+&gt; 032:     
+&gt; 033:     return False
+&gt; 034: 
+&gt; 035: @numba.jit(nopython=True)
+&gt; 036: def _is_connected(n: int, adj_matrix: np.ndarray) -&gt; bool:
+&gt; 037:     &quot;&quot;&quot;
+&gt; 038:     Checks if the graph is connected using BFS on a dense adjacency matrix.
+&gt; 039:     &quot;&quot;&quot;
+&gt; 040:     if n &lt;= 1:
+&gt; 041:         return True
+&gt; 042:     
+&gt; 043:     q = np.zeros(n, dtype=np.int32)
+&gt; 044:     q[0] = 0
+&gt; 045:     head, tail = 0, 1
+&gt; 046:     
+&gt; 047:     visited = np.zeros(n, dtype=np.bool_)
+&gt; 048:     visited[0] = True
+&gt; 049:     count = 1
+&gt; 050:     
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">3.19</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My analysis indicates that the current solution, while correct, has reached the performance limit of a simple backtracking search. The key to a significant speedup lies in more intelligent pruning of the search tree. My previous attempts to use a heuristic failed due to subtle bugs, but the core idea was sound. This new solution reintroduces a powerful heuristic, now correctly implemented, and leverages a highly optimized library function from `scipy` for an additional boost.<br><br>My strategy is twofold:<br><br>1.  **Optimized Connectivity Check with `scipy`**: I am replacing my Numba-jitted Breadth-First Search for checking graph connectivity with `scipy.sparse.csgraph.connected_components`. This function is implemented in C and is significantly faster and more robust than a custom implementation, providing a reliable performance improvement for one of the key pruning steps.<br><br>2.  **Corrected Heuristic-Guided Backtracking**: The primary bottleneck is the exhaustive search for a Hamiltonian cycle. I am replacing the simple backtracking function with a new, highly optimized version guided by a Warnsdorff&#x27;s-like rule. The critical flaw in my previous heuristic attempts was sorting *all* neighbors and *then* checking if they were visited. The correct, and much more effective, approach is to:<br>    a.  First, identify the set of valid next moves (i.e., neighbors that have **not** been visited yet).<br>    b.  Then, sort this smaller, valid set of neighbors by their degree (from lowest to highest).<br>    c.  Explore paths to these &quot;most constrained&quot; vertices first.<br><br>This corrected heuristic dramatically prunes the search space, allowing the solver to find solutions much faster or prove their non-existence more quickly. To ensure maximum performance, the recursive function uses pre-allocated helper arrays to avoid any memory allocation overhead within the Numba-jitted loops.<br><br>This combination of a specialized scientific library and a correctly implemented, powerful search heuristic will yield a substantial performance gain over the previous version.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-150
+---
+import numpy as np
+from typing import Any, List, Optional
+import numba
+from scipy.sparse.csgraph import connected_components
+from scipy.sparse import csr_matrix
+
+# Numba-jitted helper functions are defined at the top level for optimal performance.
+
+@numba.jit(nopython=True)
+def _find_hamiltonian_cycle_jit_heuristic(n: int, adj_matrix: np.ndarray, degrees: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray, valid_neighbors: np.ndarray, valid_neighbor_degrees: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    A recursive utility to find a Hamiltonian cycle, optimized with Numba.
+    It performs a backtracking search, guided by a corrected Warnsdorff&#x27;s-like
+    heuristic: it sorts only the *unvisited* neighbors by their degree.
+    This version uses pre-allocated arrays passed as arguments to avoid allocation.
+    &quot;&quot;&quot;
+    if pos == n:
+        # Check if the last vertex is connected to the starting vertex (0)
+        return adj_matrix[path[n - 1], path[0]]
+
+    last_vertex = path[pos - 1]
+
+    # 1. Find *unvisited* neighbors and their degrees.
+    num_valid_neighbors = 0
+    for v_candidate in range(n):
+        if adj_matrix[last_vertex, v_candidate] and not visited[v_candidate]:
+            valid_neighbors[num_valid_neighbors] = v_candidate
+            valid_neighbor_degrees[num_valid_neighbors] = degrees[v_candidate]
+            num_valid_neighbors += 1
+    
+    if num_valid_neighbors == 0:
+        return False
+
+    # 2. Sort the valid neighbors by their degree using insertion sort.
+    for i in range(1, num_valid_neighbors):
+        key_deg = valid_neighbor_degrees[i]
+        key_v = valid_neighbors[i]
+        j = i - 1
+        while j &gt;= 0 and valid_neighbor_degrees[j] &gt; key_deg:
+            valid_neighbor_degrees[j + 1] = valid_neighbor_degrees[j]
+            valid_neighbors[j + 1] = valid_neighbors[j]
+            j -= 1
+        valid_neighbor_degrees[j + 1] = key_deg
+        valid_neighbors[j + 1] = key_v
+
+    # 3. Iterate through the heuristically sorted valid neighbors and recurse.
+    for i in range(num_valid_neighbors):
+        v = valid_neighbors[i]
+        path[pos] = v
+        visited[v] = True
+
+        if _find_hamiltonian_cycle_jit_heuristic(n, adj_matrix, degrees, path, pos + 1, visited, valid_neighbors, valid_neighbor_degrees):
+            return True
+
+        # Backtrack
+        visited[v] = False
+
+    return False
+
+
+class Solver:
+    def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+        &quot;&quot;&quot;
+        Solves the Bottleneck Traveling Salesman Problem using a combination of
+        binary search on edge weights, a SciPy-based connectivity check, and a
+        Numba-accelerated, heuristic-guided backtracking search.
+        &quot;&quot;&quot;
+        n = len(problem)
+        
+        if n == 0:
+            return []
+        if n &lt;= 2:
+            return list(range(n)) + [0]
+
+        problem_np = np.array(problem, dtype=np.float64)
+
+        iu = np.triu_indices(n, k=1)
+        unique_weights = np.unique(problem_np[iu])
+
+        low, high = 0, len(unique_weights) - 1
+        optimal_tour = []
+        
+        while low &lt;= high:
+            mid_idx = (low + high) // 2
+            w_max = unique_weights[mid_idx]
+            
+            path = self._check_for_hamiltonian_cycle(n, problem_np, w_max)
+            
+            if path:
+                optimal_tour = path
+                high = mid_idx - 1
+            else:
+                low = mid_idx + 1
+        
+        return optimal_tour + [0] if optimal_tour else []
+
+    def _check_for_hamiltonian_cycle(self, n: int, problem_np: np.ndarray, w_max: float) -&gt; Optional[List[int]]:
+        &quot;&quot;&quot;
+        Checks if a Hamiltonian cycle exists for a given max weight w_max.
+        Returns the path if found, otherwise None.
+        &quot;&quot;&quot;
+        adj_matrix = problem_np &lt;= w_max
+        
+        # Pruning 1: Degree check. Every vertex must have at least 2 edges.
+        degrees = np.sum(adj_matrix, axis=1)
+        if np.any(degrees &lt; 2):
+            return None
+            
+        # Pruning 2: Connectivity check using SciPy&#x27;s optimized function.
+        graph_sparse = csr_matrix(adj_matrix)
+        n_components, _ = connected_components(csgraph=graph_sparse, directed=False, return_labels=True)
+        if n_components &gt; 1:
+            return None
+
+        # If pruning passes, attempt the full backtracking search with the heuristic.
+        path = np.full(n, -1, dtype=np.int32)
+        visited = np.zeros(n, dtype=np.bool_)
+        path[0] = 0
+        visited[0] = True
+        
+        # Pre-allocate helper arrays for the recursive heuristic search
+        valid_neighbors = np.empty(n, dtype=np.int32)
+        valid_neighbor_degrees = np.empty(n, dtype=np.int32)
+        
+        if _find_hamiltonian_cycle_jit_heuristic(n, adj_matrix, degrees.astype(np.int32), path, 1, visited, valid_neighbors, valid_neighbor_degrees):
+            return path.tolist()
+        
+        return None
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 11 messages and have used up $0.8479. You have $0.1521 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 127)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, List, Optional
+&gt; 003: import numba
+&gt; 004: from scipy.sparse.csgraph import connected_components
+&gt; 005: from scipy.sparse import csr_matrix
+&gt; 006: 
+&gt; 007: # Numba-jitted helper functions are defined at the top level for optimal performance.
+&gt; 008: 
+&gt; 009: @numba.jit(nopython=True)
+&gt; 010: def _find_hamiltonian_cycle_jit_heuristic(n: int, adj_matrix: np.ndarray, degrees: np.ndarray, path: np.ndarray, pos: int, visited: np.ndarray, valid_neighbors: np.ndarray, valid_neighbor_degrees: np.ndarray) -&gt; bool:
+&gt; 011:     &quot;&quot;&quot;
+&gt; 012:     A recursive utility to find a Hamiltonian cycle, optimized with Numba.
+&gt; 013:     It performs a backtracking search, guided by a corrected Warnsdorff&#x27;s-like
+&gt; 014:     heuristic: it sorts only the *unvisited* neighbors by their degree.
+&gt; 015:     This version uses pre-allocated arrays passed as arguments to avoid allocation.
+&gt; 016:     &quot;&quot;&quot;
+&gt; 017:     if pos == n:
+&gt; 018:         # Check if the last vertex is connected to the starting vertex (0)
+&gt; 019:         return adj_matrix[path[n - 1], path[0]]
+&gt; 020: 
+&gt; 021:     last_vertex = path[pos - 1]
+&gt; 022: 
+&gt; 023:     # 1. Find *unvisited* neighbors and their degrees.
+&gt; 024:     num_valid_neighbors = 0
+&gt; 025:     for v_candidate in range(n):
+&gt; 026:         if adj_matrix[last_vertex, v_candidate] and not visited[v_candidate]:
+&gt; 027:             valid_neighbors[num_valid_neighbors] = v_candidate
+&gt; 028:             valid_neighbor_degrees[num_valid_neighbors] = degrees[v_candidate]
+&gt; 029:             num_valid_neighbors += 1
+&gt; 030:     
+&gt; 031:     if num_valid_neighbors == 0:
+&gt; 032:         return False
+&gt; 033: 
+&gt; 034:     # 2. Sort the valid neighbors by their degree using insertion sort.
+&gt; 035:     for i in range(1, num_valid_neighbors):
+&gt; 036:         key_deg = valid_neighbor_degrees[i]
+&gt; 037:         key_v = valid_neighbors[i]
+&gt; 038:         j = i - 1
+&gt; 039:         while j &gt;= 0 and valid_neighbor_degrees[j] &gt; key_deg:
+&gt; 040:             valid_neighbor_degrees[j + 1] = valid_neighbor_degrees[j]
+&gt; 041:             valid_neighbors[j + 1] = valid_neighbors[j]
+&gt; 042:             j -= 1
+&gt; 043:         valid_neighbor_degrees[j + 1] = key_deg
+&gt; 044:         valid_neighbors[j + 1] = key_v
+&gt; 045: 
+&gt; 046:     # 3. Iterate through the heuristically sorted valid neighbors and recurse.
+&gt; 047:     for i in range(num_valid_neighbors):
+&gt; 048:         v = valid_neighbors[i]
+&gt; 049:         path[pos] = v
+&gt; 050:         visited[v] = True
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 52%<br>  Invalid Solutions: 48%<br>  Timeouts: 0%<br><br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  321:             optimal_edges = list(zip(optimal_solution[:-1], optimal_solution[1:]))
+  322:             optimal_bottleneck = max(problem[u][v] for u, v in optimal_edges)
+  323:         except IndexError:
+  324:             logging.error(
+  325:                 &quot;Could not calculate bottleneck for the optimal solution due to invalid city indices.&quot;
+  326:             )
+  327:             return False  # Or raise an error, as this indicates an internal solver issue
+  328: 
+  329:         # 4. Compare Bottlenecks (using a small tolerance for float comparison)
+  330:         is_optimal = abs(solution_bottleneck - optimal_bottleneck) &lt; 1e-9
+  331:         if not is_optimal:
+  332:             logging.info(
+  333:                 f&quot;Solution is valid but not optimal (Solution bottleneck: {solution_bottleneck}, Optimal bottleneck: {optimal_bottleneck}).&quot;
+  334:             )
+  335: 
+&gt; 336:         return is_optimal</code></pre><br><br>Invalid Example #2:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  321:             optimal_edges = list(zip(optimal_solution[:-1], optimal_solution[1:]))
+  322:             optimal_bottleneck = max(problem[u][v] for u, v in optimal_edges)
+  323:         except IndexError:
+  324:             logging.error(
+  325:                 &quot;Could not calculate bottleneck for the optimal solution due to invalid city indices.&quot;
+  326:             )
+  327:             return False  # Or raise an error, as this indicates an internal solver issue
+  328: 
+  329:         # 4. Compare Bottlenecks (using a small tolerance for float comparison)
+  330:         is_optimal = abs(solution_bottleneck - optimal_bottleneck) &lt; 1e-9
+  331:         if not is_optimal:
+  332:             logging.info(
+  333:                 f&quot;Solution is valid but not optimal (Solution bottleneck: {solution_bottleneck}, Optimal bottleneck: {optimal_bottleneck}).&quot;
+  334:             )
+  335: 
+&gt; 336:         return is_optimal</code></pre><br><br>Invalid Example #3:<br>Error in &#x27;is_solution&#x27;:<br><pre><code class="language-python">  321:             optimal_edges = list(zip(optimal_solution[:-1], optimal_solution[1:]))
+  322:             optimal_bottleneck = max(problem[u][v] for u, v in optimal_edges)
+  323:         except IndexError:
+  324:             logging.error(
+  325:                 &quot;Could not calculate bottleneck for the optimal solution due to invalid city indices.&quot;
+  326:             )
+  327:             return False  # Or raise an error, as this indicates an internal solver issue
+  328: 
+  329:         # 4. Compare Bottlenecks (using a small tolerance for float comparison)
+  330:         is_optimal = abs(solution_bottleneck - optimal_bottleneck) &lt; 1e-9
+  331:         if not is_optimal:
+  332:             logging.info(
+  333:                 f&quot;Solution is valid but not optimal (Solution bottleneck: {solution_bottleneck}, Optimal bottleneck: {optimal_bottleneck}).&quot;
+  334:             )
+  335: 
+&gt; 336:         return is_optimal</code></pre><br><br><br>Snapshot not saved - no valid solutions
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My previous attempt failed because my performance-enhancing heuristic contained a subtle bug, causing it to miss valid solutions. The bug stemmed from passing a single, shared helper array down the recursion stack, which led to data corruption as child calls would overwrite the data their parents were still iterating over.<br><br>My new strategy fixes this fundamental flaw while retaining the powerful heuristic and other optimizations. The solution is to provide each level of the recursion with its own private, pre-allocated memory space.<br><br>1.  **Workspace Pre-allocation**: In the main `_check_for_hamiltonian_cycle` function, I now create two 2D &quot;workspace&quot; arrays, `neighbors_workspace` and `degrees_workspace`, each of size `(n+1, n)`. This is done only once per check.<br><br>2.  **Dedicated Recursive Memory**: These workspaces are passed to the Numba-jitted recursive function, `_find_hamiltonian_cycle_jit_heuristic`. At each level of recursion, identified by the position `pos` in the path, the function uses a dedicated slice of the workspace (e.g., `neighbors_workspace[pos]`) as its local scratchpad.<br><br>3.  **Correct and Fast Heuristic**: Because each recursive call now has its own memory, there is no risk of data corruption. The function can correctly identify the unvisited neighbors, sort them by degree (the Warnsdorff&#x27;s-like heuristic), and explore the most constrained paths first. This approach is both correct and extremely fast, as it combines the search-space pruning of the heuristic with zero memory allocation inside the critical recursive loop.<br><br>4.  **Retained Optimizations**: This solution continues to use the highly efficient `scipy.sparse.csgraph.connected_components` for the initial connectivity check, ensuring all parts of the algorithm are highly optimized.<br><br>This &quot;workspace&quot; technique resolves the conflict between performance and correctness that plagued my previous attempts, delivering a solution that is both robust and significantly faster.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-150
+---
+import numpy as np
+from typing import Any, List, Optional
+import numba
+from scipy.sparse.csgraph import connected_components
+from scipy.sparse import csr_matrix
+
+# Numba-jitted helper functions are defined at the top level for optimal performance.
+
+@numba.jit(nopython=True)
+def _find_hamiltonian_cycle_jit_heuristic(
+    n: int, 
+    adj_matrix: np.ndarray, 
+    degrees: np.ndarray, 
+    path: np.ndarray, 
+    pos: int, 
+    visited: np.ndarray, 
+    neighbors_workspace: np.ndarray, 
+    degrees_workspace: np.ndarray
+) -&gt; bool:
+    &quot;&quot;&quot;
+    A recursive utility to find a Hamiltonian cycle, optimized with Numba.
+    It performs a backtracking search, guided by a corrected Warnsdorff&#x27;s-like
+    heuristic: it sorts only the *unvisited* neighbors by their degree.
+    This version uses a pre-allocated workspace to avoid both repeated allocations
+    and the data corruption bug from passing a single shared array.
+    &quot;&quot;&quot;
+    if pos == n:
+        # Check if the last vertex is connected to the starting vertex (0)
+        return adj_matrix[path[n - 1], path[0]]
+
+    last_vertex = path[pos - 1]
+
+    # Use the dedicated slice of the workspace for this recursion depth
+    valid_neighbors = neighbors_workspace[pos]
+    valid_neighbor_degrees = degrees_workspace[pos]
+
+    # 1. Find *unvisited* neighbors and their degrees.
+    num_valid_neighbors = 0
+    for v_candidate in range(n):
+        if adj_matrix[last_vertex, v_candidate] and not visited[v_candidate]:
+            valid_neighbors[num_valid_neighbors] = v_candidate
+            valid_neighbor_degrees[num_valid_neighbors] = degrees[v_candidate]
+            num_valid_neighbors += 1
+    
+    if num_valid_neighbors == 0:
+        return False
+
+    # 2. Sort the valid neighbors by their degree using insertion sort.
+    for i in range(1, num_valid_neighbors):
+        key_deg = valid_neighbor_degrees[i]
+        key_v = valid_neighbors[i]
+        j = i - 1
+        while j &gt;= 0 and valid_neighbor_degrees[j] &gt; key_deg:
+            valid_neighbor_degrees[j + 1] = valid_neighbor_degrees[j]
+            valid_neighbors[j + 1] = valid_neighbors[j]
+            j -= 1
+        valid_neighbor_degrees[j + 1] = key_deg
+        valid_neighbors[j + 1] = key_v
+
+    # 3. Iterate through the heuristically sorted valid neighbors and recurse.
+    for i in range(num_valid_neighbors):
+        v = valid_neighbors[i]
+        path[pos] = v
+        visited[v] = True
+
+        if _find_hamiltonian_cycle_jit_heuristic(
+            n, adj_matrix, degrees, path, pos + 1, visited, 
+            neighbors_workspace, degrees_workspace
+        ):
+            return True
+
+        # Backtrack
+        visited[v] = False
+
+    return False
+
+
+class Solver:
+    def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+        &quot;&quot;&quot;
+        Solves the Bottleneck Traveling Salesman Problem using a combination of
+        binary search on edge weights, a SciPy-based connectivity check, and a
+        Numba-accelerated, heuristic-guided backtracking search.
+        &quot;&quot;&quot;
+        n = len(problem)
+        
+        if n == 0:
+            return []
+        if n &lt;= 2:
+            return list(range(n)) + [0]
+
+        problem_np = np.array(problem, dtype=np.float64)
+
+        iu = np.triu_indices(n, k=1)
+        unique_weights = np.unique(problem_np[iu])
+
+        low, high = 0, len(unique_weights) - 1
+        optimal_tour = []
+        
+        while low &lt;= high:
+            mid_idx = (low + high) // 2
+            w_max = unique_weights[mid_idx]
+            
+            path = self._check_for_hamiltonian_cycle(n, problem_np, w_max)
+            
+            if path:
+                optimal_tour = path
+                high = mid_idx - 1
+            else:
+                low = mid_idx + 1
+        
+        return optimal_tour + [0] if optimal_tour else []
+
+    def _check_for_hamiltonian_cycle(self, n: int, problem_np: np.ndarray, w_max: float) -&gt; Optional[List[int]]:
+        &quot;&quot;&quot;
+        Checks if a Hamiltonian cycle exists for a given max weight w_max.
+        Returns the path if found, otherwise None.
+        &quot;&quot;&quot;
+        adj_matrix = problem_np &lt;= w_max
+        
+        # Pruning 1: Degree check. Every vertex must have at least 2 edges.
+        degrees = np.sum(adj_matrix, axis=1)
+        if np.any(degrees &lt; 2):
+            return None
+            
+        # Pruning 2: Connectivity check using SciPy&#x27;s optimized function.
+        graph_sparse = csr_matrix(adj_matrix)
+        n_components, _ = connected_components(csgraph=graph_sparse, directed=False, return_labels=False)
+        if n_components &gt; 1:
+            return None
+
+        # If pruning passes, attempt the full backtracking search with the heuristic.
+        path = np.full(n, -1, dtype=np.int32)
+        visited = np.zeros(n, dtype=np.bool_)
+        path[0] = 0
+        visited[0] = True
+        
+        # Pre-allocate a workspace for the recursive function to prevent both
+        # allocation-in-loop and state-corruption issues.
+        # Size is (n+1, n) to have a row for each recursion depth `pos` (1 to n).
+        neighbors_workspace = np.empty((n + 1, n), dtype=np.int32)
+        degrees_workspace = np.empty((n + 1, n), dtype=np.int32)
+        
+        if _find_hamiltonian_cycle_jit_heuristic(
+            n, adj_matrix, degrees.astype(np.int32), path, 1, visited, 
+            neighbors_workspace, degrees_workspace
+        ):
+            return path.tolist()
+        
+        return None
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 12 messages and have used up $0.9371. You have $0.0629 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 149)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 001: import numpy as np
+&gt; 002: from typing import Any, List, Optional
+&gt; 003: import numba
+&gt; 004: from scipy.sparse.csgraph import connected_components
+&gt; 005: from scipy.sparse import csr_matrix
+&gt; 006: 
+&gt; 007: # Numba-jitted helper functions are defined at the top level for optimal performance.
+&gt; 008: 
+&gt; 009: @numba.jit(nopython=True)
+&gt; 010: def _find_hamiltonian_cycle_jit_heuristic(
+&gt; 011:     n: int, 
+&gt; 012:     adj_matrix: np.ndarray, 
+&gt; 013:     degrees: np.ndarray, 
+&gt; 014:     path: np.ndarray, 
+&gt; 015:     pos: int, 
+&gt; 016:     visited: np.ndarray, 
+&gt; 017:     neighbors_workspace: np.ndarray, 
+&gt; 018:     degrees_workspace: np.ndarray
+&gt; 019: ) -&gt; bool:
+&gt; 020:     &quot;&quot;&quot;
+&gt; 021:     A recursive utility to find a Hamiltonian cycle, optimized with Numba.
+&gt; 022:     It performs a backtracking search, guided by a corrected Warnsdorff&#x27;s-like
+&gt; 023:     heuristic: it sorts only the *unvisited* neighbors by their degree.
+&gt; 024:     This version uses a pre-allocated workspace to avoid both repeated allocations
+&gt; 025:     and the data corruption bug from passing a single shared array.
+&gt; 026:     &quot;&quot;&quot;
+&gt; 027:     if pos == n:
+&gt; 028:         # Check if the last vertex is connected to the starting vertex (0)
+&gt; 029:         return adj_matrix[path[n - 1], path[0]]
+&gt; 030: 
+&gt; 031:     last_vertex = path[pos - 1]
+&gt; 032: 
+&gt; 033:     # Use the dedicated slice of the workspace for this recursion depth
+&gt; 034:     valid_neighbors = neighbors_workspace[pos]
+&gt; 035:     valid_neighbor_degrees = degrees_workspace[pos]
+&gt; 036: 
+&gt; 037:     # 1. Find *unvisited* neighbors and their degrees.
+&gt; 038:     num_valid_neighbors = 0
+&gt; 039:     for v_candidate in range(n):
+&gt; 040:         if adj_matrix[last_vertex, v_candidate] and not visited[v_candidate]:
+&gt; 041:             valid_neighbors[num_valid_neighbors] = v_candidate
+&gt; 042:             valid_neighbor_degrees[num_valid_neighbors] = degrees[v_candidate]
+&gt; 043:             num_valid_neighbors += 1
+&gt; 044:     
+&gt; 045:     if num_valid_neighbors == 0:
+&gt; 046:         return False
+&gt; 047: 
+&gt; 048:     # 2. Sort the valid neighbors by their degree using insertion sort.
+&gt; 049:     for i in range(1, num_valid_neighbors):
+&gt; 050:         key_deg = valid_neighbor_degrees[i]
+...</code></pre><br><br>Error: TypeError: cannot unpack non-iterable int object in function &#x27;_check_for_hamiltonian_cycle&#x27; at line 127 in solver.py<br><br>Code Context:<br><pre><code class="language-python">   117:         &quot;&quot;&quot;
+   118:         adj_matrix = problem_np &lt;= w_max
+   119: 
+   120:         # Pruning 1: Degree check. Every vertex must have at least 2 edges.
+   121:         degrees = np.sum(adj_matrix, axis=1)
+   122:         if np.any(degrees &lt; 2):
+   123:             return None
+   124: 
+   125:         # Pruning 2: Connectivity check using SciPy&#x27;s optimized function.
+   126:         graph_sparse = csr_matrix(adj_matrix)
+ ! 127:         n_components, _ = connected_components(csgraph=graph_sparse, directed=False, return_labels=False)
+   128:         if n_components &gt; 1:
+   129:             return None
+   130: 
+   131:         # If pruning passes, attempt the full backtracking search with the heuristic.
+   132:         path = np.full(n, -1, dtype=np.int32)
+   133:         visited = np.zeros(n, dtype=np.bool_)
+   134:         path[0] = 0
+   135:         visited[0] = True
+   136: 
+   137:         # Pre-allocate a workspace for the recursive function to prevent both</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My previous submission failed due to a simple but critical API usage error. The `scipy.sparse.csgraph.connected_components` function, when called with `return_labels=False`, returns only a single integer representing the number of components, not a tuple as my code expected. The line `n_components, _ = connected_components(...)` was attempting to unpack this single integer, leading to the `TypeError`.<br><br>I have corrected this by changing the line to `n_components = connected_components(...)`, which correctly assigns the integer result to the `n_components` variable.<br><br>This fix is a minor correction to the otherwise sound and highly optimized strategy I developed. The core logic—using a binary search, a fast SciPy connectivity check, and a bug-free, heuristic-guided backtracking search with a pre-allocated workspace—remains the same. With this bug fixed, the full power of the optimized algorithm can be realized, ensuring both correctness and high performance.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 125-129
+---
+        # Pruning 2: Connectivity check using SciPy&#x27;s optimized function.
+        graph_sparse = csr_matrix(adj_matrix)
+        n_components = connected_components(csgraph=graph_sparse, directed=False, return_labels=False)
+        if n_components &gt; 1:
+            return None
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 13 messages and have used up $0.9666. You have $0.0334 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 100-149 out of 149)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">...
+| 100:             mid_idx = (low + high) // 2
+| 101:             w_max = unique_weights[mid_idx]
+| 102:             
+| 103:             path = self._check_for_hamiltonian_cycle(n, problem_np, w_max)
+| 104:             
+| 105:             if path:
+| 106:                 optimal_tour = path
+| 107:                 high = mid_idx - 1
+| 108:             else:
+| 109:                 low = mid_idx + 1
+| 110:         
+| 111:         return optimal_tour + [0] if optimal_tour else []
+| 112: 
+| 113:     def _check_for_hamiltonian_cycle(self, n: int, problem_np: np.ndarray, w_max: float) -&gt; Optional[List[int]]:
+| 114:         &quot;&quot;&quot;
+| 115:         Checks if a Hamiltonian cycle exists for a given max weight w_max.
+| 116:         Returns the path if found, otherwise None.
+| 117:         &quot;&quot;&quot;
+| 118:         adj_matrix = problem_np &lt;= w_max
+| 119:         
+| 120:         # Pruning 1: Degree check. Every vertex must have at least 2 edges.
+| 121:         degrees = np.sum(adj_matrix, axis=1)
+| 122:         if np.any(degrees &lt; 2):
+| 123:             return None
+| 124:             
+&gt; 125:         # Pruning 2: Connectivity check using SciPy&#x27;s optimized function.
+&gt; 126:         graph_sparse = csr_matrix(adj_matrix)
+&gt; 127:         n_components = connected_components(csgraph=graph_sparse, directed=False, return_labels=False)
+&gt; 128:         if n_components &gt; 1:
+&gt; 129:             return None
+| 130: 
+| 131:         # If pruning passes, attempt the full backtracking search with the heuristic.
+| 132:         path = np.full(n, -1, dtype=np.int32)
+| 133:         visited = np.zeros(n, dtype=np.bool_)
+| 134:         path[0] = 0
+| 135:         visited[0] = True
+| 136:         
+| 137:         # Pre-allocate a workspace for the recursive function to prevent both
+| 138:         # allocation-in-loop and state-corruption issues.
+| 139:         # Size is (n+1, n) to have a row for each recursion depth `pos` (1 to n).
+| 140:         neighbors_workspace = np.empty((n + 1, n), dtype=np.int32)
+| 141:         degrees_workspace = np.empty((n + 1, n), dtype=np.int32)
+| 142:         
+| 143:         if _find_hamiltonian_cycle_jit_heuristic(
+| 144:             n, adj_matrix, degrees.astype(np.int32), path, 1, visited, 
+| 145:             neighbors_workspace, degrees_workspace
+| 146:         ):
+| 147:             return path.tolist()
+| 148:         
+| 149:         return None</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#D2691E; font-weight:600;">0.90</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My last attempt, while correct, was slower than a previous simpler version. This indicates that the overhead from my &quot;optimizations&quot; outweighed their benefits. My analysis points to a specific culprit: the repeated creation of a `scipy.sparse.csr_matrix` within the binary search loop. While `scipy.sparse.csgraph.connected_components` is fast, the cost of converting the dense adjacency matrix to a sparse format at each step proved to be a significant bottleneck.<br><br>To fix this, I am creating a hybrid solution that combines the best elements of my previous successful attempts:<br><br>1.  **Fast, JIT-Compiled Connectivity Check**: I am reverting the connectivity check to my previous high-performance implementation. Instead of using SciPy, I am reintroducing the Numba-jitted Breadth-First Search (`_is_connected`) that operates directly on the dense `numpy` adjacency matrix. This eliminates the expensive matrix conversion step entirely.<br><br>2.  **Intelligent and Correct Heuristic Search**: I am retaining the powerful and correct heuristic-guided backtracking search (`_find_hamiltonian_cycle_jit_heuristic`). This search, which explores more constrained nodes first, is crucial for pruning the search tree on difficult problem instances. The &quot;workspace&quot; memory allocation strategy remains, as it correctly prevents the data corruption bugs that plagued earlier attempts.<br><br>This approach is the best of both worlds. It uses a fast, low-overhead pruning step (the Numba BFS) and a sophisticated, intelligent search algorithm (the corrected heuristic). By removing the SciPy overhead, the true performance benefit of the heuristic search will be unlocked, leading to a solution that is both correct and significantly faster than all previous versions.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-150
+---
+import numpy as np
+from typing import Any, List, Optional
+import numba
+
+# Numba-jitted helper functions are defined at the top level for optimal performance.
+
+@numba.jit(nopython=True)
+def _find_hamiltonian_cycle_jit_heuristic(
+    n: int, 
+    adj_matrix: np.ndarray, 
+    degrees: np.ndarray, 
+    path: np.ndarray, 
+    pos: int, 
+    visited: np.ndarray, 
+    neighbors_workspace: np.ndarray, 
+    degrees_workspace: np.ndarray
+) -&gt; bool:
+    &quot;&quot;&quot;
+    A recursive utility to find a Hamiltonian cycle, optimized with Numba.
+    It performs a backtracking search, guided by a corrected Warnsdorff&#x27;s-like
+    heuristic: it sorts only the *unvisited* neighbors by their degree.
+    This version uses a pre-allocated workspace to avoid both repeated allocations
+    and data corruption bugs.
+    &quot;&quot;&quot;
+    if pos == n:
+        return adj_matrix[path[n - 1], path[0]]
+
+    last_vertex = path[pos - 1]
+    valid_neighbors = neighbors_workspace[pos]
+    valid_neighbor_degrees = degrees_workspace[pos]
+
+    num_valid_neighbors = 0
+    for v_candidate in range(n):
+        if adj_matrix[last_vertex, v_candidate] and not visited[v_candidate]:
+            valid_neighbors[num_valid_neighbors] = v_candidate
+            valid_neighbor_degrees[num_valid_neighbors] = degrees[v_candidate]
+            num_valid_neighbors += 1
+    
+    if num_valid_neighbors == 0:
+        return False
+
+    for i in range(1, num_valid_neighbors):
+        key_deg = valid_neighbor_degrees[i]
+        key_v = valid_neighbors[i]
+        j = i - 1
+        while j &gt;= 0 and valid_neighbor_degrees[j] &gt; key_deg:
+            valid_neighbor_degrees[j + 1] = valid_neighbor_degrees[j]
+            valid_neighbors[j + 1] = valid_neighbors[j]
+            j -= 1
+        valid_neighbor_degrees[j + 1] = key_deg
+        valid_neighbors[j + 1] = key_v
+
+    for i in range(num_valid_neighbors):
+        v = valid_neighbors[i]
+        path[pos] = v
+        visited[v] = True
+
+        if _find_hamiltonian_cycle_jit_heuristic(
+            n, adj_matrix, degrees, path, pos + 1, visited, 
+            neighbors_workspace, degrees_workspace
+        ):
+            return True
+
+        visited[v] = False
+
+    return False
+
+@numba.jit(nopython=True)
+def _is_connected(n: int, adj_matrix: np.ndarray) -&gt; bool:
+    &quot;&quot;&quot;
+    Checks if the graph is connected using BFS on a dense adjacency matrix.
+    This Numba-jitted version is faster than converting to SciPy sparse matrix.
+    &quot;&quot;&quot;
+    if n &lt;= 1:
+        return True
+    
+    q = np.zeros(n, dtype=np.int32)
+    q[0] = 0
+    head, tail = 0, 1
+    
+    visited = np.zeros(n, dtype=np.bool_)
+    visited[0] = True
+    count = 1
+    
+    while head &lt; tail:
+        u = q[head]
+        head += 1
+        
+        for v in range(n):
+            if adj_matrix[u, v] and not visited[v]:
+                visited[v] = True
+                q[tail] = v
+                tail += 1
+                count += 1
+    
+    return count == n
+
+
+class Solver:
+    def solve(self, problem: List[List[float]], **kwargs: Any) -&gt; List[int]:
+        &quot;&quot;&quot;
+        Solves the Bottleneck Traveling Salesman Problem using a combination of
+        binary search on edge weights and a Numba-accelerated, heuristic-guided
+        backtracking search.
+        &quot;&quot;&quot;
+        n = len(problem)
+        
+        if n == 0:
+            return []
+        if n &lt;= 2:
+            return list(range(n)) + [0]
+
+        problem_np = np.array(problem, dtype=np.float64)
+
+        iu = np.triu_indices(n, k=1)
+        unique_weights = np.unique(problem_np[iu])
+
+        low, high = 0, len(unique_weights) - 1
+        optimal_tour = []
+        
+        while low &lt;= high:
+            mid_idx = (low + high) // 2
+            w_max = unique_weights[mid_idx]
+            
+            path = self._check_for_hamiltonian_cycle(n, problem_np, w_max)
+            
+            if path:
+                optimal_tour = path
+                high = mid_idx - 1
+            else:
+                low = mid_idx + 1
+        
+        return optimal_tour + [0] if optimal_tour else []
+
+    def _check_for_hamiltonian_cycle(self, n: int, problem_np: np.ndarray, w_max: float) -&gt; Optional[List[int]]:
+        &quot;&quot;&quot;
+        Checks if a Hamiltonian cycle exists for a given max weight w_max.
+        Returns the path if found, otherwise None.
+        &quot;&quot;&quot;
+        adj_matrix = problem_np &lt;= w_max
+        
+        degrees = np.sum(adj_matrix, axis=1)
+        if np.any(degrees &lt; 2):
+            return None
+            
+        if not _is_connected(n, adj_matrix):
+            return None
+
+        path = np.full(n, -1, dtype=np.int32)
+        visited = np.zeros(n, dtype=np.bool_)
+        path[0] = 0
+        visited[0] = True
+        
+        neighbors_workspace = np.empty((n + 1, n), dtype=np.int32)
+        degrees_workspace = np.empty((n + 1, n), dtype=np.int32)
+        
+        if _find_hamiltonian_cycle_jit_heuristic(
+            n, adj_matrix, degrees.astype(np.int32), path, 1, visited, 
+            neighbors_workspace, degrees_workspace
+        ):
+            return path.tolist()
+        
+        return None
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

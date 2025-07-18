@@ -1,0 +1,1942 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – toeplitz_solver – Claude Opus 4</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">toeplitz_solver</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="toeplitz_solver_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #D2691E; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (1.00x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="toeplitz_solver_o4-mini.html">
+                        <div class="run-score" style="background-color: #D2691E; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (1.00x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="toeplitz_solver_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #D2691E; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (1.00x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="toeplitz_solver_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #D2691E; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (1.00x)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">toeplitz_solver</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Claude Opus 4</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #D2691E; font-weight: 600;">0.996x</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">7</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">0</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">100.0 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+Toeplitz solver task:
+
+Given a square Toeplitz matrix T and a vector b, the task is to solve the linear system Tx = b. 
+This task uses the Levinson-Durbin algorithm (scipy.linalg.solve_toeplitz) that is faster than normal linear system solve by taking advantage of the Toeplitz structure.
+
+Input:
+A dictionary with keys:
+  - &quot;c&quot;: A list of n numbers representing the first column of the Toeplitz matrix.
+  - &quot;r&quot;: A list of n numbers representing the first row of the Toepltiz matrix.
+  - &quot;b&quot;: A list of n numbers representing the right-hand side vector b.
+
+Example input:
+{
+    &quot;c&quot;: [1., 2., 9., 4.],
+    &quot;r&quot;: [1., -2., -1., -5.],
+    &quot;b&quot;: [2., 3., 6., 7.]
+}
+
+Output:
+A list of n numbers representing the solution vector x that satisfies T x = b.
+
+Example output:
+[0.43478261, 0.73913043, -0.43478261, -0.52173913]
+
+Category: matrix_operations
+
+
+Below is the reference implementation. Your function should run much quicker.
+
+import numpy as np
+from scipy.linalg import matmul_toeplitz, solve_toeplitz
+
+| 01: def solve(self, problem: dict[str, list[float]]) -&gt; list[float]:
+| 02:     &quot;&quot;&quot;
+| 03:     Solve the linear system Tx = b using scipy solve_Toeplitz.
+| 04: 
+| 05:     :param problem: A dictionary representing the Toeplitz system problem.
+| 06:     :return: A list of numbers representing the solution vector x.
+| 07:     
+| 08: 
+| 09:     NOTE: Your solution must pass validation by:
+| 10:     1. Returning correctly formatted output
+| 11:     2. Having no NaN or infinity values
+| 12:     3. Matching expected results within numerical tolerance
+| 13:     &quot;&quot;&quot;
+| 14:     c = np.array(problem[&quot;c&quot;])
+| 15:     r = np.array(problem[&quot;r&quot;])
+| 16:     b = np.array(problem[&quot;b&quot;])
+| 17: 
+| 18:     x = solve_toeplitz((c, r), b)
+| 19:     return x.tolist()
+| 20: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+import numpy as np
+from scipy.linalg import matmul_toeplitz, solve_toeplitz
+
+| 01: def is_solution( problem: dict[str, list[float]], solution: list[float]) -&gt; bool:
+| 02:     &quot;&quot;&quot;
+| 03: 
+| 04:     Check if the provided solution is valid and optimal for the linear system Tx = b.
+| 05: 
+| 06:     This method checks:
+| 07:       - The solution vector x has the correct dimension.
+| 08:       - All outputs contain only finite values (no infinities or NaNs).
+| 09:       - The equation Tx = b is satisfied within a small tolerance.
+| 10: 
+| 11:     For linear systems with a unique solution, there is only one optimal solution.
+| 12: 
+| 13:     :param problem: A dictionary containing the problem with keys &quot;c&quot;, &quot;r&quot;, and &quot;b&quot; as input vectors.
+| 14:     :param solution: A list of floats representing the proposed solution x.
+| 15:     :return: True if solution is valid and optimal, False otherwise.
+| 16:     &quot;&quot;&quot;
+| 17: 
+| 18:     c = np.array(problem[&quot;c&quot;])
+| 19:     r = np.array(problem[&quot;r&quot;])
+| 20:     b = np.array(problem[&quot;b&quot;])
+| 21: 
+| 22:     try:
+| 23:         x = np.array(solution)
+| 24:     except Exception as e:
+| 25:         logging.error(f&quot;Error converting solution list to numpy arrays: {e}&quot;)
+| 26:         return False
+| 27: 
+| 28:     # Check if the solution has the correct dimension
+| 29:     if x.shape != b.shape:
+| 30:         return False
+| 31: 
+| 32:     if not np.all(np.isfinite(x)):
+| 33:         logging.error(&quot;Solution contains non-finite values (inf or NaN).&quot;)
+| 34:         return False
+| 35: 
+| 36:     # Check if Tx = b within tolerance.
+| 37: 
+| 38:     Tx = matmul_toeplitz((c, r), x)
+| 39: 
+| 40:     if not np.allclose(Tx, b, atol=1e-6):
+| 41:         logging.error(&quot;Solution is not optimal within tolerance.&quot;)
+| 42:         return False
+| 43: 
+| 44:     return True
+| 45:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>Toeplitz solver task:
+
+Given a square Toeplitz matrix T and a vector b, the task is to solve the linear system Tx = b. 
+This task uses the Levinson-Durbin algorithm (scipy.linalg.solve_toeplitz) that is faster than normal linear system solve by taking advantage of the Toeplitz structure.
+
+Input:
+A dictionary with keys:
+  - &quot;c&quot;: A list of n numbers representing the first column of the Toeplitz matrix.
+  - &quot;r&quot;: A list of n numbers representing the first row of the Toepltiz matrix.
+  - &quot;b&quot;: A list of n numbers representing the right-hand side vector b.
+
+Example input:
+{
+    &quot;c&quot;: [1., 2., 9., 4.],
+    &quot;r&quot;: [1., -2., -1., -5.],
+    &quot;b&quot;: [2., 3., 6., 7.]
+}
+
+Output:
+A list of n numbers representing the solution vector x that satisfies T x = b.
+
+Example output:
+[0.43478261, 0.73913043, -0.43478261, -0.52173913]
+
+Category: matrix_operations</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">import numpy as np
+from scipy.linalg import matmul_toeplitz, solve_toeplitz
+
+ def solve(self, problem: dict[str, list[float]]) -&gt; list[float]:
+     &quot;&quot;&quot;
+     Solve the linear system Tx = b using scipy solve_Toeplitz.
+ 
+     :param problem: A dictionary representing the Toeplitz system problem.
+     :return: A list of numbers representing the solution vector x.
+     
+ 
+     NOTE: Your solution must pass validation by:
+     1. Returning correctly formatted output
+     2. Having no NaN or infinity values
+     3. Matching expected results within numerical tolerance
+     &quot;&quot;&quot;
+     c = np.array(problem[&quot;c&quot;])
+     r = np.array(problem[&quot;r&quot;])
+     b = np.array(problem[&quot;b&quot;])
+ 
+     x = solve_toeplitz((c, r), b)
+     return x.tolist()</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">import numpy as np
+from scipy.linalg import solve_toeplitz
+
+class Solver:
+    def solve(self, problem: dict[str, list[float]]) -&gt; list[float]:
+        &quot;&quot;&quot;Solve the linear system Tx = b using scipy solve_toeplitz.&quot;&quot;&quot;
+        c = np.array(problem[&quot;c&quot;])
+        r = np.array(problem[&quot;r&quot;])
+        b = np.array(problem[&quot;b&quot;])
+        
+        x = solve_toeplitz((c, r), b)
+        return x.tolist()</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/toeplitz_solver_claude-opus-4-20250514_20250626_200212_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/toeplitz_solver_claude-opus-4-20250514_20250626_200212_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I need to solve Toeplitz linear systems faster than scipy&#x27;s solve_toeplitz. Let me start by creating a basic solver and then optimize it.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 0-0
+---
+import numpy as np
+from scipy.linalg import solve_toeplitz
+
+class Solver:
+    def solve(self, problem: dict[str, list[float]]) -&gt; list[float]:
+        &quot;&quot;&quot;Solve the linear system Tx = b using scipy solve_toeplitz.&quot;&quot;&quot;
+        c = np.array(problem[&quot;c&quot;])
+        r = np.array(problem[&quot;r&quot;])
+        b = np.array(problem[&quot;b&quot;])
+        
+        x = solve_toeplitz((c, r), b)
+        return x.tolist()
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.0806. You have $0.9194 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-12 out of 12)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from scipy.linalg import solve_toeplitz
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: dict[str, list[float]]) -&gt; list[float]:
+&gt; 06:         &quot;&quot;&quot;Solve the linear system Tx = b using scipy solve_toeplitz.&quot;&quot;&quot;
+&gt; 07:         c = np.array(problem[&quot;c&quot;])
+&gt; 08:         r = np.array(problem[&quot;r&quot;])
+&gt; 09:         b = np.array(problem[&quot;b&quot;])
+&gt; 10:         
+&gt; 11:         x = solve_toeplitz((c, r), b)
+&gt; 12:         return x.tolist()</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#D2691E; font-weight:600;">1.00</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I need to optimize the Toeplitz solver to be faster than scipy&#x27;s solve_toeplitz. Let me implement a custom Levinson algorithm using Numba for JIT compilation, which should give significant speedup.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-12
+---
+import numpy as np
+from numba import njit, prange
+
+@njit(cache=True)
+def levinson_numba(c, r, b):
+    &quot;&quot;&quot;Fast Levinson algorithm implementation using Numba.&quot;&quot;&quot;
+    n = len(c)
+    x = np.zeros(n, dtype=np.float64)
+    y = np.zeros(n, dtype=np.float64)
+    
+    # Initialize
+    x[0] = b[0] / c[0]
+    if n == 1:
+        return x
+    
+    # Forward substitution
+    alpha = c[0]
+    beta = r[1]
+    y[0] = -r[1] / c[0]
+    x[1] = (b[1] - beta * x[0]) / (alpha + beta * y[0])
+    
+    for k in range(1, n-1):
+        # Update alpha and beta
+        alpha_new = alpha + beta * np.conj(y[k-1])
+        beta_new = 0.0
+        for j in range(k+1):
+            beta_new += r[k+1-j] * y[j]
+        
+        # Update y
+        y_new = np.zeros(k+1, dtype=np.float64)
+        y_new[0] = -beta_new / alpha_new
+        for j in range(k):
+            y_new[j+1] = (y[j] - beta_new * np.conj(y[k-1-j])) / alpha_new
+        
+        # Copy new y values
+        for j in range(k+1):
+            y[j] = y_new[j]
+        
+        # Update x
+        sigma = 0.0
+        for j in range(k+1):
+            sigma += c[k+1-j] * x[j]
+        x[k+1] = (b[k+1] - sigma) / alpha_new
+        
+        # Update for next iteration
+        alpha = alpha_new
+        beta = beta_new
+    
+    return x
+
+class Solver:
+    def solve(self, problem: dict[str, list[float]]) -&gt; list[float]:
+        &quot;&quot;&quot;Solve the linear system Tx = b using custom Levinson algorithm.&quot;&quot;&quot;
+        c = np.asarray(problem[&quot;c&quot;], dtype=np.float64)
+        r = np.asarray(problem[&quot;r&quot;], dtype=np.float64)
+        b = np.asarray(problem[&quot;b&quot;], dtype=np.float64)
+        
+        # Ensure c[0] == r[0]
+        if c[0] != r[0]:
+            raise ValueError(&quot;c[0] must equal r[0] for a valid Toeplitz matrix&quot;)
+        
+        x = levinson_numba(c, r, b)
+        return x.tolist()
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.2092. You have $0.7908 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 63)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from numba import njit, prange
+&gt; 03: 
+&gt; 04: @njit(cache=True)
+&gt; 05: def levinson_numba(c, r, b):
+&gt; 06:     &quot;&quot;&quot;Fast Levinson algorithm implementation using Numba.&quot;&quot;&quot;
+&gt; 07:     n = len(c)
+&gt; 08:     x = np.zeros(n, dtype=np.float64)
+&gt; 09:     y = np.zeros(n, dtype=np.float64)
+&gt; 10:     
+&gt; 11:     # Initialize
+&gt; 12:     x[0] = b[0] / c[0]
+&gt; 13:     if n == 1:
+&gt; 14:         return x
+&gt; 15:     
+&gt; 16:     # Forward substitution
+&gt; 17:     alpha = c[0]
+&gt; 18:     beta = r[1]
+&gt; 19:     y[0] = -r[1] / c[0]
+&gt; 20:     x[1] = (b[1] - beta * x[0]) / (alpha + beta * y[0])
+&gt; 21:     
+&gt; 22:     for k in range(1, n-1):
+&gt; 23:         # Update alpha and beta
+&gt; 24:         alpha_new = alpha + beta * np.conj(y[k-1])
+&gt; 25:         beta_new = 0.0
+&gt; 26:         for j in range(k+1):
+&gt; 27:             beta_new += r[k+1-j] * y[j]
+&gt; 28:         
+&gt; 29:         # Update y
+&gt; 30:         y_new = np.zeros(k+1, dtype=np.float64)
+&gt; 31:         y_new[0] = -beta_new / alpha_new
+&gt; 32:         for j in range(k):
+&gt; 33:             y_new[j+1] = (y[j] - beta_new * np.conj(y[k-1-j])) / alpha_new
+&gt; 34:         
+&gt; 35:         # Copy new y values
+&gt; 36:         for j in range(k+1):
+&gt; 37:             y[j] = y_new[j]
+&gt; 38:         
+&gt; 39:         # Update x
+&gt; 40:         sigma = 0.0
+&gt; 41:         for j in range(k+1):
+&gt; 42:             sigma += c[k+1-j] * x[j]
+&gt; 43:         x[k+1] = (b[k+1] - sigma) / alpha_new
+&gt; 44:         
+&gt; 45:         # Update for next iteration
+&gt; 46:         alpha = alpha_new
+&gt; 47:         beta = beta_new
+&gt; 48:     
+&gt; 49:     return x
+&gt; 50: 
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 100%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br><pre><code class="language-python">  75:         :return: True if solution is valid and optimal, False otherwise.
+  76:         &quot;&quot;&quot;
+  77: 
+  78:         c = np.array(problem[&quot;c&quot;])
+  79:         r = np.array(problem[&quot;r&quot;])
+  80:         b = np.array(problem[&quot;b&quot;])
+  81: 
+  82:         try:
+  83:             x = np.array(solution)
+  84:         except Exception as e:
+  85:             logging.error(f&quot;Error converting solution list to numpy arrays: {e}&quot;)
+  86:             return False
+  87: 
+  88:         # Check if the solution has the correct dimension
+  89:         if x.shape != b.shape:
+&gt; 90:             return False</code></pre><br><br>Invalid Example #2:<br><pre><code class="language-python">  75:         :return: True if solution is valid and optimal, False otherwise.
+  76:         &quot;&quot;&quot;
+  77: 
+  78:         c = np.array(problem[&quot;c&quot;])
+  79:         r = np.array(problem[&quot;r&quot;])
+  80:         b = np.array(problem[&quot;b&quot;])
+  81: 
+  82:         try:
+  83:             x = np.array(solution)
+  84:         except Exception as e:
+  85:             logging.error(f&quot;Error converting solution list to numpy arrays: {e}&quot;)
+  86:             return False
+  87: 
+  88:         # Check if the solution has the correct dimension
+  89:         if x.shape != b.shape:
+&gt; 90:             return False</code></pre><br><br>Invalid Example #3:<br><pre><code class="language-python">  75:         :return: True if solution is valid and optimal, False otherwise.
+  76:         &quot;&quot;&quot;
+  77: 
+  78:         c = np.array(problem[&quot;c&quot;])
+  79:         r = np.array(problem[&quot;r&quot;])
+  80:         b = np.array(problem[&quot;b&quot;])
+  81: 
+  82:         try:
+  83:             x = np.array(solution)
+  84:         except Exception as e:
+  85:             logging.error(f&quot;Error converting solution list to numpy arrays: {e}&quot;)
+  86:             return False
+  87: 
+  88:         # Check if the solution has the correct dimension
+  89:         if x.shape != b.shape:
+&gt; 90:             return False</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge eval_input">🧪 Input Eval</span>
+            </div>
+            <div class="message-content">
+                My custom Levinson algorithm has bugs. Let me test with a simple example to debug it.<br><br><pre><code class="language-python">eval_input {&quot;c&quot;: [1., 2., 9., 4.], &quot;r&quot;: [1., -2., -1., -5.], &quot;b&quot;: [2., 3., 6., 7.]}</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.3084. You have $0.6916 remaining.<br><br>Starting evaluation...<br><br>Output: [2.0, -2.3333333333333335, 2.444444444444444, 15.11111111111111]<br>Runtime: 0.063 ms<br>Solution is invalid.<br><br>Code Context:<br><br><pre><code class="language-python">  75:         :return: True if solution is valid and optimal, False otherwise.
+  76:         &quot;&quot;&quot;
+  77: 
+  78:         c = np.array(problem[&quot;c&quot;])
+  79:         r = np.array(problem[&quot;r&quot;])
+  80:         b = np.array(problem[&quot;b&quot;])
+  81: 
+  82:         try:
+  83:             x = np.array(solution)
+  84:         except Exception as e:
+  85:             logging.error(f&quot;Error converting solution list to numpy arrays: {e}&quot;)
+  86:             return False
+  87: 
+  88:         # Check if the solution has the correct dimension
+  89:         if x.shape != b.shape:
+&gt; 90:             return False</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge other"> Invalid Command</span>
+            </div>
+            <div class="message-content">
+                Let me check what the reference solver produces for this example to understand the expected output.<br><br><pre><code class="language-python">reference {&quot;c&quot;: [1., 2., 9., 4.], &quot;r&quot;: [1., -2., -1., -5.], &quot;b&quot;: [2., 3., 6., 7.]}</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.4064. You have $0.5936 remaining.<br><br>Reference Output: [0.4347826086956523, 0.7391304347826086, -0.4347826086956523, -0.5217391304347826]<br>Runtime: 0.05161 ms
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My custom Levinson algorithm has bugs. Let me implement a cleaner version. Instead of trying to fix the complex algorithm, let me use JAX which can JIT compile and potentially be faster than scipy.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-63
+---
+import numpy as np
+import jax
+import jax.numpy as jnp
+from jax import jit
+
+@jit
+def levinson_jax(c, r, b):
+    &quot;&quot;&quot;Levinson algorithm using JAX for JIT compilation.&quot;&quot;&quot;
+    n = len(c)
+    
+    # Initialize
+    x = jnp.zeros(n)
+    x = x.at[0].set(b[0] / c[0])
+    
+    if n == 1:
+        return x
+    
+    # Forward and backward vectors
+    f = jnp.zeros(n)
+    g = jnp.zeros(n) 
+    f = f.at[0].set(1.0 / c[0])
+    g = g.at[0].set(1.0 / c[0])
+    
+    for k in range(1, n):
+        # Calculate epsilon and gamma
+        epsilon = r[k]
+        gamma = c[k]
+        
+        for j in range(k):
+            epsilon += r[k-j] * g[j]
+            gamma += c[k-j] * f[j]
+        
+        # Update f and g
+        f_new = jnp.zeros(k+1)
+        g_new = jnp.zeros(k+1)
+        
+        f_new = f_new.at[0].set(-epsilon / c[0])
+        g_new = g_new.at[k].set(-gamma / c[0])
+        
+        for j in range(k):
+            f_new = f_new.at[j+1].add(f[j] - epsilon * g[k-1-j])
+            g_new = g_new.at[j].add(g[j] - gamma * f[k-1-j])
+        
+        denom = 1.0 - epsilon * gamma
+        f = f_new / denom
+        g = g_new / denom
+        
+        # Update x
+        sigma = b[k]
+        for j in range(k):
+            sigma -= c[k-j] * x[j]
+        
+        for j in range(k):
+            x = x.at[j].add(sigma * g[k-1-j])
+        x = x.at[k].set(sigma * g[k])
+    
+    return x
+
+class Solver:
+    def __init__(self):
+        # Warm up JAX compilation
+        dummy_c = jnp.array([1.0, 2.0, 3.0])
+        dummy_r = jnp.array([1.0, 4.0, 5.0])
+        dummy_b = jnp.array([1.0, 1.0, 1.0])
+        _ = levinson_jax(dummy_c, dummy_r, dummy_b)
+    
+    def solve(self, problem: dict[str, list[float]]) -&gt; list[float]:
+        &quot;&quot;&quot;Solve the linear system Tx = b using JAX-compiled Levinson algorithm.&quot;&quot;&quot;
+        c = jnp.asarray(problem[&quot;c&quot;], dtype=jnp.float64)
+        r = jnp.asarray(problem[&quot;r&quot;], dtype=jnp.float64)
+        b = jnp.asarray(problem[&quot;b&quot;], dtype=jnp.float64)
+        
+        # Ensure c[0] == r[0]
+        if c[0] != r[0]:
+            raise ValueError(&quot;c[0] must equal r[0] for a valid Toeplitz matrix&quot;)
+        
+        x = levinson_jax(c, r, b)
+        return x.tolist()
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.5872. You have $0.4128 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 78)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: import jax
+&gt; 03: import jax.numpy as jnp
+&gt; 04: from jax import jit
+&gt; 05: 
+&gt; 06: @jit
+&gt; 07: def levinson_jax(c, r, b):
+&gt; 08:     &quot;&quot;&quot;Levinson algorithm using JAX for JIT compilation.&quot;&quot;&quot;
+&gt; 09:     n = len(c)
+&gt; 10:     
+&gt; 11:     # Initialize
+&gt; 12:     x = jnp.zeros(n)
+&gt; 13:     x = x.at[0].set(b[0] / c[0])
+&gt; 14:     
+&gt; 15:     if n == 1:
+&gt; 16:         return x
+&gt; 17:     
+&gt; 18:     # Forward and backward vectors
+&gt; 19:     f = jnp.zeros(n)
+&gt; 20:     g = jnp.zeros(n) 
+&gt; 21:     f = f.at[0].set(1.0 / c[0])
+&gt; 22:     g = g.at[0].set(1.0 / c[0])
+&gt; 23:     
+&gt; 24:     for k in range(1, n):
+&gt; 25:         # Calculate epsilon and gamma
+&gt; 26:         epsilon = r[k]
+&gt; 27:         gamma = c[k]
+&gt; 28:         
+&gt; 29:         for j in range(k):
+&gt; 30:             epsilon += r[k-j] * g[j]
+&gt; 31:             gamma += c[k-j] * f[j]
+&gt; 32:         
+&gt; 33:         # Update f and g
+&gt; 34:         f_new = jnp.zeros(k+1)
+&gt; 35:         g_new = jnp.zeros(k+1)
+&gt; 36:         
+&gt; 37:         f_new = f_new.at[0].set(-epsilon / c[0])
+&gt; 38:         g_new = g_new.at[k].set(-gamma / c[0])
+&gt; 39:         
+&gt; 40:         for j in range(k):
+&gt; 41:             f_new = f_new.at[j+1].add(f[j] - epsilon * g[k-1-j])
+&gt; 42:             g_new = g_new.at[j].add(g[j] - gamma * f[k-1-j])
+&gt; 43:         
+&gt; 44:         denom = 1.0 - epsilon * gamma
+&gt; 45:         f = f_new / denom
+&gt; 46:         g = g_new / denom
+&gt; 47:         
+&gt; 48:         # Update x
+&gt; 49:         sigma = b[k]
+&gt; 50:         for j in range(k):
+...</code></pre><br><br>Non-retryable error: local variable &#x27;last_result&#x27; referenced before assignment
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge eval_input">🧪 Input Eval</span>
+            </div>
+            <div class="message-content">
+                Let me test the current implementation to see if it works.<br><br><pre><code class="language-python">eval_input {&quot;c&quot;: [1., 2., 9., 4.], &quot;r&quot;: [1., -2., -1., -5.], &quot;b&quot;: [2., 3., 6., 7.]}</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 6 messages and have used up $0.7121. You have $0.2879 remaining.<br><br>Starting evaluation...<br><br>Output: [-20.484220504760742, 1.6067063808441162, 21.217222213745117, -54.97296905517578]<br>Runtime: 0.893043 ms<br>Solution is invalid.<br><br>Code Context:<br><br><pre><code class="language-python">  87: 
+  88:         # Check if the solution has the correct dimension
+  89:         if x.shape != b.shape:
+  90:             return False
+  91: 
+  92:         if not np.all(np.isfinite(x)):
+  93:             logging.error(&quot;Solution contains non-finite values (inf or NaN).&quot;)
+  94:             return False
+  95: 
+  96:         # Check if Tx = b within tolerance.
+  97: 
+  98:         Tx = matmul_toeplitz((c, r), x)
+  99: 
+  100:         if not np.allclose(Tx, b, atol=1e-6):
+  101:             logging.error(&quot;Solution is not optimal within tolerance.&quot;)
+&gt; 102:             return False</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                My implementations have bugs. Let me implement a correct Levinson-Durbin algorithm first, then optimize it. I&#x27;ll use a simpler approach with Numba.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-78
+---
+import numpy as np
+from numba import njit
+
+@njit(cache=True)
+def levinson_durbin(c, r, b):
+    &quot;&quot;&quot;
+    Solve Toeplitz system using Levinson-Durbin algorithm.
+    
+    Parameters:
+    c: first column of Toeplitz matrix
+    r: first row of Toeplitz matrix
+    b: right-hand side vector
+    &quot;&quot;&quot;
+    n = len(c)
+    x = np.zeros(n, dtype=np.float64)
+    
+    # Check if c[0] == r[0]
+    if abs(c[0] - r[0]) &gt; 1e-10:
+        return x  # Return zeros if invalid
+    
+    # Initialize
+    if abs(c[0]) &lt; 1e-10:
+        return x  # Return zeros if singular
+    
+    # Forward and backward vectors
+    f = np.zeros(n, dtype=np.float64)
+    b_vec = np.zeros(n, dtype=np.float64)
+    
+    f[0] = 1.0 / c[0]
+    b_vec[0] = 1.0 / c[0]
+    x[0] = b[0] / c[0]
+    
+    for k in range(1, n):
+        # Compute inner products
+        ef = 0.0
+        eb = 0.0
+        ex = 0.0
+        
+        for j in range(k):
+            ef += r[k-j] * f[j]
+            eb += c[k-j] * b_vec[j]
+            ex += c[k-j] * x[j]
+        
+        # Update denominators
+        denom = 1.0 - ef * eb
+        if abs(denom) &lt; 1e-10:
+            return x  # Return current solution if singular
+        
+        # Update forward and backward vectors
+        f_new = np.zeros(k+1, dtype=np.float64)
+        b_new = np.zeros(k+1, dtype=np.float64)
+        
+        for j in range(k):
+            f_new[j] = f[j] - ef * b_vec[k-1-j]
+            b_new[j+1] = b_vec[j] - eb * f[k-1-j]
+        
+        f_new[k] = -ef * b_vec[0]
+        b_new[0] = -eb * f[k-1]
+        
+        # Scale by denominator
+        for j in range(k+1):
+            f[j] = f_new[j] / denom
+            b_vec[j] = b_new[j] / denom
+        
+        # Update solution
+        x_new = (b[k] - ex) / denom
+        for j in range(k):
+            x[j] += x_new * b_vec[k-j]
+        x[k] = x_new * b_vec[0]
+    
+    return x
+
+class Solver:
+    def solve(self, problem: dict[str, list[float]]) -&gt; list[float]:
+        &quot;&quot;&quot;Solve the linear system Tx = b using Levinson-Durbin algorithm.&quot;&quot;&quot;
+        c = np.asarray(problem[&quot;c&quot;], dtype=np.float64)
+        r = np.asarray(problem[&quot;r&quot;], dtype=np.float64)
+        b = np.asarray(problem[&quot;b&quot;], dtype=np.float64)
+        
+        x = levinson_durbin(c, r, b)
+        return x.tolist()
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 7 messages and have used up $0.9095. You have $0.0905 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 81)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from numba import njit
+&gt; 03: 
+&gt; 04: @njit(cache=True)
+&gt; 05: def levinson_durbin(c, r, b):
+&gt; 06:     &quot;&quot;&quot;
+&gt; 07:     Solve Toeplitz system using Levinson-Durbin algorithm.
+&gt; 08:     
+&gt; 09:     Parameters:
+&gt; 10:     c: first column of Toeplitz matrix
+&gt; 11:     r: first row of Toeplitz matrix
+&gt; 12:     b: right-hand side vector
+&gt; 13:     &quot;&quot;&quot;
+&gt; 14:     n = len(c)
+&gt; 15:     x = np.zeros(n, dtype=np.float64)
+&gt; 16:     
+&gt; 17:     # Check if c[0] == r[0]
+&gt; 18:     if abs(c[0] - r[0]) &gt; 1e-10:
+&gt; 19:         return x  # Return zeros if invalid
+&gt; 20:     
+&gt; 21:     # Initialize
+&gt; 22:     if abs(c[0]) &lt; 1e-10:
+&gt; 23:         return x  # Return zeros if singular
+&gt; 24:     
+&gt; 25:     # Forward and backward vectors
+&gt; 26:     f = np.zeros(n, dtype=np.float64)
+&gt; 27:     b_vec = np.zeros(n, dtype=np.float64)
+&gt; 28:     
+&gt; 29:     f[0] = 1.0 / c[0]
+&gt; 30:     b_vec[0] = 1.0 / c[0]
+&gt; 31:     x[0] = b[0] / c[0]
+&gt; 32:     
+&gt; 33:     for k in range(1, n):
+&gt; 34:         # Compute inner products
+&gt; 35:         ef = 0.0
+&gt; 36:         eb = 0.0
+&gt; 37:         ex = 0.0
+&gt; 38:         
+&gt; 39:         for j in range(k):
+&gt; 40:             ef += r[k-j] * f[j]
+&gt; 41:             eb += c[k-j] * b_vec[j]
+&gt; 42:             ex += c[k-j] * x[j]
+&gt; 43:         
+&gt; 44:         # Update denominators
+&gt; 45:         denom = 1.0 - ef * eb
+&gt; 46:         if abs(denom) &lt; 1e-10:
+&gt; 47:             return x  # Return current solution if singular
+&gt; 48:         
+&gt; 49:         # Update forward and backward vectors
+&gt; 50:         f_new = np.zeros(k+1, dtype=np.float64)
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 0%<br>  Invalid Solutions: 100%<br>  Timeouts: 0%<br><br><br>Snapshot not saved - invalid solutions present<br><br>Invalid Example #1:<br><pre><code class="language-python">  75:         :return: True if solution is valid and optimal, False otherwise.
+  76:         &quot;&quot;&quot;
+  77: 
+  78:         c = np.array(problem[&quot;c&quot;])
+  79:         r = np.array(problem[&quot;r&quot;])
+  80:         b = np.array(problem[&quot;b&quot;])
+  81: 
+  82:         try:
+  83:             x = np.array(solution)
+  84:         except Exception as e:
+  85:             logging.error(f&quot;Error converting solution list to numpy arrays: {e}&quot;)
+  86:             return False
+  87: 
+  88:         # Check if the solution has the correct dimension
+  89:         if x.shape != b.shape:
+&gt; 90:             return False</code></pre><br><br>Invalid Example #2:<br><pre><code class="language-python">  75:         :return: True if solution is valid and optimal, False otherwise.
+  76:         &quot;&quot;&quot;
+  77: 
+  78:         c = np.array(problem[&quot;c&quot;])
+  79:         r = np.array(problem[&quot;r&quot;])
+  80:         b = np.array(problem[&quot;b&quot;])
+  81: 
+  82:         try:
+  83:             x = np.array(solution)
+  84:         except Exception as e:
+  85:             logging.error(f&quot;Error converting solution list to numpy arrays: {e}&quot;)
+  86:             return False
+  87: 
+  88:         # Check if the solution has the correct dimension
+  89:         if x.shape != b.shape:
+&gt; 90:             return False</code></pre><br><br>Invalid Example #3:<br><pre><code class="language-python">  75:         :return: True if solution is valid and optimal, False otherwise.
+  76:         &quot;&quot;&quot;
+  77: 
+  78:         c = np.array(problem[&quot;c&quot;])
+  79:         r = np.array(problem[&quot;r&quot;])
+  80:         b = np.array(problem[&quot;b&quot;])
+  81: 
+  82:         try:
+  83:             x = np.array(solution)
+  84:         except Exception as e:
+  85:             logging.error(f&quot;Error converting solution list to numpy arrays: {e}&quot;)
+  86:             return False
+  87: 
+  88:         # Check if the solution has the correct dimension
+  89:         if x.shape != b.shape:
+&gt; 90:             return False</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I have very limited budget left. Let me go with a simple approach - use scipy&#x27;s solve_toeplitz but optimize input handling to reduce overhead.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-81
+---
+import numpy as np
+from scipy.linalg import solve_toeplitz
+
+class Solver:
+    def solve(self, problem: dict[str, list[float]]) -&gt; list[float]:
+        &quot;&quot;&quot;Solve the linear system Tx = b using scipy solve_toeplitz with optimized input handling.&quot;&quot;&quot;
+        # Direct array creation without intermediate steps
+        c = np.asarray(problem[&quot;c&quot;], dtype=np.float64)
+        r = np.asarray(problem[&quot;r&quot;], dtype=np.float64) 
+        b = np.asarray(problem[&quot;b&quot;], dtype=np.float64)
+        
+        # Use scipy&#x27;s optimized implementation
+        x = solve_toeplitz((c, r), b, check_finite=False)
+        return x.tolist()
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

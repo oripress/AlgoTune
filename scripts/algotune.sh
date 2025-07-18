@@ -25,6 +25,7 @@ USAGE:
 COMMANDS:
     generate [options]                    Generate baseline measurements
     agent [options] <model> [task]...     Run AI agent on tasks
+    evaluate [options]                    Evaluate results code against baselines
     test [options]                        Run test suite
     list-tasks                            List available tasks
     list-task-lists                       List available task lists
@@ -45,6 +46,9 @@ EXAMPLES:
     
     # Run agent on all tasks
     $0 agent o4-mini                                     # SLURM if available
+    
+    # Evaluate results code against baselines
+    $0 evaluate --standalone                             # Force standalone
     
     # Run tests
     $0 test                                              # SLURM if available
@@ -221,6 +225,45 @@ case "$COMMAND" in
     
     "list-task-lists")
         exec python3 "$SCRIPT_DIR/algotune.py" list-task-lists
+        ;;
+    
+    "evaluate")
+        # Parse evaluate-specific options
+        while [[ "$1" == --* ]]; do
+            case "$1" in
+                --standalone)
+                    STANDALONE=true
+                    shift
+                    ;;
+                *)
+                    break
+                    ;;
+            esac
+        done
+        
+        # Parse model name if provided
+        MODEL_ARG=""
+        if [ $# -ge 1 ] && [[ "$1" != --* ]]; then
+            MODEL_ARG="--models"
+            MODEL_NAME="$1"
+            shift
+        fi
+        
+        if [ "$STANDALONE" = true ] || ([ "$HAS_SLURM" = false ] && [ "$STANDALONE" != true ]); then
+            echo "📊 Running evaluation in standalone mode..."
+            if [ -n "$MODEL_ARG" ]; then
+                exec python3 "$SCRIPT_DIR/evaluate_results.py" "$MODEL_ARG" "$MODEL_NAME" "$@"
+            else
+                exec python3 "$SCRIPT_DIR/evaluate_results.py" "$@"
+            fi
+        else
+            echo "🤖 Submitting evaluation jobs to SLURM..."
+            if [ -n "$MODEL_ARG" ]; then
+                exec python3 "$SCRIPT_DIR/evaluate_results.py" --slurm "$MODEL_ARG" "$MODEL_NAME" "$@"
+            else
+                exec python3 "$SCRIPT_DIR/evaluate_results.py" --slurm "$@"
+            fi
+        fi
         ;;
     
     "--help"|"-h"|"help")

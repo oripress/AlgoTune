@@ -1,0 +1,2034 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AlgoTuner Log – l0_pruning – Claude Opus 4</title>
+    <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7XSBWH5NQF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-7XSBWH5NQF');
+    </script>
+    
+    <!-- Prism.js for syntax highlighting - loaded after styles.css to ensure proper precedence -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <link rel="stylesheet" href="styles.css">"
+    
+    <!-- Basic Styling & Layout -->
+    <style>
+    /* Basic Styling & Layout */
+    :root {
+        --primary-color: #2196F3;
+        --primary-light: #E3F2FD;
+        --text-color: #333;
+        --border-color: #eaeaea;
+        --content-bg: #ffffff;
+        --error-border: #dc3545;
+        --code-bg: #f6f8fa;
+        --code-border: #d0d7de;
+        --code-text: #24292e;
+        
+        /* Glass-morphism variables for light mode */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-header-bg: rgba(0, 0, 0, 0.03);
+        --glass-header-border: rgba(255, 255, 255, 0.08);
+        --glass-btn-bg: rgba(255, 255, 255, 0.1);
+        --glass-btn-border: rgba(255, 255, 255, 0.2);
+        --glass-btn-hover: rgba(255, 255, 255, 0.2);
+        --glass-expand-bg: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+        --glass-text: rgba(0, 0, 0, 0.8);
+        --glass-text-secondary: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-header-bg: rgba(255, 255, 255, 0.05);
+            --glass-header-border: rgba(255, 255, 255, 0.12);
+            --glass-btn-bg: rgba(255, 255, 255, 0.08);
+            --glass-btn-border: rgba(255, 255, 255, 0.15);
+            --glass-btn-hover: rgba(255, 255, 255, 0.15);
+            --glass-expand-bg: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+            --glass-text: rgba(255, 255, 255, 0.9);
+            --glass-text-secondary: rgba(255, 255, 255, 0.7);
+        }
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+        line-height: 1.5;
+        background: var(--content-bg);
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    /* Sidebar - Desktop only, hidden by default on mobile */
+    .sidebar {
+        /* Slightly narrower sidebar to give more room to main content */
+        width: 180px;
+        background: #f8f9fa;
+        border-right: 1px solid var(--border-color);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show sidebar only on large screens (1025px and up) */
+    @media (min-width: 1025px) {
+        .sidebar {
+            display: block;
+        }
+    }
+    
+    /* --------------------------- */
+    /* Sidebar header & back link  */
+    /* --------------------------- */
+    .sidebar-header {
+        padding: 1.25rem;
+        display: flex;
+        justify-content: center;  /* Centre the back link horizontally */
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;               /* Space between arrow and label */
+        padding: 0.45rem 0.9rem;
+        background: #2196F3;       /* Primary blue */
+        border-radius: 8px;
+        color: #ffffff;            /* White text */
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-link:hover {
+        background: #1976D2;       /* Darker blue on hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        text-decoration: none; 
+        color: #ffffff;
+    }
+    
+    .sidebar-content {
+        padding: 1rem;
+    }
+    
+    .sidebar-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: left;
+        /* Allow long task names with underscores to wrap onto multiple lines */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-task {
+        margin-bottom: 1.5rem;
+    }
+    
+    .task-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e0e0e0;
+        /* Allow very long task names to wrap instead of overflowing */
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    
+    .sidebar-run {
+        margin-bottom: 8px;
+    }
+    
+    /* Make sidebar run links occupy full width */
+    .sidebar-run a {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+    
+    .sidebar-run a:hover, .sidebar-run a:focus, .sidebar-run a:visited {
+        text-decoration: none;
+    }
+    
+    /* Ensure the coloured badge stretches the whole column */
+    .run-score {
+        width: 100%;
+    }
+    
+    /* Thicker highlight for the currently selected run on desktop */
+    @media (min-width: 769px) {
+        .sidebar-run.current a {
+            border-left: 5px solid #2196F3 !important;
+        }
+    }
+    
+    .main-content {
+        flex: 1;
+        margin-left: 180px;
+        padding: 0;
+        max-width: calc(100vw - 180px);
+    }
+    
+    .container {
+        /* Allow the main conversation area to take up the full width that is
+           available once the fixed sidebar is accounted for. */
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    h1 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-section {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-width: 140px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .task-info-line, .model-info-line {
+        font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-align: left !important;
+        display: block;
+    }
+    
+    .task-name-display {
+        font-weight: 600;
+        font-size: clamp(0.9rem, 4vw, 1.3rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+    
+    .plots-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .plot-section {
+        margin: 0;
+    }
+    
+    .plot-half {
+        flex: 1;
+        width: 50%;
+    }
+    
+    .plot-section h3 {
+        margin-bottom: 0.8rem;
+        color: var(--text-color);
+    }
+    
+    .plot-container {
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .plot-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .no-plot {
+        color: #666;
+        font-style: italic;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .conversation-section {
+        margin: 1.5rem 0;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 18px;
+        /* Give the chat bubbles more breathing room. 90 % looks good on both
+           desktop and tablet while still leaving a small margin on the side. */
+        max-width: 90%;
+        position: relative;
+    }
+    
+    .message.system {
+        background: #e5e5ea;
+        color: #000;
+        margin-left: auto;
+        margin-right: 0;
+        border-radius: 18px 18px 4px 18px;
+    }
+    
+    .message.assistant {
+        background: #007aff;
+        color: white;
+        margin-left: 0;
+        margin-right: auto;
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message-header {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .command-badge {
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .message.system .command-badge {
+        background: rgba(0, 0, 0, 0.15);
+        color: #000;
+    }
+    
+    .message.assistant .command-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+    
+    /* Premium Glass-Morphism Code Block Container */
+    .code-block {
+        position: relative;
+        margin: clamp(1.5rem, 2vw, 2rem) 0;
+        border-radius: clamp(12px, 3vw, 20px);
+        padding: 0;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+        
+        /* Glass-morphism backdrop effects */
+        background: var(--code-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        /* Multi-layer shadows for depth */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 0 1px var(--code-border);
+        
+        /* Smooth animations */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.16),
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Code Block Header with Copy Button */
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+        background: var(--glass-header-bg);
+        border-bottom: 1px solid var(--glass-header-border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .code-language-tag {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 600;
+        color: var(--glass-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn {
+        padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.8rem);
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: clamp(6px, 1.5vw, 8px);
+        color: var(--glass-text-secondary);
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        font-weight: 500;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
+        user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    }
+    
+    .code-copy-btn:hover {
+        background: var(--glass-btn-hover);
+        border-color: var(--glass-btn-border);
+        transform: scale(1.02);
+    }
+    
+    .code-copy-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #059669;
+    }
+    
+    /* Code Content Container */
+    .code-content {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Code Block Content (pre/code tags) */
+    .code-block pre, .code-block code {
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        line-height: 1.6;
+        color: var(--code-text);
+        text-shadow: none;
+    }
+    
+    .code-block pre {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Expand/Collapse functionality for long code blocks */
+    .code-expandable .code-content {
+        max-height: 400px; /* Default collapsed height */
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .code-expandable .code-content.expanded {
+        max-height: 2000px; /* Expanded height */
+    }
+    
+    .code-expand-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: var(--glass-expand-bg);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay {
+        opacity: 0;
+    }
+    
+    .code-expand-btn {
+        padding: 0.5rem 1rem;
+        background: var(--glass-btn-bg);
+        border: 1px solid var(--glass-btn-border);
+        border-radius: 8px;
+        color: var(--glass-text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        pointer-events: all;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: all 0.2s;
+    }
+    
+    .code-expand-btn:hover {
+        background: var(--glass-btn-hover);
+    }
+    
+    .code-expand-btn::after {
+        content: 'Show More';
+    }
+    
+    .code-expandable .code-content.expanded + .code-expand-overlay .code-expand-btn::after {
+        content: 'Show Less';
+    }
+    
+    /* Collapsible Sections */
+    .collapsible-sections {
+        margin: 2rem 0;
+    }
+    
+    .collapsible-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .collapsible-section summary {
+        padding: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-section summary::after {
+        content: '▼';
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+    
+    .collapsible-section[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-section .section-content {
+        padding: 1rem;
+        background: white;
+    }
+    
+    /* Special styling for plot sections to avoid double frames */
+    .plot-section-content {
+        background: transparent !important;
+        padding: 0 !important;
+    }
+    
+    .collapsible-section pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .best-code, .reference-code {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* Desktop-specific adjustments for collapsible sections */
+    @media (min-width: 769px) {
+        .collapsible-section {
+            margin-bottom: 0.5rem;  /* Reduced from 1rem */
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem 1rem;  /* Reduced vertical padding */
+            font-size: 0.95rem;  /* Slightly smaller font */
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem 1rem;  /* Reduced padding */
+        }
+        
+        .collapsible-section pre {
+            font-size: 0.85rem;  /* Smaller font for code blocks */
+            line-height: 1.4;
+            padding: 0.75rem;
+        }
+        
+        /* Larger font size for reference and best code on desktop */
+        .best-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .reference-code {
+            font-size: 1rem !important;  /* Increase from default */
+            line-height: 1.5;
+        }
+        
+        .collapsible-sections {
+            margin: 1.5rem 0;  /* Reduced from 2rem */
+        }
+    }
+    
+    /* Floating back button - hidden by default */
+    .mobile-back-button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 9999;  /* ensure it stays above all content */
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .mobile-back-button:hover {
+        background: #1976D2;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-back-button:active {
+        transform: scale(0.95);
+    }
+    
+    .mobile-back-button svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        /* Show floating back button on mobile */
+        .mobile-back-button {
+            display: flex;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 60px 10px 0 10px;  /* Added top padding to account for floating button */
+            max-width: 100vw;
+        }
+        
+        .container {
+            padding: 0 5px;
+        }
+        
+        .plots-container {
+            flex-direction: column;
+        }
+        
+        .plot-half {
+            width: 100%;
+        }
+        
+        /* Keep plots within container on mobile */
+        .plot-container {
+            overflow: hidden;
+            padding: 0.5rem;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .message {
+            max-width: 100%;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem;
+            text-align: left !important;
+        }
+        
+        /* Mobile trajectory page adjustments */
+        .task-info-line, .model-info-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        
+        .task-info-line span:first-child,
+        .model-info-line span:first-child {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .task-name-display,
+        .model-name-display {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+        }
+        
+        .header-section {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 8px !important;
+        }
+    }
+    
+    /* Ensure container doesn't center content on desktop */
+    @media (min-width: 769px) {
+        .container {
+            margin: 0 !important;
+            text-align: left !important;
+        }
+        .header-section {
+            text-align: left !important;
+        }
+        .task-info-line, .model-info-line {
+            text-align: left !important;
+        }
+    }
+
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 480px) {
+        .header-section {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .header-section > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .task-info-line, .model-info-line {
+            margin-bottom: 4px !important;
+        }
+        
+        .info-section {
+            margin-bottom: 0.25rem !important;
+        }
+    }
+
+    .info-section {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-item {
+        min-width: 120px;
+        flex-grow: 1;
+    }
+
+    .hide-on-mobile {
+        display: flex;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .hide-on-mobile {
+            display: none !important;
+        }
+        
+        /* Reduce gap between collapsible sections on mobile */
+        .collapsible-sections {
+            margin: 1rem 0;
+        }
+        
+        .collapsible-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .collapsible-section summary {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .collapsible-section .section-content {
+            padding: 0.75rem;
+        }
+    }
+    </style>
+    <script>
+        function copyCode(button, codeId) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function toggleExpand(codeBlockId) {
+            const content = document.getElementById('content-' + codeBlockId);
+            const overlay = document.getElementById('overlay-' + codeBlockId);
+            content.classList.toggle('expanded');
+            if (overlay) {
+                overlay.style.display = content.classList.contains('expanded') ? 'none' : 'flex';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Prism.highlightAll();
+        });
+    </script>
+</head>
+<body>
+    
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html#speedup-section" class="back-link">← Back to Speedup Table</a>
+            </div>
+            <div class="sidebar-content">
+                <h3 style="color: black;">l0_pruning</h3>
+                
+            <div class="sidebar-task">
+                <div class="task-runs">
+                    
+                <div class="sidebar-run">
+                    <a href="l0_pruning_o4-mini.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">o4-mini (9.27x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run current">
+                    <a href="l0_pruning_Claude_Opus_4.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Claude Opus 4 (2.71x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="l0_pruning_Gemini_2.5_Pro.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">Gemini 2.5 Pro (2.48x)</div>
+                    </a>
+                </div>
+                <div class="sidebar-run">
+                    <a href="l0_pruning_DeepSeek_R1.html">
+                        <div class="run-score" style="background-color: #006400; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">DeepSeek R1 (1.38x)</div>
+                    </a>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    
+    <!-- Floating back button for mobile -->
+    <a href="index.html#speedup-section" class="mobile-back-button" aria-label="Back to Speedup Table">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="header-section" style="text-align: left !important; align-items: flex-start !important; justify-content: flex-start !important;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                    <img src="assets/AlgoTunerMascot.png" alt="AlgoTune Mascot" style="height: 32px; width: auto;">
+                    <span style="font-weight: 700; font-size: 1.5rem;">AlgoTuner Trajectory</span>
+                </div>
+                <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
+                    <span class="task-name-display">l0_pruning</span>
+                </div>
+                <div class="model-info-line" style="text-align: left !important; display: block;">
+                    <span style="color: #6c757d; font-weight: 400;">Model:</span>
+                    <span class="model-name-display" style="font-weight: 500;">Claude Opus 4</span>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Speedup</div>
+                    <div class="info-value" style="color: #006400; font-weight: 600;">2.708x</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Budget</div>
+                    <div class="info-value">$1.00</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Commands Executed</div>
+                    <div class="info-value">9</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Invalid Commands</div>
+                    <div class="info-value">0</div>
+                </div>
+                <div class="info-item hide-on-mobile">
+                    <div class="info-label">Average Reference Time (ms)</div>
+                    <div class="info-value">103.0 ms</div>
+                </div>
+            </div>
+            
+            
+    <div class="collapsible-sections">
+        <details class="collapsible-section">
+            <summary>Initial System Prompt</summary>
+            <div class="section-content">
+                <pre>SETTING:
+You&#x27;re an autonomous programmer tasked with solving a specific problem. You are to use the commands defined below to accomplish this task. Every message you send incurs a cost—you will be informed of your usage and remaining budget by the system.
+You will be evaluated based on the best-performing piece of code you produce, even if the final code doesn&#x27;t work or compile (as long as it worked at some point and achieved a score, you will be eligible).
+Apart from the default Python packages, you have access to the following additional packages:
+ - cryptography
+ - cvxpy
+ - cython
+ - dace
+ - dask
+ - diffrax
+ - ecos
+ - faiss-cpu
+ - hdbscan
+ - highspy
+ - jax
+ - networkx
+ - numba
+ - numpy
+ - ortools
+ - pandas
+ - pot
+ - psutil
+ - pulp
+ - pyomo
+ - python-sat
+ - pythran
+ - scikit-learn
+ - scipy
+ - sympy
+ - torch
+
+YOUR TASK:
+Your objective is to define a class named `Solver` in `solver.py` with a method:
+```
+class Solver:
+    def solve(self, problem, **kwargs) -&gt; Any:
+        &quot;&quot;&quot;Your implementation goes here.&quot;&quot;&quot;
+        ...
+```
+
+IMPORTANT: Compilation time of your init function will not count towards your function&#x27;s runtime.
+
+This `solve` function will be the entrypoint called by the evaluation harness. Strive to align your class and method implementation as closely as possible with the desired performance criteria.
+For each instance, your function can run for at most 10x the reference runtime for that instance. Strive to have your implementation run as fast as possible, while returning the same output as the reference function (for the same given input). Be creative and optimize your approach!
+
+Your messages should include a short thought about what you should do, followed by a _SINGLE_ command. The command must be enclosed within ``` and ```, like so:
+&lt;Reasoning behind executing the command&gt;
+```
+&lt;command&gt;
+```
+
+IMPORTANT: Each set of triple backticks (```) must always be on their own line, without any other words or anything else on that line.
+
+Here are the commands available to you. Ensure you include one and only one of the following commands in each of your responses:
+- `edit`: Replace a range of lines with new content in a file. This is how you can create files: if the file does not exist, it will be created. Here is an example:
+  ```
+  edit 
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+  ---
+  &lt;new_content&gt;
+  ---
+  ```
+
+  The command will:
+  1. Delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  2. Insert &lt;new_content&gt; starting at &lt;start_line&gt;
+  3. If both &lt;start_line&gt; and &lt;end_line&gt; are 0, &lt;new_content&gt; will be prepended to the file
+  
+  Example:
+  edit
+  file: solver.py
+  lines: 5-7
+  ---
+  def improved_function():
+      print(&quot;Optimized solution&quot;)
+  ---
+- `ls`: List all files in the current working directory.
+- `view_file &lt;file_name&gt; [start_line]`: Display 100 lines of `&lt;file_name&gt;` starting from `start_line` (defaults to line 1).
+- `revert`: Revert the code to the best-performing version thus far.
+- `reference &lt;string&gt;`: Query the reference solver with a problem and receive its solution. If the problem&#x27;s input is a list, this command would look like: 
+  ```
+  reference [1,2,3,4]
+  ```
+- `eval_input &lt;string&gt;`: Run your current solver implementation on the given input. This is the only command that shows stdout from your solver along with both solutions. Example: 
+  ```
+  eval_input [1,2,3,4]
+  ```
+- `eval`: Run evaluation on the current solution and report the results.
+- `delete`: Delete a range of lines from a file using the format:
+  ```
+  delete
+  file: &lt;file_name&gt;
+  lines: &lt;start_line&gt;-&lt;end_line&gt;
+
+  The command will delete the lines from &lt;start_line&gt; to &lt;end_line&gt; (inclusive)
+  
+  Example:
+  delete
+  file: solver.py
+  lines: 5-10
+  ```
+- `profile &lt;filename.py&gt; &lt;input&gt;`: Profile your currently loaded solve method&#x27;s performance on a given input. Shows the 25 most time-consuming lines. Requires specifying a python file (e.g., `solver.py`) for validation, though profiling runs on the current in-memory code.
+  Example:
+  ```
+  profile solver.py [1, 2, 3]
+  ```
+
+- `profile_lines &lt;filename.py&gt; &lt;line_number1, line_number2, ...&gt; &lt;input&gt;`: Profiles the chosen lines of the currently loaded code on the given input. Requires specifying a python file for validation.
+  Example: 
+  ```
+  profile_lines solver.py 1,2,3 [1, 2, 3]
+  ```
+
+**TIPS:**
+After each edit, a linter will automatically run to ensure code quality. If there are critical linter errors, your changes will not be applied, and you will receive the linter&#x27;s error message. Typically, linter errors arise from issues like improper indentation—ensure your edits maintain proper code formatting.
+**Cython Compilation:** Edits creating or modifying Cython (`.pyx`) files will automatically trigger a compilation attempt (requires a `setup.py`). You will be notified if compilation succeeds or fails. If it fails, the edit to the `.pyx` file will be automatically reverted.
+If the code runs successfully without errors, the in-memory &#x27;last known good code&#x27; will be updated to the new version. Following successful edits, you will receive a summary of your `solve` function&#x27;s performance compared to the reference.
+If you get stuck, try reverting your code and restarting your train of thought.
+Do not put an if __name__ == &quot;__main__&quot;: block in your code, as it will not be ran (only the solve function will).
+Keep trying to better your code until you run out of money. Do not stop beforehand!
+
+**GOALS:**
+Your primary objective is to optimize the `solve` function to run as as fast as possible, while returning the optimal solution.
+You will receive better scores the quicker your solution runs, and you will be penalized for exceeding the time limit or returning non-optimal solutions.
+
+Below you find the description of the task you will have to solve. Read it carefully and understand what the problem is and what your solver should do.
+
+**TASK DESCRIPTION:**
+Solving an L0 proximal operator or projecting a point onto L0 ball involves the following optimization problem:
+    min_w ‖v-w‖² s.t. ‖w‖₀ ≤ k
+where
+    v is the given vector of n real numbers
+    ‖.‖  is an l2 norm
+    ‖.‖₀ is an l0 norm, i.e. number of non zero items in a vector.
+    k    is a user-defined constant
+
+Constraints above by construction guarantees that the solution vector is sparse (and hence the name l0_pruning).
+
+Given input parameters v and k, compute and return the n-dimensional solution vector w that solves the above problem.
+
+Input: A dictionary with keys:
+  - &quot;v&quot;: A list of n real numbers representing the vector v.
+  - &quot;k&quot;: hyperparameter that controls pruning severity
+
+Example input:
+{
+  &quot;v&quot;: [1., -1.2, 0.5, 0.7],
+  &quot;k&quot;: 2
+}
+
+Output: A dictionary with keys:
+  - &quot;solution&quot;: A list of n numbers representing the optimal solution w*.
+
+Example output:
+{
+    &quot;solution&quot;: [1, -1.2, 0, 0]
+}
+
+Category: nonconvex_optimization
+
+
+Below is the reference implementation. Your function should run much quicker.
+
+import random
+from typing import Any
+import numpy as np
+
+| 01: def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+| 02:     &quot;&quot;&quot;
+| 03:     Solve the problem using the algorithm described in https://doi.org/10.1109/CVPR.2018.00890.
+| 04:     This optimization problem has quadratic objective and non-convex constraints.
+| 05:     However, it can be solved exactly in O(nlogn) time via stable sorting algorithm.
+| 06: 
+| 07:     :param problem: A dictionary of the problem&#x27;s parameters.
+| 08:     :return: A dictionary with key:
+| 09:              &quot;solution&quot;: a 1D list with n elements representing the solution to the l0_pruning task.
+| 10:     
+| 11: 
+| 12:     NOTE: Your solution must pass validation by:
+| 13:     1. Returning correctly formatted output
+| 14:     2. Having no NaN or infinity values
+| 15:     3. Matching expected results within numerical tolerance
+| 16:     &quot;&quot;&quot;
+| 17:     v = np.array(problem.get(&quot;v&quot;))
+| 18:     k = problem.get(&quot;k&quot;)
+| 19: 
+| 20:     # Ensure v is a column vector
+| 21:     v = v.flatten()
+| 22: 
+| 23:     pruned = np.zeros_like(v)
+| 24:     indx = np.argsort(np.abs(v), kind=&quot;mergesort&quot;)  # mergesort is stable
+| 25:     remaining_indx = indx[-k:]
+| 26:     pruned[remaining_indx] = v[remaining_indx]
+| 27: 
+| 28:     solution = {&quot;solution&quot;: pruned.tolist()}
+| 29:     return solution
+| 30: 
+
+This function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:
+
+import random
+from typing import Any
+import numpy as np
+
+| 01: def is_solution( problem: dict[str, Any], solution: dict[str, list]) -&gt; float:
+| 02:     &quot;&quot;&quot;
+| 03:     Validate the solution to the l0_pruning problem.
+| 04: 
+| 05:     :param problem: A dictionary representing the problem.
+| 06:     :param solution: A dictionary containing the proposed solution with key &quot;solution&quot;
+| 07:     :return: True if solution is valid and optimal, False otherwise.
+| 08:     &quot;&quot;&quot;
+| 09:     proposed_solution = solution.get(&quot;solution&quot;)
+| 10:     if proposed_solution is None:
+| 11:         logging.error(&quot;Problem does not contain &#x27;solution&#x27;.&quot;)
+| 12:         return False
+| 13: 
+| 14:     real_solution = solve(problem).get(&quot;solution&quot;)
+| 15: 
+| 16:     if not np.allclose(proposed_solution, real_solution, atol=1e-6):
+| 17:         logging.error(
+| 18:             &quot;Proposed solution does not match the ground-truth solution within tolerance.&quot;
+| 19:         )
+| 20:         return False
+| 21: 
+| 22:     # All checks passed; return True
+| 23:     return True
+| 24:</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>AlgoTune Task Description</summary>
+            <div class="section-content">
+                <pre>Solving an L0 proximal operator or projecting a point onto L0 ball involves the following optimization problem:
+    min_w ‖v-w‖² s.t. ‖w‖₀ ≤ k
+where
+    v is the given vector of n real numbers
+    ‖.‖  is an l2 norm
+    ‖.‖₀ is an l0 norm, i.e. number of non zero items in a vector.
+    k    is a user-defined constant
+
+Constraints above by construction guarantees that the solution vector is sparse (and hence the name l0_pruning).
+
+Given input parameters v and k, compute and return the n-dimensional solution vector w that solves the above problem.
+
+Input: A dictionary with keys:
+  - &quot;v&quot;: A list of n real numbers representing the vector v.
+  - &quot;k&quot;: hyperparameter that controls pruning severity
+
+Example input:
+{
+  &quot;v&quot;: [1., -1.2, 0.5, 0.7],
+  &quot;k&quot;: 2
+}
+
+Output: A dictionary with keys:
+  - &quot;solution&quot;: A list of n numbers representing the optimal solution w*.
+
+Example output:
+{
+    &quot;solution&quot;: [1, -1.2, 0, 0]
+}
+
+Category: nonconvex_optimization</pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Reference Implementation</summary>
+            <div class="section-content">
+                <pre class="reference-code"><code class="language-python">import random
+from typing import Any
+import numpy as np
+
+ def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+     &quot;&quot;&quot;
+     Solve the problem using the algorithm described in https://doi.org/10.1109/CVPR.2018.00890.
+     This optimization problem has quadratic objective and non-convex constraints.
+     However, it can be solved exactly in O(nlogn) time via stable sorting algorithm.
+ 
+     :param problem: A dictionary of the problem&#x27;s parameters.
+     :return: A dictionary with key:
+              &quot;solution&quot;: a 1D list with n elements representing the solution to the l0_pruning task.
+     
+ 
+     NOTE: Your solution must pass validation by:
+     1. Returning correctly formatted output
+     2. Having no NaN or infinity values
+     3. Matching expected results within numerical tolerance
+     &quot;&quot;&quot;
+     v = np.array(problem.get(&quot;v&quot;))
+     k = problem.get(&quot;k&quot;)
+ 
+     # Ensure v is a column vector
+     v = v.flatten()
+ 
+     pruned = np.zeros_like(v)
+     indx = np.argsort(np.abs(v), kind=&quot;mergesort&quot;)  # mergesort is stable
+     remaining_indx = indx[-k:]
+     pruned[remaining_indx] = v[remaining_indx]
+ 
+     solution = {&quot;solution&quot;: pruned.tolist()}
+     return solution</code></pre>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Best AlgoTuner-Generated Code</summary>
+            <div class="section-content">
+                <div class="best-file"><div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">solver.py</div><pre class="best-code"><code class="language-python">import numpy as np
+from typing import Any
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+        &quot;&quot;&quot;
+        Optimized L0 proximal operator solver with hybrid approach.
+        &quot;&quot;&quot;
+        v = problem[&quot;v&quot;]
+        k = problem[&quot;k&quot;]
+        n = len(v)
+        
+        # Handle edge cases
+        if k == 0:
+            return {&quot;solution&quot;: [0.0] * n}
+        
+        if k &gt;= n:
+            return {&quot;solution&quot;: v}
+        
+        # For small arrays, use pure Python to avoid numpy overhead
+        if n &lt;= 50:
+            # Create list of (abs_value, index, value) tuples
+            indexed_values = [(abs(v[i]), i, v[i]) for i in range(n)]
+            # Partial sort to find k largest
+            indexed_values.sort(key=lambda x: x[0], reverse=True)
+            
+            result = [0.0] * n
+            for i in range(k):
+                _, idx, val = indexed_values[i]
+                result[idx] = val
+            
+            return {&quot;solution&quot;: result}
+        
+        # For larger arrays, use numpy argpartition
+        v_arr = np.asarray(v, dtype=np.float64)
+        abs_v = np.abs(v_arr)
+        
+        # Find indices of k largest absolute values
+        if k == 1:
+            # Special case for k=1: use argmax
+            max_idx = np.argmax(abs_v)
+            result = np.zeros(n)
+            result[max_idx] = v_arr[max_idx]
+        else:
+            # Use argpartition to find k largest indices
+            kth_idx = n - k
+            partition_indices = np.argpartition(abs_v, kth_idx)
+            top_k_indices = partition_indices[kth_idx:]
+            
+            # Create result array
+            result = np.zeros(n)
+            result[top_k_indices] = v_arr[top_k_indices]
+        
+        return {&quot;solution&quot;: result.tolist()}</code></pre></div>
+            </div>
+        </details>
+        
+        <details class="collapsible-section">
+            <summary>Speedup vs Budget Plot</summary>
+            <div class="section-content plot-section-content">
+                
+    <div class="plots-container">
+        <div class="plot-section plot-half">
+            <h3>Speedup vs Budget</h3>
+            <div class="plot-container">
+                <img src="assets/plots/l0_pruning_claude-opus-4-20250514_20250625_160542_perf.png" alt="Speedup vs Budget Plot" />
+            </div>
+        </div>
+        <div class="plot-section plot-half">
+            <h3>Action Sequence</h3>
+            <div class="plot-container">
+                <img src="assets/plots/l0_pruning_claude-opus-4-20250514_20250625_160542_actions.png" alt="Action Sequence Plot" />
+            </div>
+        </div>
+    </div>
+            </div>
+        </details>
+    </div>
+            
+            <div class="conversation-section">
+                <h2>Conversation Log</h2>
+                
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I need to understand the L0 proximal operator problem. The task is to find w that minimizes ‖v-w‖² subject to having at most k non-zero elements. The reference solution shows this has a simple closed-form solution: keep the k largest elements (by absolute value) and zero out the rest.<br><br>Let me start by creating a basic solver implementation:<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 0-0
+---
+import numpy as np
+from typing import Any
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+        &quot;&quot;&quot;
+        Solve the L0 proximal operator problem.
+        Keep the k largest elements (by absolute value) and zero out the rest.
+        &quot;&quot;&quot;
+        v = np.array(problem.get(&quot;v&quot;))
+        k = problem.get(&quot;k&quot;)
+        
+        # Flatten v to ensure it&#x27;s 1D
+        v = v.flatten()
+        
+        # Create output array initialized to zeros
+        pruned = np.zeros_like(v)
+        
+        # Find indices of k largest elements by absolute value
+        indx = np.argsort(np.abs(v), kind=&quot;mergesort&quot;)
+        remaining_indx = indx[-k:]
+        
+        # Keep only the k largest elements
+        pruned[remaining_indx] = v[remaining_indx]
+        
+        return {&quot;solution&quot;: pruned.tolist()}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 1 messages and have used up $0.0892. You have $0.9108 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-26 out of 26)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from typing import Any
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solve the L0 proximal operator problem.
+&gt; 08:         Keep the k largest elements (by absolute value) and zero out the rest.
+&gt; 09:         &quot;&quot;&quot;
+&gt; 10:         v = np.array(problem.get(&quot;v&quot;))
+&gt; 11:         k = problem.get(&quot;k&quot;)
+&gt; 12:         
+&gt; 13:         # Flatten v to ensure it&#x27;s 1D
+&gt; 14:         v = v.flatten()
+&gt; 15:         
+&gt; 16:         # Create output array initialized to zeros
+&gt; 17:         pruned = np.zeros_like(v)
+&gt; 18:         
+&gt; 19:         # Find indices of k largest elements by absolute value
+&gt; 20:         indx = np.argsort(np.abs(v), kind=&quot;mergesort&quot;)
+&gt; 21:         remaining_indx = indx[-k:]
+&gt; 22:         
+&gt; 23:         # Keep only the k largest elements
+&gt; 24:         pruned[remaining_indx] = v[remaining_indx]
+&gt; 25:         
+&gt; 26:         return {&quot;solution&quot;: pruned.tolist()}</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#D2691E; font-weight:600;">0.93</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I need to optimize the solution. The current implementation uses full sorting which is O(n log n), but we only need the k largest elements. I can use `np.argpartition` which is O(n) average case for finding the k-th largest elements.<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-26
+---
+import numpy as np
+from typing import Any
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+        &quot;&quot;&quot;
+        Solve the L0 proximal operator problem using partition instead of full sort.
+        Keep the k largest elements (by absolute value) and zero out the rest.
+        &quot;&quot;&quot;
+        v = np.array(problem.get(&quot;v&quot;))
+        k = problem.get(&quot;k&quot;)
+        
+        # Flatten v to ensure it&#x27;s 1D
+        v = v.flatten()
+        
+        # Create output array initialized to zeros
+        pruned = np.zeros_like(v)
+        
+        if k &gt; 0 and k &lt; len(v):
+            # Use partition to find k largest elements by absolute value
+            # This is O(n) average case vs O(n log n) for full sort
+            abs_v = np.abs(v)
+            kth_largest_idx = np.argpartition(abs_v, -k)[-k:]
+            pruned[kth_largest_idx] = v[kth_largest_idx]
+        elif k &gt;= len(v):
+            # If k &gt;= n, keep all elements
+            pruned = v.copy()
+        
+        return {&quot;solution&quot;: pruned.tolist()}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 2 messages and have used up $0.1895. You have $0.8105 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-29 out of 29)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from typing import Any
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Solve the L0 proximal operator problem using partition instead of full sort.
+&gt; 08:         Keep the k largest elements (by absolute value) and zero out the rest.
+&gt; 09:         &quot;&quot;&quot;
+&gt; 10:         v = np.array(problem.get(&quot;v&quot;))
+&gt; 11:         k = problem.get(&quot;k&quot;)
+&gt; 12:         
+&gt; 13:         # Flatten v to ensure it&#x27;s 1D
+&gt; 14:         v = v.flatten()
+&gt; 15:         
+&gt; 16:         # Create output array initialized to zeros
+&gt; 17:         pruned = np.zeros_like(v)
+&gt; 18:         
+&gt; 19:         if k &gt; 0 and k &lt; len(v):
+&gt; 20:             # Use partition to find k largest elements by absolute value
+&gt; 21:             # This is O(n) average case vs O(n log n) for full sort
+&gt; 22:             abs_v = np.abs(v)
+&gt; 23:             kth_largest_idx = np.argpartition(abs_v, -k)[-k:]
+&gt; 24:             pruned[kth_largest_idx] = v[kth_largest_idx]
+&gt; 25:         elif k &gt;= len(v):
+&gt; 26:             # If k &gt;= n, keep all elements
+&gt; 27:             pruned = v.copy()
+&gt; 28:         
+&gt; 29:         return {&quot;solution&quot;: pruned.tolist()}</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">2.54</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge other"> Invalid Command</span>
+            </div>
+            <div class="message-content">
+                Good improvement! Let me profile the code to identify bottlenecks:<br><br><pre><code class="language-python">profile solver.py {&quot;v&quot;: [1.0] * 10000, &quot;k&quot;: 5000}</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 3 messages and have used up $0.2720. You have $0.7280 remaining.<br><br>Error: AttributeError: &#x27;str&#x27; object has no attribute &#x27;get&#x27; in function &#x27;solve&#x27; at line 10 in solver.py<br><br>Code Context:<br><pre><code class="language-python">   1 : import numpy as np
+   2 : from typing import Any
+   3 : 
+   4 : class Solver:
+   5 :     def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+   6 :         &quot;&quot;&quot;
+   7 :         Solve the L0 proximal operator problem using partition instead of full sort.
+   8 :         Keep the k largest elements (by absolute value) and zero out the rest.
+   9 :         &quot;&quot;&quot;
+ ! 10:         v = np.array(problem.get(&quot;v&quot;))
+   11:         k = problem.get(&quot;k&quot;)
+   12: 
+   13:         # Flatten v to ensure it&#x27;s 1D
+   14:         v = v.flatten()
+   15: 
+   16:         # Create output array initialized to zeros
+   17:         pruned = np.zeros_like(v)
+   18: 
+   19:         if k &gt; 0 and k &lt; len(v):
+   20:             # Use partition to find k largest elements by absolute value</code></pre>
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge eval_input">🧪 Input Eval</span>
+            </div>
+            <div class="message-content">
+                Let me use eval_input to test the code:<br><br><pre><code class="language-python">eval_input {&quot;v&quot;: [1.0, -1.2, 0.5, 0.7], &quot;k&quot;: 2}</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 4 messages and have used up $0.3537. You have $0.6463 remaining.<br><br>Starting evaluation...<br><br>Output: {&#x27;solution&#x27;: [1.0, -1.2, 0.0, 0.0]}<br>Runtime: 0.085131 ms<br>Output is valid: Yes
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Let me optimize further by avoiding intermediate array creation and using in-place operations:<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-29
+---
+import numpy as np
+from typing import Any
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+        &quot;&quot;&quot;
+        Optimized L0 proximal operator solver.
+        &quot;&quot;&quot;
+        v = problem[&quot;v&quot;]
+        k = problem[&quot;k&quot;]
+        
+        # Work directly with the list if it&#x27;s small enough
+        n = len(v)
+        
+        if k == 0:
+            return {&quot;solution&quot;: [0.0] * n}
+        
+        if k &gt;= n:
+            return {&quot;solution&quot;: v}
+        
+        # Convert to numpy array for partitioning
+        v_arr = np.asarray(v)
+        
+        # Get absolute values and partition indices in one go
+        abs_v = np.abs(v_arr)
+        partition_idx = np.argpartition(abs_v, -k)
+        
+        # Create result array
+        result = np.zeros(n)
+        result[partition_idx[-k:]] = v_arr[partition_idx[-k:]]
+        
+        return {&quot;solution&quot;: result.tolist()}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 5 messages and have used up $0.4647. You have $0.5353 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-32 out of 32)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from typing import Any
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Optimized L0 proximal operator solver.
+&gt; 08:         &quot;&quot;&quot;
+&gt; 09:         v = problem[&quot;v&quot;]
+&gt; 10:         k = problem[&quot;k&quot;]
+&gt; 11:         
+&gt; 12:         # Work directly with the list if it&#x27;s small enough
+&gt; 13:         n = len(v)
+&gt; 14:         
+&gt; 15:         if k == 0:
+&gt; 16:             return {&quot;solution&quot;: [0.0] * n}
+&gt; 17:         
+&gt; 18:         if k &gt;= n:
+&gt; 19:             return {&quot;solution&quot;: v}
+&gt; 20:         
+&gt; 21:         # Convert to numpy array for partitioning
+&gt; 22:         v_arr = np.asarray(v)
+&gt; 23:         
+&gt; 24:         # Get absolute values and partition indices in one go
+&gt; 25:         abs_v = np.abs(v_arr)
+&gt; 26:         partition_idx = np.argpartition(abs_v, -k)
+&gt; 27:         
+&gt; 28:         # Create result array
+&gt; 29:         result = np.zeros(n)
+&gt; 30:         result[partition_idx[-k:]] = v_arr[partition_idx[-k:]]
+&gt; 31:         
+&gt; 32:         return {&quot;solution&quot;: result.tolist()}</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">2.52</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Let me try using numba for JIT compilation to speed up the computation:<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-32
+---
+import numpy as np
+from typing import Any
+import numba
+
+@numba.jit(nopython=True)
+def find_k_largest_indices(abs_values, k):
+    &quot;&quot;&quot;Find indices of k largest values using partial sort.&quot;&quot;&quot;
+    n = len(abs_values)
+    indices = np.arange(n)
+    
+    # Partial sort: only sort the k largest elements
+    for i in range(k):
+        max_idx = i
+        for j in range(i + 1, n):
+            if abs_values[indices[j]] &gt; abs_values[indices[max_idx]]:
+                max_idx = j
+        indices[i], indices[max_idx] = indices[max_idx], indices[i]
+    
+    return indices[:k]
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+        &quot;&quot;&quot;
+        Optimized L0 proximal operator solver using numba.
+        &quot;&quot;&quot;
+        v = problem[&quot;v&quot;]
+        k = problem[&quot;k&quot;]
+        n = len(v)
+        
+        if k == 0:
+            return {&quot;solution&quot;: [0.0] * n}
+        
+        if k &gt;= n:
+            return {&quot;solution&quot;: v}
+        
+        # For small arrays, use pure Python
+        if n &lt; 100:
+            abs_v = [abs(x) for x in v]
+            indices = sorted(range(n), key=lambda i: abs_v[i], reverse=True)[:k]
+            result = [0.0] * n
+            for i in indices:
+                result[i] = v[i]
+            return {&quot;solution&quot;: result}
+        
+        # For larger arrays, use numpy with numba
+        v_arr = np.asarray(v)
+        abs_v = np.abs(v_arr)
+        
+        # Use argpartition for large k relative to n
+        if k &gt; n // 4:
+            partition_idx = np.argpartition(abs_v, -k)[-k:]
+        else:
+            # Use numba-compiled function for small k
+            partition_idx = find_k_largest_indices(abs_v, k)
+        
+        result = np.zeros(n)
+        result[partition_idx] = v_arr[partition_idx]
+        
+        return {&quot;solution&quot;: result.tolist()}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 6 messages and have used up $0.6082. You have $0.3918 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 59)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from typing import Any
+&gt; 03: import numba
+&gt; 04: 
+&gt; 05: @numba.jit(nopython=True)
+&gt; 06: def find_k_largest_indices(abs_values, k):
+&gt; 07:     &quot;&quot;&quot;Find indices of k largest values using partial sort.&quot;&quot;&quot;
+&gt; 08:     n = len(abs_values)
+&gt; 09:     indices = np.arange(n)
+&gt; 10:     
+&gt; 11:     # Partial sort: only sort the k largest elements
+&gt; 12:     for i in range(k):
+&gt; 13:         max_idx = i
+&gt; 14:         for j in range(i + 1, n):
+&gt; 15:             if abs_values[indices[j]] &gt; abs_values[indices[max_idx]]:
+&gt; 16:                 max_idx = j
+&gt; 17:         indices[i], indices[max_idx] = indices[max_idx], indices[i]
+&gt; 18:     
+&gt; 19:     return indices[:k]
+&gt; 20: 
+&gt; 21: class Solver:
+&gt; 22:     def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+&gt; 23:         &quot;&quot;&quot;
+&gt; 24:         Optimized L0 proximal operator solver using numba.
+&gt; 25:         &quot;&quot;&quot;
+&gt; 26:         v = problem[&quot;v&quot;]
+&gt; 27:         k = problem[&quot;k&quot;]
+&gt; 28:         n = len(v)
+&gt; 29:         
+&gt; 30:         if k == 0:
+&gt; 31:             return {&quot;solution&quot;: [0.0] * n}
+&gt; 32:         
+&gt; 33:         if k &gt;= n:
+&gt; 34:             return {&quot;solution&quot;: v}
+&gt; 35:         
+&gt; 36:         # For small arrays, use pure Python
+&gt; 37:         if n &lt; 100:
+&gt; 38:             abs_v = [abs(x) for x in v]
+&gt; 39:             indices = sorted(range(n), key=lambda i: abs_v[i], reverse=True)[:k]
+&gt; 40:             result = [0.0] * n
+&gt; 41:             for i in indices:
+&gt; 42:                 result[i] = v[i]
+&gt; 43:             return {&quot;solution&quot;: result}
+&gt; 44:         
+&gt; 45:         # For larger arrays, use numpy with numba
+&gt; 46:         v_arr = np.asarray(v)
+&gt; 47:         abs_v = np.abs(v_arr)
+&gt; 48:         
+&gt; 49:         # Use argpartition for large k relative to n
+&gt; 50:         if k &gt; n // 4:
+...</code></pre><br><br>Speedup: <span style="color:#B22222; font-weight:600;">N/A</span><br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 19%<br>  Invalid Solutions: 0%<br>  Timeouts: 81%<br><br><br>Snapshot not saved - invalid solutions present
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge revert">↩️ Revert Changes</span>
+            </div>
+            <div class="message-content">
+                The numba approach is timing out. Let me revert and try a more efficient approach:<br><br><pre><code class="language-python">revert</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 7 messages and have used up $0.7147. You have $0.2853 remaining.<br><br>Successfully reverted to last saved state.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Let me try a hybrid approach that uses pure Python for small arrays and optimized numpy for larger ones:<br><br><pre><code class="language-python">edit
+file: solver.py
+lines: 1-32
+---
+import numpy as np
+from typing import Any
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+        &quot;&quot;&quot;
+        Optimized L0 proximal operator solver with hybrid approach.
+        &quot;&quot;&quot;
+        v = problem[&quot;v&quot;]
+        k = problem[&quot;k&quot;]
+        n = len(v)
+        
+        # Handle edge cases
+        if k == 0:
+            return {&quot;solution&quot;: [0.0] * n}
+        
+        if k &gt;= n:
+            return {&quot;solution&quot;: v}
+        
+        # For small arrays, use pure Python to avoid numpy overhead
+        if n &lt;= 50:
+            # Create list of (abs_value, index, value) tuples
+            indexed_values = [(abs(v[i]), i, v[i]) for i in range(n)]
+            # Partial sort to find k largest
+            indexed_values.sort(key=lambda x: x[0], reverse=True)
+            
+            result = [0.0] * n
+            for i in range(k):
+                _, idx, val = indexed_values[i]
+                result[idx] = val
+            
+            return {&quot;solution&quot;: result}
+        
+        # For larger arrays, use numpy argpartition
+        v_arr = np.asarray(v, dtype=np.float64)
+        abs_v = np.abs(v_arr)
+        
+        # Find indices of k largest absolute values
+        if k == 1:
+            # Special case for k=1: use argmax
+            max_idx = np.argmax(abs_v)
+            result = np.zeros(n)
+            result[max_idx] = v_arr[max_idx]
+        else:
+            # Use argpartition to find k largest indices
+            kth_idx = n - k
+            partition_indices = np.argpartition(abs_v, kth_idx)
+            top_k_indices = partition_indices[kth_idx:]
+            
+            # Create result array
+            result = np.zeros(n)
+            result[top_k_indices] = v_arr[top_k_indices]
+        
+        return {&quot;solution&quot;: result.tolist()}
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 8 messages and have used up $0.8565. You have $0.1435 remaining.<br><br>Edit successful for solver.py.<br><br>Contents of solver.py (lines 1-50 out of 54)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 01: import numpy as np
+&gt; 02: from typing import Any
+&gt; 03: 
+&gt; 04: class Solver:
+&gt; 05:     def solve(self, problem: dict[str, Any]) -&gt; dict[str, list]:
+&gt; 06:         &quot;&quot;&quot;
+&gt; 07:         Optimized L0 proximal operator solver with hybrid approach.
+&gt; 08:         &quot;&quot;&quot;
+&gt; 09:         v = problem[&quot;v&quot;]
+&gt; 10:         k = problem[&quot;k&quot;]
+&gt; 11:         n = len(v)
+&gt; 12:         
+&gt; 13:         # Handle edge cases
+&gt; 14:         if k == 0:
+&gt; 15:             return {&quot;solution&quot;: [0.0] * n}
+&gt; 16:         
+&gt; 17:         if k &gt;= n:
+&gt; 18:             return {&quot;solution&quot;: v}
+&gt; 19:         
+&gt; 20:         # For small arrays, use pure Python to avoid numpy overhead
+&gt; 21:         if n &lt;= 50:
+&gt; 22:             # Create list of (abs_value, index, value) tuples
+&gt; 23:             indexed_values = [(abs(v[i]), i, v[i]) for i in range(n)]
+&gt; 24:             # Partial sort to find k largest
+&gt; 25:             indexed_values.sort(key=lambda x: x[0], reverse=True)
+&gt; 26:             
+&gt; 27:             result = [0.0] * n
+&gt; 28:             for i in range(k):
+&gt; 29:                 _, idx, val = indexed_values[i]
+&gt; 30:                 result[idx] = val
+&gt; 31:             
+&gt; 32:             return {&quot;solution&quot;: result}
+&gt; 33:         
+&gt; 34:         # For larger arrays, use numpy argpartition
+&gt; 35:         v_arr = np.asarray(v, dtype=np.float64)
+&gt; 36:         abs_v = np.abs(v_arr)
+&gt; 37:         
+&gt; 38:         # Find indices of k largest absolute values
+&gt; 39:         if k == 1:
+&gt; 40:             # Special case for k=1: use argmax
+&gt; 41:             max_idx = np.argmax(abs_v)
+&gt; 42:             result = np.zeros(n)
+&gt; 43:             result[max_idx] = v_arr[max_idx]
+&gt; 44:         else:
+&gt; 45:             # Use argpartition to find k largest indices
+&gt; 46:             kth_idx = n - k
+&gt; 47:             partition_indices = np.argpartition(abs_v, kth_idx)
+&gt; 48:             top_k_indices = partition_indices[kth_idx:]
+&gt; 49:             
+&gt; 50:             # Create result array
+...</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">2.68</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Snapshot saved Best speedup reached, state saved!<br>Among the 10+ LLMs we tested, your code did not rank in the top 3 for speed. Please use all available packages and tools to optimize its performance. Think outside the box!
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                I need to think outside the box. Let me try using Cython for significant speedup:<br><br><pre><code class="language-python">edit
+file: setup.py
+lines: 0-0
+---
+from setuptools import setup
+from Cython.Build import cythonize
+import numpy
+
+setup(
+    ext_modules=cythonize(&quot;l0_solver.pyx&quot;),
+    include_dirs=[numpy.get_include()]
+)
+---</code></pre>
+            </div>
+        </div>
+        <div class="message system">
+            <div class="message-header">
+                System 
+            </div>
+            <div class="message-content">
+                You have sent 9 messages and have used up $0.9833. You have $0.0167 remaining.<br><br>Edit successful for setup.py.<br><br>Contents of setup.py (lines 1-8 out of 8)<br>(| = existing code, &gt; = modified code)<br><br><pre><code class="language-python">&gt; 1: from setuptools import setup
+&gt; 2: from Cython.Build import cythonize
+&gt; 3: import numpy
+&gt; 4: 
+&gt; 5: setup(
+&gt; 6:     ext_modules=cythonize(&quot;l0_solver.pyx&quot;),
+&gt; 7:     include_dirs=[numpy.get_include()]
+&gt; 8: )</code></pre><br><br>Starting evaluation...<br><br>Speedup: <span style="color:#006400; font-weight:600;">2.67</span>x<br>  (Speedup = Baseline Time / Your Time; Higher is better)<br><br>  Valid Solutions: 100%<br>  Invalid Solutions: 0%<br>  Timeouts: 0%<br><br><br>Speedup did not improve, snapshot not saved.
+            </div>
+        </div>
+        <div class="message assistant">
+            <div class="message-header">
+                Language Model <span class="command-badge edit">✏️ Code Edit</span>
+            </div>
+            <div class="message-content">
+                Let me create the Cython implementation:<br><br><pre><code class="language-python">edit
+file: l0_solver.pyx
+lines: 0-0
+---
+# cython: language_level=3
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: cdivision=True
+
+import numpy as np
+cimport numpy as np
+cimport cython
+from libc.stdlib cimport malloc, free
+from libc.math cimport fabs
+
+cdef inline void swap(double* a, double* b) nogil:
+    cdef double temp = a[0]
+    a[0] = b[0]
+    b[0] = temp
+
+cdef inline void swap_int(int* a, int* b) nogil:
+    cdef int temp = a[0]
+    a[0] = b[0]
+    b[0] = temp
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void partial_quickselect(double[:] abs_vals, int[:] indices, int left, int right, int k) nogil:
+    &quot;&quot;&quot;Modified quickselect to find k largest elements&quot;&quot;&quot;
+    cdef int i, j, pivot_idx
+    cdef double pivot
+    
+    while left &lt; right:
+        pivot_idx = (left + right) // 2
+        pivot = abs_vals[indices[pivot_idx]]
+        
+        # Move pivot to end
+        swap_int(&amp;indices[pivot_idx], &amp;indices[right])
+        
+        j = left
+        for i in range(left, right):
+            if abs_vals[indices[i]] &gt; pivot:
+                swap_int(&amp;indices[i], &amp;indices[j])
+                j += 1
+        
+        swap_int(&amp;indices[j], &amp;indices[right])
+        
+        if j == k:
+            return
+        elif j &lt; k:
+            left = j + 1
+        else:
+            right = j - 1
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def solve_l0_cython(double[:] v, int k):
+    cdef int n = v.shape[0]
+    cdef int i
+    cdef np.ndarray[double, ndim=1] result = np.zeros(n, dtype=np.float64)
+    cdef double[:] result_view = result
+    
+    if k == 0:
+        return result
+    
+    if k &gt;= n:
+        for i in range(n):
+            result_view[i] = v[i]
+        return result
+    
+    # For very small arrays, use simple approach
+    if n &lt;= 20:
+        cdef double max_val
+        cdef int max_idx
+        cdef int* used = &lt;int*&gt;malloc(n * sizeof(int))
+        
+        for i in range(n):
+            used[i] = 0
+        
+        for _ in range(k):
+            max_val = -1
+            max_idx = -1
+            for i in range(n):
+                if not used[i] and fabs(v[i]) &gt; max_val:
+                    max_val = fabs(v[i])
+                    max_idx = i
+            if max_idx &gt;= 0:
+                used[max_idx] = 1
+                result_view[max_idx] = v[max_idx]
+        
+        free(used)
+        return result
+    
+    # For larger arrays, use partial quickselect
+    cdef np.ndarray[double, ndim=1] abs_vals = np.empty(n, dtype=np.float64)
+    cdef np.ndarray[int, ndim=1] indices = np.arange(n, dtype=np.int32)
+    cdef double[:] abs_vals_view = abs_vals
+    cdef int[:] indices_view = indices
+    
+    # Compute absolute values
+    for i in range(n):
+        abs_vals_view[i] = fabs(v[i])
+    
+    # Find k largest using partial quickselect
+    partial_quickselect(abs_vals_view, indices_view, 0, n-1, k)
+    
+    # Copy the k largest values
+    for i in range(k):
+        result_view[indices_view[i]] = v[indices_view[i]]
+    
+    return result
+---</code></pre>
+            </div>
+        </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
