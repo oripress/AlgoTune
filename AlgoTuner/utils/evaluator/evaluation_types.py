@@ -58,6 +58,29 @@ class ExecutionResult:
 
 
 @dataclass(frozen=True)
+class CodeContext:
+    """Code context for errors and validation failures."""
+    error_line: Optional[int] = None
+    function_name: Optional[str] = None
+    code_snippet: Optional[str] = None
+    surrounding_lines: Optional[str] = None
+    
+    def format_for_display(self) -> str:
+        """Format context for user display."""
+        parts = []
+        if self.function_name:
+            parts.append(f"In function: {self.function_name}")
+        if self.error_line:
+            parts.append(f"Error at line: {self.error_line}")
+        if self.code_snippet:
+            parts.append(f"Code:\n{self.code_snippet}")
+        if self.surrounding_lines:
+            parts.append(f"Context:\n{self.surrounding_lines}")
+        
+        return "\n".join(parts) if parts else "No context available"
+
+
+@dataclass(frozen=True)
 class ValidationContext:
     """Context about why validation failed."""
     failure_line: Optional[int] = None
@@ -208,12 +231,36 @@ class AggregateMetrics:
 
 
 @dataclass(frozen=True)
+class ErrorContext:
+    """Context for critical errors that stop evaluation."""
+    error_type: ErrorType
+    error_message: str
+    code_context: Optional[CodeContext] = None
+    traceback: Optional[str] = None
+    problem_id: Optional[str] = None
+    
+    def format_for_display(self) -> str:
+        """Format error with context for display."""
+        parts = [self.error_message]
+        
+        if self.code_context:
+            parts.append(f"\n{self.code_context.format_for_display()}")
+        
+        if self.traceback and self.error_type == ErrorType.EXECUTION_ERROR:
+            # Only show traceback for execution errors, not validation errors
+            parts.append(f"\nTraceback:\n{self.traceback}")
+        
+        return "\n".join(parts)
+
+
+@dataclass(frozen=True)
 class DatasetResults:
     """Results for evaluating a solver on an entire dataset."""
     task_name: str
     results: List[ProblemResult]
     metrics: AggregateMetrics
     invalid_contexts: List[str] = field(default_factory=list)
+    early_exit_error: Optional[ErrorContext] = None
     evaluation_time_s: float = 0.0
     
     @property
@@ -230,6 +277,16 @@ class DatasetResults:
     
     def to_legacy_format(self) -> Dict[str, Any]:
         """Convert to legacy AttributedList format."""
+        # If there's an early exit error, return error format
+        if self.early_exit_error:
+            return {
+                "success": False,
+                "error": self.early_exit_error.error_message,
+                "error_type": self.early_exit_error.error_type.value,
+                "error_context": self.early_exit_error.format_for_display(),
+                "evaluation_type": "error"
+            }
+        
         # Convert results to legacy format
         legacy_results = [r.to_legacy_format() for r in self.results]
         

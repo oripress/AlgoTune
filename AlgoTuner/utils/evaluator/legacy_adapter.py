@@ -80,30 +80,13 @@ class LegacyAdapter:
         Returns:
             Legacy AttributedList with attached metrics, or dict for early exit errors
         """
-        # Check if this was an early exit due to critical error
-        if dataset_results.results and dataset_results.results[-1].execution.error_type in [
-            ErrorType.MEMORY_ERROR,
-            ErrorType.IMPORT_ERROR,
-            ErrorType.EXECUTION_ERROR,
-            ErrorType.TIMEOUT,
-        ]:
-            # Return early exit error format
-            last_result = dataset_results.results[-1]
-            return {
-                "success": False,
-                "problem_id": last_result.problem_id,
-                "error": last_result.execution.error,
-                "error_type": last_result.execution.error_type.value,
-                "traceback": last_result.execution.traceback,
-                "code_context": last_result.execution.error,  # Error already includes context
-                "evaluation_stopped_early": True,
-                "evaluation_type": "dataset",
-                "num_evaluated": len(dataset_results.results),
-                "total_problems": len(dataset_results.results)  # We don't know total on early exit
-            }
-        
-        # Convert to legacy format
+        # Convert to legacy format - this now handles early exit errors internally
         legacy_data = dataset_results.to_legacy_format()
+        
+        # Check if this is an error response
+        if legacy_data.get("evaluation_type") == "error":
+            # Return the error dict directly for immediate display
+            return legacy_data
         
         # Create AttributedList with results
         attributed_list = AttributedList(legacy_data.get("results", []))
@@ -168,7 +151,8 @@ class LegacyAdapter:
             solver_func=solver_func,
             task_name=kwargs.get("task_name"),
             baseline_func=kwargs.get("baseline_func"),
-            progress_callback=kwargs.get("progress_callback")
+            progress_callback=kwargs.get("progress_callback"),
+            baseline_times=kwargs.get("baseline_times")
         )
         
         # Convert to legacy format

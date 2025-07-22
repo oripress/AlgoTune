@@ -656,7 +656,20 @@ class MessageWriter:
         cleaned_traceback = MessageWriter._clean_traceback(traceback_str)
 
         logging.info(f"format_evaluation_result_from_raw: START. Input keys: {list(evaluation_output.keys())}")
-        is_full_dataset_eval = evaluation_output.get("evaluation_type") == "dataset"
+        evaluation_type = evaluation_output.get("evaluation_type")
+        is_full_dataset_eval = evaluation_type == "dataset"
+        is_error_eval = evaluation_type == "error"
+
+        # Handle early exit error - show error context immediately
+        if is_error_eval:
+            error_context = evaluation_output.get("error_context", "")
+            if error_context:
+                lines.append(error_context)
+            else:
+                # Fallback to standard error formatting
+                error_msg = evaluation_output.get("error", "Unknown error")
+                lines.append(f"Critical error: {error_msg}")
+            return "\n".join(lines)
 
         if is_full_dataset_eval:
             aggregate_metrics = evaluation_output.get("aggregate_metrics", {})

@@ -644,21 +644,90 @@ def _fork_run_worker(
         # 5) Aggressive cache clearing between warmup and timed
         # ------------------------------------------------------------------
         def clear_solver_caches():
-            """Clear all solver-level caches between warmup and timed runs."""
-            # Clear class-level caches by finding all Solver classes
+            """Clear all solver-level caches between warmup and timed runs.
+            
+            Safely clears caches while avoiding C++ registered class errors.
+            """
             import sys
+            import inspect
             cleared_caches = []
+            
+            # Known problematic modules with C++ registered classes
+            cpp_modules = {'torch', 'tensorflow'}
+            
             for module_name, module in sys.modules.items():
                 if hasattr(module, 'Solver'):
-                    solver_class = getattr(module, 'Solver')
-                    # Clear common cache attribute names
-                    for cache_attr in ['_cache', 'cache', '_memo', '_results']:
-                        if hasattr(solver_class, cache_attr):
-                            cache = getattr(solver_class, cache_attr)
-                            if isinstance(cache, dict):
-                                cache_size = len(cache)
-                                cache.clear()
-                                cleared_caches.append(f"{module_name}.Solver.{cache_attr} ({cache_size} entries)")
+                    try:
+                        solver_class = getattr(module, 'Solver')
+                        
+                        # Skip if it's not actually a class
+                        if not inspect.isclass(solver_class):
+                            continue
+                        
+                        # Skip if it's from a known C++ module
+                        solver_module = getattr(solver_class, '__module__', '')
+                        if any(cpp_mod in solver_module for cpp_mod in cpp_modules):
+                            logging.debug(f"[isolated_bm child] Skipping C++ registered Solver in {module_name}")
+                            continue
+                        
+                        # Clear common cache attribute names
+                        for cache_attr in ['_cache', 'cache', '_memo', '_results']:
+                            try:
+                                # Use getattr with default to safely check existence
+                                cache = getattr(solver_class, cache_attr, None)
+                                if cache is not None and isinstance(cache, dict):
+                                    cache_size = len(cache)
+                                    cache.clear()
+                                    cleared_caches.append(f"{module_name}.Solver.{cache_attr} ({cache_size} entries)")
+                            except (AttributeError, RuntimeError, TypeError) as e:
+                                # Skip attributes that can't be accessed (e.g., C++ registered attributes)
+                                if "Tried to instantiate class" in str(e) or "not registered" in str(e):
+                                    logging.debug(f"[isolated_bm child] Skipping C++ attribute {module_name}.Solver.{cache_attr}")
+                                continue
+                    except Exception as e:
+                        # Skip problematic Solver classes entirely
+                        if "Tried to instantiate class" in str(e) or "not registered" in str(e):
+                            logging.debug(f"[isolated_bm child] Skipping C++ registered Solver in {module_name}")
+                        continue
+            
+            # Clear known computation caches from scientific libraries
+            # These are safe to clear and important for timing accuracy
+            
+            # NumPy caches
+            try:
+                import numpy as np
+                # Clear any linalg caches
+                if hasattr(np.linalg, '_umath_linalg'):
+                    if hasattr(np.linalg._umath_linalg, '_cached_funcs'):
+                        np.linalg._umath_linalg._cached_funcs.clear()
+                        cleared_caches.append("numpy.linalg._cached_funcs")
+            except Exception:
+                pass
+            
+            # SciPy caches
+            try:
+                import scipy.linalg
+                # Clear LAPACK work array caches
+                if hasattr(scipy.linalg, '_flapack'):
+                    if hasattr(scipy.linalg._flapack, '_work_cache'):
+                        scipy.linalg._flapack._work_cache.clear()
+                        cleared_caches.append("scipy.linalg._work_cache")
+            except Exception:
+                pass
+            
+            # Clear functools caches in user modules
+            import functools
+            for module_name, module in sys.modules.items():
+                # Only clear caches from user code
+                module_file = getattr(module, '__file__', None)
+                if module_file and any(part in module_file for part in ['llm_src', 'AlgoTune', '/tmp/', 'solver']):
+                    for name, obj in inspect.getmembers(module):
+                        if hasattr(obj, 'cache_clear') and callable(obj.cache_clear):
+                            try:
+                                obj.cache_clear()
+                                cleared_caches.append(f"{module_name}.{name}.cache_clear()")
+                            except Exception:
+                                pass
             
             # Force garbage collection
             gc.collect()

@@ -1742,9 +1742,24 @@ class CommandHandlers:
                 test_mode=test_mode
             )
             
-            # Check if eval stopped early due to validation error (evaluate_code_on_dataset can return a dict in this case)
-            if isinstance(eval_output, dict) and eval_output.get("evaluation_stopped_early"):
-                # Early exit on dataset item evaluation error: extract code context as in eval_input
+            # Check if eval stopped early due to critical error (evaluate_code_on_dataset can return a dict in this case)
+            if isinstance(eval_output, dict) and (eval_output.get("evaluation_stopped_early") or eval_output.get("evaluation_type") == "error"):
+                # Early exit on critical error: use error_context if available
+                if eval_output.get("evaluation_type") == "error":
+                    # New format with error_context
+                    error_context = eval_output.get("error_context", "")
+                    if error_context:
+                        # Format the error context for display
+                        formatted_result = self.message_writer.format_evaluation_result_from_raw(eval_output)
+                        return CommandResult(
+                            success=False,
+                            message=formatted_result,
+                            error=eval_output.get("error_type", "CriticalError"),
+                            status=EvalStatus.FAILURE.value,
+                            data=eval_output
+                        )
+                
+                # Legacy format or fallback
                 problem_id = eval_output.get("problem_id")
                 err = eval_output.get('error', 'Unknown error during dataset item evaluation.')
                 tb_str = eval_output.get('traceback', '')

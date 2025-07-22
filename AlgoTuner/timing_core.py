@@ -359,4 +359,20 @@ def main():
 
 
 if __name__ == "__main__":
+    # CRITICAL: Initialize multiprocessing support before anything else
+    # This prevents the "freeze_support" error when using forkserver
+    import multiprocessing
+    multiprocessing.freeze_support()
+    
+    # Set the multiprocessing start method early to match isolated_benchmark.py
+    try:
+        multiprocessing.set_start_method('forkserver', force=True)
+    except RuntimeError:
+        # Already set, which is fine
+        pass
+    
+    # Set NUMBA threading layer for fork safety
+    if "NUMBA_THREADING_LAYER" not in os.environ:
+        os.environ["NUMBA_THREADING_LAYER"] = "workqueue"
+    
     main() 
