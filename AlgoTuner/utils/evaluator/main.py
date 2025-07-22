@@ -878,22 +878,20 @@ def evaluate_code_on_dataset(
                 break
                 
             if isinstance(item, dict):
-                # IMPORTANT: Always use index-based ID for baseline lookup
-                # Baseline generation uses f"problem_{idx+1}" as keys, NOT dataset IDs
-                item_id = f"problem_{i+1}"
-                # Store original ID from dataset for logging/debugging only
-                dataset_id = item.get(problem_id_key) or item.get("k")
+                # Extract ID using same logic as baseline generation
+                dataset_id = item.get("id", item.get("seed", item.get("k", None)))
+                if dataset_id is not None:
+                    item_id = str(dataset_id)
+                else:
+                    item_id = f"problem_{i+1}"
                 
                 # Get baseline time using the ID
                 baseline_time = None
                 if baseline_times:
                     baseline_time = baseline_times.get(item_id)
                     
-                    # Only raise error if we have non-empty baseline_times but missing this specific key
-                    # Empty baseline_times means we're generating baselines, not using them
                     if baseline_time is None and len(baseline_times) > 0:
                         error_msg = (f"CRITICAL ERROR: No baseline time found for {item_id}. "
-                                   f"Dataset ID was '{dataset_id}'. "
                                    f"Available baseline keys: {list(baseline_times.keys())[:10]}...")
                         logging.error(error_msg)
                         raise RuntimeError(error_msg)
@@ -905,7 +903,7 @@ def evaluate_code_on_dataset(
                 }
                 
                 # Debug logging
-                if i < 5:  # Log first 5 items
+                if i < 5:
                     logging.info(f"Problem {i+1}: item_id='{item_id}', baseline_time={baseline_time}")
                 # Include other metadata
                 for key, value in item.items():
@@ -956,6 +954,7 @@ def evaluate_code_on_dataset(
                 dataset=chunk,
                 solver_func=solver_func,
                 task_name=getattr(task_obj, 'task_name', task_obj.__class__.__name__),
+                baseline_times=baseline_times,
             )
             
             # Convert chunk results to legacy format
