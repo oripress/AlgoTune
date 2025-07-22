@@ -14,17 +14,24 @@ class CumulativeSimpsonMultiD(Task):
 
     def generate_problem(self, n: int = 1000, random_seed: int = 1) -> dict:
         """
-        Generate a multi-dimensional problem for cumulative Simpson integration.
-        Creates a 1D array of n points sampled from sin(2πx) over [0, 5],
-        and tiles this array to form a (100, 100, n) array.
-        Returns this multi-dimensional array along with the spacing (dx).
+        Generate a (100, 100, n) array whose last axis is sampled on a uniform grid
+        over [0, 5] but whose amplitude and phase vary per (i, j) “pixel”.
+
+        The random seed controls two (100×100) arrays:
+        • `A`   – amplitudes in [0.5, 1.5]  
+        • `phi` – phases in [0, 2π)
+
+        y2[i, j, k] = A[i, j] * sin(2π x[k] + phi[i, j])
         """
-        logging.debug(
-            f"Generating multi-dimensional cumulative Simpson problem with n={n} and random_seed={random_seed}."
-        )
-        x, dx = np.linspace(0, 5, n, retstep=True)
-        y = np.sin(2 * np.pi * x)
-        y2 = np.tile(y, (100, 100, 1))
+        rng = np.random.default_rng(random_seed)
+
+        x, dx = np.linspace(0, 5, n, retstep=True)      # 1‑D grid
+        x = x[None, None, :]                            # shape (1,1,n) for broadcasting
+
+        A   = rng.uniform(0.5, 1.5,  size=(100, 100, 1))        # amplitudes
+        phi = rng.uniform(0, 2 * np.pi, size=(100, 100, 1))     # phases
+
+        y2 = A * np.sin(2 * np.pi * x + phi)            # broadcast multiply/add
         return {"y2": y2, "dx": dx}
 
     def solve(self, problem: dict) -> NDArray:

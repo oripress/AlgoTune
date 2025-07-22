@@ -12,17 +12,20 @@ class CumulativeSimpson1D(Task):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def generate_problem(self, n: int = 1000, random_seed: int = 1) -> dict:
+    def generate_problem(self, n: int = 1000, random_seed: int = 1, k_max: int = 4) -> dict:
         """
-        Generate a 1D problem for cumulative Simpson integration.
-        Creates an array of n points sampled from sin(2πx) over the interval [0, 5],
-        and returns the array along with the spacing (dx) between points.
+        Generate a richer signal: sum_{k=1..K} a_k sin(2π k x + φ_k) with random
+        coefficients.  K (=k_max) can be kept small so the integral remains smooth.
         """
-        logging.debug(
-            f"Generating 1D cumulative Simpson problem with n={n} and random_seed={random_seed}."
-        )
+        rng = np.random.default_rng(random_seed)
         x, dx = np.linspace(0, 5, n, retstep=True)
-        y = np.sin(2 * np.pi * x)
+
+        ks     = rng.integers(1, k_max + 1, size=k_max)      # frequencies
+        amps   = rng.uniform(0.3, 1.0,   size=k_max)         # amplitudes
+        phases = rng.uniform(0, 2 * np.pi, size=k_max)       # phases
+
+        y = sum(A * np.sin(2 * np.pi * k * x + φ)
+                for A, k, φ in zip(amps, ks, phases))
         return {"y": y, "dx": dx}
 
     def solve(self, problem: dict) -> NDArray:
