@@ -4,6 +4,7 @@ import litellm
 import sys
 import logging
 import warnings
+import multiprocessing
 from AlgoTuner.config.loader import load_config
 from AlgoTuner.config.model_config import GlobalConfig, GenericAPIModelConfig
 from AlgoTuner.interfaces.llm_interface import LLMInterface
@@ -17,6 +18,19 @@ import fcntl
 import math
 from pathlib import Path
 from typing import Optional
+
+# Ensure proper multiprocessing initialization before any imports that might use it
+if __name__ == '__main__':
+    # The AlgoTuner system uses forkserver for process isolation
+    try:
+        multiprocessing.set_start_method('forkserver', force=True)
+    except RuntimeError:
+        # Already set, which is fine
+        pass
+    
+    # Also set NUMBA threading layer for fork safety
+    if "NUMBA_THREADING_LAYER" not in os.environ:
+        os.environ["NUMBA_THREADING_LAYER"] = "workqueue"
 
 warnings.filterwarnings("ignore", ".*resource_tracker.*")
 warnings.filterwarnings("ignore", ".*loky.*")

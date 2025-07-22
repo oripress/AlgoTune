@@ -12,7 +12,9 @@ from AlgoTuner.utils.evaluator.evaluation_types import (
     ProblemResult,
     RunnerConfig,
     ExecutionResult,
-    ErrorType
+    ErrorType,
+    ErrorContext,
+    CodeContext
 )
 from AlgoTuner.utils.evaluator.solver_executor import SolverExecutor
 from AlgoTuner.utils.evaluator.validation_pipeline import ValidationPipeline
@@ -89,6 +91,10 @@ class EvaluationOrchestrator:
             problem, metadata = self._extract_problem_data(problem_data)
             problem_id = metadata.get("id", f"problem_{i+1}")
             
+            # Ensure problem_id is a string for consistent dictionary lookups
+            if problem_id is not None:
+                problem_id = str(problem_id)
+            
             # Get warmup problem (next problem in dataset, wrapping around)
             warmup_idx = (i + 1) % len(dataset)
             warmup_problem_data = dataset[warmup_idx]
@@ -141,16 +147,36 @@ class EvaluationOrchestrator:
             )
             
             if execution_is_critical or validation_is_critical:
+                # Extract error context for immediate display
+                if validation_is_critical:
+                    # Validation error - extract context from validation result
+                    error_context = ErrorContext(
+                        error_type=result.validation.error_type,
+                        error_message=result.validation.error_message or "Validation failed",
+                        code_context=self._extract_code_context(result.validation),
+                        traceback=None,  # Validation errors don't have tracebacks in the same way
+                        problem_id=problem_id
+                    )
+                else:
+                    # Execution error - extract context from execution result
+                    error_context = ErrorContext(
+                        error_type=result.execution.error_type,
+                        error_message=result.execution.error or "Execution failed",
+                        code_context=None,  # Execution errors have traceback instead
+                        traceback=result.execution.traceback,
+                        problem_id=problem_id
+                    )
+                
                 error_source = "execution" if execution_is_critical else "validation"
-                error_type = (result.execution.error_type.value if execution_is_critical 
-                             else result.validation.error_type.value)
-                self.logger.error(f"Critical {error_source} error encountered, stopping evaluation: {error_type}")
-                # Create a special result that indicates early exit
+                self.logger.error(f"Critical {error_source} error encountered, stopping evaluation: {error_context.error_type.value}")
+                
+                # Return with early exit error for immediate display
                 return DatasetResults(
                     task_name=task_name,
-                    results=results,  # Include results up to this point
+                    results=results,
                     metrics=self.aggregator._compute_metrics(results),
-                    invalid_contexts=[],  # Don't collect invalid contexts on early exit
+                    invalid_contexts=[],
+                    early_exit_error=error_context,
                     evaluation_time_s=time.perf_counter() - start_time
                 )
             
@@ -292,8 +318,9 @@ class EvaluationOrchestrator:
             problem = problem_data.get("problem", problem_data)
             
             # Build metadata
+            # Use seed as ID if available (it's the unique identifier in datasets)
             metadata = {
-                "id": problem_data.get("id", problem_data.get("k", None)),
+                "id": problem_data.get("id", problem_data.get("seed", problem_data.get("k", None))),
                 "baseline_time_ms": problem_data.get("baseline_time_ms"),
                 "baseline_time_us": problem_data.get("baseline_time_us"),
             }
@@ -319,3 +346,16 @@ class EvaluationOrchestrator:
                 "use_isolated_execution": self.config.use_isolated_execution,
             }
         }
+    
+    def _extract_code_context(self, validation_result) -> Optional[CodeContext]:
+        """Extract code context from validation result."""
+        if not validation_result or not validation_result.context:
+            return None
+        
+        ctx = validation_result.context
+        return CodeContext(
+            error_line=ctx.failure_line,
+            function_name=None,  # Could be extracted from context if available
+            code_snippet=ctx.code_snippet,
+            surrounding_lines=ctx.full_context
+        )
