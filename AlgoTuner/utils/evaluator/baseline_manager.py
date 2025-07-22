@@ -136,10 +136,26 @@ class BaselineManager:
         
         problem_count = len(dataset_list)
         for i, item in enumerate(dataset_list):
-            problem_id = f"problem_{i+1}"
+            # Extract problem ID the same way as evaluation orchestrator
+            if isinstance(item, dict):
+                # Build metadata exactly like evaluation_orchestrator._extract_problem_data (line 300)
+                # Use seed as ID if available (it's the unique identifier in datasets)
+                metadata = {
+                    "id": item.get("id", item.get("seed", item.get("k", None))),
+                    "baseline_time_ms": item.get("baseline_time_ms"),
+                    "baseline_time_us": item.get("baseline_time_us"),
+                }
+                problem_data = item.get('problem', item)
+            else:
+                metadata = {"id": None, "baseline_time_ms": None, "baseline_time_us": None}
+                problem_data = item
             
-            # Get the problem data
-            problem_data = item.get('problem', item) if isinstance(item, dict) else item
+            # Use same ID extraction logic as evaluation_orchestrator.py:90
+            problem_id = metadata.get("id", f"problem_{i+1}")
+            
+            # Ensure problem_id is a string for consistent dictionary lookups
+            if problem_id is not None:
+                problem_id = str(problem_id)
             
             # Get warmup problem (use next problem in dataset, wrapping around)
             warmup_idx = (i + 1) % problem_count
