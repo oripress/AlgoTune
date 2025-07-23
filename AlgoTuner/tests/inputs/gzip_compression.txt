@@ -1,0 +1,82 @@
+[INPUT_SEPARATOR]
+---
+```
+edit
+file: solver.py
+lines: 1-80
+---
+import zlib
+import struct
+import os
+from multiprocessing import Pool
+from typing import Any, List
+
+# This worker function must be defined at the top level of the module
+# so it can be pickled by the multiprocessing library.
+def _compress_chunk(chunk: bytes) -> bytes:
+    """Compresses a single chunk of data into a raw DEFLATE stream."""
+    # We use zlib.compressobj to create a raw DEFLATE stream by setting
+    # wbits to -zlib.MAX_WBITS. This is necessary because we are
+    # concatenating these streams manually. The compression parameters
+    # (level=9, memLevel=8) are chosen to match the baseline's zlib usage
+    # to keep the compression ratio high.
+    compressor = zlib.compressobj(
+        level=9,
+        method=zlib.DEFLATED,
+        wbits=-zlib.MAX_WBITS,
+        memLevel=8,
+        strategy=zlib.Z_DEFAULT_STRATEGY
+    )
+    return compressor.compress(chunk) + compressor.flush()
+
+class Solver:
+    def solve(self, problem: dict[str, Any]) -> dict[str, bytes]:
+        """
+        Compresses plaintext in parallel using a pigz-like strategy.
+        """
+        plaintext = problem["plaintext"]
+        
+        # The bottleneck is the CPU-bound DEFLATE algorithm. We parallelize it
+        # by splitting the input into chunks and compressing them on different cores.
+        # This is similar to how the `pigz` (parallel gzip) utility works.
+        
+        num_processes = os.cpu_count() or 1
+
+        # For small inputs or single-core systems, parallelization overhead is not worth it.
+        # We use a 256KB threshold, below which we use a direct serial method.
+        if num_processes == 1 or len(plaintext) < 256 * 1024:
+            compressor = zlib.compressobj(level=9, wbits=-zlib.MAX_WBITS, memLevel=8)
+            compressed_body = compressor.compress(plaintext) + compressor.flush()
+        else:
+            # Use a chunk size of 128 KB, the default for pigz, as a balance
+            # between parallelism and compression ratio.
+            chunk_size = 128 * 1024
+            chunks = [plaintext[i:i + chunk_size] for i in range(0, len(plaintext), chunk_size)]
+
+            # Use a multiprocessing Pool to compress chunks in parallel.
+            with Pool(processes=num_processes) as pool:
+                compressed_chunks = pool.map(_compress_chunk, chunks)
+            
+            # Join the compressed chunks to form the main body of the gzip file.
+            compressed_body = b"".join(compressed_chunks)
+
+        # A valid gzip file can be formed by wrapping the (potentially concatenated)
+        # DEFLATE stream with a standard header and footer.
+        
+        # Gzip header (10 bytes)
+        header = (
+            b'\x1f\x8b\x08\x00' +      # Magic number, DEFLATE method, no flags
+            struct.pack('<L', 0) +    # MTIME = 0 for determinism
+            b'\x02\xff'              # Extra flags (max compression), OS (unknown)
+        )
+
+        # Gzip footer (8 bytes) - CRC32 and size of the *original* data.
+        footer = struct.pack(
+            '<LL',
+            zlib.crc32(plaintext),
+            len(plaintext) & 0xFFFFFFFF
+        )
+
+        return {"compressed_data": header + compressed_body + footer}
+---
+```
