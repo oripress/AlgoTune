@@ -34,6 +34,7 @@ def load_config(config_path: str = f"{_CONFIG_DIR_NAME}/{_DEFAULT_CONFIG_FILENAM
             _config_cache = {} # Cache the empty dict
             return _config_cache
 
+        # Build potential paths - avoid Path.cwd() which can fail if directory doesn't exist
         potential_paths = [
             # Environment variable override - HIGHEST PRIORITY
             Path(os.environ.get("ALGOTUNE_CONFIG_PATH")) if os.environ.get("ALGOTUNE_CONFIG_PATH") else None,
@@ -43,16 +44,27 @@ def load_config(config_path: str = f"{_CONFIG_DIR_NAME}/{_DEFAULT_CONFIG_FILENAM
 
             # Path relative to this loader.py file's parent's parent (project root)
             Path(__file__).resolve().parent.parent / _CONFIG_DIR_NAME / _DEFAULT_CONFIG_FILENAME,
-
-            Path(config_path),  # Path as provided (e.g., "config/config.yaml" relative to CWD)
-
-            # Path relative to CWD if config_path was just the default "config/config.yaml"
-            # This is somewhat redundant with Path(config_path) if config_path is default and CWD is stable
-            Path.cwd() / _CONFIG_DIR_NAME / _DEFAULT_CONFIG_FILENAME,
-
-            # Path if config_path was just "config.yaml" and it's in CWD
-            Path.cwd() / _DEFAULT_CONFIG_FILENAME if config_path == _DEFAULT_CONFIG_FILENAME else None,
         ]
+        
+        # Only add CWD-based paths if we can safely get the current directory
+        try:
+            cwd = Path.cwd()
+            potential_paths.extend([
+                Path(config_path),  # Path as provided (e.g., "config/config.yaml" relative to CWD)
+                
+                # Path relative to CWD if config_path was just the default "config/config.yaml"
+                cwd / _CONFIG_DIR_NAME / _DEFAULT_CONFIG_FILENAME,
+                
+                # Path if config_path was just "config.yaml" and it's in CWD
+                cwd / _DEFAULT_CONFIG_FILENAME if config_path == _DEFAULT_CONFIG_FILENAME else None,
+            ])
+        except (OSError, FileNotFoundError):
+            # Can't get current directory - it may have been deleted
+            # Still try to use config_path as an absolute path if it looks absolute
+            if config_path and os.path.isabs(config_path):
+                potential_paths.append(Path(config_path))
+            else:
+                print(f"Warning: Cannot access current directory and config_path '{config_path}' is relative", file=os.sys.stderr)
 
         loaded_config = None # Variable to store the successfully loaded config
 

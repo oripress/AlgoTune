@@ -126,7 +126,7 @@ class EvaluationOrchestrator:
             # Log individual problem completion with detailed metrics
             status = "valid" if result.is_valid else "invalid"
             speedup_str = f"speedup={result.speedup:.2f}x" if result.speedup else "speedup=N/A"
-            time_str = f"time={result.execution.timing.min_ms:.2f}ms" if result.execution.timing else "time=N/A"
+            time_str = f"time={result.execution.timing.min_ms:.2f}ms" if (result.execution.timing and result.execution.timing.min_ms is not None) else "time=N/A"
             error_str = f", error={result.execution.error}" if result.execution.error else ""
             
             self.logger.info(

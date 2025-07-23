@@ -92,6 +92,22 @@ import traceback
 import numpy as np
 from pathlib import Path
 import glob
+import multiprocessing
+
+# CRITICAL: Initialize multiprocessing support before any imports that might use it
+if __name__ == '__main__':
+    multiprocessing.freeze_support()
+    
+    # Set the multiprocessing start method early to match isolated_benchmark.py
+    try:
+        multiprocessing.set_start_method('forkserver', force=True)
+    except RuntimeError:
+        # Already set, which is fine
+        pass
+    
+    # Set NUMBA threading layer for fork safety
+    if "NUMBA_THREADING_LAYER" not in os.environ:
+        os.environ["NUMBA_THREADING_LAYER"] = "workqueue"
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:python_eval:%(message)s")
 
@@ -104,104 +120,108 @@ import argparse
 from AlgoTuner.utils.streaming_json import stream_jsonl
 from AlgoTuner.utils.evaluator.loader import load_task
 from AlgoTuner.utils.evaluator.main import evaluate_baseline_dataset
+from AlgoTuner.utils.evaluator.cached_baseline_evaluator import evaluate_baseline_dataset_cached
 from AlgoTuner.config.loader import load_config
 from AlgoTuner.utils.evaluator.runner import DATASET_RUNS, DATASET_WARMUPS
 
-parser = argparse.ArgumentParser()
-parser.add_argument("task_name")
-parser.add_argument("data_dir")
-parser.add_argument("run_id", type=int)
-parser.add_argument("target_time_ms", type=int)
-args = parser.parse_args()
+# Main execution must be inside the if __name__ == '__main__': block
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("task_name")
+    parser.add_argument("data_dir")
+    parser.add_argument("run_id", type=int)
+    parser.add_argument("target_time_ms", type=int)
+    args = parser.parse_args()
 
-task_name = args.task_name
-data_dir = args.data_dir
-run_id = args.run_id
-target_time_ms = args.target_time_ms
+    task_name = args.task_name
+    data_dir = args.data_dir
+    run_id = args.run_id
+    target_time_ms = args.target_time_ms
 
-results = {
-    "success": False,
-    "error": None,
-    "avg_min_ms": None,
-    "std_min_ms": None,
-    "target_time_ms": target_time_ms
-}
+    results = {
+        "success": False,
+        "error": None,
+        "avg_min_ms": None,
+        "std_min_ms": None,
+        "target_time_ms": target_time_ms
+    }
 
-# Apply pysat fixes for multiprocessing compatibility
-try:
-    from AlgoTuner.utils.pysat_fix import apply_pysat_fixes
-    apply_pysat_fixes()
-    logging.info("Applied pysat fixes for multiprocessing compatibility")
-except Exception as exc:
-    logging.warning(f"Failed to apply pysat fixes: {exc}")
-
-try:
-    logging.info(f"Loading task '{task_name}', setting target_time_ms={target_time_ms}")
-    task_instance = load_task(task_name=task_name, data_dir=data_dir)
-    if task_instance is None:
-        raise ValueError(f"load_task returned None for '{task_name}'")
-
-    if hasattr(task_instance, "_target_time_ms"):
-        task_instance._target_time_ms = target_time_ms
-    elif hasattr(task_instance, "set_target_time"):
-        task_instance.set_target_time(target_time_ms)
-
-    baseline_times_filename = f"baseline_times_{task_name}_{run_id}_{target_time_ms}_{os.getpid()}.json"
-    baseline_times_filepath = os.path.join(os.environ.get("TEMP_DIR_STORAGE", "/tmp"), baseline_times_filename)
-
-    # Find the train JSONL file for the task
-    train_files = glob.glob(os.path.join(data_dir, f"{task_name}_T{target_time_ms}ms_n*_size*_train.jsonl"))
-    if not train_files:
-        raise FileNotFoundError(f"No train JSONL file found in {data_dir} for task {task_name} with target time {target_time_ms}ms")
-    train_jsonl = train_files[0]
-    dataset_iterable = stream_jsonl(train_jsonl)
-
-    logging.info(f"Evaluating baseline with target_time={target_time_ms} → writing to {baseline_times_filepath}")
-    returned_fp = evaluate_baseline_dataset(
-        task_obj=task_instance,
-        dataset_iterable=dataset_iterable,
-        num_runs=DATASET_RUNS,
-        warmup_runs=DATASET_WARMUPS,
-        output_file=baseline_times_filepath,
-        jsonl_path=train_jsonl  # Pass the path so it can stream directly
-    )
-    logging.info(f"Evaluation done; reading results from {returned_fp}")
-
-    with open(returned_fp, "r") as f:
-        problem_times_dict = json.load(f)
-
-    min_times_ms = [
-        float(v) for v in problem_times_dict.values()
-        if v is not None and isinstance(v, (int, float)) and float(v) > 0
-    ]
-    if not min_times_ms:
-        raise ValueError("No valid positive baseline times found → treating as failure.")
-
-    results["avg_min_ms"] = float(np.mean(min_times_ms))
-    results["std_min_ms"] = float(np.std(min_times_ms))
-    results["success"] = True
-    logging.info(f"SUCCESS: avg={results['avg_min_ms']:.2f} ms, std={results['std_min_ms']:.2f} ms")
+    # Apply pysat fixes for multiprocessing compatibility
+    try:
+        from AlgoTuner.utils.pysat_fix import apply_pysat_fixes
+        apply_pysat_fixes()
+        logging.info("Applied pysat fixes for multiprocessing compatibility")
+    except Exception as exc:
+        logging.warning(f"Failed to apply pysat fixes: {exc}")
 
     try:
-        os.remove(returned_fp)
-    except OSError:
-        pass
+        logging.info(f"Loading task '{task_name}', setting target_time_ms={target_time_ms}")
+        task_instance = load_task(task_name=task_name, data_dir=data_dir)
+        if task_instance is None:
+            raise ValueError(f"load_task returned None for '{task_name}'")
 
-except Exception as e:
-    err_msg = f"target_time={target_time_ms}ms failed: {e}"
-    logging.error(err_msg)
-    logging.debug(traceback.format_exc())
-    results["error"] = err_msg
+        if hasattr(task_instance, "_target_time_ms"):
+            task_instance._target_time_ms = target_time_ms
+        elif hasattr(task_instance, "set_target_time"):
+            task_instance.set_target_time(target_time_ms)
 
-print(json.dumps({
-    "task_name": task_name,
-    "run_id": run_id,
-    "success": results["success"],
-    "error": results["error"],
-    "avg_min_ms": results["avg_min_ms"],
-    "std_min_ms": results["std_min_ms"],
-    "target_time_ms": results["target_time_ms"]
-}))
+        baseline_times_filename = f"baseline_times_{task_name}_{run_id}_{target_time_ms}_{os.getpid()}.json"
+        baseline_times_filepath = os.path.join(os.environ.get("TEMP_DIR_STORAGE", "/tmp"), baseline_times_filename)
+
+        # Find the train JSONL file for the task
+        train_files = glob.glob(os.path.join(data_dir, f"{task_name}_T{target_time_ms}ms_n*_size*_train.jsonl"))
+        if not train_files:
+            raise FileNotFoundError(f"No train JSONL file found in {data_dir} for task {task_name} with target time {target_time_ms}ms")
+        train_jsonl = train_files[0]
+        dataset_iterable = stream_jsonl(train_jsonl)
+
+        logging.info(f"Evaluating baseline with target_time={target_time_ms} → writing to {baseline_times_filepath}")
+        # Use cached evaluation for better performance
+        returned_fp = evaluate_baseline_dataset_cached(
+            task_obj=task_instance,
+            dataset_iterable=dataset_iterable,
+            num_runs=DATASET_RUNS,
+            warmup_runs=DATASET_WARMUPS,
+            output_file=baseline_times_filepath,
+            jsonl_path=train_jsonl  # Pass the path so it can stream directly
+        )
+        logging.info(f"Evaluation done; reading results from {returned_fp}")
+
+        with open(returned_fp, "r") as f:
+            problem_times_dict = json.load(f)
+
+        min_times_ms = [
+            float(v) for v in problem_times_dict.values()
+            if v is not None and isinstance(v, (int, float)) and float(v) > 0
+        ]
+        if not min_times_ms:
+            raise ValueError("No valid positive baseline times found → treating as failure.")
+
+        results["avg_min_ms"] = float(np.mean(min_times_ms))
+        results["std_min_ms"] = float(np.std(min_times_ms))
+        results["success"] = True
+        logging.info(f"SUCCESS: avg={results['avg_min_ms']:.2f} ms, std={results['std_min_ms']:.2f} ms")
+
+        try:
+            os.remove(returned_fp)
+        except OSError:
+            pass
+
+    except Exception as e:
+        err_msg = f"target_time={target_time_ms}ms failed: {e}"
+        logging.error(err_msg)
+        logging.debug(traceback.format_exc())
+        results["error"] = err_msg
+
+    print(json.dumps({
+        "task_name": task_name,
+        "run_id": run_id,
+        "success": results["success"],
+        "error": results["error"],
+        "avg_min_ms": results["avg_min_ms"],
+        "std_min_ms": results["std_min_ms"],
+        "target_time_ms": results["target_time_ms"]
+    }))
 PYHELPER
 
 chmod +x "$TEMP_PYTHON_SCRIPT_HOST"

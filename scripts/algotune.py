@@ -34,6 +34,21 @@ from pathlib import Path
 import time
 import os
 import re
+import multiprocessing
+
+# Ensure proper multiprocessing initialization
+if __name__ == '__main__':
+    # The AlgoTuner system uses forkserver for process isolation
+    # Set it early to avoid the "freeze_support" error
+    try:
+        multiprocessing.set_start_method('forkserver', force=True)
+    except RuntimeError:
+        # Already set, which is fine
+        pass
+    
+    # Also set NUMBA threading layer for fork safety (matching isolated_benchmark.py)
+    if "NUMBA_THREADING_LAYER" not in os.environ:
+        os.environ["NUMBA_THREADING_LAYER"] = "workqueue"
 
 # Add project to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))

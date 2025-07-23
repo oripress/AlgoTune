@@ -798,6 +798,10 @@ def _fork_run_worker(
         # End of worker
         # ------------------------------------------------------------------
 
+    except MemoryError as exc:
+        # Explicitly catch MemoryError to provide a clear error message with traceback
+        ret_dict["success"] = False
+        ret_dict["error"] = f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}"
     except Exception as exc:  # pragma: no cover – we just forward error info
         ret_dict["success"] = False
         ret_dict["error"] = f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}"

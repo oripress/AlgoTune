@@ -125,38 +125,104 @@ def load_generation_data(generation_file: Path) -> Dict[str, Dict]:
         return {}
 
 
+def filter_used_files(code_dir: Path) -> List[str]:
+    """
+    Return only files that are actually used by solver.py (same logic as trajectories_to_html.py).
+    
+    Starts with solver.py and recursively finds all imported files to avoid
+    compiling unused artifacts like leftover Cython files.
+    """
+    import re
+    
+    # Check if solver.py exists
+    solver_path = code_dir / "solver.py"
+    if not solver_path.exists():
+        return []
+    
+    # Get all files in directory  
+    all_files = {f.name: f.read_text(encoding='utf-8', errors='ignore') 
+                 for f in code_dir.iterdir() if f.is_file()}
+    
+    if "solver.py" not in all_files:
+        return []
+    
+    import_pattern = re.compile(r"^\s*(?:from|import)\s+([a-zA-Z_][\w\.]*)", re.MULTILINE)
+    
+    # Extensions we consider as source files for a Python import
+    _SOURCE_EXTS = (".py", ".pyx", ".pxd", ".c", ".cc", ".cpp", ".h", ".hpp")
+    
+    used_files = {"solver.py"}
+    queue = ["solver.py"]
+    
+    while queue:
+        fname = queue.pop()
+        code_text = all_files.get(fname, "")
+        if not isinstance(code_text, str):
+            continue
+        
+        # Look for top-level import statements and map them to candidate files
+        for match in import_pattern.finditer(code_text):
+            module_path = match.group(1).lstrip(".")  # strip any relative dots
+            base_mod = module_path.split(".")[0]
+            for ext in _SOURCE_EXTS:
+                candidate = f"{base_mod}{ext}"
+                if candidate in all_files and candidate not in used_files:
+                    used_files.add(candidate)
+                    queue.append(candidate)
+    
+    # Include setup.py only if we detected any non-Python source files (Cython/C/C++)
+    compilation_exts = (".pyx", ".pxd", ".c", ".cc", ".cpp", ".h", ".hpp")
+    needs_setup = any(fname.endswith(compilation_exts) for fname in used_files)
+    if needs_setup and "setup.py" in all_files:
+        used_files.add("setup.py")
+    
+    return list(used_files)
+
+
 def needs_compilation(code_dir: Path) -> Tuple[bool, List[str]]:
-    """Check if code directory contains files that need compilation."""
+    """Check if code directory contains files that need compilation (only for actually used files)."""
+    # First filter to only used files
+    used_files = filter_used_files(code_dir)
+    if not used_files:
+        return False, []
+    
     compilation_indicators = []
     
-    # Check for setup.py or pyproject.toml
-    if (code_dir / "setup.py").exists():
+    # Check for setup.py or pyproject.toml (only if they're actually used)
+    if "setup.py" in used_files and (code_dir / "setup.py").exists():
         compilation_indicators.append("setup.py")
-    if (code_dir / "pyproject.toml").exists():
+    if "pyproject.toml" in used_files and (code_dir / "pyproject.toml").exists():
         compilation_indicators.append("pyproject.toml")
     
-    # Check for Cython files
-    cython_files = list(code_dir.glob("*.pyx")) + list(code_dir.glob("*.pxd"))
-    if cython_files:
-        compilation_indicators.extend([f.name for f in cython_files])
+    # Check for Cython files (only used ones)
+    for fname in used_files:
+        if fname.endswith(('.pyx', '.pxd')):
+            if (code_dir / fname).exists():
+                compilation_indicators.append(fname)
     
-    # Check for Pythran files (contains "pythran export")
-    for py_file in code_dir.glob("*.py"):
-        try:
-            content = py_file.read_text(encoding='utf-8', errors='ignore')
-            if "pythran export" in content.lower():
-                compilation_indicators.append(f"{py_file.name} (Pythran)")
-        except Exception:
-            pass
+    # Check for Pythran files (contains "pythran export") - only used ones
+    for fname in used_files:
+        if fname.endswith('.py'):
+            py_file = code_dir / fname
+            if py_file.exists():
+                try:
+                    content = py_file.read_text(encoding='utf-8', errors='ignore')
+                    if "pythran export" in content.lower():
+                        compilation_indicators.append(f"{fname} (Pythran)")
+                except Exception:
+                    pass
     
-    # Check for DaCe files (contains "@dace.program")
-    for py_file in code_dir.glob("*.py"):
-        try:
-            content = py_file.read_text(encoding='utf-8', errors='ignore')
-            if "@dace.program" in content:
-                compilation_indicators.append(f"{py_file.name} (DaCe)")
-        except Exception:
-            pass
+    # Check for DaCe files (contains "@dace.program") - only used ones
+    for fname in used_files:
+        if fname.endswith('.py'):
+            py_file = code_dir / fname
+            if py_file.exists():
+                try:
+                    content = py_file.read_text(encoding='utf-8', errors='ignore')
+                    if "@dace.program" in content:
+                        compilation_indicators.append(f"{fname} (DaCe)")
+                except Exception:
+                    pass
     
     return len(compilation_indicators) > 0, compilation_indicators
 
@@ -209,6 +275,29 @@ def compile_code_if_needed(source_code_dir: Path, task_name: str) -> Tuple[bool,
                         # Non-fatal - continue with other files
             except Exception as e:
                 logging.warning(f"Error checking/compiling Pythran file {py_file}: {e}")
+        
+        # Handle DaCe files
+        for py_file in source_code_dir.glob("*.py"):
+            try:
+                content = py_file.read_text(encoding='utf-8', errors='ignore')
+                if "@dace.program" in content:
+                    logging.info(f"DaCe file detected: {py_file}")
+                    # DaCe compiles JIT, but we can pre-compile by importing
+                    # This ensures any compilation errors are caught early
+                    import_name = py_file.stem
+                    logging.info(f"Pre-compiling DaCe module: {import_name}")
+                    # Add the directory to sys.path temporarily
+                    sys.path.insert(0, str(source_code_dir))
+                    try:
+                        __import__(import_name)
+                        logging.info(f"DaCe module {import_name} loaded successfully")
+                    except Exception as e:
+                        logging.warning(f"DaCe pre-compilation warning: {e}")
+                        # Non-fatal - DaCe will compile JIT during execution
+                    finally:
+                        sys.path.pop(0)
+            except Exception as e:
+                logging.warning(f"Error checking DaCe file {py_file}: {e}")
                 
         return True, "Compilation completed"
         
@@ -217,208 +306,288 @@ def compile_code_if_needed(source_code_dir: Path, task_name: str) -> Tuple[bool,
         return False, f"Compilation error: {e}"
 
 
-def run_baseline_benchmark(task_name: str, generation_data: Dict, data_dir: Path) -> Optional[float]:
-    """Run baseline benchmark for a task."""
-    try:
-        from AlgoTuneTasks.factory import TaskFactory
-        from AlgoTuner.config.loader import load_config
-        
-        # Create task instance to use its dataset loading logic
-        config = load_config()
-        task_config = config.get('tasks', {}).get(task_name, {})
-        oracle_time_limit = task_config.get('oracle_time_limit')
-        
-        task_instance = TaskFactory(task_name, oracle_time_limit=oracle_time_limit, data_dir=str(data_dir))
-        
-        # Load test dataset using the task's load_dataset method
-        # Set SKIP_DATASET_GEN to prevent generation attempts on read-only filesystem
-        old_skip_gen = os.environ.get('SKIP_DATASET_GEN')
-        try:
-            os.environ['SKIP_DATASET_GEN'] = '1'
-            
-            # Just log what we're trying - don't check existence here
-            # The Task class will handle finding the correct path
-            logging.info(f"Will attempt to load dataset from data_dir: {data_dir}")
-                
-            # Don't specify sizes - let it find whatever dataset exists
-            _, test_gen = task_instance.load_dataset()
-            test_problems = list(test_gen)
-            
-            # Debug: Check what we got
-            if test_problems:
-                logging.info(f"Loaded {len(test_problems)} test problems for {task_name}")
-                # Check the type of the first problem
-                first_problem = test_problems[0]
-                logging.info(f"First problem type: {type(first_problem)}")
-                if isinstance(first_problem, dict):
-                    logging.info(f"First problem keys: {list(first_problem.keys())[:5]}")
-                else:
-                    logging.info(f"First problem value (truncated): {str(first_problem)[:100]}")
-        except Exception as e:
-            logging.warning(f"Failed to load test dataset for {task_name}: {e}")
-            import traceback
-            logging.debug(traceback.format_exc())
-            return None
-        finally:
-            # Restore original SKIP_DATASET_GEN value
-            if old_skip_gen is None:
-                os.environ.pop('SKIP_DATASET_GEN', None)
-            else:
-                os.environ['SKIP_DATASET_GEN'] = old_skip_gen
-        
-        if not test_problems:
-            logging.warning(f"No test problems found for task {task_name}")
-            return None
-        
-        # Get baseline timing from generation data
-        task_data = generation_data.get(task_name, {})
-        baseline_runs = task_data.get('baseline_runs', {})
-        
-        if not baseline_runs:
-            logging.warning(f"No baseline runs found for task {task_name}")
-            return None
-        
-        # Use the mean of successful baseline runs
-        # Handle both dict and list formats for baseline_runs
-        if isinstance(baseline_runs, dict):
-            runs_list = list(baseline_runs.values())
-        else:
-            runs_list = baseline_runs
-            
-        successful_runs = [run for run in runs_list if run.get('success', False) and run.get('avg_min_ms') is not None]
-        if not successful_runs:
-            logging.warning(f"No successful baseline runs for task {task_name}")
-            return None
-        
-        # Calculate average baseline time
-        baseline_times = [run['avg_min_ms'] for run in successful_runs]
-        baseline_time_ms = sum(baseline_times) / len(baseline_times)
-        
-        logging.info(f"Baseline time for {task_name}: {baseline_time_ms:.3f}ms (from {len(successful_runs)} runs)")
-        return baseline_time_ms
+class AgentCompatibleEvaluator:
+    """Evaluator that uses identical methodology to the agent."""
     
-    except Exception as e:
-        logging.error(f"Error running baseline benchmark for {task_name}: {e}")
-        import traceback
-        logging.error(f"Traceback: {traceback.format_exc()}")
-        return None
-
-
-def run_optimized_benchmark(task_name: str, code_dir: Path, data_dir: Path, num_runs: int = 10) -> Optional[float]:
-    """
-    Run optimized code benchmark using IDENTICAL isolation to agent mode.
+    def __init__(self, data_dir: Path):
+        self.data_dir = data_dir
     
-    This uses the same run_isolated_benchmark with agent mode parameters:
-    - 10 runs per problem (EVAL_RUNS)
-    - Process isolation with fresh subprocess per run
-    - Distinct warmup problems to prevent cache hits
-    - Dynamic timeout calculation
-    """
-    try:
-        from AlgoTuneTasks.factory import TaskFactory
-        from AlgoTuner.config.loader import load_config
-        from AlgoTuner.utils.isolated_benchmark import run_isolated_benchmark
+    def evaluate_task(self, task_name: str, model_name: str, code_dir: Path) -> EvaluationResult:
+        """Single task evaluation using agent's exact pipeline."""
+        display_model_name = normalize_model_name(model_name)
         
-        # Create task instance to use its dataset loading logic
-        config = load_config()
-        task_config = config.get('tasks', {}).get(task_name, {})
-        oracle_time_limit = task_config.get('oracle_time_limit')
-        
-        task_instance = TaskFactory(task_name, oracle_time_limit=oracle_time_limit, data_dir=str(data_dir))
-        
-        # Load test dataset using the task's load_dataset method
-        # Set SKIP_DATASET_GEN to prevent generation attempts on read-only filesystem
-        old_skip_gen = os.environ.get('SKIP_DATASET_GEN')
-        try:
-            os.environ['SKIP_DATASET_GEN'] = '1'
-            
-            # Just log what we're trying - don't check existence here
-            # The Task class will handle finding the correct path
-            logging.info(f"Will attempt to load dataset from data_dir: {data_dir}")
-                
-            # Don't specify sizes - let it find whatever dataset exists
-            _, test_gen = task_instance.load_dataset()
-            test_problems = list(test_gen)
-            
-            # Debug: Check what we got
-            if test_problems:
-                logging.info(f"Loaded {len(test_problems)} test problems for {task_name}")
-                # Check the type of the first problem
-                first_problem = test_problems[0]
-                logging.info(f"First problem type: {type(first_problem)}")
-                if isinstance(first_problem, dict):
-                    logging.info(f"First problem keys: {list(first_problem.keys())[:5]}")
-                else:
-                    logging.info(f"First problem value (truncated): {str(first_problem)[:100]}")
-        except Exception as e:
-            logging.warning(f"Failed to load test dataset for {task_name}: {e}")
-            import traceback
-            logging.debug(traceback.format_exc())
-            return None
-        finally:
-            # Restore original SKIP_DATASET_GEN value
-            if old_skip_gen is None:
-                os.environ.pop('SKIP_DATASET_GEN', None)  
-            else:
-                os.environ['SKIP_DATASET_GEN'] = old_skip_gen
-        
-        if not test_problems:
-            logging.warning(f"No test problems found for task {task_name}")
-            return None
-        
-        # Use first problem for timing (as done in agent mode)
-        timed_problem = test_problems[0]
-        
-        # Extract the actual problem data if it's wrapped
-        if isinstance(timed_problem, dict) and 'problem' in timed_problem:
-            actual_timed_problem = timed_problem['problem']
-            if isinstance(actual_timed_problem, dict):
-                logging.info(f"Extracted timed problem from wrapper, keys: {list(actual_timed_problem.keys())[:10]}")
-            else:
-                logging.info(f"Extracted timed problem from wrapper, type: {type(actual_timed_problem)}")
-        else:
-            actual_timed_problem = timed_problem
-            logging.info(f"Using timed problem directly, type: {type(actual_timed_problem)}")
-            
-        # Create distinct warmup problem to prevent cache hits (agent mode behavior)
-        warmup_problem = test_problems[1] if len(test_problems) > 1 else test_problems[0]
-        if isinstance(warmup_problem, dict) and 'problem' in warmup_problem:
-            actual_warmup_problem = warmup_problem['problem']
-        else:
-            actual_warmup_problem = warmup_problem
-        
-        # Use agent mode parameters: 10 runs (EVAL_RUNS), dynamic timeout
-        # Calculate timeout like agent mode: (1 + WARMUP_MULTIPLIER) * oracle_time * 10.0
-        # Since we don't have oracle time, use conservative 120 seconds
-        timeout_seconds = 120.0
-        
-        # Run isolated benchmark with IDENTICAL parameters to agent mode
-        result = run_isolated_benchmark(
+        result = EvaluationResult(
             task_name=task_name,
-            code_dir=str(code_dir),
-            warmup_problem=actual_warmup_problem,
-            timed_problem=actual_timed_problem,
-            num_runs=num_runs,  # Should be 10 for agent mode compatibility
-            timeout_seconds=timeout_seconds
+            model_name=model_name,
+            display_model_name=display_model_name,
+            baseline_time_ms=None,
+            optimized_time_ms=None,
+            speedup=None,
+            success=False
         )
         
-        if result and result.get('success') and result.get('mean_time_ms') is not None:
-            logging.info(f"Optimized time for {task_name}: {result['mean_time_ms']:.3f}ms (agent mode isolation)")
-            return result['mean_time_ms']
-        else:
-            error_msg = result.get('error', 'Unknown error') if result else 'No result returned'
-            logging.warning(f"Optimized benchmark failed for {task_name}: {error_msg}")
-            return None
-    
-    except Exception as e:
-        logging.error(f"Error running optimized benchmark for {task_name}: {e}")
-        return None
+        try:
+            # Step 1: Create task instance (same as agent)
+            from AlgoTuneTasks.factory import TaskFactory
+            from AlgoTuner.config.loader import load_config
+            
+            config = load_config()
+            task_config = config.get('tasks', {}).get(task_name, {})
+            oracle_time_limit = task_config.get('oracle_time_limit')
+            
+            task_instance = TaskFactory(task_name, oracle_time_limit=oracle_time_limit, data_dir=str(self.data_dir))
+            
+            # Step 2: Create BaselineManager and generate baseline times
+            from AlgoTuner.utils.evaluator.baseline_manager import BaselineManager
+            
+            baseline_manager = BaselineManager(task_instance)
+            logging.info(f"Created BaselineManager for {task_name}")
+            
+            # Generate baseline times
+            old_skip_gen = os.environ.get('SKIP_DATASET_GEN')
+            try:
+                os.environ['SKIP_DATASET_GEN'] = '1'
+                baseline_times_raw = baseline_manager.get_baseline_times(
+                    subset="test", 
+                    force_regenerate=False,  # Don't force regeneration - use cached if available
+                    test_mode=False,
+                    max_samples=None
+                )
+                logging.info(f"Generated {len(baseline_times_raw)} baseline times with keys: {list(baseline_times_raw.keys())[:5]}")
+            finally:
+                if old_skip_gen is None:
+                    os.environ.pop('SKIP_DATASET_GEN', None)
+                else:
+                    os.environ['SKIP_DATASET_GEN'] = old_skip_gen
+            
+            # Step 3: Load optimized solver from code_dir
+            sys.path.insert(0, str(code_dir))
+            optimized_solve = None
+            try:
+                # Try to import solve function directly
+                from solver import solve as optimized_solve
+            except ImportError:
+                try:
+                    # Try to import Solver class and instantiate it
+                    from solver import Solver
+                    solver_instance = Solver()
+                    optimized_solve = solver_instance.solve
+                except ImportError as e:
+                    result.error_message = f"Failed to import optimized solver: {e}"
+                    return result
+            finally:
+                sys.path.pop(0)
+            
+            if optimized_solve is None:
+                result.error_message = "Could not load optimized solver"
+                return result
+            
+            # Step 4: Load test dataset and transform baseline times to index-based keys
+            old_skip_gen = os.environ.get('SKIP_DATASET_GEN')
+            try:
+                os.environ['SKIP_DATASET_GEN'] = '1'
+                _, test_iter = task_instance.load_dataset()
+                test_problems = list(test_iter)
+                
+                if not test_problems:
+                    result.error_message = "No test problems found"
+                    return result
+                    
+                logging.info(f"Loaded {len(test_problems)} test problems for {task_name}")
+                
+            finally:
+                if old_skip_gen is None:
+                    os.environ.pop('SKIP_DATASET_GEN', None)
+                else:
+                    os.environ['SKIP_DATASET_GEN'] = old_skip_gen
+            
+            # Step 5: Create temporary directory and copy code (like agent does)
+            import tempfile
+            import shutil
+            
+            temp_dir = tempfile.mkdtemp(prefix=f"eval_{task_name}_")
+            temp_code_dir = Path(temp_dir)
+            
+            try:
+                # Copy all code files to temporary directory
+                logging.info(f"Copying code from {code_dir} to temporary CODE_DIR: {temp_code_dir}")
+                shutil.copytree(code_dir, temp_code_dir, dirs_exist_ok=True)
+                
+                # Check if compilation is needed and compile in the temp directory
+                needs_comp, indicators = needs_compilation(temp_code_dir)
+                
+                # Debug logging for max_weighted_independent_set
+                if task_name == "max_weighted_independent_set":
+                    logging.info(f"DEBUG: Files in temp_code_dir: {list(temp_code_dir.iterdir())}")
+                    used_files = filter_used_files(temp_code_dir)
+                    logging.info(f"DEBUG: Used files detected: {used_files}")
+                    logging.info(f"DEBUG: needs_comp={needs_comp}, indicators={indicators}")
+                
+                if needs_comp:
+                    logging.info(f"Compiling {task_name} in temporary directory: {indicators}")
+                    comp_success, comp_message = compile_code_if_needed(temp_code_dir, task_name)
+                    if not comp_success:
+                        result.error_message = f"Compilation failed: {comp_message}"
+                        result.compilation_needed = True
+                        result.compilation_successful = False
+                        return result
+                    result.compilation_needed = True
+                    
+                    # Additional debug for max_weighted_independent_set
+                    if task_name == "max_weighted_independent_set":
+                        logging.info(f"DEBUG: Compilation completed with message: {comp_message}")
+                        # Check if .so file was created
+                        so_files = list(temp_code_dir.glob("*.so"))
+                        logging.info(f"DEBUG: .so files after compilation: {so_files}")
+                
+                # Step 6: Evaluate optimized code using same function as agent
+                from AlgoTuner.utils.evaluator.main import evaluate_code_on_dataset
+                
+                # Set CODE_DIR environment variable to point to the temporary directory
+                os.environ['CODE_DIR'] = str(temp_code_dir)
+                logging.info(f"CODE_DIR set to temporary directory: {temp_code_dir}")
+                
+                # Set AGENT_MODE to ensure isolated execution (same as agent)
+                old_agent_mode = os.environ.get('AGENT_MODE')
+                os.environ['AGENT_MODE'] = '1'
+                os.environ['ISOLATED_EVAL'] = '1'
+                logging.info("Set AGENT_MODE=1 and ISOLATED_EVAL=1 for consistent timing with agent")
+            
+                logging.info(f"Running optimized evaluation for {task_name} using evaluate_code_on_dataset")
+                
+                # Pre-generate baseline times and transform them to index-based keys
+                baseline_times_raw = baseline_manager.get_baseline_times(
+                    subset="test",
+                    force_regenerate=False,
+                    test_mode=False
+                )
+                logging.info(f"Got {len(baseline_times_raw)} baseline times from BaselineManager")
+                
+                # Transform baseline times from dataset IDs to index-based keys
+                baseline_times_indexed = {}
+                for i, problem in enumerate(test_problems):
+                    item_id = f"problem_{i+1}"
+                    if isinstance(problem, dict):
+                        dataset_id = problem.get("id") or problem.get("k")
+                        if dataset_id is not None:
+                            dataset_id = str(dataset_id)
+                            if dataset_id in baseline_times_raw:
+                                baseline_times_indexed[item_id] = baseline_times_raw[dataset_id]
+                                if i < 3:  # Log first few mappings
+                                    logging.info(f"Mapped baseline time: {dataset_id} -> {item_id} = {baseline_times_raw[dataset_id]}ms")
+                
+                logging.info(f"Transformed {len(baseline_times_indexed)} baseline times to index-based keys")
+                
+                # evaluate_code_on_dataset will:
+                # 1. Load and evaluate the optimized solver from CODE_DIR
+                # 2. Use the pre-generated baseline times we provide
+                results = evaluate_code_on_dataset(
+                    task_obj=task_instance,
+                    dataset_iterable=test_problems,
+                    baseline_times=baseline_times_indexed,  # Pass transformed baseline times
+                    data_subset="test",
+                    test_mode=False
+                )
+                
+                # Step 6: Extract speedups from results (same format as agent)
+                logging.info(f"Results type: {type(results)}, has aggregate_metrics: {hasattr(results, 'aggregate_metrics')}")
+                
+                # Check if we have aggregate metrics from the agent evaluation
+                if hasattr(results, 'aggregate_metrics') and results.aggregate_metrics:
+                    agg = results.aggregate_metrics
+                    logging.info(f"Agent aggregate metrics: mean_speedup={getattr(agg, 'mean_speedup', 'N/A')}, num_valid={getattr(agg, 'num_valid', 'N/A')}, num_evaluated={getattr(agg, 'num_evaluated', 'N/A')}")
+                
+                if isinstance(results, list) and results:
+                    # Log first result to understand format
+                    if results:
+                        logging.info(f"First result keys: {list(results[0].keys())}")
+                        logging.info(f"First result sample: success={results[0].get('success')}, is_valid={results[0].get('is_valid')}, baseline_time_ms={results[0].get('baseline_time_ms')}, solver_min_time_ms={results[0].get('solver_min_time_ms')}, min_time_ms={results[0].get('min_time_ms')}")
+                    
+                    # Calculate aggregate metrics from individual results
+                    valid_speedups = []
+                    total_baseline_time = 0
+                    total_optimized_time = 0
+                    
+                    critical_error_found = False
+                    for res in results:
+                        # Check for critical errors that should stop evaluation
+                        error_type = res.get('error_type')
+                        if error_type in ['benchmark_error', 'solver_exception', 'runtime_error', 'import_error', 'memory_error']:
+                            critical_error_found = True
+                            logging.error(f"Critical error found: {error_type}")
+                            result.error_message = f"Critical error: {error_type}"
+                            break
+                        
+                        if res.get('success', False) and res.get('is_valid', False):
+                            # Try different field names that might contain timing info
+                            baseline_ms = res.get('baseline_time_ms')
+                            optimized_ms = (res.get('solver_min_time_ms') or 
+                                          res.get('min_time_ms') or 
+                                          res.get('optimized_time_ms'))
+                            
+                            if baseline_ms and optimized_ms and baseline_ms > 0 and optimized_ms > 0:
+                                speedup = baseline_ms / optimized_ms
+                                valid_speedups.append(speedup)
+                                total_baseline_time += baseline_ms
+                                total_optimized_time += optimized_ms
+                                if len(valid_speedups) <= 3:  # Log first few
+                                    logging.info(f"Found valid speedup: {baseline_ms:.3f}ms / {optimized_ms:.3f}ms = {speedup:.4f}x")
+                    
+                    # Count total valid results
+                    total_evaluated = len(results)
+                    num_valid = len(valid_speedups)
+                    success_rate = (num_valid / total_evaluated * 100) if total_evaluated > 0 else 0
+                    
+                    logging.info(f"Validation stats: {num_valid}/{total_evaluated} valid ({success_rate:.1f}%)")
+                    
+                    # Agent evaluation requires 100% validity for speedup
+                    if critical_error_found:
+                        # Critical errors mean no speedup regardless of partial results
+                        logging.info(f"❌ {task_name}/{display_model_name}: No speedup due to critical error")
+                    elif valid_speedups and success_rate == 100:
+                        import statistics
+                        overall_speedup = statistics.mean(valid_speedups)
+                        avg_baseline_time = total_baseline_time / len(valid_speedups)
+                        avg_optimized_time = total_optimized_time / len(valid_speedups)
+                        
+                        result.baseline_time_ms = avg_baseline_time
+                        result.optimized_time_ms = avg_optimized_time
+                        result.speedup = overall_speedup
+                        result.success = True
+                        
+                        logging.info(f"✅ {task_name}/{display_model_name}: {overall_speedup:.4f}x speedup ({avg_baseline_time:.3f}ms → {avg_optimized_time:.3f}ms) across {len(valid_speedups)} problems")
+                        logging.info(f"Speedup calculation details: valid_speedups={len(valid_speedups)}, min={min(valid_speedups):.4f}, max={max(valid_speedups):.4f}, mean={overall_speedup:.4f}, median={statistics.median(valid_speedups):.4f}")
+                    elif valid_speedups and success_rate < 100:
+                        result.error_message = f"Speedup N/A due to invalid results: {num_valid}/{total_evaluated} valid ({success_rate:.1f}%)"
+                        logging.info(f"❌ {task_name}/{display_model_name}: Speedup N/A - only {success_rate:.1f}% valid results")
+                        
+                        # Check if we have aggregate metrics to compare
+                        if hasattr(results, 'aggregate_metrics') and results.aggregate_metrics:
+                            agent_mean_speedup = results.aggregate_metrics.get('mean_speedup') if isinstance(results.aggregate_metrics, dict) else getattr(results.aggregate_metrics, 'mean_speedup', None)
+                            if agent_mean_speedup is not None:
+                                logging.info(f"Comparison: Agent's mean_speedup={agent_mean_speedup:.4f} vs our calculation={overall_speedup:.4f}, difference={(agent_mean_speedup - overall_speedup):.4f}")
+                    else:
+                        result.error_message = "No valid speedup calculations from agent evaluation"
+                else:
+                    result.error_message = f"Unexpected results format from evaluate_code_on_dataset: {type(results)}"
+                    
+            finally:
+                # Clean up temporary directory
+                logging.info(f"Cleaning up temporary directory: {temp_dir}")
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            
+        except Exception as e:
+            result.error_message = f"Agent-compatible evaluation error: {str(e)}"
+            logging.error(f"❌ {task_name}/{display_model_name}: {e}")
+            logging.debug(traceback.format_exc())
+        
+        return result
+
+
 
 
 def evaluate_single_task(args_tuple: Tuple) -> EvaluationResult:
-    """Evaluate a single task for a model. Designed for multiprocessing."""
-    from AlgoTuner.utils.evaluator.scoring import calculate_input_speedup
-    
+    """Evaluate a single task for a model using agent-compatible evaluation."""
     (task_name, model_name, display_model_name, code_dir_str, generation_data, data_dir_str, num_runs) = args_tuple
     
     code_dir = Path(code_dir_str)
@@ -426,67 +595,13 @@ def evaluate_single_task(args_tuple: Tuple) -> EvaluationResult:
     
     logging.info(f"Evaluating {task_name} for {display_model_name}")
     
-    result = EvaluationResult(
-        task_name=task_name,
-        model_name=model_name,
-        display_model_name=display_model_name,
-        baseline_time_ms=None,
-        optimized_time_ms=None,
-        speedup=None,
-        success=False
-    )
+    # Compilation will be handled inside AgentCompatibleEvaluator in the temporary directory
     
-    try:
-        # Check if compilation is needed
-        needs_comp, indicators = needs_compilation(code_dir)
-        result.compilation_needed = needs_comp
-        
-        # Compile if needed
-        if needs_comp:
-            logging.info(f"Compiling {task_name} for {display_model_name}: {indicators}")
-            comp_success, comp_message = compile_code_if_needed(code_dir, task_name)
-            result.compilation_success = comp_success
-            
-            if not comp_success:
-                result.error_message = f"Compilation failed: {comp_message}"
-                logging.error(f"Compilation failed for {task_name}/{display_model_name}: {comp_message}")
-                return result
-            else:
-                logging.info(f"Compilation successful for {task_name}/{display_model_name}")
-        
-        # Run baseline benchmark
-        baseline_time = run_baseline_benchmark(task_name, generation_data, data_dir)
-        if baseline_time is None:
-            result.error_message = "Failed to get baseline timing"
-            return result
-        result.baseline_time_ms = baseline_time
-        
-        # Run optimized benchmark
-        optimized_time = run_optimized_benchmark(task_name, code_dir, data_dir, num_runs)
-        if optimized_time is None:
-            result.error_message = "Failed to get optimized timing"
-            return result
-        result.optimized_time_ms = optimized_time
-        
-        # Calculate speedup
-        speedup = calculate_input_speedup(
-            solver_time_ms=optimized_time,
-            baseline_time_ms=baseline_time,
-            is_valid=True
-        )
-        
-        if speedup is not None and speedup != float('inf'):
-            result.speedup = speedup
-            result.success = True
-            logging.info(f"✅ {task_name}/{display_model_name}: {speedup:.4f}x speedup ({baseline_time:.3f}ms → {optimized_time:.3f}ms)")
-        else:
-            result.error_message = "Invalid speedup calculation"
-            logging.warning(f"❌ {task_name}/{display_model_name}: Invalid speedup")
+    # Use AgentCompatibleEvaluator for the actual evaluation
+    evaluator = AgentCompatibleEvaluator(data_dir)
+    result = evaluator.evaluate_task(task_name, model_name, code_dir)
     
-    except Exception as e:
-        result.error_message = f"Evaluation error: {str(e)}"
-        logging.error(f"❌ {task_name}/{display_model_name}: {e}")
-        logging.debug(traceback.format_exc())
+    # Compilation flags are already set by AgentCompatibleEvaluator
     
     return result
 
@@ -516,7 +631,7 @@ def handle_slurm_mode(args) -> None:
         args.data_dir = Path(os.environ.get('DATA_DIR', project_root.parent / 'data'))
     
     # Discover models and tasks (simple version without full imports)
-    models_tasks = discover_models_and_tasks_simple(args.results_dir, args.models)
+    models_tasks = discover_models_and_tasks_simple(args.results_dir, args.models, args.tasks)
     if not models_tasks:
         logging.error("No models/tasks found")
         sys.exit(1)
@@ -524,7 +639,7 @@ def handle_slurm_mode(args) -> None:
     submit_slurm_evaluation_jobs(models_tasks, args)
 
 
-def discover_models_and_tasks_simple(results_dir: Path, filter_models: List[str] = None) -> Dict[str, List[str]]:
+def discover_models_and_tasks_simple(results_dir: Path, filter_models: List[str] = None, filter_tasks: List[str] = None) -> Dict[str, List[str]]:
     """Simple model/task discovery without heavy imports."""
     models_tasks = {}
     
@@ -542,8 +657,12 @@ def discover_models_and_tasks_simple(results_dir: Path, filter_models: List[str]
         tasks = []
         for task_dir in model_dir.iterdir():
             if task_dir.is_dir():
+                task_name = task_dir.name
+                # Filter by task if specified
+                if filter_tasks and task_name not in filter_tasks:
+                    continue
                 # Simple check - if directory exists, assume it's a valid task
-                tasks.append(task_dir.name)
+                tasks.append(task_name)
         
         if tasks:
             models_tasks[model_name] = sorted(tasks)
@@ -609,7 +728,6 @@ def submit_slurm_evaluation_jobs(models_tasks: Dict[str, List[str]], args) -> No
         logging.info(f"✅ Submitted SLURM array job: {job_id}")
         logging.info(f"Monitor with: squeue -j {job_id}")
         logging.info(f"Results will be written directly to: {args.output}")
-        logging.info(f"Use locks like agent mode - each job writes to final summary")
         return job_id
     except subprocess.CalledProcessError as e:
         logging.error(f"❌ Failed to submit SLURM jobs: {e}")
@@ -947,4 +1065,20 @@ def main():
 
 
 if __name__ == "__main__":
+    # CRITICAL: Initialize multiprocessing support before anything else
+    # This prevents issues when using ProcessPoolExecutor
+    import multiprocessing
+    multiprocessing.freeze_support()
+    
+    # Set the multiprocessing start method early for consistency
+    try:
+        multiprocessing.set_start_method('forkserver', force=True)
+    except RuntimeError:
+        # Already set, which is fine
+        pass
+    
+    # Set NUMBA threading layer for fork safety
+    if "NUMBA_THREADING_LAYER" not in os.environ:
+        os.environ["NUMBA_THREADING_LAYER"] = "workqueue"
+    
     main()

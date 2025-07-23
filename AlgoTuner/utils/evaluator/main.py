@@ -949,13 +949,25 @@ def evaluate_code_on_dataset(
         
         # Process chunk when it reaches chunk_size or is the last chunk
         if len(chunk) >= chunk_size:
-            dataset_results = orchestrator.evaluate_dataset(
-                task_instance=task_obj,
-                dataset=chunk,
-                solver_func=solver_func,
-                task_name=getattr(task_obj, 'task_name', task_obj.__class__.__name__),
-                baseline_times=baseline_times,
-            )
+            try:
+                dataset_results = orchestrator.evaluate_dataset(
+                    task_instance=task_obj,
+                    dataset=chunk,
+                    solver_func=solver_func,
+                    task_name=getattr(task_obj, 'task_name', task_obj.__class__.__name__),
+                    baseline_times=baseline_times,
+                )
+            except MemoryError as e:
+                # Memory limit exceeded - return error result with context
+                logging.error(f"Memory limit exceeded during chunk evaluation")
+                return {
+                    "success": False,
+                    "error": "Memory limit exceeded during evaluation",
+                    "error_type": "memory_error",
+                    "error_details": str(e) if str(e) else "Process exceeded memory limit",
+                    "problems_evaluated": len(all_results),
+                    "current_chunk_size": len(chunk)
+                }
             
             # Convert chunk results to legacy format
             adapter = LegacyAdapter()
@@ -978,13 +990,26 @@ def evaluate_code_on_dataset(
     
     # Process any remaining problems in the last chunk
     if chunk:
-        dataset_results = orchestrator.evaluate_dataset(
-            task_instance=task_obj,
-            dataset=chunk,
-            solver_func=solver_func,
-            task_name=getattr(task_obj, 'task_name', task_obj.__class__.__name__),
-            baseline_times=baseline_times,
-        )
+        try:
+            dataset_results = orchestrator.evaluate_dataset(
+                task_instance=task_obj,
+                dataset=chunk,
+                solver_func=solver_func,
+                task_name=getattr(task_obj, 'task_name', task_obj.__class__.__name__),
+                baseline_times=baseline_times,
+            )
+        except MemoryError as e:
+            # Memory limit exceeded - return error result with context
+            logging.error(f"Memory limit exceeded during final chunk evaluation")
+            return {
+                "success": False,
+                "error": "Memory limit exceeded during evaluation",
+                "error_type": "memory_error",
+                "error_details": str(e) if str(e) else "Process exceeded memory limit",
+                "problems_evaluated": len(all_results),
+                "current_chunk_size": len(chunk),
+                "final_chunk": True
+            }
         
         # Convert chunk results to legacy format
         adapter = LegacyAdapter()

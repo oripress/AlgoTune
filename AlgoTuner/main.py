@@ -130,6 +130,24 @@ def main():
     task_name = args.task
     desired_model_name = args.model
 
+    # Initialize memory monitoring for parent process using same config as workers
+    memory_monitor = None
+    try:
+        from AlgoTuner.utils.process_monitor import init_worker_memory_monitor
+        
+        # Load memory limit from config - use evaluation_pool settings
+        config = load_config()
+        memory_limit_gb = config.get("benchmark", {}).get("evaluation_pool", {}).get("memory_limit_per_worker")
+        
+        if memory_limit_gb is not None:
+            # Initialize process memory monitor (sets RLIMIT_AS)
+            memory_monitor = init_worker_memory_monitor(memory_limit_gb)
+            logging.info(f"Initialized parent process memory monitor with {memory_limit_gb}GB limit")
+        else:
+            logging.info("No memory limit configured in benchmark.evaluation_pool.memory_limit_per_worker")
+    except Exception as e:
+        logging.warning(f"Could not initialize parent process memory monitor: {e}")
+
     summary_file_env = os.environ.get("SUMMARY_FILE")
     if not summary_file_env:
          logging.warning("SUMMARY_FILE environment variable not set. Cannot update summary JSON.")
@@ -296,6 +314,28 @@ def main():
         else:
              logger.warning("Skipping summary file update because SUMMARY_FILE env var was not set.")
 
+    except MemoryError as e:
+        # Handle memory limit exceeded with proper context
+        logger.error(f"Memory limit exceeded during evaluation of task '{task_name}' with model '{desired_model_name}'")
+        
+        # Try to save error information if summary file was specified
+        if summary_file_env:
+            try:
+                # Get memory limit info for error message
+                if memory_monitor and hasattr(memory_monitor, 'memory_limit_gb'):
+                    memory_info = f"Memory limit ({memory_monitor.memory_limit_gb}GB) exceeded"
+                else:
+                    memory_info = "Memory limit exceeded"
+                
+                # Record failure in summary with context
+                update_summary_json(summary_file_env, task_name, desired_model_name, None, 
+                                  error=memory_info)
+                logger.info(f"Saved memory error to summary file")
+            except Exception as save_error:
+                logger.error(f"Could not save error to summary: {save_error}")
+        
+        # Exit with error code
+        sys.exit(137)  # Standard exit code for OOM
     except Exception as e:
         logger.exception(f"An error occurred during LLMInterface run: {e}")
         sys.exit(1)

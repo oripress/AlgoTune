@@ -315,6 +315,22 @@ def main():
     
     args = parser.parse_args()
     
+    # Initialize memory monitoring for parent process using same config as workers
+    try:
+        from AlgoTuner.config.loader import load_config
+        from AlgoTuner.utils.process_monitor import init_worker_memory_monitor
+        
+        # Load memory limit from config - use evaluation_pool settings
+        config = load_config()
+        memory_limit_gb = config.get("benchmark", {}).get("evaluation_pool", {}).get("memory_limit_per_worker", 14.0)
+        
+        # Initialize process memory monitor (sets RLIMIT_AS)
+        memory_monitor = init_worker_memory_monitor(memory_limit_gb)
+        logger.info(f"Initialized parent process memory monitor with {memory_limit_gb}GB limit")
+    except Exception as e:
+        logger.warning(f"Could not initialize parent process memory monitor: {e}")
+        memory_monitor = None
+    
     # Set up temporary CODE_DIR for auxiliary files if not already set
     temp_code_dir = None
     if "CODE_DIR" not in os.environ:
@@ -328,15 +344,54 @@ def main():
         from AlgoTuner.utils.dace_init import _ensure_dace_config
         _ensure_dace_config()
     
-    # Run the evaluation
-    result = run_complete_timing_evaluation(
-        task_name=args.task,
-        target_time_ms=args.target_time_ms,
-        data_dir=args.data_dir,
-        num_runs=args.num_runs,
-        override_k=args.override_k,
-        force_regenerate=args.force_regenerate
-    )
+    # Run the evaluation with proper error handling
+    try:
+        result = run_complete_timing_evaluation(
+            task_name=args.task,
+            target_time_ms=args.target_time_ms,
+            data_dir=args.data_dir,
+            num_runs=args.num_runs,
+            override_k=args.override_k,
+            force_regenerate=args.force_regenerate
+        )
+    except MemoryError as e:
+        # Handle memory limit exceeded with proper context
+        logger.error(f"Memory limit exceeded during evaluation of task '{args.task}'")
+        
+        # Create error result with context
+        result = {
+            "task_name": args.task,
+            "target_time_ms": args.target_time_ms,
+            "success": False,
+            "error": f"Memory limit ({memory_limit_gb}GB) exceeded during evaluation",
+            "error_type": "memory_error",
+            "error_details": str(e) if str(e) else "Process exceeded memory limit",
+            "baseline_runs": {}
+        }
+        
+        # Try to save partial results if output was specified
+        if args.output:
+            try:
+                with open(args.output, 'w') as f:
+                    json.dump(result, f, indent=2)
+                logger.info(f"Saved error result to {args.output}")
+            except Exception as save_error:
+                logger.error(f"Could not save error result: {save_error}")
+        
+        # Re-raise to ensure proper exit
+        raise
+    except Exception as e:
+        # Handle other unexpected errors
+        logger.error(f"Unexpected error during evaluation: {e}")
+        result = {
+            "task_name": args.task,
+            "target_time_ms": args.target_time_ms,
+            "success": False,
+            "error": str(e),
+            "error_type": "execution_error",
+            "baseline_runs": {}
+        }
+        raise
     
     # Output results
     if args.output:
