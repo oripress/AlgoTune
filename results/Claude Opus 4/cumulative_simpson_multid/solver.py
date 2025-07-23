@@ -9,8 +9,5 @@ class Solver:
         """
         y2 = problem["y2"]
         dx = problem["dx"]
-        
-        # Use scipy's cumulative_simpson directly first to ensure correctness
         result = cumulative_simpson(y2, dx=dx)
-        
         return result

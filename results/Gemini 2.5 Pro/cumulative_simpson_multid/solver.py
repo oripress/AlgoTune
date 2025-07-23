@@ -1,70 +1,76 @@
+import jax
+jax.config.update("jax_enable_x64", True)
+import jax.numpy as jnp
 import numpy as np
 from typing import Any
-import numba
 
-# Use Numba's JIT compiler. We remove `fastmath=True` as it can
-# introduce small numerical errors that fail the tolerance check.
-# Correctness is more important than the minor speedup from fastmath.
-@numba.njit(cache=True)
-def _cumulative_simpson_numba(y, dx):
+@jax.jit
+def jax_cumulative_simpson(y: jnp.ndarray, dx: float) -> jnp.ndarray:
     """
-    Numba-jitted implementation of cumulative Simpson's rule.
-    The input 3D array is reshaped to 2D to allow for a single, simple loop.
+    JAX-based implementation of cumulative Simpson's rule, mimicking SciPy's algorithm.
+    The algorithm first computes a cumulative trapezoidal integral, then corrects
+    the values at points that are an even number of intervals from the start.
     """
-    d1, d2, N = y.shape
+    N = y.shape[-1]
+
+    # For N < 2, the result is all zeros. jnp.zeros_like is a safe default.
     if N < 2:
-        return np.empty((d1, d2, 0), dtype=np.float64)
+        return jnp.zeros_like(y)
 
-    # Reshape for processing over a single dimension
-    y_reshaped = y.reshape(d1 * d2, N)
-    res_reshaped = np.empty((d1 * d2, N - 1), dtype=np.float64)
+    # Step 1: Compute the N-point cumulative trapezoidal integral.
+    # This provides the correct values for all odd-indexed points and a base for even ones.
+    interval_areas = (y[..., :-1] + y[..., 1:]) * dx / 2.0
+    # Use jnp.pad to prepend the initial zero for an N-point result.
+    cumtrapz_res = jnp.pad(jnp.cumsum(interval_areas, axis=-1),
+                           [(0, 0)] * (y.ndim - 1) + [(1, 0)])
 
-    # Loop over all 1D slices using standard `range`.
-    for i in range(d1 * d2):
-        y_i = y_reshaped[i]
-        res_i = res_reshaped[i]
+    # Initialize the result with the trapezoidal values.
+    res = cumtrapz_res
 
-        # 1. Calculate integrals to even points (y[2], y[4], ...).
-        if N > 2:
-            simpson_sum = 0.0
-            for k in range(1, (N - 1) // 2 + 1):
-                idx = 2 * k
-                term = (y_i[idx - 2] + 4.0 * y_i[idx - 1] + y_i[idx]) * (dx / 3.0)
-                simpson_sum += term
-                res_i[idx - 1] = simpson_sum
+    # Step 2: Correct the values at even-indexed points (i = 2, 4, 6, ...).
+    # The SciPy algorithm updates these points based on the values from the
+    # original trapezoidal integral, not the intermediate results of the correction.
+    def correction_loop_body(i, current_res):
+        # This loop runs for i = 2, 3, 4, ..., N-1.
+        # We only perform an update if i is even.
+        def perform_update(r):
+            # Formula: res[i] = res[i-2] + integral over [i-2, i] with Simpson's rule.
+            # We use cumtrapz_res[i-2] as the base, which is the critical fix.
+            simpson_term = (y[..., i-2] + 4*y[..., i-1] + y[..., i]) * dx / 3.0
+            return r.at[..., i].set(cumtrapz_res[..., i-2] + simpson_term)
+        
+        # Use lax.cond to apply the update only for even i.
+        new_res = jax.lax.cond(
+            i % 2 == 0,
+            perform_update,
+            lambda r: r,  # Identity function for odd i
+            current_res
+        )
+        return new_res
 
-        # 2. Calculate integrals to odd points (y[1], y[3], ...).
-        if N > 1:
-            res_i[0] = (y_i[0] + y_i[1]) * (dx / 2.0)
-            if N > 3:
-                for k in range(1, (N - 2) // 2 + 1):
-                    idx = 2 * k
-                    base_integral = res_i[idx - 1]
-                    trapezoid_corr = (y_i[idx] + y_i[idx + 1]) * (dx / 2.0)
-                    res_i[idx] = base_integral + trapezoid_corr
-    
-    # Reshape result back, passing the shape as a tuple.
-    return res_reshaped.reshape((d1, d2, N - 1))
+    # The loop starts at i=2. It will not run if N < 3, which is correct.
+    res = jax.lax.fori_loop(2, N, loop_body, res)
+
+    return res
 
 class Solver:
     """
-    A solver that uses a Numba-jitted, serial implementation of
-    cumulative_simpson for high performance.
+    A solver for the cumulative Simpson's rule problem, optimized with JAX.
     """
-    def __init__(self):
-        """
-        Numba JIT compilation happens on the first call.
-        """
-        pass
-
     def solve(self, problem: dict, **kwargs) -> Any:
         """
-        Computes the cumulative integral using the pre-compiled Numba function.
+        Calculates the cumulative Simpson's rule integral on a 3D array.
         """
-        y2 = problem["y2"]
+        y2 = jnp.asarray(problem["y2"])
         dx = problem["dx"]
         
-        # Ensure input is float64 for consistency with reference
-        y2_64 = y2.astype(np.float64)
+        # The JIT'd function is robust to empty and small inputs.
+        # Compute the standard N-point cumulative integral.
+        full_result = jax_cumulative_simpson(y2, dx)
+        
+        # The reference solution (initial=None) has N-1 elements.
+        # We achieve this by slicing our N-point result (which has res[0]=0).
+        # JAX handles slicing of empty axes gracefully.
+        final_result = full_result[..., 1:]
 
-        return _cumulative_simpson_numba(y2_64, float(dx))
+        return np.asarray(final_result)

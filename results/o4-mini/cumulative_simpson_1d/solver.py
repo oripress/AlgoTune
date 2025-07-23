@@ -1,38 +1,39 @@
 import numpy as np
 from numba import njit
 
-@njit(cache=True)
-def cumulative_simpson_nb(y, dx):
-    N = y.shape[0]
-    # allocate result buffer
-    res = np.empty(N, np.float64)
-    if N == 0:
-        return res
-    res[0] = 0.0
-    if N > 1:
-        half_dx = dx * 0.5
-        third_dx = dx / 3.0
-        # first segment (trapezoid)
-        res[1] = half_dx * (y[0] + y[1])
-        i = 2
-        # process two segments at a time: Simpson on even, trapezoid on odd
-        while i < N:
-            # Simpson's rule on two segments ending at i
-            res[i] = res[i-2] + third_dx * (y[i-2] + 4.0 * y[i-1] + y[i])
-            j = i + 1
-            if j < N:
-                # trapezoid on last segment
-                res[j] = res[i] + half_dx * (y[i] + y[j])
-            i += 2
-    return res
+@njit(cache=True, fastmath=True)
+def _cum_simp(y, dx):
+    n = y.shape[0]
+    out = np.empty(n, dtype=np.float64)
+    if n < 2:
+        for i in range(n):
+            out[i] = 0.0
+        return out
+    out[0] = 0.0
+    out[1] = 0.5 * (y[0] + y[1]) * dx
+    sum_odd = 0.0
+    sum_even = 0.0
+    # process in pairs to avoid per-iteration branches
+    for k in range(2, n, 2):
+        idx = k - 1
+        sum_odd += y[idx]
+        # composite Simpson for even segment
+        out[k] = (y[0] + y[k] + 4.0 * sum_odd + 2.0 * sum_even) * dx / 3.0
+        if k + 1 < n:
+            # trapezoidal for odd segment
+            sum_even += y[k]
+            out[k + 1] = out[k] + 0.5 * (y[k] + y[k + 1]) * dx
+    return out
 
-# trigger compile at import time
-_dummy = cumulative_simpson_nb(np.zeros(3, np.float64), 1.0)
+# trigger compilation at import time
+_cum_simp(np.zeros(2, dtype=np.float64), np.float64(1.0))
 
 class Solver:
     def solve(self, problem, **kwargs):
         y = np.asarray(problem["y"], dtype=np.float64)
         dx = float(problem["dx"])
-        # compute cumulative Simpson and slice off the initial zero
-        full = cumulative_simpson_nb(y, dx)
-        return full[1:]
+        n = y.shape[0]
+        if n < 2:
+            return np.empty(0, dtype=np.float64)
+        # compute cumulative Simpson and drop the initial zero
+        return _cum_simp(y, dx)[1:]
