@@ -9,7 +9,7 @@
 </p>
 <p align="center">
   <a href="https://algotune.io/"><strong>Website</strong></a>&nbsp; | &nbsp;
-  <a href="https://algotune.io/paper.pdf"><strong>Paper</strong></a>
+  <a href="https://arxiv.org/abs/2507.15887"><strong>Paper</strong></a>
 </p>
 
 How good are language models at coming up with new algorithms? To try to answer this, we built a benchmark, AlgoTune, comprised of 155 widely used math, physics, and computer science functions. For each function, the goal is to write code that produces the same outputs as the original function, while being faster. In addition to the benchmark, we also provide an agent, AlgoTuner, which allows language models to easily optimize code. For contributions to the AlgoTune benchmark, see the [contribution guide](#-contributing-new-problems-to-algotune).
@@ -259,6 +259,24 @@ We need accurate baseline measurements. The `--target-time-ms` parameter control
 
 **Q: Can I use my own OpenAI/Anthropic API key?**
 Yes! Just add it to your `.env` file as shown in the setup.
+
+## Citation
+
+If you found this work helpful, please consider citing it using the following:
+
+<details>
+<summary> AlgoTune citation</summary>
+
+```bibtex
+@article{press2025algotune, title={AlgoTune: Can Language Models Speed Up General-Purpose Numerical Programs?}, 
+author={Press, Ori and Amos, Brandon and Zhao, Haoyu and Wu, Yikai and Ainsworth, Samuel K. and Krupke, Dominik and Kidger, Patrick and Sajed, Touqir and Stellato, Bartolomeo and Park, Jisun and Bosch, Nathanael and Meril, Eli and Steppi, Albert and Zharmagambetov, Arman and Zhang, Fangzhao and Perez-Pineiro, David and Mercurio, Alberto and Zhan, Ni and Abramovich, Talor and Lieret, Kilian and Zhang, Hanlin and Huang, Shirley and Bethge, Matthias and Press, Ofir}, 
+journal={arXiv preprint arXiv:2507.15887},
+year={2025},
+ doi={10.48550/arXiv.2507.15887}, 
+ url={https://arxiv.org/abs/2507.15887}}
+```
+</details>
+
 
 ## Questions?
 Contact us with any questions: ori.press@bethgelab.org
