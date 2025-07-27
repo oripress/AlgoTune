@@ -75,20 +75,19 @@ cat reports/agent_summary.json
 
 ## 🔧 Commands & Options
 
-### Essential commands
+### Evaluating existing results
+
+Results are stored in `./results` directory after running the agent. You can evaluate any model's results:
 
 ```bash
-# List all available tasks
-./algotune.sh list-tasks
+# Evaluate all models in ./results
+./algotune.sh evaluate
 
-# Generate baseline for specific tasks (stand-alone)
-./algotune.sh --standalone generate --tasks svm kmeans
+# Evaluate specific models
+./algotune.sh evaluate --models "Claude Opus 4" "o4-mini"
 
-# Run agent on specific tasks (stand-alone)
-./algotune.sh --standalone agent o4-mini svm kmeans
-
-# Run agent on specific tasks (SLURM)
-./algotune.sh agent o4-mini svm kmeans
+# View aggregated speedup results
+cat reports/evaluate_summary.json
 ```
 
 ---

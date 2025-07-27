@@ -84,6 +84,15 @@ class EvaluationOrchestrator:
         
         self.logger.info(f"Starting evaluation of {len(dataset)} problems for task {task_name}")
         
+        # DEBUG: Log baseline_times parameter
+        self.logger.info(f"DEBUG_BASELINE: baseline_times parameter type: {type(baseline_times)}")
+        if baseline_times is None:
+            self.logger.info(f"DEBUG_BASELINE: baseline_times is None!")
+        else:
+            self.logger.info(f"DEBUG_BASELINE: baseline_times has {len(baseline_times)} entries")
+            sample_keys = list(baseline_times.keys())[:5]
+            self.logger.info(f"DEBUG_BASELINE: sample keys: {sample_keys}")
+        
         results = []
         
         for i, problem_data in enumerate(dataset):
@@ -108,6 +117,19 @@ class EvaluationOrchestrator:
             
             # Get baseline time from the provided dictionary if available
             baseline_time_ms = baseline_times.get(problem_id) if baseline_times else metadata.get("baseline_time_ms")
+            
+            # DEBUG: Log baseline lookup for each problem
+            self.logger.info(f"DEBUG_BASELINE: Looking up problem_id '{problem_id}' (type: {type(problem_id)})")
+            if baseline_times:
+                found_time = baseline_times.get(problem_id)
+                self.logger.info(f"DEBUG_BASELINE: Lookup result: {found_time}")
+                if found_time is None:
+                    available_keys = list(baseline_times.keys())[:10]
+                    self.logger.info(f"DEBUG_BASELINE: Problem not found! Available keys (first 10): {available_keys}")
+            else:
+                self.logger.info(f"DEBUG_BASELINE: No baseline_times dict provided, trying metadata")
+                metadata_time = metadata.get("baseline_time_ms")
+                self.logger.info(f"DEBUG_BASELINE: Metadata baseline_time_ms: {metadata_time}")
 
             # Evaluate single problem
             result = self.evaluate_single(

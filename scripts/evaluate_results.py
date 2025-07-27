@@ -416,12 +416,6 @@ class AgentCompatibleEvaluator:
                 # Check if compilation is needed and compile in the temp directory
                 needs_comp, indicators = needs_compilation(temp_code_dir)
                 
-                # Debug logging for max_weighted_independent_set
-                if task_name == "max_weighted_independent_set":
-                    logging.info(f"DEBUG: Files in temp_code_dir: {list(temp_code_dir.iterdir())}")
-                    used_files = filter_used_files(temp_code_dir)
-                    logging.info(f"DEBUG: Used files detected: {used_files}")
-                    logging.info(f"DEBUG: needs_comp={needs_comp}, indicators={indicators}")
                 
                 if needs_comp:
                     logging.info(f"Compiling {task_name} in temporary directory: {indicators}")
@@ -433,12 +427,6 @@ class AgentCompatibleEvaluator:
                         return result
                     result.compilation_needed = True
                     
-                    # Additional debug for max_weighted_independent_set
-                    if task_name == "max_weighted_independent_set":
-                        logging.info(f"DEBUG: Compilation completed with message: {comp_message}")
-                        # Check if .so file was created
-                        so_files = list(temp_code_dir.glob("*.so"))
-                        logging.info(f"DEBUG: .so files after compilation: {so_files}")
                 
                 # Step 6: Evaluate optimized code using same function as agent
                 from AlgoTuner.utils.evaluator.main import evaluate_code_on_dataset
@@ -463,20 +451,9 @@ class AgentCompatibleEvaluator:
                 )
                 logging.info(f"Got {len(baseline_times_raw)} baseline times from BaselineManager")
                 
-                # Transform baseline times from dataset IDs to index-based keys
-                baseline_times_indexed = {}
-                for i, problem in enumerate(test_problems):
-                    item_id = f"problem_{i+1}"
-                    if isinstance(problem, dict):
-                        dataset_id = problem.get("id") or problem.get("k")
-                        if dataset_id is not None:
-                            dataset_id = str(dataset_id)
-                            if dataset_id in baseline_times_raw:
-                                baseline_times_indexed[item_id] = baseline_times_raw[dataset_id]
-                                if i < 3:  # Log first few mappings
-                                    logging.info(f"Mapped baseline time: {dataset_id} -> {item_id} = {baseline_times_raw[dataset_id]}ms")
-                
-                logging.info(f"Transformed {len(baseline_times_indexed)} baseline times to index-based keys")
+                # No transformation needed - main.py uses the same key extraction logic as BaselineManager
+                # Both use dataset IDs (e.g., "142", "143") with fallback to index-based keys
+                logging.info(f"Using raw baseline times from BaselineManager: {len(baseline_times_raw)} entries")
                 
                 # evaluate_code_on_dataset will:
                 # 1. Load and evaluate the optimized solver from CODE_DIR
@@ -484,7 +461,7 @@ class AgentCompatibleEvaluator:
                 results = evaluate_code_on_dataset(
                     task_obj=task_instance,
                     dataset_iterable=test_problems,
-                    baseline_times=baseline_times_indexed,  # Pass transformed baseline times
+                    baseline_times=baseline_times_raw,  # Pass raw baseline times with dataset ID keys
                     data_subset="test",
                     test_mode=False
                 )
