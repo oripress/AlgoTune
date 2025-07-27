@@ -165,7 +165,7 @@ singularity exec \
         --tasks "$EVAL_TASK_NAME" \
         --results-dir "$EVAL_RESULTS_DIR" \
         --generation-file "$EVAL_GENERATION_FILE" \
-        --data-dir "$EVAL_DATA_DIR" \
+        --data-dir "$DATA_DIR" \
         --num-runs "$EVAL_NUM_RUNS" \
         --output "$EVAL_OUTPUT_FILE" \
         --max-workers 1'
