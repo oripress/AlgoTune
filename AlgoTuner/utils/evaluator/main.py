@@ -158,7 +158,6 @@ def _simple_baseline_evaluation(jsonl_path, index, task_name, data_dir, num_runs
             current_code_dir = task_code_dir
         else:
             current_code_dir = base_code_dir
-        logging.debug(f"BASELINE_DEBUG: Using code_dir='{current_code_dir}' for isolated benchmark")
         
         # Load the dataset to get a different problem for warmup (matching baseline worker behavior)
         from AlgoTuner.utils.dataset_utils import read_jsonl_data
@@ -170,7 +169,6 @@ def _simple_baseline_evaluation(jsonl_path, index, task_name, data_dir, num_runs
         warmup_fetch_info = {"type": "jsonl_streaming", "path": jsonl_path, "index": warmup_idx}
         timed_fetch_info = {"type": "jsonl_streaming", "path": jsonl_path, "index": index}
         
-        logging.debug(f"BASELINE_DEBUG: Using streaming fetch - problem {index} for timing, problem {warmup_idx} for warmup")
         
         result = run_isolated_benchmark_with_fetch(
             task_name=task_name,
@@ -181,11 +179,6 @@ def _simple_baseline_evaluation(jsonl_path, index, task_name, data_dir, num_runs
             timeout_seconds=baseline_timeout_s,
         )
         
-        logging.info(f"BASELINE_TIMING_DEBUG: run_isolated_benchmark returned: success={result.get('success')}")
-        logging.info(f"BASELINE_TIMING_DEBUG: result keys: {list(result.keys())}")
-        logging.info(f"BASELINE_TIMING_DEBUG: min_time_ms={result.get('min_time_ms')}, mean_time_ms={result.get('mean_time_ms')}")
-        if result.get("error"):
-            logging.info(f"BASELINE_TIMING_DEBUG: error={result.get('error')}")
         
         if result.get("success"):
             min_time_ms = result.get("min_time_ms", 0.0)
@@ -1745,7 +1738,7 @@ def _evaluate_baseline_dataset_impl(
         # Check overall timeout
         elapsed_overall = time.time() - overall_start_time
         if elapsed_overall > max_overall_time_s:
-            logging.debug(f"BASELINE_DEBUG: Overall timeout exceeded ({elapsed_overall:.1f}s > {max_overall_time_s:.1f}s). Stopping baseline evaluation at problem {eval_idx+1}/{len(sampled_indices)}")
+            logging.info(f"Baseline timeout exceeded ({elapsed_overall:.1f}s). Stopping at problem {eval_idx+1}/{len(sampled_indices)}")
             break
             
         # Memory-efficient problem retrieval: fetch problems one at a time to minimize peak memory
@@ -1785,23 +1778,9 @@ def _evaluate_baseline_dataset_impl(
             problem_data = _fetch_record_streaming(idx)
             warmup_data = _fetch_record_streaming(warmup_idx)
             
-            # Debug logging to verify problems are different
-            logging.debug(f"BASELINE_DEBUG: idx={idx}, warmup_idx={warmup_idx}")
-            logging.debug(f"BASELINE_DEBUG: problem_data type: {type(problem_data)}, keys: {list(problem_data.keys()) if isinstance(problem_data, dict) else 'not a dict'}")
-            logging.debug(f"BASELINE_DEBUG: warmup_data type: {type(warmup_data)}, keys: {list(warmup_data.keys()) if isinstance(warmup_data, dict) else 'not a dict'}")
-            if isinstance(problem_data, dict) and isinstance(warmup_data, dict):
-                for key in problem_data.keys():
-                    if key in warmup_data:
-                        if not _safe_compare_data(problem_data[key], warmup_data[key]):
-                            logging.debug(f"BASELINE_DEBUG: Key '{key}' differs: problem={problem_data[key]} vs warmup={warmup_data[key]}")
-                        else:
-                            logging.debug(f"BASELINE_DEBUG: Key '{key}' is same: {problem_data[key]}")
+            # Check if warmup and timing problems are identical (important for baseline validity)
             if _safe_compare_data(problem_data, warmup_data):
-                logging.error(f"BASELINE_DEBUG: WARNING - problem_data and warmup_data are IDENTICAL for idx={idx}!")
-                logging.error(f"BASELINE_DEBUG: problem_data = {problem_data}")
-                logging.error(f"BASELINE_DEBUG: warmup_data = {warmup_data}")
-            else:
-                logging.debug(f"BASELINE_DEBUG: Good - problem_data and warmup_data are different")
+                logging.warning(f"Baseline timing: problem and warmup data are identical for idx={idx} (this may affect timing accuracy)")
             
             # Create lightweight fetch functions that will be called inside the worker
             problem_fetch_info = {"type": "jsonl_seek", "path": jsonl_path, "offset": jsonl_line_offsets[idx]}
@@ -1828,22 +1807,13 @@ def _evaluate_baseline_dataset_impl(
         logging.info(f"Running baseline evaluation for problem {idx+1}/{len(sampled_indices)} (id: {problem_id}) with timeout={baseline_timeout_s:.1f}s")
         
         # Add more detailed logging before the call
-        logging.debug(f"BASELINE_DEBUG: About to call baseline evaluation for problem {problem_id}")
         
         problem_start_time = time.time()
         try:
             # Use isolated benchmark timing for clean measurements
-            logging.debug(f"BASELINE_DEBUG: Running isolated baseline timing for problem {problem_id} ({eval_idx+1}/{len(sampled_indices)})")
-            logging.debug(f"BASELINE_DEBUG: Using solver_dir='{solver_dir}' for isolated benchmark (dataset_dir='{dataset_dir}')")
             
             # Use standard evaluation with AGENT_MODE=0 (baseline mode)
             # Always use isolated benchmark for proper timing isolation
-            logging.debug(f"BASELINE_DEBUG: Using isolated benchmark for baseline evaluation")
-            logging.debug(f"BASELINE_DEBUG: Current process daemon status: {mp.current_process().daemon}")
-            logging.debug(f"BASELINE_DEBUG: Process name: {mp.current_process().name}")
-            logging.debug(f"BASELINE_DEBUG: About to call run_isolated_benchmark_with_fetch")
-            logging.debug(f"BASELINE_DEBUG: task_name='{safe_task_name}', code_dir='{solver_dir}'")
-            logging.debug(f"BASELINE_DEBUG: AGENT_MODE={os.environ.get('AGENT_MODE', 'NOT_SET')}")
             
             # Use retry mechanism for baseline evaluation since it should never fail
             result = _evaluate_baseline_with_retry(
@@ -1858,20 +1828,9 @@ def _evaluate_baseline_dataset_impl(
             )
             
             problem_elapsed = time.time() - problem_start_time
-            logging.debug(f"BASELINE_DEBUG: Baseline evaluation completed successfully for problem {problem_id} in {problem_elapsed:.1f}s")
-            logging.debug(f"BASELINE_DEBUG: Raw result keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}")
-            logging.debug(f"BASELINE_DEBUG: Result success: {result.get('success')}")
-            logging.debug(f"BASELINE_DEBUG: Result min_time_ms: {result.get('min_time_ms')}")
-            logging.debug(f"BASELINE_DEBUG: Result elapsed_ms: {result.get('elapsed_ms')}")
-            logging.debug(f"BASELINE_DEBUG: Result min_time_ms: {result.get('min_time_ms')}")
-            logging.debug(f"BASELINE_DEBUG: Result mean_ms: {result.get('mean_ms')}")
-            if hasattr(result, '__dict__'):
-                logging.debug(f"BASELINE_DEBUG: Result dict: {result.__dict__}")
-            elif isinstance(result, dict):
-                logging.debug(f"BASELINE_DEBUG: Result dict size: {len(result)}, sample keys: {list(result.keys())[:10]}")
         except Exception as e:
             problem_elapsed = time.time() - problem_start_time
-            logging.debug(f"BASELINE_DEBUG: Baseline evaluation failed for problem {problem_id} after {problem_elapsed:.1f}s: {e}")
+            logging.warning(f"Baseline evaluation failed for problem {problem_id}: {e}")
             result = {
                 "success": False,
                 "error": f"Baseline evaluation failed: {e}",
@@ -1881,13 +1840,12 @@ def _evaluate_baseline_dataset_impl(
         
         # Extract timing directly from result (no subprocess wrapping)
         t_ms = result.get("min_time_ms") if result.get("min_time_ms") is not None else result.get("elapsed_ms", 0.0)
-        logging.debug(f"BASELINE_DEBUG: Extracted t_ms: {t_ms}")
         
         # BASELINE BUG FIX: Don't store 0.0 times as valid baseline measurements!
         if result.get("success") and t_ms is not None and t_ms > 0.0:
             baseline_times[problem_id] = t_ms
             logging.info(
-                "BASELINE_TIME_DEBUG: problem_id=%s min_time_ms=%.6f (stored)",
+                "Baseline time stored: problem_id=%s min_time_ms=%.6f",
                 problem_id,
                 t_ms,
             )
@@ -1903,7 +1861,6 @@ def _evaluate_baseline_dataset_impl(
         if (eval_idx + 1) % 5 == 0:
             import gc
             gc.collect()
-            logging.debug(f"BASELINE_DEBUG: Forced GC after problem {eval_idx+1}/{len(sampled_indices)}")
     # Determine output path in TEMP
     tmpdir = os.environ.get("TEMP_DIR_STORAGE") or os.environ.get("TEMP") or tempfile.gettempdir()
     if output_file is None:
