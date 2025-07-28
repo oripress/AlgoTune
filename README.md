@@ -45,16 +45,16 @@ echo "CLAUDE_API_KEY=your_key_here" > .env
 
 #### Generate
 ```bash
-# 1Measure baseline speed for two tasks (100 ms target)
+# Measure baseline speed for two tasks (100 ms target)
 ./algotune.sh --standalone generate --target-time-ms 100 --tasks svm kmeans
 ```
 
 #### Run Agent
 ```bash
-#Ask an LM to optimise the same tasks with model "o4-mini"
+# Ask an LM to optimise the same tasks with model "o4-mini"
 ./algotune.sh --standalone agent o4-mini svm kmeans
 
-#View the aggregated speed-up report
+# View the aggregated speed-up report
 cat reports/agent_summary.json
 ```
 
