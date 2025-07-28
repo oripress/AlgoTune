@@ -45,16 +45,16 @@ echo "CLAUDE_API_KEY=your_key_here" > .env
 
 #### Generate
 ```bash
-# 1️⃣  Measure baseline speed for two tasks (100 ms target)
+# 1Measure baseline speed for two tasks (100 ms target)
 ./algotune.sh --standalone generate --target-time-ms 100 --tasks svm kmeans
 ```
 
 #### Run Agent
 ```bash
-# 2️⃣  Ask an LM to optimise the same tasks with model "o4-mini"
+#Ask an LM to optimise the same tasks with model "o4-mini"
 ./algotune.sh --standalone agent o4-mini svm kmeans
 
-# 3️⃣  View the aggregated speed-up report
+#View the aggregated speed-up report
 cat reports/agent_summary.json
 ```
 
@@ -77,9 +77,7 @@ cat reports/agent_summary.json
 
 ---
 
-## 🔧 Commands & Options
-
-### Evaluating Code Without Running AlgoTuner
+## Evaluating Code Without Running the Agent
 
 You can add code for each task in directories (following the `./results/` structure) and it will be compiled and evaluated. Note that you have to generate the datasets first.
 
