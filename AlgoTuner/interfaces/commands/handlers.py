@@ -163,14 +163,26 @@ class CommandHandlers:
             if result.success:
                 return self._format_success_response(result, status_field=status_field)
             else:
-                # Runner failed, format error response using its details
-                return self._format_error_response(
-                    error_msg=result.error or "Runner failed without specific error message.",
-                    context=f"running {runner.__name__}",
-                    status_value=result.status if hasattr(result, 'status') else (EvalStatus.FAILURE.value if status_field == "eval_status" else ProfileStatus.FAILURE.value),
-                    status_field=status_field,
-                    data=result.data if hasattr(result, 'data') else {}
-                )
+                # Check if runner provided a pre-formatted message
+                if result.message:
+                    # Use pre-formatted message directly to avoid double processing
+                    return {
+                        "success": False,
+                        "message": result.message,
+                        "error": result.error or "Runner failed",
+                        status_field: result.status if hasattr(result, 'status') else (EvalStatus.FAILURE.value if status_field == "eval_status" else ProfileStatus.FAILURE.value),
+                        "data": result.data if hasattr(result, 'data') else {},
+                        "spend": getattr(self.interface.state, 'spend', 0.0)
+                    }
+                else:
+                    # Runner failed, format error response using its details
+                    return self._format_error_response(
+                        error_msg=result.error or "Runner failed without specific error message.",
+                        context=f"running {runner.__name__}",
+                        status_value=result.status if hasattr(result, 'status') else (EvalStatus.FAILURE.value if status_field == "eval_status" else ProfileStatus.FAILURE.value),
+                        status_field=status_field,
+                        data=result.data if hasattr(result, 'data') else {}
+                    )
 
         except Exception as e:
             # Catch unexpected errors during the process
