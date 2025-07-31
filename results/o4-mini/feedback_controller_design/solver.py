@@ -1,29 +1,35 @@
 import numpy as np
 from scipy.linalg import solve_discrete_are
-from numpy.linalg import solve as _solve
 
-_identity_cache = {}
-def _eye(n):
-    I = _identity_cache.get(n)
-    if I is None:
-        I = np.eye(n)
-        _identity_cache[n] = I
-    return I
+# Pre-bind common functions for speed
+_solve_dare = solve_discrete_are
+_arr = np.asarray
+_solve = np.linalg.solve
+_eye = np.eye
 
 class Solver:
-    def solve(self, problem, **_):
-        _dare = solve_discrete_are
-        _solve_l = _solve
-        _I = _eye
+    def solve(self, problem, **kwargs):
         try:
-            A = np.asarray(problem['A'], dtype=float)
-            B = np.asarray(problem['B'], dtype=float)
+            # Local references
+            arr = _arr; eye = _eye
+            dare = _solve_dare; lin_solve = _solve
+
+            # Load system matrices
+            A = arr(problem["A"])
+            B = arr(problem["B"])
             n, m = A.shape[0], B.shape[1]
-            I_n = _I(n); I_m = _I(m)
-            P = _dare(A, B, I_n, I_m)
-            PB = P.dot(B)
-            S = I_m + PB.T.dot(B)
-            K = -_solve_l(S, PB.T.dot(A))
-            return {'is_stabilizable': True, 'K': K, 'P': P}
-        except:
-            return {'is_stabilizable': False, 'K': None, 'P': None}
+
+            # Solve discrete-time Riccati equation
+            P = dare(A, B, eye(n), eye(m))
+
+            # Compute gain K = -(R + B'PB)^{-1} B'PA
+            BtP = B.T @ P
+            G = eye(m) + BtP @ B
+            H = BtP @ A
+            K = -lin_solve(G, H)
+
+            # Symmetrize P and return arrays directly
+            P = 0.5 * (P + P.T)
+            return {"is_stabilizable": True, "K": K, "P": P}
+        except Exception:
+            return {"is_stabilizable": False, "K": None, "P": None}
