@@ -1429,14 +1429,27 @@ class CommandHandlers:
                 status_field="eval_status"
             )
         else:
-            # On failure, report only the dataset evaluation result without the intro
-            return self._format_error_response(
-                error_msg=msg,
-                context="running dataset evaluation",
-                status_value=result.status,
-                status_field="eval_status",
-                data=data
-            )
+            # Check if this is a pre-formatted error result
+            if data.get("evaluation_type") == "error":
+                # Message is already formatted by format_evaluation_result_from_raw
+                # Include intro since evaluation was attempted
+                return {
+                    "success": False,
+                    "message": full_msg,
+                    "error": data.get("error_type", "EvaluationError"),
+                    "eval_status": result.status,
+                    "data": data,
+                    "spend": getattr(self.interface.state, 'spend', 0.0)
+                }
+            else:
+                # On failure, report dataset evaluation result through standard error formatting
+                return self._format_error_response(
+                    error_msg=msg,
+                    context="running dataset evaluation",
+                    status_value=result.status,
+                    status_field="eval_status",
+                    data=data
+                )
 
     def _unknown_command_error(self, command: str) -> Dict[str, Any]:
         """Handle unknown command error.
