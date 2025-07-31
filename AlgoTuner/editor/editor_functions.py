@@ -1009,6 +1009,9 @@ class SnapshotManager:
                             raise IOError(
                                 f"Restore verification mismatch for {rel_path_str}"
                             )
+                    
+                    # Verify and handle compilation artifacts after restoration
+                    self._verify_and_recompile_if_needed(code_dir)
 
                     # Load metadata associated with the reverted snapshot
                     meta_path = snap_path / "metadata.json"
@@ -1075,18 +1078,147 @@ class SnapshotManager:
 
     def _calc_hash(self, fp: Path) -> str:
         return hashlib.sha256(fp.read_bytes()).hexdigest()
+    
+    def _verify_and_recompile_if_needed(self, code_dir: Path) -> None:
+        """
+        Verify compilation artifacts after snapshot restoration and trigger recompilation if needed.
+        This addresses the systematic bug where compiled extensions fail during final test evaluation.
+        """
+        import subprocess
+        import os
+        
+        logging.info("Verifying compilation artifacts after snapshot restoration...")
+        
+        # Check for Cython source files that might need compilation
+        cython_files = list(code_dir.glob("*.pyx"))
+        setup_py = code_dir / "setup.py"
+        pyproject_toml = code_dir / "pyproject.toml"
+        
+        if not cython_files:
+            logging.debug("No Cython files found, skipping compilation verification")
+            return
+        
+        logging.info(f"Found {len(cython_files)} Cython files: {[f.name for f in cython_files]}")
+        
+        # Check if we have a build system
+        has_build_system = setup_py.exists() or pyproject_toml.exists()
+        if not has_build_system:
+            logging.warning("No setup.py or pyproject.toml found, cannot verify/recompile Cython extensions")
+            return
+        
+        # Try to import compiled modules to see if they work
+        needs_compilation = False
+        for pyx_file in cython_files:
+            module_name = pyx_file.stem
+            if module_name.endswith("_cy"):
+                # This is likely a compiled Cython module
+                try:
+                    # Test import by checking if the module can be imported
+                    import importlib.util
+                    spec = importlib.util.find_spec(module_name)
+                    if spec is None or spec.origin is None:
+                        logging.warning(f"Compiled module {module_name} not found, will trigger recompilation")
+                        needs_compilation = True
+                        break
+                    
+                    # Verify the .so file exists and is readable
+                    so_path = Path(spec.origin)
+                    if not so_path.exists() or not so_path.is_file():
+                        logging.warning(f"Compiled module file {so_path} missing, will trigger recompilation")
+                        needs_compilation = True
+                        break
+                        
+                    logging.debug(f"Compiled module {module_name} verification passed: {so_path}")
+                    
+                except Exception as e:
+                    logging.warning(f"Failed to verify compiled module {module_name}: {e}, will trigger recompilation")
+                    needs_compilation = True
+                    break
+        
+        if not needs_compilation:
+            logging.info("All compilation artifacts verified successfully")
+            return
+        
+        # Trigger recompilation
+        logging.info("Compilation artifacts missing or invalid, triggering recompilation...")
+        
+        try:
+            # Change to code directory for compilation
+            original_cwd = os.getcwd()
+            os.chdir(code_dir)
+            
+            if setup_py.exists():
+                # Use setup.py build_ext --inplace for in-place compilation
+                cmd = ["python", "setup.py", "build_ext", "--inplace"]
+                logging.info(f"Running compilation command: {' '.join(cmd)}")
+                
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=60  # 60 second timeout
+                )
+                
+                if result.returncode == 0:
+                    logging.info("Cython recompilation successful")
+                    logging.debug(f"Compilation stdout: {result.stdout}")
+                else:
+                    logging.error(f"Cython recompilation failed with return code {result.returncode}")
+                    logging.error(f"Compilation stderr: {result.stderr}")
+                    
+            elif pyproject_toml.exists():
+                # Try pip install -e . for pyproject.toml
+                cmd = ["pip", "install", "-e", ".", "--no-deps"]
+                logging.info(f"Running compilation command: {' '.join(cmd)}")
+                
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=60
+                )
+                
+                if result.returncode == 0:
+                    logging.info("Package recompilation successful")
+                    logging.debug(f"Installation stdout: {result.stdout}")
+                else:
+                    logging.error(f"Package recompilation failed with return code {result.returncode}")
+                    logging.error(f"Installation stderr: {result.stderr}")
+                    
+        except subprocess.TimeoutExpired:
+            logging.error("Recompilation timed out after 60 seconds")
+        except Exception as e:
+            logging.error(f"Error during recompilation: {e}")
+        finally:
+            # Always restore original working directory
+            os.chdir(original_cwd)
 
     def _should_ignore_file(self, f: Path) -> bool:
         if f is None:
             return True
-        return (
-            not f.is_file()
-            or f.name.startswith(".snapshot")
-            or f == self.state.snapshot_file
-            or ".snapshots" in f.parts
-            or "__pycache__" in f.parts
-            or f.suffix == ".pyc"
-        )
+        
+        # Always ignore non-files and system files
+        if not f.is_file():
+            return True
+        if f.name.startswith(".snapshot") or f == self.state.snapshot_file:
+            return True
+        if ".snapshots" in f.parts or "__pycache__" in f.parts:
+            return True
+        if f.suffix == ".pyc":
+            return True
+            
+        # IMPORTANT: Do NOT ignore compilation artifacts - they are critical for performance
+        # Include: .so (shared objects), .pyx (Cython source), .c/.cpp (compiled from Cython)
+        # Include: build directories and setup files needed for recompilation
+        compilation_artifacts = {".so", ".pyx", ".c", ".cpp"}
+        if f.suffix in compilation_artifacts:
+            return False
+        if f.name in {"setup.py", "pyproject.toml", "Makefile"}:
+            return False
+        if "build" in f.parts and any(part.startswith("lib.") for part in f.parts):
+            return False
+            
+        return False
 
 
 
