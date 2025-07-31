@@ -475,7 +475,10 @@ class LLMInterface(base_interface.BaseLLMInterface):
                     return None
                 
                 assistant_message = response.get("message", "").strip()
-                cost = float(response.get("cost", 0.0))
+                cost = response.get("cost")
+                if cost is None and "usage" in response:
+                    cost = response["usage"].get("cost")
+                cost = float(cost or 0.0)
 
                 logging.info(f"Received from LLM:\n{assistant_message}")
 
