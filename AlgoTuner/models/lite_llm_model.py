@@ -76,6 +76,40 @@ class LiteLLMModel:
         
         # Should never reach here
         raise Exception("Exhausted all retry attempts")
+    
+    def _extract_cost_from_response(self, response) -> float:
+        """Extract cost from LiteLLM response with budget protection."""
+        
+        # Method 1: Standard LiteLLM hidden params
+        if hasattr(response, '_hidden_params') and response._hidden_params:
+            cost = response._hidden_params.get("response_cost")
+            if cost is not None and cost > 0:
+                logging.debug(f"Cost extracted from _hidden_params: ${cost}")
+                return float(cost)
+        
+        # Method 2: OpenRouter usage format (usage: {include: true})
+        if hasattr(response, 'usage') and response.usage:
+            if hasattr(response.usage, 'cost') and response.usage.cost is not None:
+                cost = float(response.usage.cost)
+                if cost > 0:
+                    logging.debug(f"Cost extracted from response.usage.cost: ${cost}")
+                    return cost
+            elif isinstance(response.usage, dict) and 'cost' in response.usage:
+                cost = response.usage.get('cost')
+                if cost is not None:
+                    cost = float(cost)
+                    if cost > 0:
+                        logging.debug(f"Cost extracted from response.usage['cost']: ${cost}")
+                        return cost
+        
+        # Budget protection: If no cost found, fail fast to prevent budget depletion
+        logging.error(f"Cannot extract cost from response for model {self.model_name}")
+        logging.error(f"Response has _hidden_params: {hasattr(response, '_hidden_params')}")
+        logging.error(f"Response has usage: {hasattr(response, 'usage')}")
+        if hasattr(response, 'usage'):
+            logging.error(f"Usage type: {type(response.usage)}, has cost: {hasattr(response.usage, 'cost') if response.usage else False}")
+        
+        raise ValueError(f"Cannot extract cost from {self.model_name} response - budget protection engaged. Check model configuration and API response format.")
 
     def _is_retryable_error(self, error: Exception) -> bool:
         """Determine if an error is retryable (overloaded, server errors, etc.)"""
@@ -218,7 +252,7 @@ class LiteLLMModel:
                 drop_params=self.drop_call_params,
                 **extra_params
             )
-            cost = response._hidden_params.get("response_cost", 0.0)
+            cost = self._extract_cost_from_response(response)
 
             try:
                 choices = response.get("choices", [])
