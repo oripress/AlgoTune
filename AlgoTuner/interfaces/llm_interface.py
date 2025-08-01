@@ -439,7 +439,7 @@ class LLMInterface(base_interface.BaseLLMInterface):
                 logging.error(f"Error logging message details: {msg_log_error}")
 
             try:
-                max_retries = 5
+                max_retries = 10
                 base_delay = 2.0
 
                 response = None
