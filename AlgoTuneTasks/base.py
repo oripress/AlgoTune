@@ -282,10 +282,23 @@ class Task:
             if (target_time_ms and target_time_ms > 0) else 60.0
         )
 
+        # Load task dataset and select different warmup problem
+        from AlgoTuner.utils.dataset_manager import DatasetManager
+        
+        # Use DatasetManager for efficient single problem loading
+        data_dir = os.environ.get("DATA_DIR", self.data_dir or "../data")
+        dataset_mgr = DatasetManager(data_dir)
+        
+        try:
+            warmup_problem, dataset_path = dataset_mgr.get_warmup_problem(self.task_name)
+            logging.info(f"Loaded warmup problem from: {dataset_path}")
+        except Exception as e:
+            raise ValueError(f"Cannot load dataset for warmup problem selection: {e}")
+        
         pre = run_isolated_benchmark(
             task_name=self.task_name,
             code_dir=self.get_task_directory(),
-            warmup_problem=problem_obj,
+            warmup_problem=warmup_problem,
             timed_problem=problem_obj,
             num_runs=1,
             timeout_seconds=precheck_timeout_s
@@ -294,10 +307,11 @@ class Task:
             pre["precheck_failed"] = True
             return pre
 
+        # Reuse the same warmup problem for consistency
         main = run_isolated_benchmark(
             task_name=self.task_name,
             code_dir=self.get_task_directory(),
-            warmup_problem=problem_obj,
+            warmup_problem=warmup_problem,
             timed_problem=problem_obj,
             num_runs=target_num_runs,
             timeout_seconds=timeout_s
