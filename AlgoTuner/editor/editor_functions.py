@@ -449,8 +449,8 @@ class FileManager:
 
     def _make_absolute(self, file_path: Path) -> Path:
         """
-        Convert a relative path to an absolute path.
-        Added logging for debugging file path resolution issues.
+        Convert any path to a secure filename-only path in CODE_DIR.
+        Prevents directory traversal by extracting only the filename.
         """
         original_type = type(file_path)
         if isinstance(file_path, str):
@@ -459,20 +459,20 @@ class FileManager:
         else:
             logging.info(f"FileManager._make_absolute: Input path '{file_path}' (original type: {original_type}) is already a Path object.")
             
-        logging.info(f"FileManager._make_absolute: Received path '{file_path}'. Is absolute: {file_path.is_absolute()}")
-        
-        if file_path.is_absolute():
-            logging.info(f"FileManager._make_absolute: Path '{file_path}' is already absolute. Returning as is.")
-            return file_path
+        # Extract only the filename to prevent directory traversal
+        filename = file_path.name
+        if not filename:
+            raise ValueError(f"Invalid path: no filename found in '{file_path}'")
             
+        # Security: Force all files to CODE_DIR root, no subdirectories allowed
         current_code_dir = self.state.code_dir
         if not current_code_dir.is_absolute():
             logging.warning(f"FileManager._make_absolute: code_dir '{current_code_dir}' is not absolute. Resolving it first.")
             current_code_dir = current_code_dir.resolve()
             logging.info(f"FileManager._make_absolute: Resolved code_dir to '{current_code_dir}'.")
 
-        abs_path = (current_code_dir / file_path).resolve()
-        logging.info(f"FileManager._make_absolute: Resolved relative path '{file_path}' to absolute path: {abs_path} (using code_dir: '{current_code_dir}'). Exists: {abs_path.exists()}")
+        abs_path = current_code_dir / filename
+        logging.info(f"FileManager._make_absolute: Secured path '{file_path}' to filename-only path: {abs_path} (using code_dir: '{current_code_dir}')")
         
         code_dir_env = os.environ.get("CODE_DIR", "")
         if code_dir_env:
