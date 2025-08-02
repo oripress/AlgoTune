@@ -939,24 +939,34 @@ class CommandHandlers:
 
     def _execute_eval_input_command(self, command_str: ParsedCommand) -> Dict[str, Any]:
         """Execute the eval_input command."""
+        logging.info(f"_execute_eval_input_command called with args: {command_str.args}")
+        logging.info(f"raw_text: {getattr(command_str, 'raw_text', 'NO RAW TEXT')}")
+        
         # Extract and normalize input (support 'input_str', fallback to 'body' and raw_text), handling None safely
         raw_in = command_str.args.get("input_str")
         if raw_in is None:
             raw_in = command_str.args.get("body") or ""
         input_str = raw_in.strip()
+        logging.info(f"Initial input_str from args: '{input_str}'")
+        
         if not input_str and getattr(command_str, "raw_text", None) is not None:
             raw = command_str.raw_text.strip()
             prefix = "eval_input"
             if raw.startswith(prefix):
                 input_str = raw[len(prefix):].strip()
+                logging.info(f"Extracted input_str from raw_text: '{input_str}'")
+        
         # Missing input error
         if not input_str:
+            logging.error("No input_str found for eval_input command")
             return self._format_error_response(
                 "Missing input for eval_input command",
                 "handling eval_input command",
                 EvalStatus.FAILURE.value,
                 "eval_status"
             )
+        
+        logging.info(f"Final input_str being passed to _run_with_cast_and_format: '{input_str}'")
         # Delegate to unified pipeline
         return self._run_with_cast_and_format(
             input_str=input_str,
@@ -1483,16 +1493,24 @@ class CommandHandlers:
 
     def _runner_eval_input(self, casted_input: Any, **runner_kwargs: Any) -> CommandResult:
         """Runner for eval_input command. Calls run_evaluation_on_input."""
+        logging.info(f"_runner_eval_input called with casted_input: {casted_input}, type: {type(casted_input)}")
         try:
 
             if not hasattr(self.interface, 'task_instance') or self.interface.task_instance is None:
                  raise RuntimeError("Task instance (self.interface.task_instance) not available.")
             task_instance = self.interface.task_instance
+            logging.info(f"Task instance type: {type(task_instance).__name__}")
 
             
             command_source = runner_kwargs.get("command_source", "eval_input") # Pass command source if available
 
             # Call the specific eval function
+            logging.info(f"Calling run_evaluation_on_input with problem_input: {casted_input}")
+            logging.info(f"Problem input type before call: {type(casted_input)}")
+            if hasattr(casted_input, 'shape'):
+                logging.info(f"Problem input shape: {casted_input.shape}")
+            if hasattr(casted_input, 'ndim'):
+                logging.info(f"Problem input ndim: {casted_input.ndim}")
             result_dict = run_evaluation_on_input(
                 task_instance=task_instance, 
                 problem_input=casted_input,
