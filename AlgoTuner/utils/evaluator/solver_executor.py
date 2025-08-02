@@ -62,9 +62,9 @@ class SolverExecutor:
             is_daemon = mp.current_process().daemon
             self.logger.info(f"SolverExecutor.execute: is_daemon={is_daemon}, use_isolated={self.config.use_isolated_execution}")
             
-            # Use warmup_problem if provided, otherwise fall back to same problem
+            # warmup_problem must be provided - no fallbacks allowed
             if warmup_problem is None:
-                warmup_problem = problem
+                raise ValueError("warmup_problem is required - all callers must provide proper warmup problem context")
             
             if not is_daemon and self.config.use_isolated_execution:
                 # Check if we should use process pool (efficient) or fresh spawning (full isolation)

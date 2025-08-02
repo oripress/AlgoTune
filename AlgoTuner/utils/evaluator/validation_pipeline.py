@@ -146,7 +146,7 @@ class ValidationPipeline:
             return ValidationResult(
                 is_valid=False,
                 error_type=ErrorType.VALIDATION_ERROR,
-                error_message=f"Validation error: {str(e)}",
+                error_message=f"Validation Error: {str(e)}",
                 context=context,
                 validation_time_ms=validation_time_ms
             )
@@ -258,32 +258,39 @@ class ValidationPipeline:
         traceback_str: str
     ) -> ValidationContext:
         """Create context from a validation exception."""
-        # Clean the traceback to remove full paths
-        from AlgoTuner.utils.trace_cleaner import clean_traceback
-        cleaned_tb = clean_traceback(traceback_str)
+        from AlgoTuner.utils.error_utils import extract_error_context
         
-        # Extract the line number from traceback if possible
-        failure_line = None
-        lines = traceback_str.split('\n')
-        
-        for line in lines:
-            if 'is_solution' in line and 'line' in line:
+        try:
+            # Use existing error context extraction utility
+            context_info = extract_error_context(traceback_str, str(exception))
+            enhanced_error_msg = context_info.get("enhanced_error_message", str(exception))
+            code_context = context_info.get("code_context_snippet")
+            
+            # Extract line number from enhanced error message
+            failure_line = None
+            if " at line " in enhanced_error_msg:
                 try:
-                    # Extract line number from traceback
-                    parts = line.split('line')
-                    if len(parts) > 1:
-                        num_part = parts[1].strip().split(',')[0]
-                        failure_line = int(num_part)
-                        break
+                    line_part = enhanced_error_msg.split(" at line ")[1].split()[0]
+                    failure_line = int(line_part)
                 except (ValueError, IndexError):
                     pass
-        
-        return ValidationContext(
-            failure_line=failure_line,
-            failure_reason=f"Exception in validation: {type(exception).__name__}",
-            code_snippet=None,
-            full_context=f"Validation exception:\n{cleaned_tb}"
-        )
+            
+            return ValidationContext(
+                failure_line=failure_line,
+                failure_reason=f"Exception in validation: {type(exception).__name__}",
+                code_snippet=code_context,
+                full_context=None  # Use structured context instead of raw traceback
+            )
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to extract structured context: {e}")
+            # Fallback to basic context
+            return ValidationContext(
+                failure_line=None,
+                failure_reason=f"{type(exception).__name__}: {str(exception)}",
+                code_snippet=None,
+                full_context=None
+            )
     
     def clear_context_cache(self):
         """Clear the context cache to free memory."""

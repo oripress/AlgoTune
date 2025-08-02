@@ -70,12 +70,10 @@ class CodeContext:
         parts = []
         if self.function_name:
             parts.append(f"In function: {self.function_name}")
-        if self.error_line:
-            parts.append(f"Error at line: {self.error_line}")
         if self.code_snippet:
-            parts.append(f"Code:\n{self.code_snippet}")
+            parts.append(f"Code Context:\n{self.code_snippet}")
         if self.surrounding_lines:
-            parts.append(f"Context:\n{self.surrounding_lines}")
+            parts.append(f"Code Context:\n{self.surrounding_lines}")
         
         return "\n".join(parts) if parts else "No context available"
 
@@ -90,18 +88,21 @@ class ValidationContext:
     
     def format_for_display(self) -> str:
         """Format context for user display."""
+        # If we have full context with line numbers, prioritize that
         if self.full_context:
             return self.full_context
         
+        # Otherwise, fall back to structured context
         parts = []
         if self.failure_reason:
-            parts.append(f"Reason: {self.failure_reason}")
-        if self.failure_line:
-            parts.append(f"Failed at line: {self.failure_line}")
+            parts.append(f"Validation Error: {self.failure_reason}")  
         if self.code_snippet:
-            parts.append(f"Code:\n{self.code_snippet}")
+            parts.append(f"Code Context:\n{self.code_snippet}")
         
-        return "\n".join(parts) if parts else "No context available"
+        if parts:
+            return "\n".join(parts)
+            
+        return "No context available"
 
 
 @dataclass(frozen=True)

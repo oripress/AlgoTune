@@ -18,6 +18,7 @@ from functools import wraps
 from AlgoTuner.utils.error_utils import extract_error_context
 from AlgoTuner.utils.timing_config import WARMUPS
 from AlgoTuner.utils.robust_tempdir import robust_tempdir
+from AlgoTuner.utils.serialization import dataset_decoder
 
 # Configuration constants
 VALIDATION_OVERHEAD_FACTOR = 150.0  # Account for validation overhead (120s timeout + buffer)
@@ -1275,20 +1276,30 @@ def run_isolated_benchmark_with_fetch(
         # Load problems from fetch info
         if warmup_fetch_info["type"] == "jsonl_streaming":
             import orjson
+            # Get base directory for resolving external references
+            base_dir = os.path.dirname(warmup_fetch_info["path"])
             with open(warmup_fetch_info["path"], 'r') as f:
                 for i, line in enumerate(f):
                     if i == warmup_fetch_info["index"]:
-                        warmup_data = orjson.loads(line.strip()).get("problem")
+                        raw_data = orjson.loads(line.strip())
+                        # Apply dataset_decoder to resolve external references
+                        decoded_data = dataset_decoder(raw_data, base_dir=base_dir)
+                        warmup_data = decoded_data.get("problem")
                         break
         else:
             warmup_data = warmup_fetch_info["data"]
             
         if timed_fetch_info["type"] == "jsonl_streaming":
             import orjson
+            # Get base directory for resolving external references
+            base_dir = os.path.dirname(timed_fetch_info["path"])
             with open(timed_fetch_info["path"], 'r') as f:
                 for i, line in enumerate(f):
                     if i == timed_fetch_info["index"]:
-                        timed_data = orjson.loads(line.strip()).get("problem")
+                        raw_data = orjson.loads(line.strip())
+                        # Apply dataset_decoder to resolve external references
+                        decoded_data = dataset_decoder(raw_data, base_dir=base_dir)
+                        timed_data = decoded_data.get("problem")
                         break
         else:
             timed_data = timed_fetch_info["data"]

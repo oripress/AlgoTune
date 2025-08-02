@@ -91,13 +91,20 @@ def _truncate_repr(val: Any, max_list_items: int = 5, max_str_len: int = 250) ->
 
 def parse_string(text: str) -> Any:
     txt = text.strip()
+    logging.info(f"parse_string called with: '{txt}'")
     try:
-        return json.loads(txt)
-    except json.JSONDecodeError:
+        result = json.loads(txt)
+        logging.info(f"Successfully parsed as JSON: {result}")
+        return result
+    except json.JSONDecodeError as e:
+        logging.info(f"JSON parse failed: {e}")
         pass
     try:
-        return ast.literal_eval(txt)
-    except (SyntaxError, ValueError):
+        result = ast.literal_eval(txt)
+        logging.info(f"Successfully parsed with ast.literal_eval: {result}")
+        return result
+    except (SyntaxError, ValueError) as e:
+        logging.info(f"ast.literal_eval failed: {e}, returning original text")
         return text
 
 
@@ -359,16 +366,23 @@ def cast_nested_value(value: Any, hint: Any) -> Any:  # noqa: C901
 ###############################################################################
 
 def cast_input(raw: Any, task, ctx: Dict[str, Any] | None = None) -> Any:
+    logging.info(f"cast_input called with raw: {raw}, type: {type(raw)}")
     if isinstance(raw, str):
         raw = parse_string(raw)
+        logging.info(f"After parse_string: {raw}, type: {type(raw)}")
 
     try:
         sig = inspect.signature(task.solve)
         prm = sig.parameters.get("problem")
+        logging.info(f"Found parameter 'problem' with annotation: {prm.annotation if prm else 'No problem parameter'}")
         if prm and prm.annotation is not inspect.Parameter.empty:
-            return cast_nested_value(raw, prm.annotation)
-    except (ValueError, TypeError, AttributeError):
+            result = cast_nested_value(raw, prm.annotation)
+            logging.info(f"cast_nested_value returned: {result}, type: {type(result)}")
+            return result
+    except (ValueError, TypeError, AttributeError) as e:
+        logging.info(f"Error in cast_input: {e}")
         pass
+    logging.info(f"Returning raw value: {raw}")
     return raw
 
 

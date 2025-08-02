@@ -549,6 +549,8 @@ def _evaluate_single_problem(
     provided_oracle_time_ms: Optional[float], # If provided, skip baseline measurement
     num_runs: int = 5,
     warmup_runs: int = 3,
+    dataset: Optional[List[Dict[str, Any]]] = None,
+    current_index: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Helper function to evaluate a single problem instance and calculate its score.
     Returns a dict containing results, including 'problem' and 'solver_output'.
@@ -600,6 +602,16 @@ def _evaluate_single_problem(
     # Remove benchmark name generation comments if they exist
     # ... existing code ... 
 
+    # --- Generate warmup problem ---
+    if dataset:
+        from AlgoTuner.utils.problem_utils import get_warmup_problem
+        warmup_problem_data = get_warmup_problem(
+            dataset=[item.get('problem') for item in dataset if item.get('problem') is not None],
+            current_index=current_index
+        )
+    else:
+        raise ValueError("Dataset context required for warmup problem generation")
+
     # --- Solver evaluation timing ---
     solver_start = time.perf_counter_ns()
     # SOLVER_RUN phase wraps solver benchmarking
@@ -612,6 +624,7 @@ def _evaluate_single_problem(
             needs_casting=True,
             num_runs=num_runs,
             warmup_runs=warmup_runs,
+            warmup_problem=warmup_problem_data,
         )
 
     solver_end = time.perf_counter_ns()
@@ -1059,6 +1072,11 @@ def run_evaluation_on_input(task_instance, problem_input, timeout_ms=10000, comm
     try:
         # Directly use the problem_input, assuming it's already parsed correctly
         problem = problem_input
+        logging.info(f"In run_evaluation_on_input: problem type: {type(problem)}")
+        if hasattr(problem, 'shape'):
+            logging.info(f"Problem shape: {problem.shape}")
+        if hasattr(problem, 'ndim'):
+            logging.info(f"Problem ndim: {problem.ndim}")
             
         # Reload code so latest edits take effect
         reload_start = time.perf_counter_ns()
@@ -1085,32 +1103,15 @@ def run_evaluation_on_input(task_instance, problem_input, timeout_ms=10000, comm
         try:
             data_dir = os.environ.get("DATA_DIR", None)
             if data_dir and hasattr(task_instance, 'task_name'):
-                dataset_pattern = os.path.join(data_dir, f"{task_instance.task_name}_T{int(timeout_ms)}ms_n*_size*_train.jsonl")
+                from AlgoTuner.utils.dataset_manager import DatasetManager
+                dataset_mgr = DatasetManager(data_dir)
                 
-                import glob
-                matching_files = glob.glob(dataset_pattern)
-                
-                if matching_files:
-                    dataset_path = matching_files[0]
-                    logging.info(f"Loading random warmup problem from: {dataset_path}")
-                    
-                    problems = []
-                    for idx, problem_data in enumerate(stream_jsonl(dataset_path)):
-                        problems.append(problem_data)
-                        if idx >= 10:
-                            break
-                    
-                    if problems:
-                        import random
-                        random_problems = [p for p in problems if p != problem_input]
-                        if random_problems:
-                            warmup_problem = random.choice(random_problems)
-                            logging.info(f"Selected random warmup problem (different from input)")
-                        else:
-                            warmup_problem = problems[0] if problems else None
-                            logging.warning("All dataset problems match input, using first problem for warmup")
-                else:
-                    logging.warning(f"No dataset file found matching: {dataset_pattern}")
+                try:
+                    # Get a random warmup problem efficiently
+                    warmup_problem, dataset_path = dataset_mgr.get_warmup_problem(task_instance.task_name)
+                    logging.info(f"Loaded warmup problem from: {dataset_path}")
+                except Exception as e:
+                    logging.warning(f"No dataset found: {e}")
         except Exception as e:
             logging.warning(f"Failed to load random warmup problem: {e}")
             
@@ -1392,9 +1393,12 @@ def evaluate_problems(task_instance, records_iterable: Iterable[Dict], num_runs:
     stop_reason = 'completed'  # Assume completion unless stopped early
     stopping_record = None     # Store the record that caused the stop
 
+    # Convert iterable to list for dataset context
+    records = list(records_iterable)
+
     # Wrap per-problem evaluation in SOLVE_LOOP phase
     with timing.phase(Phase.SOLVE_LOOP):
-        for rec in records_iterable:
+        for i, rec in enumerate(records):
             # --- Ensure fresh task module & instance per problem to avoid caching ---
             try:
                 module_name = task_instance.__class__.__module__
@@ -1433,6 +1437,8 @@ def evaluate_problems(task_instance, records_iterable: Iterable[Dict], num_runs:
                 provided_oracle_time_ms=None,
                 num_runs=num_runs,
                 warmup_runs=warmup_runs,
+                dataset=records,
+                current_index=i,
             )
             per_problem.append(res)
             evaluated_count += 1

@@ -46,13 +46,13 @@ echo "CLAUDE_API_KEY=your_key_here" > .env
 #### Generate
 ```bash
 # Measure baseline speed for two tasks (100 ms target)
-./algotune.sh --standalone generate --target-time-ms 100 --tasks svm kmeans
+./algotune.sh --standalone generate --target-time-ms 100 --tasks svm
 ```
 
 #### Run Agent
 ```bash
 # Ask an LM to optimise the same tasks with model "o4-mini"
-./algotune.sh --standalone agent o4-mini svm kmeans
+./algotune.sh --standalone agent o4-mini svm
 
 # View the aggregated speed-up report
 cat reports/agent_summary.json
@@ -243,23 +243,6 @@ python .github/scripts/test_timing_and_consistency.py <task_a,task_b>    # ~1 mi
 python .github/scripts/test_is_solution_return_type.py                   # <1 minute for all tasks together
 ```
 
-## FAQ
-
-**Q: What's the difference between "generate" and "agent"?**
-- `generate` measures how fast your original code runs (baseline)
-- `agent` uses AI to create optimized versions of that code
-
-**Q: Do I need to run on all 120+ tasks?**
-No! Start with just a few tasks like `svm` or `kmeans` to test things out.
-
-**Q: What does `--standalone` do?**
-It runs the code directly on your machine instead of submitting to a compute cluster.
-
-**Q: Why does generation take so long?**
-We need accurate baseline measurements. The `--target-time-ms` parameter controls how long we measure each function (default: 100 ms per measurement, multiple trials).
-
-**Q: Can I use my own OpenAI/Anthropic API key?**
-Yes! Just add it to your `.env` file as shown in the setup.
 
 ## Citation
 
