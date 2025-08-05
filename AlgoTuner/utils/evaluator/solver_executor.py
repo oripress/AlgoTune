@@ -152,7 +152,7 @@ class SolverExecutor:
             # be hit simply by solver startup costs or validation overhead.  Use a sensible
             # lower bound so that very fast baseline times do not convert into premature
             # time-outs that hide the real error.
-            timeout_seconds = max(timeout_seconds, 10.0)  # At least 10 seconds overall
+            timeout_seconds = max(timeout_seconds, 1.0)  # At least 1 second overall
         
         try:
             # Use isolated benchmark with forkserver
@@ -211,7 +211,7 @@ class SolverExecutor:
             per_run_s = baseline_time_ms / 1000.0
             timeout_seconds = (1 + self.config.warmup_runs) * per_run_s * 10.0  # warmup + timed + buffer
             timeout_seconds = min(timeout_seconds, 300.0)  # Cap at 5 minutes
-            timeout_seconds = max(timeout_seconds, 10.0)  # At least 10 seconds overall
+            timeout_seconds = max(timeout_seconds, 1.0)  # At least 1 second overall
         
         try:
             # Use isolated benchmark function directly
@@ -368,6 +368,8 @@ class SolverExecutor:
                 error_type = ErrorType.IMPORT_ERROR
             elif benchmark_result.get("error_type") == "memory_error":
                 error_type = ErrorType.MEMORY_ERROR
+            elif benchmark_result.get("error_type") == "oom_kill":
+                error_type = ErrorType.OOM_KILL
             else:
                 error_type = ErrorType.EXECUTION_ERROR
         
