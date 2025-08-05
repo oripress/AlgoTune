@@ -160,6 +160,7 @@ class EvaluationOrchestrator:
             # Check both execution and validation errors
             execution_is_critical = result.execution.error_type in [
                 ErrorType.MEMORY_ERROR,
+                ErrorType.OOM_KILL,
                 ErrorType.IMPORT_ERROR,
                 ErrorType.EXECUTION_ERROR,
             ]

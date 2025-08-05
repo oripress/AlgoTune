@@ -4,6 +4,7 @@ import pickle
 import statistics
 import multiprocessing as mp
 import logging
+import signal
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import tempfile
@@ -220,6 +221,43 @@ def _extract_clean_error_with_context(error_message: str) -> str:
     except Exception:
         # Fallback to original message
         return error_message
+
+
+def _check_process_exit_code(proc, run_idx, num_runs, logger):
+    """Check process exit code for abnormal termination.
+    
+    Returns:
+        Dict with error info if abnormal termination, None otherwise
+    """
+    if proc.exitcode is not None and proc.exitcode < 0:
+        signal_num = -proc.exitcode
+        
+        if signal_num == signal.SIGKILL:  # 9
+            error_msg = f"Process terminated by SIGKILL (exit code {proc.exitcode}) - likely out of memory"
+            error_type = "oom_kill"
+            oom_detected = True
+        elif signal_num == signal.SIGSEGV:  # 11
+            error_msg = f"Process terminated by segmentation fault (exit code {proc.exitcode})"
+            error_type = "segmentation_fault"
+            oom_detected = False
+        else:
+            error_msg = f"Process terminated by signal {signal_num} (exit code {proc.exitcode})"
+            error_type = "signal_termination"
+            oom_detected = False
+        
+        logger.warning(f"[isolated_benchmark] Run {run_idx}/{num_runs} {error_msg}")
+        
+        return {
+            "warmup_ns": None,
+            "timed_ns": None,
+            "error": error_msg,
+            "oom_detected": oom_detected,
+            "exit_code": proc.exitcode,
+            "error_type": error_type,
+            "stdout": "",
+            "stderr": ""
+        }
+    return None
 
 
 def _fork_run_worker(
@@ -1026,6 +1064,13 @@ def run_isolated_benchmark(
                     )
                     proc.start()
                     proc.join(timeout_seconds)
+                    
+                    # Check for abnormal termination
+                    exit_error = _check_process_exit_code(proc, idx+1, num_runs, logger)
+                    if exit_error:
+                        run_results.append(exit_error)
+                        manager_usage += 1
+                        continue
 
                     if proc.is_alive():
                         timeout_error = f"Process timed out after {timeout_seconds}s"
@@ -1365,6 +1410,21 @@ def run_isolated_benchmark_with_fetch(
                     )
                     proc.start()
                     proc.join(timeout_seconds)
+                    
+                    # Check for abnormal termination
+                    exit_error = _check_process_exit_code(proc, idx+1, num_runs, logger)
+                    if exit_error:
+                        # For fetch variant, we need to return the full result structure
+                        return {
+                            "success": False,
+                            "error": exit_error["error"],
+                            "timeout_occurred": False,
+                            "oom_detected": exit_error.get("oom_detected", False),
+                            "error_type": exit_error["error_type"],
+                            "exit_code": exit_error["exit_code"],
+                            "runs": num_runs,
+                            "num_runs_executed": idx,
+                        }
 
                     if proc.is_alive():
                         timeout_error = f"Process timed out after {timeout_seconds}s"

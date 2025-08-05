@@ -16,6 +16,7 @@ class ErrorType(Enum):
     INVALID_SOLUTION = "invalid_solution"
     TIMEOUT = "timeout"
     MEMORY_ERROR = "memory_error"
+    OOM_KILL = "oom_kill"
     IMPORT_ERROR = "import_error"
     TYPE_ERROR = "type_error"
     BENCHMARK_POOL_ERROR = "benchmark_pool_error"
