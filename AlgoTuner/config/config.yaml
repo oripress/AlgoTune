@@ -12,7 +12,7 @@ benchmark:
     num_workers: 1       # Max number of parallel workers (1 = sequential, null = os.cpu_count())
     maxtasksperchild: null # Disable worker recycling for debugging (was 10)
     memory_limit_gb_per_worker: 14 # Increased for baseline algorithms (was 6GB)
-    disable_rlimit_as: true # Disable RLIMIT_AS to prevent virtual memory allocation failures
+    disable_rlimit_as: false # Re-enabled for proper OOM detection and memory safety
   tempdir_cleanup:
     retries: 3          # Number of cleanup attempts
     delays: [0.5, 1.0, 2.0]  # Delays between attempts in seconds
@@ -77,37 +77,50 @@ models:
   openrouter/moonshotai/kimi-k2:
     api_key_env: "OPENROUTER_API_KEY"
     temperature: 0.0
-    # OpenRouter lists 32,768 context; use a safe max output
-    max_tokens: 32768
+    max_tokens: 8192
     drop_params: true
+    extra_body:
+      usage:
+        include: true
 
   # --- Qwen / Qwen3 Coder 480B (thinking enabled) ---
   openrouter/qwen/qwen3-coder:
     api_key_env: "OPENROUTER_API_KEY"
-    # Qwen3 thinking works best with some sampling
-    temperature: 0.6
+    temperature: 0.0
     top_p: 0.95
     modify_params: true
-    # Request maximum thinking via OpenRouter's unified interface
-    reasoning:
-      enabled: true
-      effort: "high"
-    # Also pass Qwen's native flag for compatibility
-    enable_thinking: true
-    # Long outputs are possible; cap to a practical value
     max_tokens: 65536
+    usage:
+      include: true
 
-  # --- Z.AI / GLM-4.5 (thinking enabled) ---
   openrouter/z-ai/glm-4.5:
     api_key_env: "OPENROUTER_API_KEY"
     temperature: 0.0
     modify_params: true
-    reasoning:
-      enabled: true
-      effort: "high"
-    # GLM-4.5 page indicates up to 96K output; use that ceiling
     max_tokens: 96000
+    reasoning:
+      enabled: true       # GLM-4.5: on/off only
+      exclude: true     # think but don’t return the chain
     usage:
       include: true
 
+  anthropic/claude-opus-4-1-20250805:
+    api_key_env: "CLAUDE_API_KEY"
+    temperature: 1.0  # MUST be 1.0 when thinking is enabled
+    modify_params: true
+    max_tokens: 32768
+    thinking:
+      type: "enabled"
+      budget_tokens: 24000   # leaves ~8.7k tokens for answer text
 
+  openrouter/openai/gpt-oss-120b:
+    api_key_env: "OPENROUTER_API_KEY"
+    temperature: 0.0
+    modify_params: true
+    drop_params: true
+    max_tokens: 100000
+    reasoning:
+      effort: "high"     # max thinking (OpenAI-style effort control)
+      exclude: true      # hide chain-of-thought in the response (set to false to see it)
+    usage:
+      include: true      # return token and cost accounting in response

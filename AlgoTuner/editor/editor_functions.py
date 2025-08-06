@@ -694,7 +694,7 @@ class CodeValidator:
                     [
                         tmp_path,
                         "--rcfile=/dev/null",
-                        "--disable=unused-import,unexpected-keyword-arg,redundant-keyword-arg,no-value-for-parameter,redefined-builtin,broad-exception-caught,logging-fstring-interpolation,import-error,undefined-variable,return-in-init",
+                        "--disable=unused-import,unexpected-keyword-arg,redundant-keyword-arg,no-value-for-parameter,redefined-builtin,broad-exception-caught,logging-fstring-interpolation,import-error,undefined-variable,return-in-init,no-name-in-module",
                     ],
                     reporter=reporter, # Use JSON reporter
                     exit=False,
@@ -1614,12 +1614,20 @@ class Editor:
 
                 # If we just created or updated the build script, force a Cython rebuild
                 if file_path.name in ["setup.py", "pyproject.toml"]:
+                    # Use sys.executable for consistency in container environments
+                    # Use build_ext --inplace to build in the current directory
+                    if file_path.name == "setup.py":
+                        compile_command = [sys.executable, "setup.py", "build_ext", "--inplace"]
+                    else:
+                        # For pyproject.toml, still use pip but with editable install
+                        compile_command = [sys.executable, "-m", "pip", "install", "-e", ".", "--no-deps", "--no-build-isolation"]
+                    compile_cwd = str(self.state.code_dir)
+                    compile_timeout = 1800
+                    
                     try:
-                        compile_cwd = str(self.state.code_dir)
-                        compile_timeout = 1800
-                        logging.info("Detected build script change, running full Cython rebuild.")
+                        logging.info(f"Detected build script change, running full Cython rebuild with command: {' '.join(compile_command)}")
                         process = subprocess.run(
-                            [sys.executable, "-m", "pip", "install", ".", "--no-deps", "--force-reinstall", "--no-cache-dir"],
+                            compile_command,
                             cwd=compile_cwd,
                             capture_output=True,
                             text=True,
@@ -1628,12 +1636,71 @@ class Editor:
                         )
                         if process.returncode != 0:
                             logging.error(f"Cython rebuild failed after {file_path.name} update: {process.stderr}")
+                            compilation_status = {
+                                "success": False,
+                                "error": f"Cython rebuild failed with exit code {process.returncode}",
+                                "command": " ".join(compile_command),
+                                "compilation_type": "cython_rebuild",
+                                "dependency_check": None,
+                                "stderr": process.stderr,
+                                "stdout": process.stdout,
+                                "cwd": compile_cwd
+                            }
                         else:
-                            logging.info("Cython rebuild successful after build script update.")
+                            # Verify that .so files were actually created
+                            code_dir = Path(self.state.code_dir)
+                            so_files = list(code_dir.glob("*.so")) + list(code_dir.glob("*.pyd"))
+                            
+                            # If not found in root, check build directory and copy them
+                            if not so_files:
+                                build_dir = code_dir / "build"
+                                if build_dir.exists():
+                                    # Find .so files in build subdirectories
+                                    build_so_files = list(build_dir.rglob("*.so")) + list(build_dir.rglob("*.pyd"))
+                                    for build_so in build_so_files:
+                                        dest = code_dir / build_so.name
+                                        shutil.copy2(build_so, dest)
+                                        logging.info(f"Copied {build_so.name} from build directory to {dest}")
+                                        so_files.append(dest)
+                            
+                            if so_files:
+                                logging.info(f"Cython rebuild successful after build script update. Found {len(so_files)} compiled extension(s): {[f.name for f in so_files]}")
+                                compilation_status = {
+                                    "success": True,
+                                    "error": None,
+                                    "command": " ".join(compile_command),
+                                    "compilation_type": "cython_rebuild",
+                                    "dependency_check": None,
+                                    "stdout": process.stdout,
+                                    "stderr": process.stderr,
+                                    "cwd": compile_cwd,
+                                    "compiled_files": [str(f.name) for f in so_files]
+                                }
+                            else:
+                                logging.warning("Cython rebuild command succeeded but no .so/.pyd files found")
+                                compilation_status = {
+                                    "success": False,
+                                    "error": "Build command succeeded but no compiled extensions (.so/.pyd) were created",
+                                    "command": " ".join(compile_command),
+                                    "compilation_type": "cython_rebuild",
+                                    "dependency_check": None,
+                                    "stdout": process.stdout,
+                                    "stderr": process.stderr,
+                                    "cwd": compile_cwd
+                                }
                     except subprocess.TimeoutExpired as e:
                         logging.error(f"Cython rebuild timed out after {file_path.name} update: {e}")
+                        compilation_status = {
+                            "success": False,
+                            "error": f"Cython rebuild timed out after {compile_timeout} seconds",
+                            "command": " ".join(compile_command),
+                            "compilation_type": "cython_rebuild",
+                            "dependency_check": None,
+                            "stdout": e.stdout.decode() if e.stdout else "",
+                            "stderr": e.stderr.decode() if e.stderr else "",
+                            "cwd": compile_cwd
+                        }
                     # Continue, skip per-file compile for this edit
-                    compilation_status = {"success": True, "error": None, "dependency_check": None}
                 elif is_pythran_file:
                     logging.info(f"Detected Pythran file, attempting compilation: {file_path}")
                     # Run Pythran compile in the file's directory so artifacts stay with the source
@@ -1703,6 +1770,7 @@ class Editor:
                                 "stdout": process.stdout,
                                 "stderr": process.stderr,
                                 "command": " ".join(compile_command),
+                                "compilation_type": "pythran",
                                 "cwd": compile_cwd,
                                 "error": None,
                             }
@@ -1728,6 +1796,7 @@ class Editor:
                                 "stdout": e.stdout.decode() if e.stdout else "",
                                 "stderr": e.stderr.decode() if e.stderr else "",
                                 "command": " ".join(compile_command),
+                                "compilation_type": "pythran",
                                 "cwd": compile_cwd,
                             }
                         except Exception as e:
@@ -1738,6 +1807,7 @@ class Editor:
                                 "stdout": "",
                                 "stderr": str(e),
                                 "command": " ".join(compile_command),
+                                "compilation_type": "pythran",
                                 "cwd": compile_cwd,
                             }
                     
@@ -1863,6 +1933,7 @@ class Editor:
                         dependency_check_ok = False
 
                         # --- ADDED: Dependency Check ---
+                        # Use sys.executable for consistency in container environments
                         dependency_check_cmd = [
                             sys.executable,
                             "-c",
@@ -1913,22 +1984,36 @@ class Editor:
                                         shutil.rmtree(artifact_path)
                                 for egg in code_dir.glob('*.egg-info'):
                                     shutil.rmtree(egg)
-                                for ext in ['*.c', '*.so', '*.pyd']:
+                                # Only clean .so and .pyd files, keep .c files as they may be needed
+                                for ext in ['*.so', '*.pyd']:
                                     for f in code_dir.rglob(ext):
                                         f.unlink()
                                 logging.info("Cleaned Cython build artifacts before compilation.")
                             except Exception as clean_err:
                                 logging.warning(f"Failed to clean build artifacts: {clean_err}")
-                            compile_command = [
-                                sys.executable, # Use the current Python interpreter
-                                "-m",
-                                "pip",
-                                "install",
-                                ".", # Install from the current directory (project root)
-                                "--no-deps", # Don't reinstall dependencies
-                                "--force-reinstall", # Force reinstall to ensure recompilation
-                                "--no-cache-dir", # Avoid using cache
-                            ]
+                            # Use build_ext --inplace to compile in the working directory
+                            setup_py = Path(self.state.code_dir) / "setup.py"
+                            if setup_py.exists():
+                                # Use sys.executable to ensure we compile with the same Python that's running
+                                # This is crucial for Singularity environments where Python versions may differ
+                                compile_command = [
+                                    sys.executable, # Use current Python interpreter
+                                    "setup.py",
+                                    "build_ext",
+                                    "--inplace", # Build extensions in place
+                                ]
+                            else:
+                                # Fallback to pip for pyproject.toml
+                                compile_command = [
+                                    sys.executable,
+                                    "-m",
+                                    "pip",
+                                    "install",
+                                    "-e", # Editable install
+                                    ".",
+                                    "--no-deps",
+                                    "--no-build-isolation",
+                                ]
                             compile_cwd = str(self.state.code_dir)
                             compile_timeout = 1800
                             compilation_error = None
@@ -1949,6 +2034,7 @@ class Editor:
                                     "stdout": process.stdout,
                                     "stderr": process.stderr,
                                     "command": " ".join(compile_command),
+                                    "compilation_type": "cython",
                                     "cwd": compile_cwd,
                                     "error": None, # No subprocess error
                                 }
@@ -1957,7 +2043,31 @@ class Editor:
                                     logging.warning(f"Compilation stderr:\n{process.stderr}")
                                     compilation_error = f"Compilation failed with exit code {process.returncode}"
                                 else:
-                                    logging.info(f"Cython compilation successful for {file_path}")
+                                    # Verify that the expected .so file was created
+                                    code_dir = Path(self.state.code_dir)
+                                    expected_module = file_path.stem  # e.g., "_polymixed_helpers" from "_polymixed_helpers.pyx"
+                                    so_files = list(code_dir.glob(f"{expected_module}*.so")) + list(code_dir.glob(f"{expected_module}*.pyd"))
+                                    
+                                    # If not found in root, check build directory and copy them
+                                    if not so_files:
+                                        build_dir = code_dir / "build"
+                                        if build_dir.exists():
+                                            # Find matching .so files in build subdirectories
+                                            build_so_files = list(build_dir.rglob(f"{expected_module}*.so")) + list(build_dir.rglob(f"{expected_module}*.pyd"))
+                                            for build_so in build_so_files:
+                                                dest = code_dir / build_so.name
+                                                shutil.copy2(build_so, dest)
+                                                logging.info(f"Copied {build_so.name} from build directory to {dest}")
+                                                so_files.append(dest)
+                                    
+                                    if so_files:
+                                        logging.info(f"Cython compilation successful for {file_path}. Created: {[f.name for f in so_files]}")
+                                        compilation_status["compiled_files"] = [str(f.name) for f in so_files]
+                                    else:
+                                        logging.warning(f"Cython build succeeded but no {expected_module}.so/.pyd file found")
+                                        compilation_error = f"Build succeeded but {expected_module}.so/.pyd was not created"
+                                        compilation_status["success"] = False
+                                        compilation_status["error"] = compilation_error
 
                             except subprocess.TimeoutExpired as e:
                                 logging.error(f"Cython compilation timed out for {file_path}: {e}")
@@ -1968,6 +2078,7 @@ class Editor:
                                     "stdout": e.stdout.decode() if e.stdout else "",
                                     "stderr": e.stderr.decode() if e.stderr else "",
                                     "command": " ".join(compile_command),
+                                    "compilation_type": "cython",
                                     "cwd": compile_cwd,
                                 }
                             except Exception as e:
@@ -1979,6 +2090,7 @@ class Editor:
                                     "stdout": "",
                                     "stderr": str(e),
                                     "command": " ".join(compile_command),
+                                    "compilation_type": "cython",
                                     "cwd": compile_cwd,
                                 }
 

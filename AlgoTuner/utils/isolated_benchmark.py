@@ -872,6 +872,9 @@ def run_isolated_benchmark(
     """
 
     logger = logging.getLogger(__name__)
+    
+    # Log the timeout value we received
+    logger.info(f"[TIMEOUT_DEBUG_ISO] run_isolated_benchmark called with timeout_seconds={timeout_seconds:.3f}s")
 
     # Check filesystem health using the code directory
     try:
@@ -1063,6 +1066,7 @@ def run_isolated_benchmark(
                         daemon=False,
                     )
                     proc.start()
+                    logger.info(f"[TIMEOUT_DEBUG_ISO] Waiting for subprocess with timeout={timeout_seconds:.3f}s")
                     proc.join(timeout_seconds)
                     
                     # Check for abnormal termination
@@ -1409,6 +1413,7 @@ def run_isolated_benchmark_with_fetch(
                         daemon=False,
                     )
                     proc.start()
+                    logger.info(f"[TIMEOUT_DEBUG_ISO] Waiting for subprocess with timeout={timeout_seconds:.3f}s")
                     proc.join(timeout_seconds)
                     
                     # Check for abnormal termination

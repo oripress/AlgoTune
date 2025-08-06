@@ -188,20 +188,34 @@ class MessageWriter:
             
             compilation_status = raw_result.get("compilation_status")
             if compilation_status:
+                compilation_type = compilation_status.get("compilation_type")
                 if compilation_status.get("success"):
-                    command = compilation_status.get("command", "")
-                    if "pythran" in command:
-                        lines_out.append("Pythran compilation successful.")
-                    elif "pip install" in command:
+                    # Use compilation_type if available, otherwise fall back to command parsing
+                    if compilation_type in ["cython", "cython_rebuild"]:
                         lines_out.append("Cython compilation successful.")
+                    elif compilation_type == "pythran":
+                        lines_out.append("Pythran compilation successful.")
+                    else:
+                        # Fallback for older code paths that don't set compilation_type
+                        command = compilation_status.get("command", "")
+                        if "pythran" in command:
+                            lines_out.append("Pythran compilation successful.")
+                        elif "pip install" in command or "setup.py" in command:
+                            lines_out.append("Cython compilation successful.")
                 else:
                     # Compilation failed
-                    command = compilation_status.get("command", "")
                     error = compilation_status.get("error", "Compilation failed")
-                    if "pythran" in command:
-                        lines_out.append(f"Pythran compilation failed: {str(error) if error is not None else 'Unknown error'}")
-                    elif "pip install" in command:
+                    if compilation_type in ["cython", "cython_rebuild"]:
                         lines_out.append(f"Cython compilation failed: {str(error) if error is not None else 'Unknown error'}")
+                    elif compilation_type == "pythran":
+                        lines_out.append(f"Pythran compilation failed: {str(error) if error is not None else 'Unknown error'}")
+                    else:
+                        # Fallback for older code paths
+                        command = compilation_status.get("command", "")
+                        if "pythran" in command:
+                            lines_out.append(f"Pythran compilation failed: {str(error) if error is not None else 'Unknown error'}")
+                        elif "pip install" in command or "setup.py" in command:
+                            lines_out.append(f"Cython compilation failed: {str(error) if error is not None else 'Unknown error'}")
                     
                     # If file was reverted due to compilation failure
                     if raw_result.get("reverted_due_to_compilation"):
