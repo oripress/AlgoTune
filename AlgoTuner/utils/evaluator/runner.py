@@ -1054,20 +1054,23 @@ def run_solver_evaluation(
     # because each subprocess does warmup + timed call, but the above calculation
     # assumes all runs are sequential in the same process
     if use_isolated:
-        # Each subprocess needs timeout for: 1 warmup + 1 timed call
-        # So we need: 2 * baseline_time * 10x_multiplier per subprocess
+        # For isolated benchmark, each subprocess runs 1 warmup + 1 timed iteration
+        # (hardcoded in isolated_benchmark.py and line 1106)
+        # Timeout = baseline_time * 10 * (actual_warmup + actual_timed)
         if oracle_time_ms is not None and oracle_time_ms > 0:
             per_run_s = oracle_time_ms / 1000.0
-            # Strict 10× baseline (warm-up + timed = 2 runs) – no extra validation factor
-            timeout_seconds_unified = (
-                (1 + WARMUP_MULTIPLIER) * per_run_s * TARGET_TIME_MULTIPLIER
-            )
+            # Isolated benchmark actually uses: 1 warmup + 1 timed = 2 runs total
+            # (regardless of what warmup_runs and num_runs are set to)
+            actual_runs_in_subprocess = 2  # 1 warmup + 1 timed (hardcoded)
+            # Simple formula: baseline * 10 * actual_runs
+            timeout_seconds_unified = per_run_s * 10.0 * actual_runs_in_subprocess
 
             logging.info(
-                "TIMEOUT_DEBUG (isolated): per_run_s=%.4fs, factor=(1+%d)*%g -> %.2fs",
+                "TIMEOUT_DEBUG (isolated): baseline=%.4fs, warmup_runs=%d, num_runs=%d, actual_runs=%d, timeout=%.2fs (baseline * 10 * actual_runs)",
                 per_run_s,
-                WARMUP_MULTIPLIER,
-                TARGET_TIME_MULTIPLIER,
+                warmup_runs,
+                num_runs,
+                actual_runs_in_subprocess,
                 timeout_seconds_unified,
             )
         else:
@@ -1097,6 +1100,7 @@ def run_solver_evaluation(
                 else:
                     isolated_code_dir = code_dir
                 
+                logging.info(f"[TIMEOUT_DEBUG] Calling run_isolated_benchmark with timeout_seconds={timeout_seconds_unified:.3f}s (oracle_time_ms={oracle_time_ms}ms, warmup_runs={warmup_runs}, num_runs={num_runs})")
                 benchmark_result = run_isolated_benchmark(
                     task_name=task_name,
                     code_dir=isolated_code_dir,

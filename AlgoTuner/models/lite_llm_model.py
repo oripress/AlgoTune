@@ -20,6 +20,13 @@ class LiteLLMModel:
         # Filter out configuration-only parameters that shouldn't be sent to API
         config_only_params = {'modify_params', 'drop_params'}
         self.additional_params = {k: v for k, v in kwargs.items() if k not in config_only_params}
+        
+        # For Claude models with thinking enabled, remove top_p as it conflicts with temperature
+        if self.model_name.startswith('anthropic/claude') and 'thinking' in self.additional_params:
+            if 'top_p' in self.additional_params:
+                logging.info(f"Removing top_p parameter for Claude model with thinking enabled")
+                self.additional_params.pop('top_p', None)
+        
         logging.info(f"LiteLLMModel initialized. Drop Params: {self.drop_call_params}. Additional Params: {self.additional_params}")
 
     def query(self, messages: list[dict[str, str]]) -> dict:
