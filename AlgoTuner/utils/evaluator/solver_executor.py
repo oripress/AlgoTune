@@ -4,8 +4,11 @@ This component is responsible ONLY for execution, not validation.
 """
 
 import logging
+import os
 import time
 from typing import Any, Dict, Optional, Tuple
+from contextlib import contextmanager
+from pathlib import Path
 
 from AlgoTuner.utils.evaluator.evaluation_types import (
     ExecutionResult, 
@@ -18,6 +21,20 @@ from AlgoTuner.utils.evaluator.runner import (
     _calculate_timeout_seconds
 )
 # categorize_error is not available, will implement inline
+
+
+@contextmanager
+def with_working_dir(target_dir):
+    """Temporarily change the working directory to target_dir for the duration of the context."""
+    prev_dir = os.getcwd()
+    logger = logging.getLogger(__name__)
+    try:
+        os.chdir(target_dir)
+        logger.debug(f"Changed working directory from {prev_dir} to {target_dir}")
+        yield
+    finally:
+        os.chdir(prev_dir)
+        logger.debug(f"Restored working directory to {prev_dir}")
 
 
 class SolverExecutor:
@@ -252,22 +269,35 @@ class SolverExecutor:
         import time
         import numpy as np
         
+        # Get code directory for working directory context
+        code_dir = os.environ.get("CODE_DIR")
+        if not code_dir:
+            self.logger.warning("CODE_DIR not set, using current directory for in-process execution")
+            code_dir = os.getcwd()
+        
+        # Log current working directory before changing
+        original_cwd = os.getcwd()
+        self.logger.debug(f"In-process execution: Current working directory is {original_cwd}, will change to {code_dir}")
+        
         try:
-            # Warmup runs on different problem
-            for _ in range(self.config.warmup_runs):
-                _ = solver_func(warmup_problem)
-            
-            # Timed runs on actual problem
-            times_ms = []
-            outputs = []
-            
-            for _ in range(self.config.num_runs):
-                start_ns = time.perf_counter_ns()
-                output = solver_func(problem)
-                elapsed_ns = time.perf_counter_ns() - start_ns
+            # Ensure we're in the correct directory when executing solver code
+            # This prevents file leaks when LLM code creates files with relative paths
+            with with_working_dir(code_dir):
+                # Warmup runs on different problem
+                for _ in range(self.config.warmup_runs):
+                    _ = solver_func(warmup_problem)
                 
-                times_ms.append(elapsed_ns / 1e6)
-                outputs.append(output)
+                # Timed runs on actual problem
+                times_ms = []
+                outputs = []
+                
+                for _ in range(self.config.num_runs):
+                    start_ns = time.perf_counter_ns()
+                    output = solver_func(problem)
+                    elapsed_ns = time.perf_counter_ns() - start_ns
+                    
+                    times_ms.append(elapsed_ns / 1e6)
+                    outputs.append(output)
             
             # Use the last output
             final_output = outputs[-1]
