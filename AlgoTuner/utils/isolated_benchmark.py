@@ -345,6 +345,43 @@ def _fork_run_worker(
                 _mm_err,
             )
 
+    # ------------------------------------------------------------------
+    # CPU limiting: Prevent LLM solutions from using excessive cores
+    # ------------------------------------------------------------------
+    # Set reasonable CPU limits to prevent memory explosion from multiprocessing
+    # This protects against LLMs using os.cpu_count() which could return 192+ cores
+    MAX_WORKER_CPUS = 8  # Maximum CPUs visible to worker process
+    
+    # Set environment variables to limit thread counts in common libraries
+    os.environ["OMP_NUM_THREADS"] = str(MAX_WORKER_CPUS)
+    os.environ["MKL_NUM_THREADS"] = str(MAX_WORKER_CPUS)
+    os.environ["OPENBLAS_NUM_THREADS"] = str(MAX_WORKER_CPUS)
+    os.environ["NUMEXPR_NUM_THREADS"] = str(MAX_WORKER_CPUS)
+    os.environ["VECLIB_MAXIMUM_THREADS"] = str(MAX_WORKER_CPUS)
+    
+    # Override os.cpu_count() to return limited value
+    # This catches code that directly calls os.cpu_count() or multiprocessing.cpu_count()
+    import multiprocessing
+    original_cpu_count = os.cpu_count
+    
+    def limited_cpu_count():
+        """Return limited CPU count to prevent memory explosion."""
+        actual = original_cpu_count()
+        if actual and actual > MAX_WORKER_CPUS:
+            worker_logger.debug(
+                f"CPU count limited from {actual} to {MAX_WORKER_CPUS} in isolated worker"
+            )
+            return MAX_WORKER_CPUS
+        return actual
+    
+    # Monkey-patch both os and multiprocessing modules
+    os.cpu_count = limited_cpu_count
+    multiprocessing.cpu_count = limited_cpu_count
+    
+    worker_logger.debug(
+        f"CPU limiting applied: max {MAX_WORKER_CPUS} cores visible to worker process"
+    )
+
     # Apply centralised PySAT fixes (idempotent, lightweight)
     try:
         if importlib.util.find_spec("pysat") is not None:
