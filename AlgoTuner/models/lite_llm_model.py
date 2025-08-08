@@ -211,11 +211,11 @@ class LiteLLMModel:
             }
             
             # Add max_tokens or max_completion_tokens if available
-            if self.model_name == "gpt-5":
-                # GPT-5 only supports max_completion_tokens
+            if self.model_name in ["gpt-5", "gpt-5-mini"]:
+                # GPT-5 and GPT-5-mini only support max_completion_tokens
                 if self.max_completion_tokens:
                     completion_params["max_completion_tokens"] = self.max_completion_tokens
-                # Ignore max_tokens for GPT-5
+                # Ignore max_tokens for these models
             elif self.max_tokens:
                 completion_params["max_tokens"] = self.max_tokens
             elif self.max_completion_tokens:
@@ -247,11 +247,11 @@ class LiteLLMModel:
                     completion_params.update(other_params)
                     
                     logging.debug(f"Converted Gemini thinking params: thinking={completion_params['thinking']}, include_thoughts={include_thoughts}")
-                elif self.model_name == "gpt-5" and 'reasoning_effort' in self.additional_params:
-                    # Handle GPT-5 reasoning_effort parameter
+                elif self.model_name in ["gpt-5", "gpt-5-mini"] and 'reasoning_effort' in self.additional_params:
+                    # Handle GPT-5/GPT-5-mini reasoning_effort parameter
                     reasoning_effort = self.additional_params.get('reasoning_effort', 'high')
                     
-                    # Pass reasoning_effort in the format litellm expects for GPT-5
+                    # Pass reasoning_effort in the format litellm expects
                     completion_params['reasoning_effort'] = reasoning_effort
                     
                     # Add other params except reasoning_effort
@@ -259,7 +259,7 @@ class LiteLLMModel:
                                   if k != 'reasoning_effort'}
                     completion_params.update(other_params)
                     
-                    logging.debug(f"GPT-5 reasoning_effort set to: {reasoning_effort}")
+                    logging.debug(f"{self.model_name} reasoning_effort set to: {reasoning_effort}")
                 else:
                     # For other models, pass params as-is
                     completion_params.update(self.additional_params)
