@@ -14,8 +14,9 @@ class LiteLLMModel:
         self.drop_call_params = drop_call_params # Store the flag
         self.message_writer = MessageWriter()
         
-        # Remove max_tokens if present, as it's often miscalculated and invalid
-        kwargs.pop('max_tokens', None) 
+        # Store max_tokens/max_completion_tokens separately to handle later
+        self.max_tokens = kwargs.pop('max_tokens', None)
+        self.max_completion_tokens = kwargs.pop('max_completion_tokens', None)
 
         # Filter out configuration-only parameters that shouldn't be sent to API
         config_only_params = {'modify_params', 'drop_params'}
@@ -208,6 +209,17 @@ class LiteLLMModel:
                 "api_key": self.api_key,
                 "timeout": 600,  # 10 minutes for deep thinking models
             }
+            
+            # Add max_tokens or max_completion_tokens if available
+            if self.model_name == "gpt-5":
+                # GPT-5 only supports max_completion_tokens
+                if self.max_completion_tokens:
+                    completion_params["max_completion_tokens"] = self.max_completion_tokens
+                # Ignore max_tokens for GPT-5
+            elif self.max_tokens:
+                completion_params["max_tokens"] = self.max_tokens
+            elif self.max_completion_tokens:
+                completion_params["max_completion_tokens"] = self.max_completion_tokens
             # Add system prompt if extracted for Vertex AI
             if system_prompt_content:
                 completion_params["system_prompt"] = system_prompt_content
@@ -235,16 +247,34 @@ class LiteLLMModel:
                     completion_params.update(other_params)
                     
                     logging.debug(f"Converted Gemini thinking params: thinking={completion_params['thinking']}, include_thoughts={include_thoughts}")
+                elif self.model_name == "gpt-5" and 'reasoning_effort' in self.additional_params:
+                    # Handle GPT-5 reasoning_effort parameter
+                    reasoning_effort = self.additional_params.get('reasoning_effort', 'high')
+                    
+                    # Pass reasoning_effort in the format litellm expects for GPT-5
+                    completion_params['reasoning_effort'] = reasoning_effort
+                    
+                    # Add other params except reasoning_effort
+                    other_params = {k: v for k, v in self.additional_params.items() 
+                                  if k != 'reasoning_effort'}
+                    completion_params.update(other_params)
+                    
+                    logging.debug(f"GPT-5 reasoning_effort set to: {reasoning_effort}")
                 else:
-                    # For non-Gemini models, pass params as-is
+                    # For other models, pass params as-is
                     completion_params.update(self.additional_params)
                     
                 logging.debug(f"Passing additional params to litellm: {self.additional_params}")
 
-            # Add allowed_openai_params for thinking if present
+            # Add allowed_openai_params for thinking and reasoning_effort if present
             extra_params = {}
+            allowed_params = []
             if 'thinking' in completion_params and not self.drop_call_params:
-                extra_params['allowed_openai_params'] = ['thinking']
+                allowed_params.append('thinking')
+            if 'reasoning_effort' in completion_params and not self.drop_call_params:
+                allowed_params.append('reasoning_effort')
+            if allowed_params:
+                extra_params['allowed_openai_params'] = allowed_params
             
             # Debug logging for Gemini models
             if self.model_name.startswith("gemini/"):
