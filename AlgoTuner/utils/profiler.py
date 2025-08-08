@@ -118,7 +118,26 @@ class TaskProfiler:
                 profiled_solve = self.line_profiler(solve_method)
                 # Call the profiled solve method
                 logging.info(f"TaskProfiler.profile_solve: Calling profiled solve method with problem")
-                solution = profiled_solve(problem)
+                
+                # Ensure we're in the correct directory when executing solver code
+                # This prevents file leaks when LLM code creates files with relative paths
+                import os
+                from contextlib import contextmanager
+                
+                @contextmanager
+                def with_working_dir(target_dir):
+                    """Temporarily change the working directory to target_dir for the duration of the context."""
+                    prev_dir = os.getcwd()
+                    try:
+                        os.chdir(target_dir)
+                        yield
+                    finally:
+                        os.chdir(prev_dir)
+                
+                code_dir = os.environ.get("CODE_DIR", os.getcwd())
+                with with_working_dir(code_dir):
+                    solution = profiled_solve(problem)
+                
                 logging.info(f"TaskProfiler.profile_solve: Solve function returned result of type: {type(solution)}")
 
                 # Get line profiling stats
