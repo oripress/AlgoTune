@@ -49,7 +49,7 @@ class Shift2D(Task):
         logging.debug(f"Generated 2D Shift problem for image shape ({n},{n}), shift={shift_vector}")
         return problem
 
-    def solve(self, problem: dict[str, Any]) -> dict[str, list[list[float]]]:
+    def solve(self, problem: dict[str, Any]) -> dict[str, Any]:
         """
         Solves the 2D shift problem using scipy.ndimage.shift.
 
@@ -71,7 +71,7 @@ class Shift2D(Task):
         solution = {"shifted_image": shifted_image}
         return solution
 
-    def is_solution(self, problem: dict[str, Any], solution: dict[str, list[list[float]]]) -> bool:
+    def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -> bool:
         """
         Check if the provided shift solution is valid.
 

@@ -50,7 +50,7 @@ class Rotate2D(Task):
         logging.debug(f"Generated 2D Rotate problem for image shape ({n},{n}), angle={angle:.2f}")
         return problem
 
-    def solve(self, problem: dict[str, Any]) -> dict[str, list[list[float]]]:
+    def solve(self, problem: dict[str, Any]) -> dict[str, Any]:
         """
         Solves the 2D rotation problem using scipy.ndimage.rotate.
 
@@ -72,7 +72,7 @@ class Rotate2D(Task):
         solution = {"rotated_image": rotated_image}
         return solution
 
-    def is_solution(self, problem: dict[str, Any], solution: dict[str, list[list[float]]]) -> bool:
+    def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -> bool:
         """
         Check if the provided rotation solution is valid.
 
