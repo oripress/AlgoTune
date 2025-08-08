@@ -1,11 +1,12 @@
+from typing import Optional
 from pydantic import BaseModel, SecretStr
 
 
 class GenericAPIModelConfig(BaseModel):
     name: str
     api_key: SecretStr  # Use SecretStr for sensitive data
-    temperature: float = 0.9
-    top_p: float = 1.0
+    temperature: Optional[float] = None
+    top_p: Optional[float] = None
     max_tokens: int = 4096
     spend_limit: float = 0.0
     api_key_env: str  # Environment variable name for the API key

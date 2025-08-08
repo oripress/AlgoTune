@@ -231,15 +231,23 @@ def main():
         max_tokens = max_output_tokens
         logger.info(f"Using default max_output_tokens for model '{desired_model_name}': {max_tokens}.")
 
-    model_config = GenericAPIModelConfig(
-        name=llm_model_name,
-        api_key=api_key,
-        temperature=model_info.get("temperature", 0.0),
-        top_p=model_info.get("top_p", 0.95),
-        max_tokens=max_tokens,
-        spend_limit=model_info.get("spend_limit", 0.0),
-        api_key_env=api_key_env,
-    )
+    config_params = {
+        "name": llm_model_name,
+        "api_key": api_key,
+        "max_tokens": max_tokens,
+        "spend_limit": model_info.get("spend_limit", 0.0),
+        "api_key_env": api_key_env,
+    }
+    
+    # Only set temperature if explicitly provided in config
+    if "temperature" in model_info:
+        config_params["temperature"] = model_info["temperature"]
+    
+    # Only set top_p if explicitly provided in config
+    if "top_p" in model_info:
+        config_params["top_p"] = model_info["top_p"]
+    
+    model_config = GenericAPIModelConfig(**config_params)
 
     default_params = model_info.get("default_params", {})
     if default_params:
