@@ -222,22 +222,27 @@ def main():
     max_input_tokens = model_info_from_litellm.get("max_input_tokens", 4096)
     max_output_tokens = model_info_from_litellm.get("max_output_tokens", 4096)
 
-    # Use max_tokens from config if specified, otherwise use the model's max output tokens
+    # Check for max_completion_tokens first (for models like gpt-5, gpt-5-mini)
+    configured_max_completion_tokens = model_info.get("max_completion_tokens", None)
     configured_max_tokens = model_info.get("max_tokens", None)
-    if configured_max_tokens:
-        max_tokens = configured_max_tokens
-        logger.info(f"Using max_tokens from config for model '{desired_model_name}': {max_tokens}.")
-    else:
-        max_tokens = max_output_tokens
-        logger.info(f"Using default max_output_tokens for model '{desired_model_name}': {max_tokens}.")
-
+    
     config_params = {
         "name": llm_model_name,
         "api_key": api_key,
-        "max_tokens": max_tokens,
         "spend_limit": model_info.get("spend_limit", 0.0),
         "api_key_env": api_key_env,
     }
+    
+    # Add the appropriate token limit parameter
+    if configured_max_completion_tokens:
+        config_params["max_completion_tokens"] = configured_max_completion_tokens
+        logger.info(f"Using max_completion_tokens from config for model '{desired_model_name}': {configured_max_completion_tokens}.")
+    elif configured_max_tokens:
+        config_params["max_tokens"] = configured_max_tokens
+        logger.info(f"Using max_tokens from config for model '{desired_model_name}': {configured_max_tokens}.")
+    else:
+        config_params["max_tokens"] = max_output_tokens
+        logger.info(f"Using default max_output_tokens for model '{desired_model_name}': {max_output_tokens}.")
     
     # Only set temperature if explicitly provided in config
     if "temperature" in model_info:
