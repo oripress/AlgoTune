@@ -50,7 +50,7 @@ class Zoom2D(Task):
         )
         return problem
 
-    def solve(self, problem: dict[str, Any]) -> dict[str, list[list[float]]]:
+    def solve(self, problem: dict[str, Any]) -> dict[str, Any]:
         """
         Solves the 2D zoom problem using scipy.ndimage.zoom.
 
@@ -70,7 +70,7 @@ class Zoom2D(Task):
         solution = {"zoomed_image": zoomed_image}
         return solution
 
-    def is_solution(self, problem: dict[str, Any], solution: dict[str, list[list[float]]]) -> bool:
+    def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -> bool:
         """
         Check if the provided zoom solution is valid.
 
