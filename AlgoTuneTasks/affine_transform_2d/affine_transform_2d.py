@@ -70,13 +70,13 @@ class AffineTransform2D(Task):
         logging.debug(f"Generated 2D Affine Transform problem for image shape ({n},{n})")
         return problem
 
-    def solve(self, problem: dict[str, Any]) -> dict[str, list[list[float]]]:
+    def solve(self, problem: dict[str, Any]) -> dict[str, Any]:
         """
         Solves the 2D affine transformation problem using scipy.ndimage.affine_transform.
 
         :param problem: A dictionary representing the problem.
         :return: A dictionary with key "transformed_image":
-                 "transformed_image": The transformed image as a list of lists.
+                 "transformed_image": The transformed image as an array.
         """
         image = problem["image"]
         matrix = problem["matrix"]
@@ -95,7 +95,7 @@ class AffineTransform2D(Task):
         solution = {"transformed_image": transformed_image}
         return solution
 
-    def is_solution(self, problem: dict[str, Any], solution: dict[str, list[list[float]]]) -> bool:
+    def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -> bool:
         """
         Check if the provided affine transformation solution is valid.
 

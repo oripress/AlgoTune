@@ -55,7 +55,7 @@ class Shift2D(Task):
 
         :param problem: A dictionary representing the problem.
         :return: A dictionary with key "shifted_image":
-                 "shifted_image": The shifted image as a list of lists.
+                 "shifted_image": The shifted image as an array.
         """
         image = problem["image"]
         shift_vector = problem["shift"]
