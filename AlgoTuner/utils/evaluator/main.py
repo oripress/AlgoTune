@@ -29,6 +29,31 @@ import threading
 import psutil
 from AlgoTuner.utils.evaluator.benchmark_runner import BenchmarkPool
 
+# Auto-load config.env for standalone mode if environment variables not set
+def _load_config_env():
+    """Load config.env file if it exists and environment variables aren't already set."""
+    if not os.environ.get("DATA_DIR"):  # Check if already configured
+        config_path = Path(__file__).parent.parent.parent.parent / "config.env"
+        if config_path.exists():
+            try:
+                with open(config_path) as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and 'export ' in line:
+                            # Parse: export VAR_NAME="value" or export VAR_NAME=value
+                            parts = line.replace('export ', '').split('=', 1)
+                            if len(parts) == 2:
+                                key = parts[0].strip()
+                                value = parts[1].strip().strip('"').strip("'")
+                                if key not in os.environ:  # Don't override existing env vars
+                                    os.environ[key] = value
+                logging.info(f"Auto-loaded environment from config.env: {config_path}")
+            except Exception as e:
+                logging.warning(f"Failed to load config.env: {e}")
+
+# Load config on module import for standalone mode
+_load_config_env()
+
 from AlgoTuner.utils.message_writer import MessageWriter
 from AlgoTuner.utils.validation import validate_solver_setup
 from AlgoTuner.utils.time_management import calculate_timeout

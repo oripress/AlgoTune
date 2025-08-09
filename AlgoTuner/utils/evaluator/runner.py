@@ -13,6 +13,31 @@ import inspect
 import functools
 import builtins
 import io
+from pathlib import Path
+
+# Auto-load config.env for standalone mode if environment variables not set
+def _load_config_env():
+    """Load config.env file if it exists and environment variables aren't already set."""
+    if not os.environ.get("DATA_DIR"):  # Check if already configured
+        config_path = Path(__file__).parent.parent.parent.parent / "config.env"
+        if config_path.exists():
+            try:
+                with open(config_path) as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and 'export ' in line:
+                            # Parse: export VAR_NAME="value" or export VAR_NAME=value
+                            parts = line.replace('export ', '').split('=', 1)
+                            if len(parts) == 2:
+                                key = parts[0].strip()
+                                value = parts[1].strip().strip('"').strip("'")
+                                if key not in os.environ:  # Don't override existing env vars
+                                    os.environ[key] = value
+            except Exception:
+                pass  # Silent fail in runner, main.py will log if needed
+
+# Load config on module import for standalone mode
+_load_config_env()
 import contextlib
 import time
 import multiprocessing
