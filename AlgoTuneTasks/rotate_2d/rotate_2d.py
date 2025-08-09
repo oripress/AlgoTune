@@ -56,7 +56,7 @@ class Rotate2D(Task):
 
         :param problem: A dictionary representing the problem.
         :return: A dictionary with key "rotated_image":
-                 "rotated_image": The rotated image as a list of lists.
+                 "rotated_image": The rotated image as an array.
         """
         image = problem["image"]
         angle = problem["angle"]
