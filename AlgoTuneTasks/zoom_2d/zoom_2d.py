@@ -31,7 +31,7 @@ class Zoom2D(Task):
         :param n: The side dimension of the square input image.
         :param random_seed: Seed for reproducibility.
         :return: A dictionary representing the problem with keys:
-                 "image": Input image as a numpy array (n x n).
+                 "image": Input image as an array (n x n).
                  "zoom_factor": The zoom factor (float).
         """
         logging.debug(f"Generating 2D Zoom problem with n={n}, random_seed={random_seed}")
@@ -56,7 +56,7 @@ class Zoom2D(Task):
 
         :param problem: A dictionary representing the problem.
         :return: A dictionary with key "zoomed_image":
-                 "zoomed_image": The zoomed image as a list of lists. Shape depends on zoom factor.
+                 "zoomed_image": The zoomed image as an array. Shape depends on zoom factor.
         """
         image = problem["image"]
         zoom_factor = problem["zoom_factor"]
