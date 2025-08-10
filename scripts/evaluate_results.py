@@ -81,6 +81,8 @@ def normalize_model_name(model_name: str) -> str:
         "deepseek-reasoner": "DeepSeek R1",
         "gpt-4o-mini": "GPT-4o Mini",
         "gpt-4o": "GPT-4o",
+        "gpt-5": "GPT-5",
+        "gpt-5-mini": "GPT-5 Mini",
     }
     return model_display_names.get(model_name, model_name)
 
