@@ -1,28 +1,43 @@
+from typing import Any, Dict, List
+
 class Solver:
-    def solve(self, problem, **kwargs):
+    def solve(self, problem: Dict[str, Any], **kwargs) -> Dict[str, float]:
         """
-        Calculates the edge expansion for a given subset of nodes S in a directed graph.
-        Uses the NetworkX definition: boundary edges in either direction divided by min(|S|, |V-S|).
+        Calculate the directed edge expansion of subset S in G:
+        expansion = |E(S, V-S)| / min(|S|, |V-S|)
         """
-        adj_list = problem["adjacency_list"]
-        nodes_S = problem["nodes_S"]
+
+        # Extract graph data
+        adj_list: List[List[int]] = problem.get("adjacency_list", [])
+        nodes_S_list: List[int] = problem.get("nodes_S", [])
+
+        # Basic edge cases
         n = len(adj_list)
-        s_size = len(nodes_S)
-        # Edge cases: empty graph, empty set S, or full set S
-        if n == 0 or s_size == 0 or s_size == n:
+        k = len(nodes_S_list)
+        if n == 0 or k == 0 or k == n:
             return {"edge_expansion": 0.0}
-        # Membership mask
-        mask = [False] * n
-        for u in nodes_S:
-            mask[u] = True
-        # Count boundary edges (u->v) where u in S and v not, or u not in S and v in S
-        boundary = 0
-        al = adj_list
-        m = mask
-        for u in range(n):
-            for v in al[u]:
-                if m[u] != m[v]:
-                    boundary += 1
-        # Denominator is the smaller set size
-        denom = s_size if s_size <= n - s_size else n - s_size
-        return {"edge_expansion": boundary / denom}
+
+        # Create a fast membership mask for S
+        mask = bytearray(n)
+        for u in nodes_S_list:
+            if 0 <= u < n:
+                mask[u] = 1
+
+        # Count edges crossing the cut in directed graph (both directions)
+        cut_edges = 0
+        m = mask  # local alias
+        for u, neighbors in enumerate(adj_list):
+            if m[u]:
+                # u in S, count edges to V-S
+                for v in neighbors:
+                    if not m[v]:
+                        cut_edges += 1
+            else:
+                # u not in S, count edges to S
+                for v in neighbors:
+                    if m[v]:
+                        cut_edges += 1
+
+        # Compute expansion
+        denom = k if k <= n - k else n - k
+        return {"edge_expansion": cut_edges / denom}

@@ -1,44 +1,49 @@
 import numpy as np
-from scipy.signal import fftconvolve
-from numpy.lib.stride_tricks import sliding_window_view
+import os
+from typing import Any, List
+from concurrent.futures import ThreadPoolExecutor
+from scipy.signal import correlate as sp_correlate
 
 class Solver:
-    def __init__(self, mode="full"):
-        self.mode = mode
+    """
+    Solver for 1D correlation of list of pairs of 1D arrays.
+    """
 
-    def solve(self, problem, **kwargs):
-        mode = kwargs.get("mode", self.mode)
-        self.mode = mode
-        results = []
-        # threshold on product to choose BLAS-window vs FFT
-        window_thr = 1_000_000
+    def solve(self, problem: List, **kwargs) -> List:
+        """
+        Compute the 1D correlation for each valid pair in the problem list.
+
+        Args:
+            problem: List of tuples/lists/arrays (a, b), 1D numeric sequences.
+            mode: Correlation mode, 'full' or 'valid'. Default is 'full'.
+
+        Returns:
+            List of numpy arrays containing correlation results.
+        """
+        mode = kwargs.get('mode', getattr(self, 'mode', 'full'))
+        arrs = []
+        brrs = []
         for a, b in problem:
-            a = np.asarray(a, dtype=np.float64)
-            b = np.asarray(b, dtype=np.float64)
-            na, nb = a.size, b.size
-            if mode == "valid" and nb > na:
+            arr = np.asarray(a, dtype=np.float64)
+            brr = np.asarray(b, dtype=np.float64)
+            if mode == 'valid' and brr.size > arr.size:
                 continue
-            b_rev = b[::-1]
-            prod = na * nb
-            if prod <= window_thr:
-                # BLAS via sliding-window + dot
-                if mode == "full":
-                    pad = nb - 1
-                    a_pad = np.concatenate([
-                        np.zeros(pad, dtype=a.dtype),
-                        a,
-                        np.zeros(pad, dtype=a.dtype)
-                    ])
-                    windows = sliding_window_view(a_pad, window_shape=nb, axis=0)
-                else:
-                    windows = sliding_window_view(a, window_shape=nb, axis=0)
-                res = windows.dot(b_rev)
-            else:
-                # FFT-based correlation as convolution
-                conv = fftconvolve(a, b_rev, mode="full")
-                if mode == "valid":
-                    res = conv[nb - 1 : na]
-                else:
-                    res = conv
-            results.append(res)
+            arrs.append(arr)
+            brrs.append(brr)
+
+        n = len(arrs)
+        if n == 0:
+            return []
+
+        def corr(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+            return sp_correlate(a, b, mode)
+
+        cpu = os.cpu_count() or 1
+        if n >= 2 and cpu > 1:
+            workers = min(n, cpu)
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                results = list(executor.map(corr, arrs, brrs))
+        else:
+            results = [corr(a, b) for a, b in zip(arrs, brrs)]
+
         return results

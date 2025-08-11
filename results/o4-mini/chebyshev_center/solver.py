@@ -1,49 +1,46 @@
-from typing import Any, Dict
 import numpy as np
+from typing import Any
 from scipy.optimize import linprog
 
 class Solver:
-    def solve(self, problem: Dict[str, Any], **kwargs) -> Dict[str, list]:
+    def solve(self, problem: dict[str, Any], **kwargs) -> dict[str, list]:
         """
-        Compute the Chebyshev center of the polyhedron {x | a_i^T x <= b_i}.
+        Compute the Chebyshev center of a polyhedron {x | a_i^T x <= b_i}.
         Solves the LP:
-            maximize r
-            s.t. a_i^T x + ||a_i|| * r <= b_i, for all i
-                 r >= 0
-        by converting to a standard form and using SciPy's HiGHS dual simplex.
+            maximize   r
+            subject to a_i^T x + ||a_i|| * r <= b_i,  i=1..m
+                       r >= 0
+        :param problem: dict with keys "a" (m x n list) and "b" (m list)
+        :return: dict with "solution": list of n floats (the center x)
         """
-        # Load data
-        a = np.array(problem["a"], dtype=float)
-        b = np.array(problem["b"], dtype=float)
-        if a.ndim != 2:
-            raise ValueError("problem['a'] must be a 2D list")
+        a = np.asarray(problem["a"], dtype=float)
+        b = np.asarray(problem["b"], dtype=float)
         m, n = a.shape
 
         # Compute norms of each row a_i
         norms = np.linalg.norm(a, axis=1)
 
-        # Objective: maximize r → minimize -r
-        # Variable vector z = [x (n dims), r (1 dim)]
+        # Objective: maximize r  <=> minimize -r
         c = np.zeros(n + 1, dtype=float)
         c[-1] = -1.0
 
-        # Inequality constraints A_ub @ z <= b
-        # For each i: a_i^T x + norms[i] * r <= b_i
+        # Constraints: [a_i, norms[i]] * [x; r] <= b_i
         A_ub = np.hstack((a, norms.reshape(-1, 1)))
+        b_ub = b
 
-        # Bounds: x_j free, r >= 0
+        # Bounds: x free, r >= 0
         bounds = [(None, None)] * n + [(0.0, None)]
 
-        # Single HiGHS solve (disable presolve)
-        res = linprog(
-            c,
-            A_ub=A_ub,
-            b_ub=b,
-            bounds=bounds,
-            method="highs",
-            options={"presolve": False},
-        )
-        if res.status != 0:
-            raise RuntimeError(f"LP solver failed, status {res.status}: {res.message}")
-        # Return the center x
-        return {"solution": res.x[:n].tolist()}
+        # Solve LP with HiGHS
+        res = linprog(c,
+                      A_ub=A_ub,
+                      b_ub=b_ub,
+                      bounds=bounds,
+                      method="highs-ds",
+                      options={"presolve": False})
+
+        if not res.success:
+            raise RuntimeError(f"LP solver failed: {res.message}")
+
+        x_opt = res.x[:n]
+        return {"solution": x_opt.tolist()}

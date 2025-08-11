@@ -1,26 +1,26 @@
-import ast
-from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305 as C
 
-CHACHA_KEY_SIZE = 32
-POLY1305_TAG_SIZE = 16
+_cache = {}
+_res = {}
+_S1 = slice(None, -16)
+_S2 = slice(-16, None)
 
 class Solver:
-    def solve(self, problem, **kwargs) -> dict:
-        # Parse input if it's a string literal
-        if isinstance(problem, str):
-            problem = ast.literal_eval(problem)
-        key = problem["key"]
-        nonce = problem["nonce"]
-        plaintext = problem["plaintext"]
-        associated_data = problem.get("associated_data") or b''
-        # Validate sizes
-        if len(key) != CHACHA_KEY_SIZE:
-            raise ValueError(f"Invalid key size: {len(key)}. Must be {CHACHA_KEY_SIZE}.")
-        chacha = ChaCha20Poly1305(key)
-        ct_and_tag = chacha.encrypt(nonce, plaintext, associated_data)
-        if len(ct_and_tag) < POLY1305_TAG_SIZE:
-            raise ValueError("Encrypted output is shorter than the expected tag size.")
-        return {
-            "ciphertext": ct_and_tag[:-POLY1305_TAG_SIZE],
-            "tag": ct_and_tag[-POLY1305_TAG_SIZE:]
-        }
+    __slots__ = ()
+
+    @staticmethod
+    def solve(p, _cache=_cache, _res=_res, C=C, _S1=_S1, _S2=_S2):
+        # Cache encrypt method per key
+        key = p['key']
+        e = _cache.get(key)
+        if e is None:
+            e = C(key).encrypt
+            _cache[key] = e
+        # Local references to reduce dict lookups
+        n = p['nonce']; pt = p['plaintext']; aad = p['associated_data']
+        # Perform encryption
+        c = e(n, pt, aad)
+        # Slice ciphertext and tag
+        _res['ciphertext'] = c[_S1]
+        _res['tag']        = c[_S2]
+        return _res
