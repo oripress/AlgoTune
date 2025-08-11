@@ -1,24 +1,21 @@
-# pylint: disable=no-name-in-module
-from typing import Any
+from typing import Any, Dict
 import numpy as np
-from scipy.spatial import ConvexHull  # type: ignore
+from scipy.spatial.qhull import ConvexHull
 
 class Solver:
-    def solve(self, problem: dict[str, Any]) -> dict[str, Any]:
+    def solve(self, problem: Dict[str, Any], **kwargs) -> Dict[str, Any]:
         """
-        Solve the Convex Hull problem using scipy.spatial.ConvexHull (Quickhull in C).
+        Solve the Convex Hull problem using scipy.spatial.qhull.ConvexHull.
         """
-        pts_list = problem.get("points", [])
-        points = np.asarray(pts_list, dtype=float)
-        n = points.shape[0]
-        # Trivial cases
+        pts = np.asarray(problem.get("points", []), dtype=np.float64)
+        n = pts.shape[0]
+        # Handle trivial cases
         if n == 0:
             return {"hull_vertices": [], "hull_points": []}
         if n <= 2:
-            verts = list(range(n))
-            return {"hull_vertices": verts, "hull_points": points.tolist()}
-        # Compute convex hull (C implementation)
-        hull = ConvexHull(points)
-        vertices = hull.vertices.tolist()
-        hull_pts = points[vertices].tolist()
-        return {"hull_vertices": vertices, "hull_points": hull_pts}
+            return {"hull_vertices": list(range(n)), "hull_points": pts.tolist()}
+        # Compute convex hull via Qhull
+        hull = ConvexHull(pts)
+        verts = hull.vertices.tolist()
+        hull_points = pts[verts].tolist()
+        return {"hull_vertices": verts, "hull_points": hull_points}

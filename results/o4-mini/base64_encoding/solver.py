@@ -1,18 +1,10 @@
-import binascii
-_b2a = binascii.b2a_base64
+try:
+    import _base64 as _b64mod
+    _b64 = _b64mod.b64encode
+except ImportError:
+    from base64 import b64encode as _b64
 
 class Solver:
-    def solve(self, problem, **kwargs):
-        # Retrieve plaintext and materialize if needed
-        data = problem["plaintext"]
-        if not isinstance(data, (bytes, bytearray)):
-            try:
-                data = bytes(data)
-            except Exception:
-                try:
-                    data = data.tobytes()
-                except Exception:
-                    pass
-        # Fast C-level Base64 encode without newline
-        encoded = _b2a(data, newline=False)
-        return {"encoded_data": encoded}
+    def solve(self, problem, **kwargs) -> dict[str, bytes]:
+        # Direct C‐extension call to Base64 encoder
+        return {"encoded_data": _b64(problem["plaintext"])}

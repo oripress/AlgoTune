@@ -1,31 +1,28 @@
 import os
+import psutil
+
+# Determine number of physical cores for threading
+_workers = psutil.cpu_count(logical=False) or psutil.cpu_count(logical=True)
+# Set environment variables to control threading in FFT and BLAS libraries
+os.environ["OMP_NUM_THREADS"] = str(_workers)
+os.environ["OPENBLAS_NUM_THREADS"] = str(_workers)
+os.environ["MKL_NUM_THREADS"] = str(_workers)
+os.environ["NUMEXPR_NUM_THREADS"] = str(_workers)
+
 import numpy as np
-# Try to import next_fast_len from numpy or scipy for optimal FFT sizes
-try:
-    from numpy.fft import rfft2, irfft2, next_fast_len
-except ImportError:
-    from numpy.fft import rfft2, irfft2
-    from scipy.fftpack import next_fast_len
+from scipy.signal import fftconvolve
 
 class Solver:
     def solve(self, problem, **kwargs):
+        """
+        Compute the 2D convolution using FFT in single precision for speed,
+        then convert result back to float64 for compatibility.
+        """
         a, b = problem
-        # ensure C-contiguous
-        a = np.ascontiguousarray(a)
-        b = np.ascontiguousarray(b)
-        # output full convolution shape
-        out_h = a.shape[0] + b.shape[0] - 1
-        out_w = a.shape[1] + b.shape[1] - 1
-        # determine FFT shapes that are fast
-        fft_h = next_fast_len(out_h)
-        fft_w = next_fast_len(out_w)
-        # cast to float32 for faster FFT, compute transforms
-        a32 = a.astype(np.float32)
-        b32 = b.astype(np.float32)
-        fa = rfft2(a32, s=(fft_h, fft_w))
-        fb = rfft2(b32, s=(fft_h, fft_w))
-        # multiply in freq domain and inverse transform
-        conv32 = irfft2(fa * fb, s=(fft_h, fft_w))
-        # slice to desired output size and cast back to float64
-        result = conv32[:out_h, :out_w].astype(np.float64)
-        return result
+        # Convert to float32 for faster FFT operations
+        a32 = np.asarray(a, dtype=np.float32)
+        b32 = np.asarray(b, dtype=np.float32)
+        # Perform convolution in float32
+        c32 = fftconvolve(a32, b32, mode='full')
+        # Cast result back to float64
+        return c32.astype(np.float64)

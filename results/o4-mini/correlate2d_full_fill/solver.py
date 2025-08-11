@@ -1,17 +1,30 @@
 import numpy as np
-from scipy.signal import fftconvolve
+try:
+    from numpy.fft import rfft2, irfft2, next_fast_len
+except ImportError:
+    from numpy.fft import rfft2, irfft2
+    from scipy.fftpack import next_fast_len
 
 class Solver:
-    def solve(self, problem, **kwargs) -> np.ndarray:
-        """
-        Compute the 2D correlation of arrays a and b using 'full' mode
-        and 'fill' boundary via FFT-based convolution with float32 precision.
-        """
+    def solve(self, problem, **kwargs):
+        """Compute full 2D correlation with zero-fill boundary via FFT"""
         a, b = problem
-        # Cast inputs to float32 for faster FFT operations
-        a_f = np.asarray(a, dtype=np.float32)
-        b_f = np.asarray(b, dtype=np.float32)
-        # Correlation is convolution with reversed kernel
-        c_f = fftconvolve(a_f, b_f[::-1, ::-1], mode='full')
-        # Cast back to float64 for output compatibility
-        return c_f.astype(np.float64)
+        a = np.asarray(a, dtype=np.float64)
+        b = np.asarray(b, dtype=np.float64)
+        m, n = a.shape
+        p, q = b.shape
+        # full output dimensions
+        out0 = m + p - 1
+        out1 = n + q - 1
+        # find fast FFT sizes
+        fft0 = next_fast_len(out0)
+        fft1 = next_fast_len(out1)
+        # FFT of inputs
+        FA = rfft2(a, s=(fft0, fft1))
+        # reverse b for correlation via convolution
+        b_rev = b[::-1, ::-1]
+        FB_rev = rfft2(b_rev, s=(fft0, fft1))
+        # convolution yields correlation
+        corr_full = irfft2(FA * FB_rev, s=(fft0, fft1))
+        # slice to full output
+        return corr_full[:out0, :out1]

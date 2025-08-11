@@ -1,36 +1,58 @@
-# coding: utf-8
 import numpy as np
 import cvxpy as cp
 
 class Solver:
     def solve(self, problem, **kwargs):
-        """
-        Compute the projection onto the CVaR constraint set using CVXPY.
-        """
-        # Extract data
-        x0 = np.array(problem["x0"], dtype=float)
-        A = np.array(problem["loss_scenarios"], dtype=float)
+        # Extract and validate inputs
+        x0 = np.asarray(problem.get("x0", []), dtype=float)
+        A = np.asarray(problem.get("loss_scenarios", []), dtype=float)
+        if x0.size == 0 or A.size == 0:
+            return {"x_proj": []}
+        if A.ndim != 2 or x0.ndim != 1 or x0.shape[0] != A.shape[1]:
+            return {"x_proj": []}
+        n_scenarios, n_dims = A.shape
+
+        # CVaR parameters
         beta = float(problem.get("beta", 0.95))
         kappa = float(problem.get("kappa", 0.0))
-        m, n = A.shape
+        k = int((1.0 - beta) * n_scenarios)
+        if k < 1:
+            return {"x_proj": x0.tolist()}
+        alpha = kappa * k
 
-        # Number of worst-case scenarios
-        k = int((1.0 - beta) * m)
-        if k <= 0:
-            # No tail, already feasible
+        # Quick feasibility check
+        losses0 = A.dot(x0)
+        if np.partition(losses0, -k)[-k:].sum() <= alpha + 1e-8:
             return {"x_proj": x0.tolist()}
 
-        # Define CVXPY problem
-        x = cp.Variable(n)
-        objective = cp.Minimize(cp.sum_squares(x - x0))
-        # CVaR constraint: sum of k largest losses ≤ kappa * k
-        constraint = [cp.sum_largest(A @ x, k) <= kappa * k]
+        # Setup and solve QP with CVXPY ECOS
+        x = cp.Variable(n_dims)
+        obj = cp.Minimize(cp.sum_squares(x - x0))
+        constraints = [cp.sum_largest(A @ x, k) <= alpha]
+        prob = cp.Problem(obj, constraints)
+        try:
+            prob.solve(
+                solver=cp.ECOS,
+                warm_start=True,
+                abstol=1e-4,
+                reltol=1e-4,
+                feastol=1e-4,
+                max_iters=10000,
+                verbose=False
+            )
+        except Exception:
+            try:
+                prob.solve(
+                    solver=cp.SCS,
+                    warm_start=True,
+                    eps=1e-4,
+                    max_iters=10000,
+                    verbose=False
+                )
+            except Exception:
+                return {"x_proj": []}
 
-        prob = cp.Problem(objective, constraint)
-        prob.solve(solver=cp.OSQP)
-
-        # Check solution
-        xv = x.value
-        if xv is None:
+        x_val = x.value
+        if x_val is None or np.any(np.isnan(x_val)):
             return {"x_proj": []}
-        return {"x_proj": xv.tolist()}
+        return {"x_proj": x_val.tolist()}
