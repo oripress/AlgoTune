@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Ori Press and the AlgoTune contributors
+# https://github.com/oripress/AlgoTune
 import logging
 import random
 from enum import Enum
