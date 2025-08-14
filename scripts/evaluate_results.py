@@ -799,7 +799,6 @@ def update_agent_summary(results: List[EvaluationResult], summary_file: Path, ge
             logging.warning(f"Could not load existing summary file {summary_file}, creating new one")
             summary_data = {}
     
-    # Get all 155 tasks from generation data
     all_tasks = set(generation_data.keys())
     total_tasks = len(all_tasks)
     logging.info(f"Total expected tasks: {total_tasks}")
@@ -818,7 +817,6 @@ def update_agent_summary(results: List[EvaluationResult], summary_file: Path, ge
         display_name = normalize_model_name(model_name)
         speedups = []
         
-        # For each of the 155 tasks
         for task_name in all_tasks:
             if task_name in task_results:
                 result = task_results[task_name]
