@@ -113,6 +113,9 @@ class VectorizedNewton(Task):
             if np.isscalar(roots_list):
                 roots_list = np.array([roots_list])
 
+            # Keep roots_list a list
+            roots_list = roots_list.tolist()
+            
             # Pad with NaN if output length doesn't match input (shouldn't happen with vectorization)
             if len(roots_list) != n:
                 logging.warning(
