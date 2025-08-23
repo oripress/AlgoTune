@@ -54,15 +54,11 @@ class GraphLaplacian(Task):
         # Define diagonal offsets: -num_bands to -1 and 1 to num_bands
         diags = list(range(-num_bands, 0)) + list(range(1, num_bands + 1))
         # Stack data appropriately for spdiags (needs data for each diag)
-        spdiags_data = np.vstack(
-            (diag_data, diag_data)
-        )  # Simplistic: use same data for lower/upper initially
+        spdiags_data = np.vstack((diag_data, diag_data))  # use same data for lower/upper initially
 
         A_banded = scipy.sparse.spdiags(spdiags_data, diags, n, n, format="coo")
 
-        # Ensure symmetry: G = (A + A.T) / 2 or A.maximum(A.T)
-        # Let's use A + A.T, which doubles weights where bands overlap from transpose
-        # Or simply A.maximum(A.T) to keep weights bounded and structure symmetric
+        # Ensure symmetry by taking the elementwise max with its transpose
         A_sym = A_banded.maximum(A_banded.T)
 
         # Convert to CSR
@@ -129,11 +125,12 @@ class GraphLaplacian(Task):
                 "laplacian": {"data": [], "indices": [], "indptr": [], "shape": problem["shape"]}
             }
 
+        # Return lists to avoid ambiguous truth-value checks downstream
         solution = {
             "laplacian": {
-                "data": L_csr.data,
-                "indices": L_csr.indices,
-                "indptr": L_csr.indptr,
+                "data": L_csr.data.tolist(),
+                "indices": L_csr.indices.tolist(),
+                "indptr": L_csr.indptr.tolist(),
                 "shape": L_csr.shape,
             }
         }
@@ -167,10 +164,23 @@ class GraphLaplacian(Task):
             logging.error("Solution 'laplacian' dict missing CSR components.")
             return False
 
-        # Handle potential failure case from solve()
-        if (
-            not L_solution_dict["data"] and not L_solution_dict["indptr"]
-        ):  # Check if it looks like failure output
+        # Handle potential failure case from solve() using size/len-based checks
+        data = L_solution_dict["data"]
+        indptr = L_solution_dict["indptr"]
+
+        def _is_empty(x):
+            if x is None:
+                return True
+            if isinstance(x, np.ndarray):
+                return x.size == 0
+            try:
+                return len(x) == 0
+            except TypeError:
+                return False
+
+        # This detects the explicit "failure" payload (both empty lists).
+        # Note: a valid empty CSR of shape (n,n) would have data == [] but indptr length == n+1.
+        if _is_empty(data) and _is_empty(indptr):
             logging.warning(
                 "Proposed solution seems empty (potential failure). Checking reference."
             )
@@ -180,7 +190,7 @@ class GraphLaplacian(Task):
                 )
                 ref_L = scipy.sparse.csgraph.laplacian(graph_csr, normed=normed)
                 if not isinstance(ref_L, scipy.sparse.spmatrix) or ref_L.nnz == 0:
-                    # Check if reference is also effectively empty/invalid
+                    # Reference also empty/invalid → accept failure sentinel.
                     logging.info(
                         "Reference solver also produced empty/invalid result. Accepting failure."
                     )
