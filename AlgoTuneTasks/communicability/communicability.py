@@ -180,7 +180,8 @@ class Communicability(Task):  # Updated class name
 
         # Handle empty graph case
         if n == 0:
-            if not proposed_comm:  # Should be an empty dict
+            # Check if dict is empty - safe for all types
+            if len(proposed_comm) == 0:  # Should be an empty dict
                 logging.debug("Solution verification successful for empty graph.")
                 return True
             else:

@@ -131,9 +131,19 @@ class ShortestPathDijkstra(Task):
 
         proposed_list = solution["distance_matrix"]
 
-        # Handle potential failure case
-        if proposed_list == []:
-            logging.warning("Proposed solution is empty list (potential failure).")
+        # Handle potential failure case - compatible with both lists and arrays
+        def _is_empty(x):
+            if x is None:
+                return True
+            if isinstance(x, np.ndarray):
+                return x.size == 0
+            try:
+                return len(x) == 0
+            except TypeError:
+                return False
+        
+        if _is_empty(proposed_list):
+            logging.warning("Proposed solution is empty (potential failure).")
             try:
                 graph_csr = scipy.sparse.csr_matrix(
                     (problem["data"], problem["indices"], problem["indptr"]), shape=problem["shape"]

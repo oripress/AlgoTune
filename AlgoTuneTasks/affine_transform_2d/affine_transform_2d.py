@@ -10,6 +10,17 @@ import scipy.ndimage
 from AlgoTuneTasks.base import register_task, Task
 
 
+def _is_empty(x):
+    if x is None:
+        return True
+    if isinstance(x, np.ndarray):
+        return x.size == 0
+    try:
+        return len(x) == 0
+    except TypeError:
+        return False
+
+
 @register_task("affine_transform_2d")
 class AffineTransform2D(Task):
     def __init__(self, **kwargs):
@@ -121,7 +132,7 @@ class AffineTransform2D(Task):
         proposed_list = solution["transformed_image"]
 
         # Handle potential failure case from solve()
-        if proposed_list == []:
+        if _is_empty(proposed_list):
             logging.warning("Proposed solution is empty list (potential failure).")
             # Check if reference solver also fails/produces empty-like result
             try:

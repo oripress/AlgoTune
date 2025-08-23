@@ -182,7 +182,19 @@ class KalmanFilterTask(Task):
 
         # reference optimum
         ref = self.solve(problem)
-        if not ref["x_hat"]:  # solver failed – accept feasibility only
+        # Check if solver failed - compatible with both arrays and lists
+        x_hat = ref.get("x_hat")
+        def _is_empty(x):
+            if x is None:
+                return True
+            if isinstance(x, np.ndarray):
+                return x.size == 0
+            try:
+                return len(x) == 0
+            except TypeError:
+                return False
+        
+        if _is_empty(x_hat):  # solver failed – accept feasibility only
             logging.warning("Reference solve failed; skipping optimality test.")
             return True
 

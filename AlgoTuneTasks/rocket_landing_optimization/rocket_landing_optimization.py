@@ -279,7 +279,19 @@ class RocketLandingOptimizationTask(Task):
 
         # Compare with reference solution
         ref_solution = self.solve(problem)
-        if not ref_solution["position"]:  # Solver failed
+        # Check if solver failed - compatible with both arrays and lists
+        position = ref_solution.get("position")
+        def _is_empty(x):
+            if x is None:
+                return True
+            if isinstance(x, np.ndarray):
+                return x.size == 0
+            try:
+                return len(x) == 0
+            except TypeError:
+                return False
+        
+        if _is_empty(position):  # Solver failed
             logging.warning("Reference solution failed; skipping optimality check.")
             return True
 
