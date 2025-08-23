@@ -9,6 +9,17 @@ import scipy.linalg
 from AlgoTuneTasks.base import register_task, Task
 
 
+def _is_empty(x):
+    if x is None:
+        return True
+    if isinstance(x, np.ndarray):
+        return x.size == 0
+    try:
+        return len(x) == 0
+    except TypeError:
+        return False
+
+
 @register_task("matrix_sqrt")
 class MatrixSquareRoot(Task):
     def __init__(self, **kwargs):
@@ -122,7 +133,7 @@ class MatrixSquareRoot(Task):
         proposed_X_list = sqrtm_dict["X"]
 
         # Handle potential failure case from solve()
-        if proposed_X_list == []:
+        if _is_empty(proposed_X_list):
             logging.warning(
                 "Proposed solution indicates a computation failure (empty list). Checking if reference solver also fails."
             )

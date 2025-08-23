@@ -10,6 +10,17 @@ import scipy.ndimage
 from AlgoTuneTasks.base import register_task, Task
 
 
+def _is_empty(x):
+    if x is None:
+        return True
+    if isinstance(x, np.ndarray):
+        return x.size == 0
+    try:
+        return len(x) == 0
+    except TypeError:
+        return False
+
+
 @register_task("rotate_2d")
 class Rotate2D(Task):
     def __init__(self, **kwargs):
@@ -98,7 +109,7 @@ class Rotate2D(Task):
         proposed_list = solution["rotated_image"]
 
         # Handle potential failure case
-        if proposed_list == []:
+        if _is_empty(proposed_list):
             logging.warning("Proposed solution is empty list (potential failure).")
             try:
                 ref_output = scipy.ndimage.rotate(
