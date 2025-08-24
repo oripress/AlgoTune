@@ -228,7 +228,7 @@ class SolverExecutor:
             per_run_s = baseline_time_ms / 1000.0
             timeout_seconds = (1 + self.config.warmup_runs) * per_run_s * 10.0  # warmup + timed + buffer
             timeout_seconds = min(timeout_seconds, 300.0)  # Cap at 5 minutes
-            timeout_seconds = max(timeout_seconds, 5.0)  # At least 5 seconds to account for import overhead
+            timeout_seconds = max(timeout_seconds, 10.0)  # At least 10 seconds to account for import overhead in SLURM
         
         try:
             # Use isolated benchmark function directly
