@@ -1,0 +1,100 @@
+[INPUT_SEPARATOR]
+First, create a Cython helper module for distance calculations.
+```python
+edit
+file: solver.py
+lines: 0-0
+---
+from typing import Any
+import scipy.optimize
+import numbers
+import numpy as np
+
+def _task_f_vec(x, *a):
+    # Ensure x is treated as numpy array for vectorization
+    x = np.asarray(x)
+    # a contains (a0, a1, a2, a3, a4, a5) where a0, a1 can be arrays
+    a0, a1, a2, a3, a4, a5 = a
+    b = a0 + x * a3  # b will be array if a0 or x is array
+    term1 = a2 * (np.exp(b / a5) - 1.0)
+    term2 = b / a4
+    return a1 - term1 - term2 - x
+
+def _task_f_vec_prime(x, *a):
+    x = np.asarray(x)
+    a0, a1, a2, a3, a4, a5 = a
+    b_deriv_term = a3 / a5
+    exp_term = np.exp((a0 + x * a3) / a5)
+    return -a2 * exp_term * b_deriv_term - a3 / a4 - 1.0
+
+
+class Solver:
+    def __init__(self, **kwargs):
+        """
+        Initialize the VectorizedNewton task.
+
+        Finds roots for `n` instances of a parameterized function simultaneously
+        using a vectorized call to `scipy.optimize.newton` (Newton-Raphson).
+        The function `f(x, *params)` and its derivative `fprime(x, *params)`
+        are evaluated element-wise over arrays of initial guesses `x0` and
+        corresponding parameter arrays `a0`, `a1`.
+        """
+        super().__init__(**kwargs)
+        self.func = _task_f_vec
+        self.fprime = _task_f_vec_prime
+        # Fixed parameters from benchmark, except a0, a1 which scale with n
+        self.a2 = 1e-09
+        self.a3 = 0.004
+        self.a4 = 10.0
+        self.a5 = 0.27456
+
+    def solve(self, problem: dict[str, list[float]]) -> dict[str, list[float]]:
+        """
+        Finds roots using a single vectorized call to scipy.optimize.newton.
+
+        :param problem: Dict with lists "x0", "a0", "a1".
+        :return: Dictionary with key "roots": List of `n` found roots. Uses NaN on failure.
+        """
+        try:
+            x0_arr = np.array(problem["x0"])
+            a0_arr = np.array(problem["a0"])
+            a1_arr = np.array(problem["a1"])
+            n = len(x0_arr)
+            if len(a0_arr) != n or len(a1_arr) != n:
+                raise ValueError("Input arrays have mismatched lengths")
+        except Exception as e:
+            return {"roots": []}
+
+        # Assemble args tuple for vectorized function
+        args = (a0_arr, a1_arr, self.a2, self.a3, self.a4, self.a5)
+
+        roots_list = []
+        try:
+            # Perform vectorized call
+            roots_arr = scipy.optimize.newton(self.func, x0_arr, fprime=self.fprime, args=args)
+            roots_list = roots_arr
+            # Check if newton returned a scalar unexpectedly (e.g., if n=1)
+            if np.isscalar(roots_list):
+                roots_list = np.array([roots_list])
+
+            # Pad with NaN if output length doesn't match input (shouldn't happen with vectorization)
+            if len(roots_list) != n:
+                logging.warning(
+                    f"Vectorized Newton output length {len(roots_list)} != input {n}. Padding with NaN."
+                )
+                roots_list.extend([float("nan")] * (n - len(roots_list)))
+
+        except RuntimeError as e:
+            # Vectorized call might fail entirely or partially? SciPy docs are unclear.
+            # Assume it raises error if *any* fail to converge. Return all NaNs.
+            logging.warning(
+                f"Vectorized Newton failed to converge (may affect all elements): {e}. Returning NaNs."
+            )
+            roots_list = [float("nan")] * n
+        except Exception as e:
+            roots_list = [float("nan")] * n
+
+        solution = {"roots": roots_list}
+        return solution
+---
+```

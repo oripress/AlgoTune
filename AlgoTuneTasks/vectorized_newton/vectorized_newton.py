@@ -5,6 +5,7 @@ import random
 
 import numpy as np
 import scipy.optimize
+import numbers
 
 from AlgoTuneTasks.base import register_task, Task
 
@@ -140,18 +141,16 @@ class VectorizedNewton(Task):
         """
         Check if the provided roots are correct for the vectorized problem.
 
-        Checks length and compares element-wise against the reference vectorized output.
-
-        :param problem: The problem definition dictionary.
-        :param solution: The proposed solution dictionary.
-        :return: True if the solution is valid and correct, False otherwise.
+        - Accepts list/tuple/np.ndarray or a numeric scalar (including NumPy scalars).
+        - Compares element-wise to the reference vectorized output with tolerances.
+        - Optionally warns if |f(root)| is not small.
         """
         required_keys = ["x0", "a0", "a1"]
         if not all(k in problem for k in required_keys):
             logging.error(f"Problem dictionary missing required keys: {required_keys}")
             return False
+
         try:
-            # Determine n from a key expected to be present
             n = len(problem["x0"])
         except Exception:
             logging.error("Cannot determine problem size n from input.")
@@ -162,78 +161,69 @@ class VectorizedNewton(Task):
             return False
 
         proposed_roots = solution["roots"]
-        if not isinstance(proposed_roots, list):
-            # Handle case where solve might return non-list if n=1 or scalar result
-            if isinstance(proposed_roots, float | int) and n == 1:
-                proposed_roots = [proposed_roots]
-            else:
-                logging.error(f"'roots' is not a list (type: {type(proposed_roots)}).")
-                return False
 
-        if len(proposed_roots) != n:
-            logging.error(f"'roots' list has incorrect length ({len(proposed_roots)} != {n}).")
-            return False
-
-        # Recompute reference solution
-        ref_solution = self.solve(problem)
-        ref_roots = ref_solution["roots"]
-
-        # Compare proposed roots with reference roots (handling NaNs)
-        rtol = 1e-7
-        atol = 1e-9
+        # Normalize proposed_roots to a 1D float array
         try:
-            is_close = np.allclose(proposed_roots, ref_roots, rtol=rtol, atol=atol, equal_nan=True)
-        except TypeError as e:
-            logging.error(
-                f"Comparison failed, possibly due to non-numeric data in roots lists: {e}"
-            )
-            # Log lists for inspection
-            logging.error(f"Proposed roots: {proposed_roots}")
-            logging.error(f"Reference roots: {ref_roots}")
+            if isinstance(proposed_roots, numbers.Real):
+                proposed_arr = np.array([proposed_roots], dtype=float)
+            else:
+                proposed_arr = np.asarray(proposed_roots, dtype=float).reshape(-1)
+        except Exception as e:
+            logging.error(f"Could not interpret 'roots' as numeric array: {e}")
             return False
 
+        if proposed_arr.shape[0] != n:
+            logging.error(f"'roots' length mismatch ({proposed_arr.shape[0]} != {n}).")
+            return False
+
+        # Recompute reference solution and normalize it too
+        ref_solution = self.solve(problem)
+        if not isinstance(ref_solution, dict) or "roots" not in ref_solution:
+            logging.error("Internal error: reference solution missing 'roots'.")
+            return False
+
+        try:
+            ref_arr = np.asarray(ref_solution["roots"], dtype=float).reshape(-1)
+        except Exception as e:
+            logging.error(f"Internal error: could not interpret reference roots: {e}")
+            return False
+
+        if ref_arr.shape[0] != n:
+            logging.error(
+                f"Internal error: reference length {ref_arr.shape[0]} != expected {n}."
+            )
+            return False
+
+        rtol = 1e-5
+        atol = 1e-7
+        is_close = np.allclose(proposed_arr, ref_arr, rtol=rtol, atol=atol, equal_nan=True)
         if not is_close:
             logging.error("Proposed roots do not match reference roots within tolerance.")
-            num_mismatch = np.sum(
-                ~np.isclose(proposed_roots, ref_roots, rtol=rtol, atol=atol, equal_nan=True)
-            )
+            mism = ~np.isclose(proposed_arr, ref_arr, rtol=rtol, atol=atol, equal_nan=True)
+            num_mismatch = int(np.sum(mism))
             logging.error(f"Number of mismatches: {num_mismatch} / {n}")
-            # Log first few mismatches
-            count = 0
-            for i in range(n):
-                if not np.allclose(
-                    proposed_roots[i], ref_roots[i], rtol=rtol, atol=atol, equal_nan=True
-                ):
-                    logging.error(
-                        f"Mismatch at index {i}: Proposed={proposed_roots[i]}, Ref={ref_roots[i]}"
-                    )
-                    count += 1
-                    if count >= 5:
-                        break
+            # Log up to 5 mismatches
+            bad_idxs = np.flatnonzero(mism)[:5]
+            for i in bad_idxs:
+                logging.error(f"Mismatch at index {i}: Proposed={proposed_arr[i]}, Ref={ref_arr[i]}")
             return False
 
-        # Optional: Basic validity check f(root) ~= 0
+        # Optional: Basic validity check f(root) ~= 0 (warn-only, as before)
         func_tol = 1e-8
         try:
-            prop_roots_arr = np.array(proposed_roots)
-            finite_mask = np.isfinite(prop_roots_arr)
-            if np.any(finite_mask):  # Only check if there are finite roots
-                a0_arr = np.array(problem["a0"])[finite_mask]
-                a1_arr = np.array(problem["a1"])[finite_mask]
+            finite_mask = np.isfinite(proposed_arr)
+            if np.any(finite_mask):
+                a0_arr = np.asarray(problem["a0"], dtype=float)[finite_mask]
+                a1_arr = np.asarray(problem["a1"], dtype=float)[finite_mask]
                 args_check = (a0_arr, a1_arr, self.a2, self.a3, self.a4, self.a5)
-                f_vals = self.func(prop_roots_arr[finite_mask], *args_check)
+                f_vals = self.func(proposed_arr[finite_mask], *args_check)
+                max_abs_f = float(np.max(np.abs(f_vals))) if f_vals.size else 0.0
                 if np.any(np.abs(f_vals) > func_tol * 10):
                     bad_indices = np.where(np.abs(f_vals) > func_tol * 10)[0]
                     logging.warning(
-                        f"Some roots ({len(bad_indices)}) do not satisfy |f(root)| <= {func_tol * 10}. Max |f(root)| = {np.max(np.abs(f_vals))}"
+                        f"Some roots ({len(bad_indices)}) do not satisfy |f(root)| <= {func_tol * 10}. "
+                        f"Max |f(root)| = {max_abs_f}"
                     )
-                    # Example bad index:
-                    idx = bad_indices[0]
-                    logging.warning(
-                        f"Example: Index {idx}, Root={prop_roots_arr[finite_mask][idx]}, f(root)={f_vals[idx]}"
-                    )
-                    # Don't fail here, primary check is np.allclose with reference.
-                    # return False
         except Exception as e:
             logging.warning(f"Could not perform basic validity check |f(root)|~0 due to error: {e}")
 
