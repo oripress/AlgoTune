@@ -29,7 +29,6 @@ def _desired_thread_count(override: Optional[int] = None) -> int:
 
     # 2) honour current CPU-affinity / cpuset if available
     try:
-        import os
         affinity_cnt = len(os.sched_getaffinity(0))
         if affinity_cnt > 0:
             return affinity_cnt
@@ -99,7 +98,6 @@ def log_current_blas_threads(msg_prefix: str = "") -> None:
 def log_cpu_affinity(prefix: str = "") -> None:
     """Log the number of CPUs the current process is allowed to run on."""
     try:
-        import os
         cpus = os.sched_getaffinity(0)
         logging.info(f"{prefix}CPU affinity: {len(cpus)} cores ({sorted(cpus)[:8]}{'...' if len(cpus)>8 else ''})")
     except AttributeError:

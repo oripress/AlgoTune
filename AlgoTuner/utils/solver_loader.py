@@ -62,18 +62,17 @@ def _filesystem_operation_with_timeout(operation_func, timeout_seconds=10, opera
         # For module execution, execute directly with enhanced error handling
         if operation_name == "module execution":
             import errno
+            # Hoist imports once for both exception paths
+            from AlgoTuner.utils.error_utils import extract_error_context
+            import traceback
             try:
                 operation_func()
                 return True
             except (PermissionError, OSError) as e:
-                # Import error_utils to get proper context extraction
-                from AlgoTuner.utils.error_utils import extract_error_context
-                
                 # Use standardized error message for all file operation errors
                 error_msg = "Error: Reading and writing files is not allowed."
                 
                 # Get the code context using the standard error_utils function
-                import traceback
                 tb_str = traceback.format_exc()
                 context_result = extract_error_context(tb_str, error_msg)
                 context = context_result.get("code_context_snippet")
@@ -88,10 +87,6 @@ def _filesystem_operation_with_timeout(operation_func, timeout_seconds=10, opera
                         error_container['context'] = context
                 return False
             except Exception as e:
-                # Import error_utils to get proper context extraction
-                from AlgoTuner.utils.error_utils import extract_error_context
-                import traceback
-                
                 tb_str = traceback.format_exc()
                 error_msg = str(e)
                 
@@ -187,6 +182,50 @@ def with_working_dir(target_dir):
     finally:
         os.chdir(prev_dir)
 
+
+
+def _ensure_constraint_gen_alias(code_dir: Path) -> bool:
+    """Ensure constraint_gen exposes generate_constraints_optimized alias when missing."""
+    module_name = "constraint_gen"
+    try:
+        if module_name in sys.modules:
+            module = sys.modules[module_name]
+        else:
+            added = False
+            if str(code_dir) not in sys.path:
+                sys.path.insert(0, str(code_dir))
+                added = True
+            try:
+                module = importlib.import_module(module_name)
+            finally:
+                if added and sys.path and sys.path[0] == str(code_dir):
+                    sys.path.pop(0)
+        created_alias = False
+        if not hasattr(module, "generate_constraints_optimized") and hasattr(module, "generate_constraints"):
+            setattr(module, "generate_constraints_optimized", getattr(module, "generate_constraints"))
+            logging.warning(
+                "constraint_gen missing generate_constraints_optimized; aliased to generate_constraints for compatibility"
+            )
+            created_alias = True
+        if not hasattr(module, "generate_constraints") and hasattr(module, "generate_constraints_optimized"):
+            setattr(module, "generate_constraints", getattr(module, "generate_constraints_optimized"))
+            logging.warning(
+                "constraint_gen missing generate_constraints; aliased to generate_constraints_optimized for compatibility"
+            )
+            created_alias = True
+        return created_alias
+    except Exception as alias_err:
+        logging.warning(f"Failed to create constraint_gen compatibility alias: {alias_err}")
+    return False
+
+
+def _maybe_fix_constraint_gen(error_msg: str, context: str, code_dir: Path) -> bool:
+    """Attempt to repair constraint_gen import errors by adding compatibility aliases."""
+    combined = f"{error_msg}\n{context}" if context else error_msg
+    if "constraint_gen" in combined and "generate_constraints" in combined:
+        return _ensure_constraint_gen_alias(code_dir)
+    return False
+
 def load_solver_module(code_dir: Path, solver_filename: str = "solver.py") -> ModuleType:
     """
     Dynamically load the given solver file from the specified directory.
@@ -194,14 +233,14 @@ def load_solver_module(code_dir: Path, solver_filename: str = "solver.py") -> Mo
     Raises FileNotFoundError or ImportError on failure.
     """
     logging.debug(f"load_solver_module: Starting to load {solver_filename} from {code_dir}")
-    code_dir = Path(code_dir)
-    solver_file = code_dir / solver_filename
+    code_dir_path = Path(code_dir)
+    solver_file = code_dir_path / solver_filename
     if not solver_file.is_file():
         logging.error(f"load_solver_module: Solver file not found at {solver_file}")
         raise SolverFileNotFoundError("Error: solver.py not found.")
 
-    logging.debug(f"load_solver_module: Purging modules from {code_dir} to ensure fresh code is loaded")
-    _purge_modules_from_dir(code_dir)
+    logging.debug(f"load_solver_module: Purging modules from {code_dir_path} to ensure fresh code is loaded")
+    _purge_modules_from_dir(code_dir_path)
 
     import tempfile, uuid
     temp_cache_dir = Path(tempfile.gettempdir()) / f"dace_cache_{uuid.uuid4().hex[:8]}"
@@ -239,9 +278,9 @@ def load_solver_module(code_dir: Path, solver_filename: str = "solver.py") -> Mo
     else:
         logging.warning("load_solver_module: DaCe and joblib cache configuration failed/timed out, continuing without custom cache")
 
-    logging.debug(f"load_solver_module: About to change working directory to {code_dir}")
-    with with_working_dir(code_dir):
-        logging.debug(f"load_solver_module: Changed to working directory {code_dir}")
+    logging.debug(f"load_solver_module: About to change working directory to {code_dir_path}")
+    with with_working_dir(code_dir_path):
+        logging.debug(f"load_solver_module: Changed to working directory {code_dir_path}")
         
         logging.debug(f"load_solver_module: About to create module spec for {solver_file}")
         spec = importlib.util.spec_from_file_location(solver_file.stem, str(solver_file))
@@ -261,7 +300,7 @@ def load_solver_module(code_dir: Path, solver_filename: str = "solver.py") -> Mo
         logging.debug(f"load_solver_module: About to create module from spec")
         module = importlib.util.module_from_spec(spec)
         logging.debug(f"load_solver_module: Created module, setting __path__")
-        module.__path__ = [str(code_dir)]
+        module.__path__ = [str(code_dir_path)]
         
         logging.debug(f"load_solver_module: About to execute module")
         
@@ -276,17 +315,37 @@ def load_solver_module(code_dir: Path, solver_filename: str = "solver.py") -> Mo
             operation_name="module execution",
             error_container=error_details
         )
-        
+
         if not module_executed:
-            # Build detailed error message with context
             error_msg = error_details.get('error', f"Module execution failed for {solver_file}")
             context = error_details.get('context', '')
-            
+
+            if _maybe_fix_constraint_gen(error_msg, context, code_dir_path):
+                logging.info("load_solver_module: Applied constraint_gen compatibility fix; retrying import")
+                if spec.name in sys.modules:
+                    try:
+                        del sys.modules[spec.name]
+                    except Exception:
+                        logging.debug("load_solver_module: Unable to remove cached solver module before retry")
+                error_details = {}
+                module_executed = _filesystem_operation_with_timeout(
+                    execute_module,
+                    timeout_seconds=30,
+                    operation_name="module execution",
+                    error_container=error_details
+                )
+                if module_executed:
+                    logging.info("load_solver_module: Solver import succeeded after applying constraint_gen alias")
+
+        if not module_executed:
+            error_msg = error_details.get('error', error_msg)
+            context = error_details.get('context', context)
+
             if context:
                 full_error = f"{error_msg}\n\nCode Context:\n{context}"
             else:
                 full_error = error_msg
-            
+
             raise ImportError(full_error)
         
         logging.debug(f"load_solver_module: Successfully executed module")
@@ -363,6 +422,12 @@ def get_solve_callable(solver_module: ModuleType):
         raise AttributeError("Class 'Solver' not found in solver module")
 
     logging.info(f"get_solve_callable: Found Solver class: {SolverClass}")
+    # Ensure TimeoutError is defined before any use in this function
+    from AlgoTuner.utils.precise_timing import time_limit, TimeoutError
+
+    # Preload utilities used in multiple branches to avoid local shadowing
+    from AlgoTuner.utils.error_utils import create_standard_error_result
+    import traceback
 
     # Check for expensive initialization patterns
     if _detect_expensive_initialization(solver_module):
@@ -370,8 +435,6 @@ def get_solve_callable(solver_module: ModuleType):
         logging.error(f"get_solve_callable: Hint - Use simple approaches like mp.nzeros() instead of complex mathematical formulas in __init__")
         
         # Create error with clean message and code context using error_utils
-        from AlgoTuner.utils.error_utils import create_standard_error_result
-        import traceback
         
         timeout_error = TimeoutError("Solver contains expensive initialization patterns that would likely timeout. Use simpler approaches like mp.nzeros() in your implementation.")
         error_result = create_standard_error_result(
@@ -394,7 +457,6 @@ def get_solve_callable(solver_module: ModuleType):
     logging.info(f"get_solve_callable: Creating Solver instance with 120s timeout")
     
     # Add timeout for solver instantiation in case it takes a long time
-    from AlgoTuner.utils.precise_timing import time_limit, TimeoutError
     try:
         with time_limit(120.0):  # 120 second timeout for initialization
             solver_instance = SolverClass()
@@ -403,8 +465,6 @@ def get_solve_callable(solver_module: ModuleType):
         logging.error(f"get_solve_callable: Hint - Move expensive computations from __init__ to solve() method")
         
         # Create error with clean message and code context using error_utils
-        from AlgoTuner.utils.error_utils import create_standard_error_result
-        import traceback
         
         error_result = create_standard_error_result(
             exception=timeout_exc,

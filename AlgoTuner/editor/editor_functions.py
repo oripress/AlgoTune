@@ -941,12 +941,24 @@ class SnapshotManager:
                 )
 
             # verify
+            missing_optional_files = set()
+            compiled_suffixes = {'.so', '.pyd'}
             for rel_path_str, info in meta["files"].items():
                 sf = snap_path / rel_path_str
+                suffix = Path(rel_path_str).suffix.lower()
                 if not sf.exists():
+                    if suffix in compiled_suffixes:
+                        logging.warning(f"Optional compiled artifact missing in snapshot: {rel_path_str}")
+                        missing_optional_files.add(rel_path_str)
+                        continue
                     logging.error(f"Missing file in snapshot: {rel_path_str}")
                     return f"Snapshot verification failed: missing file {rel_path_str}"
-                if self._calc_hash(sf) != info["hash"]:
+                file_hash = self._calc_hash(sf)
+                if file_hash != info["hash"]:
+                    if suffix in compiled_suffixes:
+                        logging.warning(f"Hash mismatch for compiled artifact in snapshot: {rel_path_str}")
+                        missing_optional_files.add(rel_path_str)
+                        continue
                     logging.error(f"Hash mismatch for file in snapshot: {rel_path_str}")
                     return f"Snapshot verification failed: hash mismatch for {rel_path_str}"
 
@@ -999,6 +1011,9 @@ class SnapshotManager:
 
                     # restore from the selected snapshot
                     for rel_path_str in meta["files"]:
+                        if rel_path_str in missing_optional_files:
+                            logging.debug(f"Skipping restore of optional compiled artifact {rel_path_str}")
+                            continue
                         src = snap_path / rel_path_str
                         tgt = code_dir / rel_path_str
                         tgt.parent.mkdir(parents=True, exist_ok=True)
@@ -1012,6 +1027,8 @@ class SnapshotManager:
                     
                     # Verify and handle compilation artifacts after restoration
                     self._verify_and_recompile_if_needed(code_dir)
+                    if missing_optional_files:
+                        logging.info(f"Triggered recompilation after restoring snapshot; missing artifacts: {sorted(missing_optional_files)}")
 
                     # Load metadata associated with the reverted snapshot
                     meta_path = snap_path / "metadata.json"
@@ -1085,7 +1102,6 @@ class SnapshotManager:
         This addresses the systematic bug where compiled extensions fail during final test evaluation.
         """
         import subprocess
-        import os
         
         logging.info("Verifying compilation artifacts after snapshot restoration...")
         
@@ -1332,7 +1348,8 @@ class Editor:
         Attempts to restore from the last snapshot. Returns a dict indicating success or error.
         """
         result = self.snapshot_manager.restore_snapshot()
-        if "Error" in result or "Failed" in result:
+        result_lower = result.lower() if isinstance(result, str) else str(result).lower()
+        if 'error' in result_lower or 'fail' in result_lower:
             return {
                 "success": False,
                 "error": result,
@@ -1370,7 +1387,7 @@ class Editor:
                 # Clean up file paths to show only filename
                 if 'encountered in File' in line and '/' in line:
                     # Extract just the filename from the full path
-                    import os
+                    
                     parts = line.split('File "')
                     if len(parts) > 1:
                         path_and_rest = parts[1]
@@ -1987,8 +2004,14 @@ class Editor:
                                 # Only clean .so and .pyd files, keep .c files as they may be needed
                                 for ext in ['*.so', '*.pyd']:
                                     for f in code_dir.rglob(ext):
-                                        f.unlink()
-                                logging.info("Cleaned Cython build artifacts before compilation.")
+                                        if '.snapshots' in f.parts:
+                                            logging.debug(f"Skipping cleanup of snapshot artifact {f}")
+                                            continue
+                                        try:
+                                            f.unlink()
+                                        except Exception as unlink_err:
+                                            logging.warning(f"Failed to remove build artifact {f}: {unlink_err}")
+                                logging.info("Cleaned Cython build artifacts before compilation (snapshot artifacts preserved).")
                             except Exception as clean_err:
                                 logging.warning(f"Failed to clean build artifacts: {clean_err}")
                             # Use build_ext --inplace to compile in the working directory

@@ -13,7 +13,6 @@ def _warmup_worker_task():
     import logging
     import time
     import resource
-    import os
     import sys
     
     worker_pid = os.getpid()
@@ -92,7 +91,6 @@ def _warmup_worker_task():
     
     # Test basic numpy import to see if it works
     try:
-        import numpy as np
         test_array = np.zeros(1000)  # Small test allocation
         logging.info(f"[WARMUP_TASK] {start_time:.3f}: Successfully imported numpy and allocated small test array")
     except Exception as e:
@@ -233,7 +231,6 @@ class BenchmarkPool:
         
         # Log parent process memory limits before creating pool
         try:
-            import resource
             import subprocess
             
             parent_soft, parent_hard = resource.getrlimit(resource.RLIMIT_AS)
@@ -480,7 +477,6 @@ class BenchmarkPool:
 def _debug_minimal_initializer(memory_limit_bytes: int, disable_rlimit_as: bool = False):
     """Minimal initializer with essential memory setup for debugging worker spawn issues."""
     import logging
-    import os
     import time
     import resource
     

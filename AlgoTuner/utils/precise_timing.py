@@ -568,6 +568,14 @@ def time_execution_ns(
     if kwargs is None:
         kwargs = {}
 
+    # Make psutil available once for the whole function without shadowing later imports
+    psutil = None
+    try:
+        import psutil as _psutil
+        psutil = _psutil
+    except Exception:
+        psutil = None
+
     try:
         n_thr = set_blas_threads()
         log_current_blas_threads(f"[time_execution_ns:{func.__name__}] ")
@@ -656,13 +664,12 @@ def time_execution_ns(
                         raise mem_err
                 except ImportError:
                     # Lightweight fallback using psutil
-                    try:
-                        import psutil, os
-                        if psutil.virtual_memory().percent > 90:
-                            logging.warning("System memory usage high (>90%) – continuing (RLIMIT_AS enforced)")
-                        # No further action; RLIMIT_AS already provides the hard cap
-                    except ImportError:
-                        pass
+                    if psutil is not None:
+                        try:
+                            if psutil.virtual_memory().percent > 90:
+                                logging.warning("System memory usage high (>90%) – continuing (RLIMIT_AS enforced)")
+                        except Exception:
+                            pass
             if _collect_overhead:
                 _t_pre_end = time.perf_counter_ns()
             logging.debug(f"time_execution_ns: About to execute warmup run {i+1} for '{func_name}'")
@@ -723,12 +730,11 @@ def time_execution_ns(
                 try:
                     if _collect_overhead:
                         _t_pre_start = time.perf_counter_ns()
-                    if MEMORY_MONITORING:
+                    if MEMORY_MONITORING and psutil is not None:
                         try:
-                            import psutil, os
                             if psutil.virtual_memory().percent > 90:
                                 logging.warning("System memory usage high (>90%) – continuing (RLIMIT_AS enforced)")
-                        except ImportError:
+                        except Exception:
                             pass
                     if _collect_overhead:
                         _t_pre_end = time.perf_counter_ns()
@@ -757,10 +763,10 @@ def time_execution_ns(
                     logging.debug(f"time_execution_ns: Measurement run {i+1}/{num_runs} for '{func_name}' successful. Duration: {run_duration_ns/1e6:.6f} ms.")
                     
                     try:
-                        import psutil
-                        current_process = psutil.Process()
-                        rss_gb = current_process.memory_info().rss / (1024**3)
-                    except ImportError:
+                        if psutil is not None:
+                            current_process = psutil.Process()
+                            rss_gb = current_process.memory_info().rss / (1024**3)
+                    except Exception:
                         pass
                     except MemoryError:
                         raise
