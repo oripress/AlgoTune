@@ -462,7 +462,6 @@ class LLMInterface(base_interface.BaseLLMInterface):
                     except Exception as model_error:
                         logging.error(f"Exception in model.query: {model_error}")
                         logging.error(f"Model query exception type: {type(model_error)}")
-                        import traceback
                         logging.error(f"Model query full traceback:\n{traceback.format_exc()}")
                         raise
 
@@ -493,7 +492,6 @@ class LLMInterface(base_interface.BaseLLMInterface):
 
             except Exception as e:
                 logging.error(f"Exception in get_response: {e}")
-                import traceback
                 logging.error(f"Full get_response exception traceback:\n{traceback.format_exc()}")
                 if "ContentPolicyViolationError" in str(e) or "Invalid prompt: your prompt was flagged" in str(e):
                     logging.error("Content policy violation detected - marking task as failed due to policy violation")
@@ -503,7 +501,6 @@ class LLMInterface(base_interface.BaseLLMInterface):
 
         except Exception as e:
             logging.error(f"Exception in get_response: {e}")
-            import traceback
             logging.error(f"Full get_response exception traceback:\n{traceback.format_exc()}")
             if "ContentPolicyViolationError" in str(e) or "Invalid prompt: your prompt was flagged" in str(e):
                 logging.error("Content policy violation detected - marking task as failed due to policy violation")

@@ -118,8 +118,9 @@ def find_command(
         valid_commands: Optional list of valid command names. If not provided, uses all commands from COMMAND_PATTERNS
     """
     command_str = input_str.strip()
+    # Import here once to avoid circular import at module level and avoid scoping issues
+    from AlgoTuner.interfaces.commands.types import ERROR_MESSAGES
     if not command_str:
-        from AlgoTuner.interfaces.commands.types import ERROR_MESSAGES
         return None, None, ERROR_MESSAGES["empty_command"]
 
     # Use provided valid_commands or all commands from COMMAND_PATTERNS
@@ -148,7 +149,6 @@ def find_command(
     # For other commands, proceed with normal parsing
     parts = command_str.split(maxsplit=1)
     if not parts:
-        from AlgoTuner.interfaces.commands.types import ERROR_MESSAGES
         return None, None, ERROR_MESSAGES["empty_command"]
 
     command = parts[0]

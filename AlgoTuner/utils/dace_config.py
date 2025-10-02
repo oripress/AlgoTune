@@ -60,9 +60,10 @@ def configure_joblib_cache(cache_dir: Union[str, Path]) -> None:
         
         def patched_new(cls, location=None, *args, **kwargs):
             # If no location specified or location points to project directory, redirect to temp dir
+            original_location = location
             if location is None or (isinstance(location, str) and ('cachedir' in location or 'eigen_cache' in location)):
                 location = cache_dir_str
-                logging.debug(f"Redirecting joblib Memory cache from {location} to temp dir: {cache_dir_str}")
+                logging.debug(f"Redirecting joblib Memory cache from {original_location} to temp dir: {cache_dir_str}")
             
             # Create instance using original constructor
             instance = Memory._original_new(cls)

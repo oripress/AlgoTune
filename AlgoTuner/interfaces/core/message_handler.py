@@ -397,7 +397,6 @@ class MessageHandler:
             
         except Exception as e:
             logging.error(f"Exception in send_message: {e}")
-            import traceback
             logging.error(f"Full exception traceback:\n{traceback.format_exc()}")
             # Handle other exceptions
             error_msgs = get_error_messages_cached()

@@ -321,8 +321,6 @@ class DummyLLM(LLMInterface):
                 
             def profile(self, problem_input, focus_lines=None):
                 """Bridge to the TaskProfiler's profile_solve method."""
-                import logging
-                
                 logging.info(f"ProfilerInterface.profile: Called with input: {_format_problem_input_for_logging(problem_input)}, focus_lines: {focus_lines}")
                 
                 # Process the input using cast_input

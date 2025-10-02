@@ -30,7 +30,6 @@ def _initialize_process():
         import math
         import gc
         import sys
-        import os
         
         # Initialize numpy if available
         try:
