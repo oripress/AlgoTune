@@ -51,8 +51,9 @@ def setup_logging(task=None, model=None):
             logger.removeHandler(handler)
         print("Removed existing log handlers")
 
-    # Set root logger to DEBUG level to allow all logging
-    logger.setLevel(logging.DEBUG)
+    level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
+    logger.setLevel(level)
 
     # Create handlers
     if log_file:
@@ -63,14 +64,14 @@ def setup_logging(task=None, model=None):
         except OSError as e:
             raise OSError(f"Cannot write to log file {log_file}: {e}")
             
-        file_handler = logging.FileHandler(log_file, 'w')  # Use 'w' mode to create/overwrite file
-        file_handler.setLevel(logging.INFO)  # Set file handler to INFO level to reduce verbosity
+        file_handler = logging.FileHandler(log_file, 'w')
+        file_handler.setLevel(level)
         file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
         logger.addHandler(file_handler)
 
     # Always add console handler
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)  # Set console handler to INFO level only
+    console_handler.setLevel(level)
     console_handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))  # Simpler format for console
     logger.addHandler(console_handler)
     

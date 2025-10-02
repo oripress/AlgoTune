@@ -1160,8 +1160,6 @@ class MessageWriter:
                 error_lines.append(template)
             elif "end line" in template.lower() and "start line" in template.lower():
                 # Extract the actual line numbers if present
-                import re
-
                 start_match = re.search(r"start line \((\d+)\)", template.lower())
                 end_match = re.search(r"end line \((\d+)\)", template.lower())
                 start_line = start_match.group(1) if start_match else None
@@ -1218,8 +1216,6 @@ class MessageWriter:
                 error_lines.append("---")
             elif "line number" in template.lower():
                 # Extract the actual line number if present
-                import re
-
                 line_match = re.search(r"got (\-?\d+)", template.lower())
                 line_num = line_match.group(1) if line_match else None
 
@@ -1285,8 +1281,6 @@ class MessageWriter:
         if "line" in error_msg.lower():
             if "range" in error_msg.lower():
                 # Extract line numbers if present
-                import re
-
                 start_match = re.search(r"start line \((\d+)\)", error_msg.lower())
                 end_match = re.search(r"end line \((\d+)\)", error_msg.lower())
                 start_line = start_match.group(1) if start_match else None
@@ -1312,8 +1306,6 @@ class MessageWriter:
                     )
             elif "number" in error_msg.lower():
                 # Extract the problematic line number if present
-                import re
-
                 line_match = re.search(r"got (\-?\d+)", error_msg.lower())
                 line_num = line_match.group(1) if line_match else None
 

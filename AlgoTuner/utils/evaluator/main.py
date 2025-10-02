@@ -822,6 +822,7 @@ def evaluate_code_on_dataset(
     from AlgoTuner.utils.evaluator.evaluation_types import RunnerConfig
     from AlgoTuner.utils.evaluator.evaluation_orchestrator import EvaluationOrchestrator
     from AlgoTuner.utils.evaluator.legacy_adapter import LegacyAdapter
+    from AlgoTuner.utils.evaluator.baseline_manager import BaselineManager
     
     logging.info(f"Using optimized evaluation pipeline (test_mode={test_mode})")
     
@@ -862,7 +863,6 @@ def evaluate_code_on_dataset(
     # Get baseline times from BaselineManager if provided, otherwise use passed baseline_times
     if baseline_manager:
         logging.info(f"BaselineManager provided, getting baseline times for subset '{data_subset}'")
-        from AlgoTuner.utils.evaluator.baseline_manager import BaselineManager
         if isinstance(baseline_manager, BaselineManager):
             # Determine max_samples based on test mode
             max_samples = 10 if test_mode else None
@@ -877,7 +877,6 @@ def evaluate_code_on_dataset(
     elif baseline_times is None:
         # Auto-create BaselineManager when needed and missing
         logging.info("No BaselineManager provided and no baseline_times, auto-creating BaselineManager")
-        from AlgoTuner.utils.evaluator.baseline_manager import BaselineManager
         try:
             auto_baseline_manager = BaselineManager(task_obj)
             # Determine max_samples based on test mode
@@ -2121,16 +2120,13 @@ def _eval_worker_target(task_name, data_dir, timed_problem_instance, warmup_prob
                 timeout_seconds=timeout_seconds,
             )
             
-            # For validation, run solver once more in main process to get result
             if baseline_res.get("success"):
-                try:
-                    logging.info(f"EVAL_WORKER (PID: {worker_pid}): Running solver for validation")
-                    solver_result_for_validation = solve_callable(timed_problem_instance)
-                    baseline_res["result"] = solver_result_for_validation
-                    logging.info(f"EVAL_WORKER (PID: {worker_pid}): Successfully captured solver result for validation")
-                except Exception as e:
-                    logging.warning(f"EVAL_WORKER (PID: {worker_pid}): Failed to get solver result for validation: {e}")
-                    baseline_res["result"] = None
+                if baseline_res.get("result") is None:
+                    try:
+                        solver_result_for_validation = solve_callable(timed_problem_instance)
+                        baseline_res["result"] = solver_result_for_validation
+                    except Exception as e:
+                        baseline_res["result"] = None
 
             # Normalise keys to match earlier benchmark_result expectations
             benchmark_result = {
