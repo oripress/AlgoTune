@@ -24,6 +24,7 @@ USAGE:
 COMMANDS:
     generate [options]                    Generate baseline measurements
     agent [options] <model> [task]...     Run AI agent on tasks
+    retry-na [options] <model>            Retry tasks with N/A results
     evaluate [options]                    Evaluate results code against baselines
     test [options]                        Run test suite
     list-tasks                            List available tasks
@@ -45,6 +46,9 @@ EXAMPLES:
     
     # Run agent on all tasks
     $0 agent o4-mini                                     # SLURM if available
+    
+    # Retry only N/A tasks for a model
+    $0 retry-na o4-mini                                  # SLURM if available
     
     # Evaluate results code against baselines
     $0 evaluate --standalone                             # Force standalone
@@ -139,12 +143,24 @@ run_agent_standalone() {
         fi
         # ---
         
-        # Run tasks
-        if [ ${#tasks[@]} -eq 0 ]; then
-            echo "❌ No tasks specified. Please specify task names."
-            echo "   Example: $0 agent --standalone o4-mini svm kmeans"
+    # Run tasks (fallback to all tasks if none specified)
+    if [ ${#tasks[@]} -eq 0 ]; then
+        echo "ℹ️  No tasks specified; discovering all tasks in AlgoTuneTasks..."
+        local tasks_root="$PROJECT_ROOT/AlgoTuneTasks"
+        if [ ! -d "$tasks_root" ]; then
+            echo "❌ Tasks directory not found at $tasks_root"
+            echo "   Please specify tasks explicitly. Example: $0 agent --standalone o4-mini svm kmeans"
             exit 1
         fi
+        mapfile -t tasks < <(find "$tasks_root" -mindepth 1 -maxdepth 1 -type d -printf "%f\n" | while read -r d; do
+            if [ -f "$tasks_root/$d/description.txt" ]; then echo "$d"; fi
+        done | sort)
+        if [ ${#tasks[@]} -eq 0 ]; then
+            echo "❌ No tasks found in $tasks_root"
+            exit 1
+        fi
+        echo "📋 Found ${#tasks[@]} task(s)."
+    fi
         
         for task in "${tasks[@]}"; do
             echo "🎯 Running task: $task"
@@ -205,6 +221,82 @@ case "$COMMAND" in
         else
             echo "🤖 Submitting AI agent jobs to SLURM..."
             exec "$SCRIPT_DIR/submit_agent.sh" "$MODEL" "$@"
+        fi
+        ;;
+
+    "retry-na")
+        # Retry tasks whose final speedup is N/A (or missing) for a given model
+        SUMMARY_PATH="$PROJECT_ROOT/reports/agent_summary.json"
+        # Parse options for retry-na
+        while [[ "$1" == --* ]]; do
+            case "$1" in
+                --standalone)
+                    STANDALONE=true
+                    shift
+                    ;;
+                --summary)
+                    SUMMARY_PATH="$2"; shift 2
+                    ;;
+                *)
+                    break
+                    ;;
+            esac
+        done
+
+        if [ $# -lt 1 ]; then
+            echo "Error: retry-na command requires model name"
+            echo "Usage: $0 retry-na [--standalone] [--summary reports/agent_summary.json] <model>"
+            exit 1
+        fi
+
+        MODEL="$1"; shift
+        if [ ! -f "$SUMMARY_PATH" ]; then
+            echo "❌ Summary file not found: $SUMMARY_PATH"
+            echo "   Run some agent jobs first to create it, or specify --summary <path>"
+            exit 1
+        fi
+
+        echo "🔎 Reading N/A tasks for model '$MODEL' from $SUMMARY_PATH ..."
+        # Use Python for robust JSON parsing
+        mapfile -t NA_TASKS < <(python3 - <<'PY'
+import json, os, sys
+summary_path = os.environ.get('SUMMARY_PATH')
+model = os.environ.get('MODEL')
+try:
+    with open(summary_path, 'r') as f:
+        data = json.load(f)
+except Exception as e:
+    print(f"Error reading summary file: {e}", file=sys.stderr)
+    sys.exit(1)
+
+tasks = []
+if isinstance(data, dict):
+    for task, models in data.items():
+        entry = models.get(model)
+        # Retry if missing or explicitly marked N/A
+        if entry is None:
+            tasks.append(task)
+        else:
+            speed = entry.get('final_speedup')
+            if speed in (None, 'N/A'):
+                tasks.append(task)
+for t in sorted(tasks):
+    print(t)
+PY
+        )
+
+        if [ ${#NA_TASKS[@]} -eq 0 ]; then
+            echo "✅ No tasks to retry; none marked N/A or missing for model '$MODEL'."
+            exit 0
+        fi
+
+        echo "📋 Will retry ${#NA_TASKS[@]} task(s): ${NA_TASKS[*]}"
+
+        if [ "$STANDALONE" = true ] || ([ "$HAS_SLURM" = false ] && [ "$STANDALONE" != true ]); then
+            run_agent_standalone "$MODEL" "${NA_TASKS[@]}"
+        else
+            echo "🤖 Submitting retry jobs to SLURM..."
+            exec "$SCRIPT_DIR/submit_agent.sh" "$MODEL" "${NA_TASKS[@]}"
         fi
         ;;
     
