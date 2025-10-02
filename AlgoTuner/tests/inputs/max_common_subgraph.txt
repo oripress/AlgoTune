@@ -1,0 +1,221 @@
+[INPUT_SEPARATOR]
+Add a lightweight setup script so the constraint generator can be compiled with Cython.
+```python
+edit
+file: setup.py
+lines: 0-0
+---
+from setuptools import setup
+from Cython.Build import cythonize
+
+setup(
+    name="constraint_gen",
+    ext_modules=cythonize("constraint_gen.pyx", compiler_directives={'language_level': "3"}),
+    zip_safe=False,
+)
+---
+```
+[INPUT_SEPARATOR]
+Create the initial Cython implementation that provides `generate_constraints`.
+```python
+edit
+file: constraint_gen.pyx
+lines: 0-0
+---
+def generate_constraints(A, B):
+    cdef int n = len(A)
+    cdef int m = len(B)
+    cdef int i, j, p, q
+    cdef int a_ij, b_pq
+
+    constraints = []
+    for i in range(n):
+        for j in range(i + 1, n):
+            a_ij = A[i][j]
+            for p in range(m):
+                for q in range(m):
+                    if p != q:
+                        b_pq = B[p][q]
+                        if a_ij != b_pq:
+                            constraints.append((i, p, j, q))
+    return constraints
+---
+```
+[INPUT_SEPARATOR]
+Wire the solver to call the new constraint generator.
+```python
+edit
+file: solver.py
+lines: 0-0
+---
+from ortools.sat.python import cp_model
+from constraint_gen import generate_constraints
+
+class Solver:
+    def solve(self, problem: dict[str, list[list[int]]]) -> list[tuple[int, int]]:
+        A = problem["A"]
+        B = problem["B"]
+        n, m = len(A), len(B)
+
+        model = cp_model.CpModel()
+
+        # Create binary mapping variables
+        x = [[model.NewBoolVar(f"x_{i}_{p}") for p in range(m)] for i in range(n)]
+
+        # One-to-one mapping constraints
+        for i in range(n):
+            model.Add(sum(x[i]) <= 1)
+        for p in range(m):
+            model.Add(sum(x[i][p] for i in range(n)) <= 1)
+
+        # Use the generated incompatibility list
+        incompatible = generate_constraints(A, B)
+        for i, p, j, q in incompatible:
+            model.Add(x[i][p] + x[j][q] <= 1)
+
+        # Objective: maximize matched vertices
+        model.Maximize(sum(sum(row) for row in x))
+
+        solver = cp_model.CpSolver()
+        solver.parameters.num_search_workers = 8
+        solver.parameters.log_search_progress = False
+        status = solver.Solve(model)
+
+        if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            return [(i, p) for i in range(n) for p in range(m) if solver.Value(x[i][p])]
+        return []
+---
+```
+[INPUT_SEPARATOR]
+eval
+[INPUT_SEPARATOR]
+Replace the Cython file with an "optimized" version that drops the original symbol.
+```python
+edit
+file: constraint_gen.pyx
+lines: 1-200
+---
+def generate_constraints_optimized(A, B):
+    cdef int n = len(A)
+    cdef int m = len(B)
+    cdef int i, j, p, q
+
+    # Build edge and non-edge sets for both graphs
+    edges_A = set()
+    non_edges_A = set()
+    for i in range(n):
+        for j in range(i + 1, n):
+            if A[i][j] == 1:
+                edges_A.add((i, j))
+            else:
+                non_edges_A.add((i, j))
+
+    edges_B = set()
+    non_edges_B = set()
+    for p in range(m):
+        for q in range(p + 1, m):
+            if B[p][q] == 1:
+                edges_B.add((p, q))
+            else:
+                non_edges_B.add((p, q))
+
+    constraints = []
+
+    for i, j in edges_A:
+        for p in range(m):
+            for q in range(m):
+                if p != q:
+                    pq = (min(p, q), max(p, q))
+                    if pq in non_edges_B:
+                        constraints.append((i, p, j, q))
+
+    for i, j in non_edges_A:
+        for p in range(m):
+            for q in range(m):
+                if p != q:
+                    pq = (min(p, q), max(p, q))
+                    if pq in edges_B:
+                        constraints.append((i, p, j, q))
+
+    return constraints
+---
+```
+[INPUT_SEPARATOR]
+```
+eval
+```
+[INPUT_SEPARATOR]
+Switch the solver to call the optimized entry point (still keeping the Solver class).
+```python
+edit
+file: solver.py
+lines: 1-200
+---
+from ortools.sat.python import cp_model
+from constraint_gen import generate_constraints_optimized as generate_constraints
+
+class Solver:
+    def solve(self, problem: dict[str, list[list[int]]]) -> list[tuple[int, int]]:
+        A = problem["A"]
+        B = problem["B"]
+        n, m = len(A), len(B)
+
+        model = cp_model.CpModel()
+
+        x = [[model.NewBoolVar(f"x_{i}_{p}") for p in range(m)] for i in range(n)]
+
+        for i in range(n):
+            model.Add(sum(x[i]) <= 1)
+        for p in range(m):
+            model.Add(sum(x[i][p] for i in range(n)) <= 1)
+
+        incompatible = generate_constraints(A, B)
+        for i, p, j, q in incompatible:
+            model.Add(x[i][p] + x[j][q] <= 1)
+
+        model.Maximize(sum(sum(row) for row in x))
+
+        solver = cp_model.CpSolver()
+        solver.parameters.num_search_workers = 8
+        solver.parameters.log_search_progress = False
+        status = solver.Solve(model)
+
+        if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            return [(i, p) for i in range(n) for p in range(m) if solver.Value(x[i][p])]
+        return []
+---
+```
+[INPUT_SEPARATOR]
+```
+eval
+```
+```
+[INPUT_SEPARATOR]
+Switch the solver to call the optimized entry point (still keeping the Solver class).
+```python
+edit
+file: solver.py
+lines: 1-900
+---
+from ortools.sat.python import cp_model
+from constraint_gen import generate_constraints_optimized as generate_constraints
+
+class Solver:
+    def solve(self, problem: dict[str, list[list[int]]]) -> list[tuple[int, int]]:
+        A = problem["A"]
+        B = problem["B"]
+        n, m = len(A), len(B)
+
+        model = cp_model.CpModel()
+
+        return [1,2,3,4]
+---
+```
+[INPUT_SEPARATOR]
+```
+revert
+```
+[INPUT_SEPARATOR]
+```
+eval
+```
