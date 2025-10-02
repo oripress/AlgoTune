@@ -85,7 +85,6 @@ class SolverExecutor:
             
             if not is_daemon and self.config.use_isolated_execution:
                 # Check if we should use process pool (efficient) or fresh spawning (full isolation)
-                import os
                 use_fresh_spawn = os.environ.get("ISOLATED_EVAL", "0") == "1"
                 if use_fresh_spawn:
                     self.logger.info("Using fresh process spawning for full isolation")
@@ -137,7 +136,6 @@ class SolverExecutor:
         warmup_problem: Any
     ) -> ExecutionResult:
         """Execute solver in isolated subprocess."""
-        import os
         
         # Check if we're in AGENT_MODE - isolated execution only works with solver loaded from disk
         agent_mode = os.environ.get("AGENT_MODE", "0")
@@ -210,7 +208,6 @@ class SolverExecutor:
         warmup_problem: Any
     ) -> ExecutionResult:
         """Execute solver using process pool with reuse."""
-        import os
         
         # Get task name from metadata or environment
         task_name = "unknown_task"

@@ -60,7 +60,7 @@ def _fs_operation(func, *args, **kwargs):
                 raise
 
 
-def _check_filesystem_health(base_path: Optional[str] = None) -> bool:
+def _check_filesystem_health(base_path: Optional[str] = "/pfs/work9/workspace/scratch/") -> bool:
     """Check if the filesystem is accessible and responsive.
     
     Args:
@@ -72,8 +72,7 @@ def _check_filesystem_health(base_path: Optional[str] = None) -> bool:
     Raises:
         RuntimeError: If filesystem is not accessible
     """
-    if base_path is None:
-        base_path = "/pfs/work9/workspace/scratch/"
+    # base_path default ensures no load-before-assign warnings and clearer intent
     
     test_path = Path(base_path) / f".fs_health_check_{os.getpid()}_{random.randint(1000, 9999)}"
     try:
@@ -289,7 +288,7 @@ def _fork_run_worker(
         Return channel for the measured wall-clock time (ns) and the solver output.
     """
     import traceback  # Local import – tiny overhead but avoids fork safety issues.
-    import os  # Local import needed since there's a later local import that shadows the module-level import
+    import numpy as np
     os.environ["ALGOTUNER_SOLVER_WORKER"] = "1"  # Mark this process as a solver worker
     # Set numba to use fork-safe threading layer to prevent crashes in forked processes
     os.environ["NUMBA_THREADING_LAYER"] = "workqueue"  # Fork-safe threading for numba
@@ -596,7 +595,6 @@ def _fork_run_worker(
                 # Safe equality check that handles NumPy arrays properly
                 try:
                     # Try to use NumPy array_equal for arrays, fall back to != for other types
-                    import numpy as np
                     if hasattr(warmup_val, 'shape') and hasattr(timed_val, 'shape'):
                         # Both are array-like, use numpy comparison
                         values_equal = np.array_equal(warmup_val, timed_val)
@@ -644,14 +642,7 @@ def _fork_run_worker(
         # ------------------------------------------------------------------
         logging.debug(f"[isolated_bm child] About to start {WARMUPS} warmup calls")
         
-        # Diagnostic – verify PySAT patch (if PySAT present)
-        try:
-            from pysat._utils import MainThread  # type: ignore
-            worker_logger.debug(
-                "PYSAT_FIX: Before warmup – MainThread.check() = %s", MainThread.check()
-            )
-        except Exception:
-            pass
+        # Diagnostic verification of PySAT patch skipped to avoid duplicate imports
         
         # ------------------------------------------------------------------
         # Validate cache protection: ensure warmup and timed problems are different
@@ -673,7 +664,6 @@ def _fork_run_worker(
                 except (TypeError, ValueError):
                     # Fallback to key-by-key comparison for non-JSON-serializable objects
                     if warmup_problem.keys() == timed_problem.keys():
-                        import numpy as np
                         identical_keys = 0
                         for key in warmup_problem.keys():
                             warmup_val = warmup_problem[key]
@@ -771,7 +761,6 @@ def _fork_run_worker(
             
             # NumPy caches
             try:
-                import numpy as np
                 # Clear any linalg caches
                 if hasattr(np.linalg, '_umath_linalg'):
                     if hasattr(np.linalg._umath_linalg, '_cached_funcs'):
@@ -822,14 +811,7 @@ def _fork_run_worker(
         # ------------------------------------------------------------------
         logging.debug(f"[isolated_bm child] About to start timed call")
         
-        # Diagnostic – verify PySAT patch (if PySAT present)
-        try:
-            from pysat._utils import MainThread  # type: ignore
-            worker_logger.debug(
-                "PYSAT_FIX: Before solve – MainThread.check() = %s", MainThread.check()
-            )
-        except Exception:
-            pass
+        # Diagnostic verification of PySAT patch skipped to avoid duplicate imports
         
         # Import StringIO and redirect_stdout for stdout capture
         from io import StringIO
@@ -1031,6 +1013,11 @@ def run_isolated_benchmark(
         logger.debug("[isolated_benchmark] Set NUMBA_THREADING_LAYER=workqueue for fork safety")
 
     # Use 'forkserver' for thread-safe process creation - each run gets its own process
+    try:
+        import numpy  # noqa: F401
+        mp.set_forkserver_preload(["numpy"])
+    except Exception:
+        pass
     ctx = mp.get_context("forkserver")
     logging.debug(f"[isolated_benchmark] Using 'forkserver' multiprocessing context for thread-safe per-run isolation")
 
@@ -1376,7 +1363,6 @@ def run_isolated_benchmark_with_fetch(
             warmup_data = warmup_fetch_info["data"]
             
         if timed_fetch_info["type"] == "jsonl_streaming":
-            import orjson
             # Get base directory for resolving external references
             base_dir = os.path.dirname(timed_fetch_info["path"])
             with open(timed_fetch_info["path"], 'r') as f:
@@ -1518,6 +1504,13 @@ def run_isolated_benchmark_with_fetch(
                         "warmup_ms": warmup_ns / 1e6,
                         "timed_ms": timed_ns / 1e6
                     })
+                    try:
+                        import pickle as _p
+                        _op = ret.get("out_pickle", b"")
+                        if _op:
+                            last_result = _p.loads(_op)
+                    except Exception:
+                        pass
                     
                     # Clear the manager dict to free memory
                     ret.clear()
@@ -1582,6 +1575,8 @@ def run_isolated_benchmark_with_fetch(
     }
     
     logger.debug(f"[isolated_benchmark_fetch] Summary: mean_timed={mean_timed_ns / 1e6:.3f}ms, runs={len(run_results)}")
+    if last_result is not None:
+        result["result"] = last_result
     return result
 
 
@@ -1595,7 +1590,6 @@ def _fork_run_worker_with_fetch(
 ):
     """Worker that fetches problems inside the subprocess to minimize parent memory usage."""
     import traceback
-    import os
     os.environ["ALGOTUNER_SOLVER_WORKER"] = "1"  # mark as solver worker
     # Set numba to use fork-safe threading layer to prevent crashes in forked processes
     os.environ["NUMBA_THREADING_LAYER"] = "workqueue"  # Fork-safe threading for numba
@@ -1759,7 +1753,6 @@ def _fork_run_worker_with_fetch(
                 import orjson
                 import functools
                 from AlgoTuner.utils.serialization import dataset_decoder
-                import os
                 
                 jsonl_path = fetch_info["path"]
                 # Use index if streaming, otherwise use byte offset for seek.
@@ -1828,9 +1821,15 @@ def _fork_run_worker_with_fetch(
         ret_dict["success"] = True
         ret_dict["warmup_ns"] = warmup_ns
         ret_dict["timed_ns"] = timed_ns
-        # Skip pickling the output for baseline evaluation - we only need timing
-        # This avoids expensive pickling of large outputs (e.g., 189MB ciphertext)
-        ret_dict["out_pickle"] = b""
+        try:
+            import pickle as _p
+            _buf = _p.dumps(out, protocol=_p.HIGHEST_PROTOCOL)
+            if len(_buf) <= 2097152:
+                ret_dict["out_pickle"] = _buf
+            else:
+                ret_dict["out_pickle"] = b""
+        except Exception:
+            ret_dict["out_pickle"] = b""
 
     except Exception as exc:
         tb_str = traceback.format_exc()

@@ -121,7 +121,6 @@ def _pool_worker_initializer(memory_limit_bytes: int, disable_rlimit_as: bool = 
 def _simple_worker_initializer(memory_limit_bytes: int, disable_rlimit_as: bool = False):
     """Simplified worker initializer that avoids module reloading deadlocks."""
     import logging
-    import os
     import time
     
     worker_pid = os.getpid()
@@ -265,7 +264,6 @@ def _baseline_worker_initializer(memory_limit_bytes: int, disable_rlimit_as: boo
     
     # Reset logging to prevent deadlocks from inherited handlers, but preserve
     # parent handlers so worker messages still propagate to the main log file.
-    import logging
     root_logger = logging.getLogger()
 
     parent_handlers = list(root_logger.handlers)  # copy before mutation
@@ -301,7 +299,6 @@ def _baseline_worker_initializer(memory_limit_bytes: int, disable_rlimit_as: boo
     
     # Diagnostic: Show current limits before adjustment
     try:
-        import resource
         soft, hard = resource.getrlimit(resource.RLIMIT_AS)
         logging.info(f"[MEMORY_DEBUG] Worker {worker_pid}: INITIAL RLIMIT_AS state:")
         if soft == resource.RLIM_INFINITY:
@@ -326,7 +323,6 @@ def _baseline_worker_initializer(memory_limit_bytes: int, disable_rlimit_as: boo
 
     # === MEMORY LIMIT SETTING LOGIC WITH COMPREHENSIVE LOGGING ===
     try:
-        import resource
         if disable_rlimit_as:
             logging.info(f"[MEMORY_DEBUG] Worker {worker_pid}: disable_rlimit_as=True, will call raise_rlimit_as({memory_limit_bytes})")
             # Only *raise* the limit if it's lower than memory_limit_bytes
@@ -384,7 +380,7 @@ def _baseline_worker_initializer(memory_limit_bytes: int, disable_rlimit_as: boo
 
     # After adjustment, log the effective limits for confirmation
     try:
-        import resource
+        
         soft, hard = resource.getrlimit(resource.RLIMIT_AS)
         logging.info(f"[MEMORY_DEBUG] Worker {worker_pid}: FINAL RLIMIT_AS state:")
         if soft == resource.RLIM_INFINITY:
@@ -499,7 +495,6 @@ def load_pool_config(pool_config_name: str = "validation_pool", force_num_worker
     # the process unlimited, which later triggers an OOM-kill).
     # ------------------------------------------------------------------
     try:
-        import resource
 
         soft_cur, hard_cur = resource.getrlimit(resource.RLIMIT_AS)
 
