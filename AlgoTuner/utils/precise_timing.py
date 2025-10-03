@@ -576,20 +576,36 @@ def time_execution_ns(
     except Exception:
         psutil = None
 
+    func_name = getattr(func, '__name__', 'anonymous')
+    logger = logging.getLogger(__name__)
+    debug_enabled = logger.isEnabledFor(logging.DEBUG)
+    force_gc = os.environ.get("TIMING_FORCE_GC", "0") == "1"
+
     try:
         n_thr = set_blas_threads()
-        log_current_blas_threads(f"[time_execution_ns:{func.__name__}] ")
-        log_cpu_affinity(f"[time_execution_ns:{func.__name__}] ")
-        log_thread_env(f"[time_execution_ns:{func.__name__}] ")
+        if debug_enabled:
+            log_current_blas_threads(f"[time_execution_ns:{func.__name__}] ")
+            log_cpu_affinity(f"[time_execution_ns:{func.__name__}] ")
+            log_thread_env(f"[time_execution_ns:{func.__name__}] ")
     except Exception as _blas_e:
-        logging.debug(f"time_execution_ns: could not configure BLAS threads – {_blas_e}")
+        logger.debug(f"time_execution_ns: could not configure BLAS threads – {_blas_e}")
 
     _initialize_timing_system()
     overhead_ns = (_timing_overhead_ns or 0) + (_capture_overhead_ns or 0)
-    func_name = getattr(func, '__name__', 'anonymous')
-    logger = logging.getLogger(__name__)
-    logging.error(f"TIME_EXECUTION_NS_ENTRY_DEBUG: func='{func_name}', requested_warmups={warmup_runs}, requested_runs={num_runs}, capture_output={capture_output}")
-    logging.info(f"time_execution_ns ENTER: func='{func_name}', requested_warmups={warmup_runs}, requested_runs={num_runs}, capture_output={capture_output}")
+    logger.debug(
+        "TIME_EXECUTION_NS_ENTRY_DEBUG: func='%s', requested_warmups=%s, requested_runs=%s, capture_output=%s",
+        func_name,
+        warmup_runs,
+        num_runs,
+        capture_output,
+    )
+    logger.info(
+        "time_execution_ns ENTER: func='%s', requested_warmups=%s, requested_runs=%s, capture_output=%s",
+        func_name,
+        warmup_runs,
+        num_runs,
+        capture_output,
+    )
     
     initial_module_state = None
 
@@ -601,13 +617,13 @@ def time_execution_ns(
         current_limit = resource.getrlimit(resource.RLIMIT_AS)
         if current_limit[0] == resource.RLIM_INFINITY or current_limit[0] > memory_limit_bytes:
             resource.setrlimit(resource.RLIMIT_AS, (memory_limit_bytes, memory_limit_bytes))
-            logging.debug(f"Set {memory_limit_gb}GB memory limit for {func_name}")
+            logger.debug(f"Set {memory_limit_gb}GB memory limit for {func_name}")
         else:
             current_gb = current_limit[0] / (1024**3)
-            logging.debug(f"Using existing {current_gb:.1f}GB memory limit for {func_name}")
+            logger.debug(f"Using existing {current_gb:.1f}GB memory limit for {func_name}")
             
     except (OSError, ValueError) as e:
-        logging.warning(f"Could not set memory limit for {func_name}: {e}")
+        logger.warning(f"Could not set memory limit for {func_name}: {e}")
 
     results = {
         "success": False,
@@ -635,21 +651,27 @@ def time_execution_ns(
         results["pre_overhead_ns"] = []   # time from loop entry until immediately before start_ns
         results["post_overhead_ns"] = []  # time from end_ns until loop exit
 
-    all_stdout = io.StringIO()
-    all_stderr = io.StringIO()
+    all_stdout = io.StringIO() if capture_output else None
+    all_stderr = io.StringIO() if capture_output else None
     # Determine capture context based on the flag
     # This context manager will handle redirecting stdout/stderr if capture_output is True
     # or do nothing if capture_output is False.
 
     # --- Warmup Phase ---
     warmup_success = True
-    logging.info(f"time_execution_ns: Starting warmup phase for '{func_name}' ({warmup_runs} iterations).")
+    logger.info(f"time_execution_ns: Starting warmup phase for '{func_name}' ({warmup_runs} iterations).")
     for i in range(warmup_runs):
-        logging.debug(f"time_execution_ns: Warmup run {i+1}/{warmup_runs} for '{func_name}' starting...")
-        current_warmup_stdout = io.StringIO()
-        current_warmup_stderr = io.StringIO()
-        warmup_capture_ctx = redirect_stdout(current_warmup_stdout) if capture_output else nullcontext()
-        warmup_error_ctx = redirect_stderr(current_warmup_stderr) if capture_output else nullcontext()
+        logger.debug(f"time_execution_ns: Warmup run {i+1}/{warmup_runs} for '{func_name}' starting...")
+        if capture_output:
+            current_warmup_stdout = io.StringIO()
+            current_warmup_stderr = io.StringIO()
+            warmup_capture_ctx = redirect_stdout(current_warmup_stdout)
+            warmup_error_ctx = redirect_stderr(current_warmup_stderr)
+        else:
+            current_warmup_stdout = None
+            current_warmup_stderr = None
+            warmup_capture_ctx = nullcontext()
+            warmup_error_ctx = nullcontext()
         try:
             # BEGIN pre-section timing --------------------------
             if _collect_overhead:
@@ -667,15 +689,15 @@ def time_execution_ns(
                     if psutil is not None:
                         try:
                             if psutil.virtual_memory().percent > 90:
-                                logging.warning("System memory usage high (>90%) – continuing (RLIMIT_AS enforced)")
+                                logger.warning("System memory usage high (>90%) – continuing (RLIMIT_AS enforced)")
                         except Exception:
                             pass
             if _collect_overhead:
                 _t_pre_end = time.perf_counter_ns()
-            logging.debug(f"time_execution_ns: About to execute warmup run {i+1} for '{func_name}'")
+            logger.debug(f"time_execution_ns: About to execute warmup run {i+1} for '{func_name}'")
             current_run_result = None
             if working_dir:
-                logging.debug(f"time_execution_ns: Using working directory {working_dir} for warmup run {i+1}")
+                logger.debug(f"time_execution_ns: Using working directory {working_dir} for warmup run {i+1}")
                 with with_working_dir(working_dir), warmup_capture_ctx, warmup_error_ctx, memory_monitor_context():
                     current_run_result = func(*args, **kwargs)
             else:
@@ -686,11 +708,11 @@ def time_execution_ns(
             # if i == 0:
             #     results["first_warmup_result"] = current_run_result
 
-            logging.debug(f"time_execution_ns: Warmup run {i+1}/{warmup_runs} for '{func_name}' completed successfully.")
+            logger.debug(f"time_execution_ns: Warmup run {i+1}/{warmup_runs} for '{func_name}' completed successfully.")
         except Exception as e:
             tb_str = traceback.format_exc()
-            logging.warning(f"time_execution_ns: Warmup run {i+1}/{warmup_runs} for '{func_name}' FAILED. Error: {e}")
-            logging.debug(f"time_execution_ns: Warmup failure traceback: {tb_str}")
+            logger.warning(f"time_execution_ns: Warmup run {i+1}/{warmup_runs} for '{func_name}' FAILED. Error: {e}")
+            logger.debug(f"time_execution_ns: Warmup failure traceback: {tb_str}")
             if results["error"] is None: # Store first error
                 results["error"] = f"Error: {str(e)}"
                 results["traceback"] = tb_str
@@ -700,47 +722,58 @@ def time_execution_ns(
             # Explicitly free memory from the warmup run - no monitoring, just cleanup
             if 'current_run_result' in locals() and current_run_result is not None:
                 del current_run_result
-                gc.collect()
+                if force_gc:
+                    gc.collect()
 
             # Don't capture output during warmup to avoid duplicates - only capture from measurement runs
             # if capture_output and i == 0:
             #     all_stdout.write(current_warmup_stdout.getvalue())
             #     all_stderr.write(current_warmup_stderr.getvalue())
-            current_warmup_stdout.close()
-            current_warmup_stderr.close()
-            
-            
-    logging.info(f"time_execution_ns: Warmup phase for '{func_name}' finished. Warmup success: {warmup_success}. Error (if any): {results['error']}")
+            if capture_output:
+                if current_warmup_stdout is not None:
+                    current_warmup_stdout.close()
+                if current_warmup_stderr is not None:
+                    current_warmup_stderr.close()
+
+
+    logger.info(f"time_execution_ns: Warmup phase for '{func_name}' finished. Warmup success: {warmup_success}. Error (if any): {results['error']}")
 
     if warmup_success:
-        logging.info(f"time_execution_ns: Starting measurement runs for '{func_name}' (requested: {num_runs}).")
+        logger.info(f"time_execution_ns: Starting measurement runs for '{func_name}' (requested: {num_runs}).")
         try:
             current_result = None
             for i in range(num_runs):
                 if current_result is not None:
                     del current_result
                     current_result = None
-                    gc.collect()
+                    if force_gc:
+                        gc.collect()
 
-                logging.debug(f"time_execution_ns: Measurement run {i+1}/{num_runs} for '{func_name}' starting...")
-                current_run_stdout = io.StringIO()
-                current_run_stderr = io.StringIO()
-                run_capture_ctx = redirect_stdout(current_run_stdout) if capture_output else nullcontext()
-                run_error_ctx = redirect_stderr(current_run_stderr) if capture_output else nullcontext()
+                logger.debug(f"time_execution_ns: Measurement run {i+1}/{num_runs} for '{func_name}' starting...")
+                if capture_output:
+                    current_run_stdout = io.StringIO()
+                    current_run_stderr = io.StringIO()
+                    run_capture_ctx = redirect_stdout(current_run_stdout)
+                    run_error_ctx = redirect_stderr(current_run_stderr)
+                else:
+                    current_run_stdout = None
+                    current_run_stderr = None
+                    run_capture_ctx = nullcontext()
+                    run_error_ctx = nullcontext()
                 try:
                     if _collect_overhead:
                         _t_pre_start = time.perf_counter_ns()
                     if MEMORY_MONITORING and psutil is not None:
                         try:
                             if psutil.virtual_memory().percent > 90:
-                                logging.warning("System memory usage high (>90%) – continuing (RLIMIT_AS enforced)")
+                                logger.warning("System memory usage high (>90%) – continuing (RLIMIT_AS enforced)")
                         except Exception:
                             pass
                     if _collect_overhead:
                         _t_pre_end = time.perf_counter_ns()
-                    logging.debug(f"time_execution_ns: About to execute measurement run {i+1} for '{func_name}'")
+                    logger.debug(f"time_execution_ns: About to execute measurement run {i+1} for '{func_name}'")
                     if working_dir:
-                        logging.debug(f"time_execution_ns: Using working directory {working_dir} for measurement run {i+1}")
+                        logger.debug(f"time_execution_ns: Using working directory {working_dir} for measurement run {i+1}")
                         with with_working_dir(working_dir), run_capture_ctx, run_error_ctx, memory_monitor_context():
                             start_ns = time.perf_counter_ns()
                             current_result = func(*args, **kwargs)
@@ -760,20 +793,20 @@ def time_execution_ns(
                     results["values_ns"].append(run_duration_ns)
                     results["num_runs_executed"] += 1
                     
-                    logging.debug(f"time_execution_ns: Measurement run {i+1}/{num_runs} for '{func_name}' successful. Duration: {run_duration_ns/1e6:.6f} ms.")
+                    logger.debug(f"time_execution_ns: Measurement run {i+1}/{num_runs} for '{func_name}' successful. Duration: {run_duration_ns/1e6:.6f} ms.")
                     
-                    try:
-                        if psutil is not None:
+                    if psutil is not None and debug_enabled:
+                        try:
                             current_process = psutil.Process()
                             rss_gb = current_process.memory_info().rss / (1024**3)
-                    except Exception:
-                        pass
-                    except MemoryError:
-                        raise
+                        except Exception:
+                            pass
+                        except MemoryError:
+                            raise
                 except Exception as e:
                     tb_str = traceback.format_exc()
-                    logging.warning(f"time_execution_ns: Measurement run {i+1}/{num_runs} for '{func_name}' FAILED. Error: {e}")
-                    logging.debug(f"time_execution_ns: Measurement failure traceback: {tb_str}")
+                    logger.warning(f"time_execution_ns: Measurement run {i+1}/{num_runs} for '{func_name}' FAILED. Error: {e}")
+                    logger.debug(f"time_execution_ns: Measurement failure traceback: {tb_str}")
                     if results["error"] is None: 
                         results["error"] = f"Error: {str(e)}"
                         results["traceback"] = tb_str
@@ -782,17 +815,21 @@ def time_execution_ns(
                     # break # Uncomment to stop on first measurement error
                 finally:
                     # Capture output from first measurement run to show actual solver execution output
-                    if capture_output and i == 0:
+                    if capture_output and i == 0 and all_stdout is not None and current_run_stdout is not None:
                         all_stdout.write(current_run_stdout.getvalue())
                         all_stderr.write(current_run_stderr.getvalue())
-                    current_run_stdout.close()
-                    current_run_stderr.close()
-                    
+                    if capture_output:
+                        if current_run_stdout is not None:
+                            current_run_stdout.close()
+                        if current_run_stderr is not None:
+                            current_run_stderr.close()
+
                     # If it's not the last run, clean up the result to save memory - no monitoring
                     if i < num_runs - 1 and 'current_result' in locals() and current_result is not None:
                         del current_result
                         current_result = None
-                        gc.collect()
+                        if force_gc:
+                            gc.collect()
 
                 
             # After loop, store the last result if it exists
@@ -803,16 +840,16 @@ def time_execution_ns(
             # Handle memory limit exceeded - return error result immediately
             return _handle_memory_error(e, func, i if 'i' in locals() else 0, num_runs)
     else:
-        logging.warning(f"time_execution_ns: Skipping measurement runs for '{func_name}' due to warmup failure.")
+        logger.warning(f"time_execution_ns: Skipping measurement runs for '{func_name}' due to warmup failure.")
 
     # --- Calculate statistics and determine final success ---
-    logging.info(f"time_execution_ns: Finished measurement phase for '{func_name}'. Total runs executed: {results['num_runs_executed']}/{num_runs}.")
+    logger.info(f"time_execution_ns: Finished measurement phase for '{func_name}'. Total runs executed: {results['num_runs_executed']}/{num_runs}.")
     
     if results["num_runs_executed"] > 0:
-        logging.info(f"time_execution_ns: Calculating statistics for '{func_name}' with {results['num_runs_executed']} successful runs")
+        logger.info(f"time_execution_ns: Calculating statistics for '{func_name}' with {results['num_runs_executed']} successful runs")
         # LOG: Check values_ns before statistics calculation
-        logging.info(f"TIMING_DEBUG: values_ns list for '{func_name}': {results['values_ns']} (length: {len(results['values_ns'])})")
-        logging.info(f"TIMING_DEBUG: values_ns data types: {[type(v) for v in results['values_ns']]}")
+        logger.debug(f"TIMING_DEBUG: values_ns list for '{func_name}': {results['values_ns']} (length: {len(results['values_ns'])})")
+        logger.debug(f"TIMING_DEBUG: values_ns data types: {[type(v) for v in results['values_ns']]}")
         # Calculate statistics using the standard statistics module only
         import statistics as _stats
 
@@ -837,17 +874,17 @@ def time_execution_ns(
             results["ci_low_time_ms"] = results["ci_low_ns"] / 1e6 if results["ci_low_ns"] is not None else None
             results["ci_high_time_ms"] = results["ci_high_ns"] / 1e6 if results["ci_high_ns"] is not None else None
 
-            logging.info(
+            logger.info(
                 f"time_execution_ns: Stats for '{func_name}' (ms): "
                 f"Mean={results['mean_time_ms']:.3f}, Median={results['median_time_ms']:.3f}, "
                 f"Min={results['min_time_ms']:.3f}, Max={results['max_time_ms']:.3f}"
             )
         except Exception as stat_exc:
-            logging.error(
+            logger.debug(
                 f"TIMING_DEBUG: Statistics calculation FAILED for '{func_name}'. Error: {stat_exc}. values_ns: {results['values_ns']}"
             )
-            logging.error(f"TIMING_DEBUG: Full traceback: {traceback.format_exc()}")
-            logging.warning(
+            logger.error(f"TIMING_DEBUG: Full traceback: {traceback.format_exc()}")
+            logger.warning(
                 f"time_execution_ns: Could not calculate statistics for '{func_name}'. Error: {stat_exc}"
             )
             # Ensure stats are None if calculation failed
@@ -856,15 +893,15 @@ def time_execution_ns(
 
         if results["num_runs_executed"] == num_runs:
             results["success"] = True # Full success only if all requested runs completed
-            logging.info(f"time_execution_ns: All {num_runs} measurement runs were successful for '{func_name}'. Setting success=True.")
+            logger.info(f"time_execution_ns: All {num_runs} measurement runs were successful for '{func_name}'. Setting success=True.")
         else:
             results["success"] = False # Partial success
-            logging.warning(f"time_execution_ns: Only {results['num_runs_executed']}/{num_runs} measurement runs were successful for '{func_name}'. Setting success=False.")
+            logger.warning(f"time_execution_ns: Only {results['num_runs_executed']}/{num_runs} measurement runs were successful for '{func_name}'. Setting success=False.")
             if results["error"] is None:
                  results["error"] = f"Only {results['num_runs_executed']}/{num_runs} measurement runs succeeded."
     else: # No runs executed successfully (either warmup failed or all measurement runs failed)
         results["success"] = False
-        logging.warning(f"time_execution_ns: No measurement runs were successful for '{func_name}'. Setting success=False.")
+        logger.warning(f"time_execution_ns: No measurement runs were successful for '{func_name}'. Setting success=False.")
         if results["error"] is None: # Ensure error message exists
             if not warmup_success:
                 results["error"] = results.get("error", "Warmup failed, leading to no measurement runs.") # Preserve original warmup error if any
@@ -874,11 +911,14 @@ def time_execution_ns(
         results["mean_time_ms"] = results["median_time_ms"] = results["min_time_ms"] = results["max_time_ms"] = results["ci_low_time_ms"] = results["ci_high_time_ms"] = None
     
     # Store captured stdout/stderr
-    if capture_output:
+    if capture_output and all_stdout is not None:
         results["stdout"] = all_stdout.getvalue()
+    if capture_output and all_stderr is not None:
         results["stderr"] = all_stderr.getvalue()
-    all_stdout.close()
-    all_stderr.close()
+    if all_stdout is not None:
+        all_stdout.close()
+    if all_stderr is not None:
+        all_stderr.close()
 
     # --- SAFE IN-PROCESS VALIDATION + STRIPPING (prevents validation issues) ---
     # Apply the same pattern as in AlgoTuner/utils/evaluator/runner.py lines 367-408
@@ -890,7 +930,7 @@ def time_execution_ns(
             # Try to perform in-process validation if we can detect solver context
             # This requires access to task_instance and problem, which may not be available
             # In time_execution_ns context. We'll implement size-based stripping for now.
-            logging.info(f"time_execution_ns: Checking result size for potential stripping to avoid memory issues")
+            logger.info(f"time_execution_ns: Checking result size for potential stripping to avoid memory issues")
             
             # Use the same size estimation logic as runner.py
             import sys
@@ -909,7 +949,7 @@ def time_execution_ns(
             result_size_mb = get_size_mb(solver_result)
 
             # Always strip solver results after validation - no reason to keep actual outputs
-            logging.info(f"time_execution_ns: Always replacing solver result with summary (size: {result_size_mb:.2f}MB) to prevent memory waste.")
+            logger.info(f"time_execution_ns: Always replacing solver result with summary (size: {result_size_mb:.2f}MB) to prevent memory waste.")
             
             # Create the same type of summary as runner.py
             result_summary = {
@@ -934,10 +974,10 @@ def time_execution_ns(
                 result_summary["dtype"] = str(solver_result.dtype)
             
             results["result"] = result_summary
-            logging.info(f"time_execution_ns: Replaced solver result with summary: {result_summary}")
+            logger.info(f"time_execution_ns: Replaced solver result with summary: {result_summary}")
                 
         except Exception as e:
-            logging.warning(f"time_execution_ns: Failed to perform result size check/stripping: {e}")
+            logger.warning(f"time_execution_ns: Failed to perform result size check/stripping: {e}")
             # Continue with original result if stripping fails
     
     # Remove the old result stripping logic (lines that follow)
@@ -947,16 +987,16 @@ def time_execution_ns(
     # COMPREHENSIVE TIME_EXECUTION_NS FINAL TIMING DEBUG: Log all timing fields before return
     timing_exit_fields = ["success", "values_ns", "num_runs_executed", "mean_ns", "median_ns", "stddev_ns", "min_ns", "max_ns", "mean_time_ms", "median_time_ms", "stddev_time_ms", "min_time_ms", "max_time_ms", "error", "traceback"]
     timing_exit_debug = {field: results.get(field) for field in timing_exit_fields}
-    logging.info(f"TIME_EXECUTION_NS_EXIT_DEBUG: Final results from time_execution_ns for '{func_name}': {timing_exit_debug}")
+    logger.info(f"TIME_EXECUTION_NS_EXIT_DEBUG: Final results from time_execution_ns for '{func_name}': {timing_exit_debug}")
     
     # Specific check for timing values that should be converted to benchmark format
     if results.get("success") and results.get("values_ns"):
-        logging.info(f"TIME_EXECUTION_NS_EXIT_DEBUG: SUCCESS CASE - values_ns has {len(results['values_ns'])} values, min_ns={results.get('min_ns')}, mean_ns={results.get('mean_ns')}")
-        logging.info(f"TIME_EXECUTION_NS_EXIT_DEBUG: SUCCESS CASE - min_time_ms={results.get('min_time_ms')}, mean_time_ms={results.get('mean_time_ms')}")
+        logger.info(f"TIME_EXECUTION_NS_EXIT_DEBUG: SUCCESS CASE - values_ns has {len(results['values_ns'])} values, min_ns={results.get('min_ns')}, mean_ns={results.get('mean_ns')}")
+        logger.info(f"TIME_EXECUTION_NS_EXIT_DEBUG: SUCCESS CASE - min_time_ms={results.get('min_time_ms')}, mean_time_ms={results.get('mean_time_ms')}")
     else:
-        logging.warning(f"TIME_EXECUTION_NS_EXIT_DEBUG: FAILURE CASE - success={results.get('success')}, values_ns length={len(results.get('values_ns', []))}, error={results.get('error')}")
+        logger.warning(f"TIME_EXECUTION_NS_EXIT_DEBUG: FAILURE CASE - success={results.get('success')}, values_ns length={len(results.get('values_ns', []))}, error={results.get('error')}")
     
-    logging.info(f"time_execution_ns EXIT: func='{func_name}'. Final success: {results['success']}, Runs executed: {results['num_runs_executed']}/{num_runs}. Error: {results['error']}")
+    logger.info(f"time_execution_ns EXIT: func='{func_name}'. Final success: {results['success']}, Runs executed: {results['num_runs_executed']}/{num_runs}. Error: {results['error']}")
 
     # Attach aggregated overhead stats if collected
     if _collect_overhead and results.get("pre_overhead_ns"):
@@ -977,7 +1017,5 @@ def time_execution_ns(
             )
         except Exception:
             pass
-
-    # Cache cheating detection disabled
 
     return results

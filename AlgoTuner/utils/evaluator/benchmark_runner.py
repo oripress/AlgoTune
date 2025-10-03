@@ -147,9 +147,10 @@ class BenchmarkPool:
         logging.info("BenchmarkPool.__init__: Successfully created initial worker pool")
     
     def _make_pool(self):
-        logging.info(f"BenchmarkPool._make_pool: Starting pool creation with config '{self.pool_config_name}'")
-        cfg = load_pool_config(pool_config_name=self.pool_config_name, force_num_workers=1)
-        logging.info(f"BenchmarkPool._make_pool: Loaded pool config: {cfg}")
+        logger = logging.getLogger(__name__)
+        logger.info(f"BenchmarkPool._make_pool: Starting pool creation with config '{self.pool_config_name}'")
+        cfg = load_pool_config(pool_config_name=self.pool_config_name)
+        logger.info(f"BenchmarkPool._make_pool: Loaded pool config: {cfg}")
         
         # --- Enforce per-worker address space limit ---
         # Some earlier experiments switched off RLIMIT_AS via the
@@ -161,30 +162,39 @@ class BenchmarkPool:
         # Respect the disable_rlimit_as setting from config
         disable_rlimit_as = cfg.get("disable_rlimit_as", False)
         if disable_rlimit_as:
-            logging.info("BenchmarkPool._make_pool: Respecting disable_rlimit_as=True from config")
+            logger.info("BenchmarkPool._make_pool: Respecting disable_rlimit_as=True from config")
         
         ctx = multiprocessing.get_context("forkserver")  # Use forkserver for better isolation
-        logging.info("BenchmarkPool._make_pool: Got multiprocessing context 'forkserver'")
+        logger.info("BenchmarkPool._make_pool: Got multiprocessing context 'forkserver'")
         
         # Import the desired initializer now (late import avoids heavy deps at module load)
         from AlgoTuner.utils.multiprocessing_utils import _simple_worker_initializer
         
         # Use lightweight simple initializer to avoid heavy diagnostics that can hang on some systems
-        initializer = _simple_worker_initializer
-        logging.info(f"BenchmarkPool._make_pool: Using SIMPLE initializer for worker processes")
-        
+        initializer = self.worker_initializer or _simple_worker_initializer
+        logger.info(f"BenchmarkPool._make_pool: Using {initializer.__name__} initializer for worker processes")
+
+        num_workers = max(1, int(cfg.get("num_workers", 1)))
+
         # Use original config but with reasonable upper bound for safety
         # Reduced default to prevent thread accumulation issues
-        max_tasks = cfg["maxtasksperchild"]
-        if max_tasks is None:
+        configured_max_tasks = cfg.get("maxtasksperchild")
+        if configured_max_tasks is None:
             max_tasks = 25  # Reduced from 100 to prevent thread accumulation
-        elif max_tasks > 50:
-            max_tasks = 50  # Reduced safety upper bound from 200
-        
-        # Get disable_rlimit_as setting from above
-            
-        logging.info(f"BenchmarkPool._make_pool: About to create Pool with processes=1, initializer={initializer.__name__}, mem_limit={cfg['mem_limit_bytes']}, disable_rlimit_as={disable_rlimit_as}, maxtasksperchild={max_tasks}")
-        
+        elif configured_max_tasks > 0:
+            max_tasks = min(configured_max_tasks, 50)
+        else:
+            max_tasks = None
+
+        logger.info(
+            "BenchmarkPool._make_pool: About to create Pool with processes=%s, initializer=%s, mem_limit=%s, disable_rlimit_as=%s, maxtasksperchild=%s",
+            num_workers,
+            initializer.__name__,
+            cfg["mem_limit_bytes"],
+            disable_rlimit_as,
+            max_tasks,
+        )
+
         # ------------------------------------------------------------------
         # Guard against RLIMIT_FSIZE==0 which breaks POSIX semaphore creation
         # in multiprocessing (raises OSError 27 "File too large").  This can
@@ -208,12 +218,12 @@ class BenchmarkPool:
                     new_hard = max(hard, desired)
                     try:
                         resource.setrlimit(resource.RLIMIT_FSIZE, (new_soft, new_hard))
-                        logging.warning(
+                        logger.warning(
                             "BenchmarkPool._make_pool: RLIMIT_FSIZE was 0. Raised to 16 MB to allow multiprocessing SemLock creation."
                         )
                     except Exception as _raise_err:
                         # Could not raise – fallback to running without a pool
-                        logging.error(
+                        logger.error(
                             f"BenchmarkPool._make_pool: Cannot raise RLIMIT_FSIZE ({_raise_err}). "
                             "Falling back to in-process timing path."
                         )
@@ -222,44 +232,51 @@ class BenchmarkPool:
             raise
         except Exception as _fsize_err:
             # Log but continue – most systems will still work.
-            logging.debug(
+            logger.debug(
                 f"BenchmarkPool._make_pool: RLIMIT_FSIZE inspection failed – {_fsize_err}"
             )
         
         # Construct initargs for debug initializer (same signature as baseline/simple)
         initargs = (cfg["mem_limit_bytes"], disable_rlimit_as)
         
-        # Log parent process memory limits before creating pool
-        try:
-            import subprocess
-            
-            parent_soft, parent_hard = resource.getrlimit(resource.RLIMIT_AS)
-            logging.error(f"[PARENT_LIMITS] Parent process RLIMIT_AS: soft={parent_soft if parent_soft != resource.RLIM_INFINITY else 'INFINITY'}, hard={parent_hard if parent_hard != resource.RLIM_INFINITY else 'INFINITY'}")
-            if parent_soft != resource.RLIM_INFINITY:
-                logging.error(f"[PARENT_LIMITS] Parent soft limit: {parent_soft / (1024**3):.2f}GB")
-            if parent_hard != resource.RLIM_INFINITY:
-                logging.error(f"[PARENT_LIMITS] Parent hard limit: {parent_hard / (1024**3):.2f}GB")
-                
-            # Show system ulimit settings
+        # Log parent process memory limits before creating pool (debug only to limit noise)
+        if logger.isEnabledFor(logging.DEBUG):
             try:
-                ulimit_output = subprocess.check_output(['ulimit', '-a'], shell=True, text=True, stderr=subprocess.STDOUT)
-                logging.error(f"[PARENT_LIMITS] *** SYSTEM ULIMIT SETTINGS ***")
-                for line in ulimit_output.strip().split('\n'):
-                    if 'virtual memory' in line or 'address space' in line or 'memory' in line:
-                        logging.error(f"[PARENT_LIMITS] {line}")
-            except Exception as ulimit_e:
-                logging.error(f"[PARENT_LIMITS] Failed to get ulimit settings: {ulimit_e}")
-                
-        except Exception as e:
-            logging.error(f"[PARENT_LIMITS] Failed to get parent limits: {e}")
+                import subprocess
+
+                parent_soft, parent_hard = resource.getrlimit(resource.RLIMIT_AS)
+                logger.debug(
+                    "[PARENT_LIMITS] Parent process RLIMIT_AS: soft=%s, hard=%s",
+                    parent_soft if parent_soft != resource.RLIM_INFINITY else 'INFINITY',
+                    parent_hard if parent_hard != resource.RLIM_INFINITY else 'INFINITY',
+                )
+                if parent_soft != resource.RLIM_INFINITY:
+                    logger.debug("[PARENT_LIMITS] Parent soft limit: %.2fGB", parent_soft / (1024**3))
+                if parent_hard != resource.RLIM_INFINITY:
+                    logger.debug("[PARENT_LIMITS] Parent hard limit: %.2fGB", parent_hard / (1024**3))
+
+                try:
+                    # Run ulimit via /bin/sh so we can call the builtin command reliably
+                    ulimit_output = subprocess.check_output(
+                        ['/bin/sh', '-c', 'ulimit -a'],
+                        text=True,
+                        stderr=subprocess.STDOUT,
+                    )
+                    for line in ulimit_output.splitlines():
+                        if any(keyword in line for keyword in ('virtual memory', 'address space', 'memory')):
+                            logger.debug(f"[PARENT_LIMITS] {line}")
+                except Exception as ulimit_e:
+                    logger.debug(f"[PARENT_LIMITS] Failed to get ulimit settings: {ulimit_e}")
+            except Exception as e:
+                logger.debug(f"[PARENT_LIMITS] Failed to get parent limits: {e}")
 
         # Log the exact time before pool creation
         pool_create_start = time.time()
-        logging.info(f"[POOL_TIMING] {pool_create_start:.3f}: About to call ctx.Pool() - this is where spawn might hang")
+        logger.info(f"[POOL_TIMING] {pool_create_start:.3f}: About to call ctx.Pool() - this is where spawn might hang")
         
         try:
             self.pool = ctx.Pool(
-                processes=1,
+                processes=num_workers,
                 initializer=initializer,
                 initargs=initargs,
                 maxtasksperchild=max_tasks
@@ -268,7 +285,7 @@ class BenchmarkPool:
             # Pool creation failed – most likely because RLIMIT_FSIZE could
             # not be raised on hardened systems.  Fall back to *no pool* and
             # let callers run benchmarks inline.
-            logging.error(
+            logger.error(
                 f"BenchmarkPool._make_pool: Failed to create pool ({e}). "
                 "Falling back to in-process timing without a worker pool."
             )
@@ -277,20 +294,20 @@ class BenchmarkPool:
         
         pool_create_end = time.time()
         pool_create_elapsed = pool_create_end - pool_create_start
-        logging.info(f"[POOL_TIMING] {pool_create_end:.3f}: ctx.Pool() completed in {pool_create_elapsed:.3f}s")
+        logger.info(f"[POOL_TIMING] {pool_create_end:.3f}: ctx.Pool() completed in {pool_create_elapsed:.3f}s")
         
         self.timeouts = 0
-        logging.info(f"BenchmarkPool._make_pool: Successfully created new worker pool with config '{self.pool_config_name}'")
+        logger.info(f"BenchmarkPool._make_pool: Successfully created new worker pool with config '{self.pool_config_name}'")
         
         # Defensive check: Ensure we have a real Pool, not a monkey-patched fake one
         pool_type = type(self.pool).__name__
-        logging.info(f"BenchmarkPool._make_pool: Created pool type: {pool_type}")
+        logger.info(f"BenchmarkPool._make_pool: Created pool type: {pool_type}")
         if pool_type == "_SerialPool":
             raise RuntimeError(f"ERROR: Pool creation returned fake _SerialPool instead of real multiprocessing.Pool. This indicates solver code is monkey-patching multiprocessing. Please restart the evaluation to clear module cache.")
         
         # Skip warm-up task – simple initializer starts instantly and submitting an
         # extra task occasionally dead-locks on some HPC clusters.
-        logging.info("BenchmarkPool._make_pool: Skipping worker warm-up task (simple initializer)")
+        logger.info("BenchmarkPool._make_pool: Skipping worker warm-up task (simple initializer)")
     
     def _reset_pool(self):
         logging.critical(f"BenchmarkPool._reset_pool: Starting pool reset. {self.timeouts} timeouts reached, terminating pool and reloading code")
@@ -341,6 +358,7 @@ class BenchmarkPool:
         logging.info("BenchmarkPool._reset_pool: Successfully completed pool reset")
     
     def run(self, func: Callable, args: Tuple = (), kwds: Dict = None, timeout_s: Optional[float] = None, max_retries: int = 3) -> Dict[str, Any]:
+        logger = logging.getLogger(__name__)
         func_name = getattr(func, "__name__", str(func))
         if kwds is None:
             kwds = {}
@@ -348,7 +366,7 @@ class BenchmarkPool:
         # Set a reasonable default timeout to prevent infinite hangs
         effective_timeout = timeout_s if timeout_s is not None else 60.0  # 1 minute default (was 5 minutes)
         
-        logging.info(f"BenchmarkPool.run: Starting {func_name} with max_retries={max_retries}, timeout={effective_timeout:.1f}s")
+        logger.info(f"BenchmarkPool.run: Starting {func_name} with max_retries={max_retries}, timeout={effective_timeout:.1f}s")
         
         # Check if we should proactively recycle the pool based on health metrics
         # This prevents "cannot allocate memory for thread-local data" errors
@@ -356,29 +374,29 @@ class BenchmarkPool:
             # Note: Health monitoring happens inside the worker, but we can check task count here
             task_count = getattr(self, '_task_count', 0)
             if task_count > 0 and task_count % 10 == 0:  # Check every 10 tasks
-                logging.info(f"BenchmarkPool.run: Completed {task_count} tasks, considering pool health")
+                logger.debug(f"BenchmarkPool.run: Completed {task_count} tasks, considering pool health")
                 # Could add more sophisticated health checks here in the future
                 
         except Exception as health_check_error:
-            logging.warning(f"BenchmarkPool.run: Health check failed: {health_check_error}")
+            logger.warning(f"BenchmarkPool.run: Health check failed: {health_check_error}")
         
         last_exception = None  # Track the last exception for better error reporting
         
         for attempt in range(1, max_retries + 1):
             try:
-                logging.info(f"BenchmarkPool.run: Attempt {attempt}/{max_retries} for {func_name}")
-                logging.info(f"BenchmarkPool.run: About to submit task {func_name} to pool")
+                logger.debug(f"BenchmarkPool.run: Attempt {attempt}/{max_retries} for {func_name}")
+                logger.debug(f"BenchmarkPool.run: About to submit task {func_name} to pool")
                 
                 # Submit the task
                 submit_start = time.time()
                 async_res = self.pool.apply_async(func, args=args, kwds=kwds)
                 submit_elapsed = time.time() - submit_start
-                logging.info(f"BenchmarkPool.run: Task {func_name} submitted in {submit_elapsed:.3f}s, waiting for result")
+                logger.debug(f"BenchmarkPool.run: Task {func_name} submitted in {submit_elapsed:.3f}s, waiting for result")
                 
                 # Log task details for debugging
-                logging.info(f"BenchmarkPool.run: Task details - func={func_name}, args_len={len(args) if args else 0}, kwds_keys={list(kwds.keys()) if kwds else []}")
+                logger.debug(f"BenchmarkPool.run: Task details - func={func_name}, args_len={len(args) if args else 0}, kwds_keys={list(kwds.keys()) if kwds else []}")
                 
-                logging.info(f"BenchmarkPool.run: About to call async_res.get() with timeout={effective_timeout:.1f}s")
+                logger.debug(f"BenchmarkPool.run: About to call async_res.get() with timeout={effective_timeout:.1f}s")
                 get_start = time.time()
                 
                 # Direct get with timeout – simpler and avoids spawning an
@@ -393,12 +411,12 @@ class BenchmarkPool:
                     raise e
 
                 get_elapsed = time.time() - get_start
-                logging.info(
+                logger.debug(
                     f"BenchmarkPool.run: Got result for {func_name} within timeout in {get_elapsed:.3f}s"
                 )
                 
                 # Timing fields debug – switch to DEBUG level to reduce noise
-                if logging.getLogger().isEnabledFor(logging.DEBUG):
+                if logger.isEnabledFor(logging.DEBUG):
                     timing_fields = [
                         "elapsed_ms",
                         "min_time_ms",
@@ -413,7 +431,7 @@ class BenchmarkPool:
                         "success",
                     ]
                     timing_debug = {field: result.get(field) for field in timing_fields}
-                    logging.debug(
+                    logger.debug(
                         f"BENCHMARK_POOL_TIMING_DEBUG: {func_name}: {timing_debug}"
                     )
                 
@@ -425,29 +443,29 @@ class BenchmarkPool:
             except multiprocessing.TimeoutError as e:
                 last_exception = e  # Save the timeout exception
                 self.timeouts += 1
-                logging.warning(f"BenchmarkPool.run: Timeout {self.timeouts}/{self.max_timeouts} for {func_name} on attempt {attempt}/{max_retries}")
+                logger.warning(f"BenchmarkPool.run: Timeout {self.timeouts}/{self.max_timeouts} for {func_name} on attempt {attempt}/{max_retries}")
                 
                 if self.timeouts >= self.max_timeouts:
                     # Reset the pool and reload modules before trying again
-                    logging.warning(f"BenchmarkPool.run: Max timeouts reached, resetting pool")
+                    logger.warning(f"BenchmarkPool.run: Max timeouts reached, resetting pool")
                     self._reset_pool()
                     self.timeouts = 0
                     
                     # One final attempt after reset
                     if attempt == max_retries:
-                        logging.error(f"BenchmarkPool.run: Final attempt after reset failed for {func_name}: {e}")
+                        logger.error(f"BenchmarkPool.run: Final attempt after reset failed for {func_name}: {e}")
                         # Preserve the timeout exception in HardBenchmarkFailure
                         raise HardBenchmarkFailure(e)
                         
             except Exception as e:
                 last_exception = e  # Save the general exception
-                logging.error(f"BenchmarkPool.run: Unexpected error on attempt {attempt}/{max_retries} for {func_name}: {e}")
+                logger.error(f"BenchmarkPool.run: Unexpected error on attempt {attempt}/{max_retries} for {func_name}: {e}")
                 if attempt == max_retries:
-                    logging.error(f"BenchmarkPool.run: All attempts failed for {func_name}: {e}")
+                    logger.error(f"BenchmarkPool.run: All attempts failed for {func_name}: {e}")
                     raise HardBenchmarkFailure(e) 
                 
         # Should never reach here, but if we do, preserve the last exception
-        logging.error(f"BenchmarkPool.run: Exhausted all attempts for {func_name} without returning or raising")
+        logger.error(f"BenchmarkPool.run: Exhausted all attempts for {func_name} without returning or raising")
         if last_exception:
             raise HardBenchmarkFailure(last_exception)
         else:
