@@ -30,6 +30,12 @@ class LiteLLMModel:
         
         logging.info(f"LiteLLMModel initialized. Drop Params: {self.drop_call_params}. Additional Params: {self.additional_params}")
 
+    def _uses_openai_responses_api(self) -> bool:
+        """Return True when the target model expects the OpenAI Responses API payload."""
+        base_name = self.model_name.split('/')[-1].lower()
+        responses_prefixes = ("o1", "o3", "o4", "gpt-5")
+        return any(base_name.startswith(prefix) for prefix in responses_prefixes)
+
     def query(self, messages: list[dict[str, str]]) -> dict:
         # Retry configuration
         max_retries = 5
@@ -191,7 +197,15 @@ class LiteLLMModel:
                     completion_messages = [{'role': 'user', 'content': system_prompt_content}]
                     logging.debug("Only system prompt found. Sending its content as first user message alongside system_prompt.")
                 # If no system message, completion_messages remains the original messages list
-            
+
+            if self._uses_openai_responses_api():
+                # Responses API rejects calls with only instructions and no message content.
+                if all(msg.get('role') == 'system' for msg in completion_messages):
+                    completion_messages = list(completion_messages) + [
+                        {'role': 'user', 'content': 'Proceed.'}
+                    ]
+                    logging.debug("Added fallback user message for OpenAI Responses model to avoid empty input payload.")
+
             # Ensure we never have empty messages
             if not completion_messages:
                 logging.warning("No completion messages after processing - this will cause API error")
@@ -207,7 +221,7 @@ class LiteLLMModel:
                 "model": self.model_name,
                 "messages": completion_messages, # Use potentially modified message list
                 "api_key": self.api_key,
-                "timeout": 600,  # 10 minutes for deep thinking models
+                "timeout": 1800,  # 30 minutes for deep thinking models
             }
             
             # Add max_tokens or max_completion_tokens if available
@@ -266,12 +280,21 @@ class LiteLLMModel:
                     
                 logging.debug(f"Passing additional params to litellm: {self.additional_params}")
 
+            if self._uses_openai_responses_api() and 'reasoning_effort' in completion_params:
+                reasoning_effort_value = completion_params.pop('reasoning_effort')
+                completion_params.setdefault('reasoning', {'effort': reasoning_effort_value})
+                logging.debug(
+                    "Converted reasoning_effort to reasoning dict for Responses API compatibility."
+                )
+
             # Add allowed_openai_params for thinking and reasoning_effort if present
             extra_params = {}
             allowed_params = []
             if 'thinking' in completion_params and not self.drop_call_params:
                 allowed_params.append('thinking')
-            if 'reasoning_effort' in completion_params and not self.drop_call_params:
+            if 'reasoning' in completion_params and not self.drop_call_params:
+                allowed_params.append('reasoning')
+            elif 'reasoning_effort' in completion_params and not self.drop_call_params:
                 allowed_params.append('reasoning_effort')
             if allowed_params:
                 extra_params['allowed_openai_params'] = allowed_params
