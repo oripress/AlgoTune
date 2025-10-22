@@ -25,10 +25,13 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from AlgoTuner.utils.streaming_json import stream_jsonl
+from AlgoTuner.config.loader import load_config
+from AlgoTuner.utils.discover_and_list_tasks import discover_and_import_tasks
 from AlgoTuner.utils.evaluator.loader import load_task
 from AlgoTuner.utils.evaluator.main import evaluate_baseline_dataset
 from AlgoTuner.utils.timing_config import DEV_RUNS, EVAL_RUNS, DATASET_WARMUPS
+from AlgoTuneTasks.base import BadDatasetError
+from AlgoTuneTasks.factory import TaskFactory
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:timing_core:%(message)s")
@@ -36,45 +39,55 @@ logger = logging.getLogger(__name__)
 
 NUM_EVAL_RUNS = 3
 
-def generate_dataset(task_name: str, target_time_ms: int, data_dir: Path, 
+def generate_dataset(task_name: str, target_time_ms: int, data_dir: Path,
                     override_k: Optional[int] = None) -> bool:
-    """
-    Generate dataset for a task with specified target time.
-    
-    Args:
-        task_name: Name of the task
-        target_time_ms: Target timing in milliseconds
-        data_dir: Directory to store dataset
-        override_k: Optional override for k parameter
-        
-    Returns:
-        True if generation succeeded, False otherwise
-    """
+    """Generate or load the dataset for a task at a target time."""
+    logger.info("Ensuring dataset exists for %s (target=%sms, dir=%s)", task_name, target_time_ms, data_dir)
+
     try:
-        # Import the dataset generation logic
-        sys.path.insert(0, str(Path(__file__).parent.parent))
-        from AlgoTuneTasks.base import generate_and_annotate_main
-        
-        # Prepare arguments for dataset generation
-        gen_args = [
-            "--task", task_name,
-            "--target-time-ms", str(target_time_ms),
-            "--data-dir", str(data_dir),
-            "--size", "100"  # Default dataset size
-        ]
-        
-        if override_k is not None:
-            gen_args.extend(["--k", str(override_k)])
-            
-        logger.info(f"Generating dataset for {task_name} with target {target_time_ms}ms")
-        
-        success = generate_and_annotate_main(gen_args)
-        return success
-        
-    except Exception as e:
-        logger.error(f"Dataset generation failed for {task_name}: {e}")
+        discover_and_import_tasks()
+    except Exception as exc:
+        logger.warning("Task discovery failed (%s); proceeding with registry", exc)
+
+    cfg = load_config()
+    ds_cfg = cfg.get("dataset", {})
+    train_size = ds_cfg.get("train_size", 100)
+    test_size = ds_cfg.get("test_size", 100)
+    random_seed = ds_cfg.get("random_seed", 42)
+
+    os.environ.setdefault("DATA_DIR", str(data_dir))
+
+    try:
+        task = TaskFactory(
+            task_name,
+            oracle_time_limit=target_time_ms,
+            data_dir=str(data_dir)
+        )
+    except Exception as exc:
+        logger.error("Could not construct task '%s': %s", task_name, exc)
         logger.debug(traceback.format_exc())
         return False
+
+    if override_k is not None:
+        task.k = override_k
+        logger.info("Overriding k for %s to %s", task_name, override_k)
+
+    try:
+        task.load_dataset(
+            train_size=train_size,
+            test_size=test_size,
+            random_seed=random_seed,
+        )
+        logger.info("Dataset ready for %s", task_name)
+        return True
+    except BadDatasetError as exc:
+        logger.error("Dataset generation failed for %s: %s", task_name, exc)
+        logger.debug(traceback.format_exc())
+    except Exception as exc:
+        logger.error("Unexpected dataset error for %s: %s", task_name, exc)
+        logger.debug(traceback.format_exc())
+
+    return False
 
 
 def evaluate_task_timing(task_name: str, target_time_ms: int, data_dir: Path, 
