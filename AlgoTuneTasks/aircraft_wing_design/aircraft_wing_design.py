@@ -227,7 +227,7 @@ class AircraftWingDesignTask(Task):
         # Solve the problem
         prob = cp.Problem(objective, constraints)
         try:
-            # Solve using the geometric programming solver
+            # Solve using geometric programming (required for posynomial objectives and constraints)
             prob.solve(gp=True)
 
             if prob.status not in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE} or A.value is None:

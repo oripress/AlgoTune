@@ -23,7 +23,7 @@ class RobustKalmanFilterTask(Task):
             x[t+1] = A x[t] + B w[t],  t=1...N-1
             y[t] = C x[t] + v[t],      t=0...N-1
 
-    where phi is a robust loss function (Huber) for handling outliers in the measurements.
+    where phi is the Huber loss (quadratic for small errors, linear for large errors) to handle outliers.
 
     Problem dict keys: A, B, C, y, x_initial, tau, M
     where M is the threshold parameter for the Huber loss function.
