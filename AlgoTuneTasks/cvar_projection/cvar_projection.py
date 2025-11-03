@@ -57,7 +57,7 @@ class CVaRProjectionTask(Task):
         x0 = rng.standard_normal(n_dims)
 
         # Generate random loss scenarios
-        # Each column represents a possible loss associated with a component of x
+        # Each row is a scenario; each column corresponds to a dimension of x
         # Higher value = higher loss (more negative return)
         A = rng.standard_normal((n_scenarios, n_dims))
 

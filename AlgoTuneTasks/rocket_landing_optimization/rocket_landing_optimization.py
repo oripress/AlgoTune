@@ -85,7 +85,7 @@ class RocketLandingOptimizationTask(Task):
             ]
         )
 
-        # Target position (fixed at origin)
+        # Target position (origin for this problem generation)
         p_target = np.array([0.0, 0.0, 0.0])
 
         return {
