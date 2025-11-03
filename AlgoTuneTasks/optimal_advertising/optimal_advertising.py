@@ -87,12 +87,12 @@ class OptimalAdvertisingTask(Task):
             T = np.sin(np.linspace(-2 * np.pi / 2, 2 * np.pi - 2 * np.pi / 2, time_slots)) * SCALE
             T += -np.min(T) + SCALE
         else:
-            # More complex traffic with multiple frequency components
+            # More complex traffic with multiple frequency components (simulates varied daily patterns)
             t = np.linspace(0, 2 * np.pi, time_slots)
             components = min(n, 5)  # Cap at 5 components for stability
             T = np.zeros(time_slots)
             for i in range(components):
-                # Add sine waves with different frequencies and phases
+                # Superimpose sine waves with different frequencies to create realistic traffic variation
                 T += rng.uniform(0.5, 1.5) * np.sin(t * (i + 1) + rng.uniform(0, 2 * np.pi))
             # Scale and shift to ensure positive values
             T = (T - np.min(T)) / (np.max(T) - np.min(T)) * SCALE * 2 + SCALE / 2
