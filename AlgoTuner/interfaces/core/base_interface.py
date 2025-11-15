@@ -16,6 +16,7 @@ from AlgoTuner.utils.message_writer import MessageWriter
 from AlgoTuner.utils.error_helpers import get_error_messages_cached
 from AlgoTuneTasks.base import Task
 from AlgoTuner.utils.type_inspection import describe_type
+from AlgoTuner.utils.clean_up_self import remove_self_parameter
 
 @dataclass
 class InterfaceState:
@@ -382,12 +383,7 @@ class BaseLLMInterface:
         validation_source = "\n".join(line[indent:] for line in lines)
         
         # Clean up self references
-        validation_source = validation_source.replace("self.", "")
-        validation_source = validation_source.replace("def is_solution(self,", "def is_solution(")
-        validation_source = validation_source.replace("def is_solution(self ,", "def is_solution(")
-        validation_source = validation_source.replace("def is_solution(self)", "def is_solution()")
-        validation_source = validation_source.replace("def is_solution(self):", "def is_solution():")
-        validation_source = validation_source.replace("def is_solution(self, ", "def is_solution(")
+        validation_source = remove_self_parameter(validation_source, "is_solution")
         # Remove lines that start with a logging call
         validation_source = '\n'.join(line for line in validation_source.split('\n') if not line.strip().startswith('logging.'))
         # If the resulting validation_source is too short, use a fallback message
@@ -500,13 +496,7 @@ class BaseLLMInterface:
                 helper_unindented = "\n".join(line[helper_indent:] for line in helper_lines)
                 
                 # Clean up self references
-                helper_unindented = helper_unindented.replace("self.", "")
-                helper_unindented = helper_unindented.replace(f"def {func_name}(self,", f"def {func_name}(")
-                helper_unindented = helper_unindented.replace(f"def {func_name}(self ,", f"def {func_name}(")
-                helper_unindented = helper_unindented.replace(f"def {func_name}(self)", f"def {func_name}()")
-                helper_unindented = helper_unindented.replace(f"def {func_name}(self):", f"def {func_name}():")
-                helper_unindented = helper_unindented.replace(f"def {func_name}(self, ", f"def {func_name}(")
-                helper_unindented = helper_unindented.replace(f"def {func_name}(self,", f"def {func_name}(")
+                helper_unindented = remove_self_parameter(helper_unindented, func_name)
                 
                 # Remove any logging lines
                 helper_unindented = '\n'.join(line for line in helper_unindented.split('\n') if 'logging.' not in line)
@@ -574,13 +564,7 @@ class BaseLLMInterface:
         validation_source = "\n".join(line[indent:] for line in lines)
         
         # Clean up self references
-        validation_source = validation_source.replace("self.", "")
-        validation_source = validation_source.replace("def is_solution(self,", "def is_solution(")
-        validation_source = validation_source.replace("def is_solution(self ,", "def is_solution(")
-        validation_source = validation_source.replace("def is_solution(self)", "def is_solution()")
-        validation_source = validation_source.replace("def is_solution(self):", "def is_solution():")
-        validation_source = validation_source.replace("def is_solution(self, ", "def is_solution(")
-        
+        validation_source = remove_self_parameter(validation_source, 'is_solution')
         # -------------------------------------------------------------
         # NEW: Include helper functions used by is_solution()
         # -------------------------------------------------------------
@@ -602,12 +586,7 @@ class BaseLLMInterface:
                 helper_unindented = "\n".join(line[helper_indent:] for line in helper_lines)
 
                 # Remove self references similar to above
-                helper_unindented = helper_unindented.replace("self.", "")
-                helper_unindented = helper_unindented.replace(f"def {func_name}(self,", f"def {func_name}(")
-                helper_unindented = helper_unindented.replace(f"def {func_name}(self ,", f"def {func_name}(")
-                helper_unindented = helper_unindented.replace(f"def {func_name}(self)", f"def {func_name}()")
-                helper_unindented = helper_unindented.replace(f"def {func_name}(self):", f"def {func_name}():")
-                helper_unindented = helper_unindented.replace(f"def {func_name}(self, ", f"def {func_name}(")
+                helper_unindented = remove_self_parameter(helper_unindented, func_name)
 
                 # Remove logging lines inside helper
                 helper_unindented = '\n'.join(line for line in helper_unindented.split('\n') if 'logging.' not in line)
