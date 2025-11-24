@@ -57,8 +57,16 @@ def discover_and_import_tasks():
             module_name = os.path.splitext(relpath)[0].replace(os.sep, '.')
             logging.debug(f"discover_and_import_tasks: Importing module {module_name} from {file_path}")
             try:
+                # Skip if already loaded to avoid duplicate module objects (keeps class identity stable)
+                if module_name in sys.modules:
+                    logging.debug(f"discover_and_import_tasks: Module already loaded, skipping: {module_name}")
+                    continue
+
                 spec = importlib.util.spec_from_file_location(module_name, file_path)
                 module = importlib.util.module_from_spec(spec)
+                # Register the module before execution to avoid duplicate imports
+                # (ensures pickling sees a single class identity)
+                sys.modules[module_name] = module
                 spec.loader.exec_module(module)
             except (ImportError, ModuleNotFoundError, TypeError, SyntaxError) as e:
                 # Skip modules with missing dependencies or Python version syntax issues
