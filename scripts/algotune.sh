@@ -98,6 +98,10 @@ run_agent_standalone() {
     shift
     local tasks=("$@")
     
+    if [ -z "$AGENT_MODE" ]; then
+        export AGENT_MODE=1
+    fi
+    
     # --- NEW: expand comma-separated task lists (e.g. "svm,kmeans")
     local expanded_tasks=()
     for t in "${tasks[@]}"; do
