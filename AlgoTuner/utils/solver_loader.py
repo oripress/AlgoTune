@@ -38,6 +38,7 @@ from contextlib import contextmanager
 import gc
 import signal
 import time
+from typing import Optional, List
 
 from AlgoTuner.utils.error_utils import SolverFileNotFoundError, SOLVER_NOT_FOUND_GENERIC_MSG
 from AlgoTuner.utils.dace_config import configure_dace_cache, configure_joblib_cache
@@ -681,3 +682,71 @@ def locate_solver_file(task_name, code_dir=None):
     baseline = Path(".") / baseline_filename
     logging.info(f"locate_solver_file: Returning baseline path: {baseline}")
     return baseline 
+
+
+def resolve_task_code_dir(task_name: str, code_dir_hint: Optional[Path] = None, agent_mode: Optional[str] = None) -> Path:
+    """
+    Resolve the directory that should be used to load solver code for a task.
+    Baseline mode prefers the packaged task directory; agent mode prefers the
+    provided CODE_DIR but can fall back to packaged tasks if available.
+    """
+    agent_flag = "1" if str(agent_mode or os.environ.get("AGENT_MODE", "0")) == "1" else "0"
+
+    def add_candidate(path_like, dest):
+        if path_like:
+            p = Path(path_like)
+            if p.exists():
+                dest.append(p)
+
+    candidates: List[Path] = []
+    add_candidate(code_dir_hint, candidates)
+    add_candidate(os.environ.get("CODE_DIR"), candidates)
+
+    # Known task roots from repository and container
+    for parent in Path(__file__).resolve().parents:
+        tasks_dir = parent / "AlgoTuneTasks"
+        if tasks_dir.is_dir():
+            add_candidate(tasks_dir, candidates)
+            break
+    add_candidate("/app/AlgoTuneTasks", candidates)
+
+    # Deduplicate while preserving order
+    seen = set()
+    unique_candidates = []
+    for c in candidates:
+        key = str(c.resolve())
+        if key not in seen:
+            seen.add(key)
+            unique_candidates.append(c)
+
+    # If a candidate already points directly to the task directory, use it
+    for c in unique_candidates:
+        if c.is_dir() and c.name == task_name:
+            logging.debug(f"resolve_task_code_dir: selected direct task dir {c}")
+            return c
+
+    # Prefer a task subdirectory when available (baseline mode only)
+    if agent_flag == "0":
+        for c in unique_candidates:
+            task_sub = c / task_name
+            if task_sub.is_dir():
+                logging.debug(f"resolve_task_code_dir: selected task subdir {task_sub}")
+                return task_sub
+
+    # Agent mode: prefer the code workspace itself if present
+    if agent_flag == "1":
+        for c in unique_candidates:
+            if c.is_dir():
+                logging.debug(f"resolve_task_code_dir: agent mode using {c}")
+                return c
+
+    # Baseline fallback: first existing directory
+    for c in unique_candidates:
+        if c.is_dir():
+            logging.debug(f"resolve_task_code_dir: fallback using {c}")
+            return c
+
+    # Last resort: resolve the hint or CODE_DIR even if it doesn't currently exist
+    fallback = Path(code_dir_hint or os.environ.get("CODE_DIR", ".")).resolve()
+    logging.debug(f"resolve_task_code_dir: last-resort fallback {fallback}")
+    return fallback
