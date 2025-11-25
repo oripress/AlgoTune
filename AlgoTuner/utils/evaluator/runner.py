@@ -53,7 +53,7 @@ from AlgoTuner.utils.utils import clean_traceback, format_object_shape, safe_imp
 
 # Import from the new error utility file
 from AlgoTuner.utils.error_utils import extract_error_context, create_standard_error_result
-from AlgoTuner.utils.solver_loader import load_solver_module, get_solve_callable, get_fresh_solve_callable, locate_solver_file, get_fresh_solve_callable_with_module_reload
+from AlgoTuner.utils.solver_loader import load_solver_module, get_solve_callable, get_fresh_solve_callable, locate_solver_file, get_fresh_solve_callable_with_module_reload, resolve_task_code_dir
 from AlgoTuner.utils.dace_config import initialize_dace_for_process
 
 # Directory where LLM-generated code is stored
@@ -1105,94 +1105,38 @@ def run_solver_evaluation(
 
     # Run the benchmark using the determined callable (either task_instance.solve or Solver().solve)
     logging.info(f"Benchmarking function: {solver_description}")
-    # Run benchmark in CODE_DIR so solver artifacts (like .dace, .mps, .sol files) go there
-    # Change to CODE_DIR where the solver code is located
-    code_dir = os.environ.get("CODE_DIR", "llm_src")
-    if code_dir:
-        os.makedirs(code_dir, exist_ok=True)
-        old_cwd = os.getcwd()
-        try:
-            os.chdir(code_dir)
-            
-            warmup_obj = warmup_problem if warmup_problem is not None else problem
 
-            if use_isolated:
-                logging.info("Using per-process isolated benchmark scheme (1 warm-up + 1 timed run per process)")
-                # For isolated benchmark, use the task-specific directory if it exists
-                task_code_dir = os.path.join(code_dir, "AlgoTuneTasks", task_name)
-                if os.path.isdir(task_code_dir):
-                    isolated_code_dir = task_code_dir
-                else:
-                    isolated_code_dir = code_dir
-                
-                logging.info(f"[TIMEOUT_DEBUG] Calling run_isolated_benchmark with timeout_seconds={timeout_seconds_unified:.3f}s (oracle_time_ms={oracle_time_ms}ms, warmup_runs={warmup_runs}, num_runs={num_runs})")
-                benchmark_result = run_isolated_benchmark(
-                    task_name=task_name,
-                    code_dir=isolated_code_dir,
-                    warmup_problem=warmup_obj,
-                    timed_problem=problem,
-                    num_runs=1,
-                    timeout_seconds=timeout_seconds_unified,
-                )
-                logging.info(f"[RUNNER_DEBUG] run_isolated_benchmark returned: success={benchmark_result.get('success')}, keys={list(benchmark_result.keys())}")
-                
-                # For validation, run solver once more in main process to get result
-                if benchmark_result.get("success"):
-                    try:
-                        logging.info("[ISOLATED_VALIDATION] Running solver once more for validation")
-                        solver_result_for_validation = solver_callable(problem)
-                        benchmark_result["result"] = solver_result_for_validation
-                        logging.info("[ISOLATED_VALIDATION] Successfully captured solver result for validation")
-                    except Exception as e:
-                        logging.warning(f"[ISOLATED_VALIDATION] Failed to get solver result for validation: {e}")
-                        benchmark_result["result"] = None
-            else:
-                # Use isolated benchmark for consistency
-                task_code_dir = os.path.join(code_dir, "AlgoTuneTasks", task_name)
-                if os.path.isdir(task_code_dir):
-                    isolated_code_dir = task_code_dir
-                else:
-                    isolated_code_dir = code_dir
-                
-                # Load task dataset and select different warmup problem
-                from AlgoTuner.utils.dataset_manager import DatasetManager
-                
-                # Use DatasetManager for efficient single problem loading
-                data_dir = os.environ.get("DATA_DIR", "../data")
-                dataset_mgr = DatasetManager(data_dir)
-                
-                try:
-                    warmup_problem, dataset_path = dataset_mgr.get_warmup_problem(task_name)
-                    logging.info(f"Loaded warmup problem from: {dataset_path}")
-                except Exception as e:
-                    raise ValueError(f"Cannot load dataset for warmup problem selection: {e}")
-                
-                benchmark_result = run_isolated_benchmark(
-                    task_name=task_name,
-                    code_dir=isolated_code_dir,
-                    warmup_problem=warmup_problem,
-                    timed_problem=problem,
-                    num_runs=1,
-                    timeout_seconds=timeout_seconds_unified,
-                )
-        finally:
-            os.chdir(old_cwd)
-    else:
-        use_isolated = (agent_mode != "0") and (os.environ.get("ISOLATED_EVAL", "1") == "1")
+    # Resolve the code directory using shared helper (baseline prefers task folder)
+    code_dir_path = resolve_task_code_dir(task_name, working_dir, agent_mode=agent_mode)
+    os.environ.setdefault("CODE_DIR", str(code_dir_path))
+    logging.info(f"Using code directory for benchmarking: {code_dir_path}")
+
+    code_dir_path.mkdir(parents=True, exist_ok=True)
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(code_dir_path)
+        
+        warmup_obj = warmup_problem if warmup_problem is not None else problem
 
         if use_isolated:
-            logging.info("Using per-process isolated benchmark scheme (env branch, fixed 5 runs)")
+            logging.info("Using per-process isolated benchmark scheme (1 warm-up + 1 timed run per process)")
+            task_code_dir = code_dir_path / "AlgoTuneTasks" / task_name
+            if task_code_dir.is_dir():
+                isolated_code_dir = task_code_dir
+            else:
+                isolated_code_dir = code_dir_path
+            
+            logging.info(f"[TIMEOUT_DEBUG] Calling run_isolated_benchmark with timeout_seconds={timeout_seconds_unified:.3f}s (oracle_time_ms={oracle_time_ms}ms, warmup_runs={warmup_runs}, num_runs={num_runs})")
             benchmark_result = run_isolated_benchmark(
                 task_name=task_name,
-                code_dir=os.getcwd(),
+                code_dir=str(isolated_code_dir),
                 warmup_problem=warmup_obj,
                 timed_problem=problem,
-                num_runs=5,
+                num_runs=1,
                 timeout_seconds=timeout_seconds_unified,
             )
             logging.info(f"[RUNNER_DEBUG] run_isolated_benchmark returned: success={benchmark_result.get('success')}, keys={list(benchmark_result.keys())}")
             
-            # For validation, run solver once more in main process to get result
             if benchmark_result.get("success"):
                 try:
                     logging.info("[ISOLATED_VALIDATION] Running solver once more for validation")
@@ -1203,34 +1147,33 @@ def run_solver_evaluation(
                     logging.warning(f"[ISOLATED_VALIDATION] Failed to get solver result for validation: {e}")
                     benchmark_result["result"] = None
         else:
-            # Use isolated benchmark for consistency
-            task_code_dir = os.path.join(code_dir, "AlgoTuneTasks", task_name)
-            if os.path.isdir(task_code_dir):
+            task_code_dir = code_dir_path / "AlgoTuneTasks" / task_name
+            if task_code_dir.is_dir():
                 isolated_code_dir = task_code_dir
             else:
-                isolated_code_dir = code_dir
+                isolated_code_dir = code_dir_path
             
-            # For oracle evaluation, ensure warmup and timed problems are different to prevent state contamination
-            # Generate a different warmup problem with the same parameters
-            warmup_problem = problem  # Default fallback
+            from AlgoTuner.utils.dataset_manager import DatasetManager
+            
+            data_dir = os.environ.get("DATA_DIR", "../data")
+            dataset_mgr = DatasetManager(data_dir)
+            
             try:
-                if hasattr(task_instance, 'generate_problem') and hasattr(task_instance, 'n'):
-                    # Generate a different problem with a different random seed
-                    import hashlib
-                    seed_salt = int(time.time() * 1000) % 10000  # Use timestamp for variety
-                    warmup_problem = task_instance.generate_problem(task_instance.n, random_seed=42 + seed_salt)
-                    logging.debug(f"Oracle: Generated different warmup problem with seed {42 + seed_salt}")
+                warmup_problem, dataset_path = dataset_mgr.get_warmup_problem(task_name)
+                logging.info(f"Loaded warmup problem from: {dataset_path}")
             except Exception as e:
-                logging.debug(f"Oracle: Could not generate different warmup problem, using same: {e}")
+                raise ValueError(f"Cannot load dataset for warmup problem selection: {e}")
             
             benchmark_result = run_isolated_benchmark(
                 task_name=task_name,
-                code_dir=isolated_code_dir,
+                code_dir=str(isolated_code_dir),
                 warmup_problem=warmup_problem,
                 timed_problem=problem,
                 num_runs=1,
                 timeout_seconds=timeout_seconds_unified,
             )
+    finally:
+        os.chdir(old_cwd)
     logging.info(f"[RUNNER_DEBUG] About to process benchmark_result")
     t_now = time.perf_counter_ns()
     logging.info(
@@ -2097,4 +2040,3 @@ def run_oracle_evaluation(
         
     logging.info(f"Oracle Eval Timing: Total run_oracle_evaluation took {(time.perf_counter_ns() - t_start_oracle_eval) / 1e6:.2f}ms")
     return successful_evaluation_result
-

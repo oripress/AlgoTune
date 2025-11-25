@@ -428,10 +428,10 @@ def _fork_run_worker(
         # 2) Import solver module and obtain *fresh* solve callable
         # ------------------------------------------------------------------
         # Import after env vars set so loader honours them
-        from AlgoTuner.utils.solver_loader import load_solver_module, get_fresh_solve_callable
+        from AlgoTuner.utils.solver_loader import load_solver_module, get_fresh_solve_callable, resolve_task_code_dir
 
         # --- FIX: Robust solver path detection and loading ---
-        code_dir_path = Path(code_dir)
+        code_dir_path = resolve_task_code_dir(task_name, code_dir)
 
         # 1) Direct detection: test CamelCase, snake_case, or solver.py in code_dir_path
         solver_file = code_dir_path / f"{task_name}.py"
@@ -446,11 +446,15 @@ def _fork_run_worker(
             solver_module = load_solver_module(solver_file.parent, solver_filename=solver_file.name)
         else:
             # 2) Fallback: scan known roots for task directory
-            roots = [
-                code_dir_path / "AlgoTuneTasks",
+            roots = []
+            for root in [
                 code_dir_path,
+                code_dir_path.parent,
+                code_dir_path / "AlgoTuneTasks",
                 Path("/app/AlgoTuneTasks"),
-            ]
+            ]:
+                if root not in roots:
+                    roots.append(root)
             task_dir_path = None
             for root in roots:
                 if not root.is_dir():
@@ -1659,12 +1663,14 @@ def _fork_run_worker_with_fetch(
         os.chdir(tmp_dir)
 
         # Load solver (same logic as original worker)
-        code_dir_path = Path(code_dir)
-        from AlgoTuner.utils.solver_loader import load_solver_module, get_fresh_solve_callable
+        from AlgoTuner.utils.solver_loader import load_solver_module, get_fresh_solve_callable, resolve_task_code_dir
+
+        code_dir_path = resolve_task_code_dir(task_name, code_dir)
 
         alt_filename = f"{task_name}.py"
         alt_file_path = code_dir_path / alt_filename
 
+        # Try direct matches first
         if alt_file_path.is_file():
             solver_module = load_solver_module(code_dir_path, solver_filename=alt_filename)
         else:
@@ -1672,34 +1678,54 @@ def _fork_run_worker_with_fetch(
             if solver_file.is_file():
                 solver_module = load_solver_module(code_dir_path)
             else:
-                # Auto-detection logic (same as original)
+                # Auto-detection with shared roots
                 env_task_name = os.environ.get('CURRENT_TASK_NAME', task_name)
                 if env_task_name != task_name:
                     task_name = env_task_name
                     alt_filename = f"{task_name}.py"
                 
-                # First check if code_dir already points to the task directory
-                # (e.g., code_dir is already /app/AlgoTuneTasks/sha256_hashing)
-                if code_dir_path.name == task_name and (code_dir_path / alt_filename).is_file():
-                    # We're already in the task directory
-                    solver_module = load_solver_module(code_dir_path, solver_filename=alt_filename)
-                else:
-                    # Try subdirectories
-                    possible_task_dirs = [
-                        code_dir_path / "AlgoTuneTasks" / task_name,
-                        Path("/app/AlgoTuneTasks") / task_name,
-                        Path("/app") / "AlgoTuneTasks" / task_name,
-                    ]
-                    
-                    for possible_dir in possible_task_dirs:
-                        possible_task_file = possible_dir / f"{task_name}.py"
-                        if possible_task_file.is_file():
-                            solver_module = load_solver_module(possible_dir, f"{task_name}.py")
+                roots = []
+                for root in [
+                    code_dir_path,
+                    code_dir_path.parent,
+                    code_dir_path / "AlgoTuneTasks",
+                    Path("/app/AlgoTuneTasks"),
+                ]:
+                    if root not in roots:
+                        roots.append(root)
+
+                task_dir_path = None
+                for root in roots:
+                    if not root.is_dir():
+                        continue
+                    for candidate in root.iterdir():
+                        if not candidate.is_dir():
+                            continue
+                        name_norm = candidate.name.lower().replace('_', '')
+                        if candidate.name == task_name or name_norm == task_name.lower():
+                            task_dir_path = candidate
                             break
+                    if task_dir_path:
+                        break
+
+                if task_dir_path is None:
+                    search_paths = ", ".join(str(root) for root in roots)
+                    raise FileNotFoundError(
+                        f"Could not locate task directory for '{task_name}'. Searched roots: {search_paths}"
+                    )
+
+                solver_file = task_dir_path / alt_filename
+                if not solver_file.is_file():
+                    snake_file = task_dir_path / f"{task_dir_path.name}.py"
+                    if snake_file.is_file():
+                        solver_file = snake_file
                     else:
-                        raise FileNotFoundError(
-                            f"Neither '{alt_filename}' nor 'solver.py' found in {code_dir_path} or auto-detected paths"
-                        )
+                        solver_file = task_dir_path / "solver.py"
+                        if not solver_file.is_file():
+                            raise FileNotFoundError(
+                                f"Could not find solver file in '{task_dir_path}'. Tried: {task_name}.py, {task_dir_path.name}.py, solver.py"
+                            )
+                solver_module = load_solver_module(solver_file.parent, solver_filename=solver_file.name)
 
         # Get solver (same wrapper logic as original)
         if hasattr(solver_module, "Solver"):

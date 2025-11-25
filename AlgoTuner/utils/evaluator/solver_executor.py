@@ -208,6 +208,13 @@ class SolverExecutor:
         warmup_problem: Any
     ) -> ExecutionResult:
         """Execute solver using process pool with reuse."""
+
+        # Baseline mode (AGENT_MODE=0) can't use isolated execution because solver isn't on disk
+        agent_mode = os.environ.get("AGENT_MODE", "0")
+        self.logger.info(f"SolverExecutor (pooled): AGENT_MODE={agent_mode}, use_isolated={self.config.use_isolated_execution}")
+        if agent_mode == "0":
+            self.logger.info("Baseline mode detected, using in-process execution instead of pooled isolated execution")
+            return self._execute_in_process(solver_func, problem, baseline_time_ms, warmup_problem)
         
         # Get task name from metadata or environment
         task_name = "unknown_task"
