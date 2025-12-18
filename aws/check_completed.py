@@ -1,80 +1,74 @@
 #!/usr/bin/env python3
 """
 Check which tasks have already been completed for a given model.
-Scans results directories to avoid re-running completed jobs.
+Checks reports/agent_summary.json to avoid re-running completed jobs.
 """
 import os
 import sys
 import argparse
+import json
 from pathlib import Path
 
 
-def get_completed_tasks(model_name, results_dir="results"):
+def get_completed_tasks(model_name, summary_file="reports/agent_summary.json"):
     """
-    Scan results directory for completed tasks for a given model.
+    Check summary file for completed tasks for a given model.
 
     Args:
-        model_name: Name of the model (e.g., "o4-mini", "Claude Opus 4")
-        results_dir: Root results directory
+        model_name: Name of the model (e.g., "openrouter/openai/o4-mini")
+        summary_file: Path to agent_summary.json file
 
     Returns:
         Set of completed task names
     """
     completed = set()
-    results_path = Path(results_dir)
+    summary_path = Path(summary_file)
 
-    if not results_path.exists():
+    if not summary_path.exists():
         return completed
 
-    # Check multiple possible model name formats
-    # Model names in results might be cleaned up versions
-    possible_model_dirs = [
-        model_name,
-        model_name.replace("/", "_"),
-        model_name.replace("openrouter/", ""),
-        model_name.replace("anthropic/", ""),
-        model_name.replace("deepseek-ai/", ""),
-        model_name.replace("deepseek/", ""),
-        model_name.replace("gemini/", ""),
-        model_name.replace("openai/", ""),
-        # Common clean names
-        "o4-mini" if "o4-mini" in model_name else None,
-        "Claude Opus 4" if "claude-opus-4" in model_name else None,
-        "DeepSeek R1" if "deepseek" in model_name.lower() and "r1" in model_name.lower() else None,
-        "Qwen3 Coder" if "qwen3-coder" in model_name else None,
-    ]
+    try:
+        with open(summary_path, 'r') as f:
+            summary_data = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"WARNING: Could not read summary file: {e}", file=sys.stderr)
+        return completed
 
-    # Remove None values
-    possible_model_dirs = [d for d in possible_model_dirs if d]
+    # Check if summary is a dict
+    if not isinstance(summary_data, dict):
+        return completed
 
-    for model_dir_name in possible_model_dirs:
-        model_path = results_path / model_dir_name
-        if model_path.exists() and model_path.is_dir():
-            # List all task directories
-            for task_dir in model_path.iterdir():
-                if task_dir.is_dir():
-                    # Check if task has results (solver.py exists)
-                    solver_path = task_dir / "solver.py"
-                    if solver_path.exists():
-                        completed.add(task_dir.name)
+    # Iterate through tasks in summary
+    for task_name, models_data in summary_data.items():
+        if not isinstance(models_data, dict):
+            continue
+
+        # Check if this model has a completed entry for this task
+        if model_name in models_data:
+            task_result = models_data[model_name]
+            # Task is completed if it has a non-N/A result
+            if isinstance(task_result, dict):
+                speedup = task_result.get('final_speedup')
+                if speedup is not None and speedup != "N/A":
+                    completed.add(task_name)
 
     return completed
 
 
-def filter_tasks(all_tasks, model_name, results_dir="results", verbose=False):
+def filter_tasks(all_tasks, model_name, summary_file="reports/agent_summary.json", verbose=False):
     """
     Filter out already-completed tasks.
 
     Args:
         all_tasks: List of all task names to check
         model_name: Name of the model
-        results_dir: Root results directory
+        summary_file: Path to agent_summary.json file
         verbose: Print information about skipped tasks
 
     Returns:
         List of tasks that haven't been completed yet
     """
-    completed = get_completed_tasks(model_name, results_dir)
+    completed = get_completed_tasks(model_name, summary_file)
 
     if verbose and completed:
         print(f"Found {len(completed)} completed tasks for {model_name}:", file=sys.stderr)
@@ -103,7 +97,7 @@ def main():
     parser.add_argument(
         "--model",
         required=True,
-        help="Model name (e.g., 'o4-mini', 'anthropic/claude-opus-4-20250514')"
+        help="Model name (e.g., 'openrouter/openai/o4-mini', 'openrouter/anthropic/claude-opus-4-20250514')"
     )
     parser.add_argument(
         "--tasks",
@@ -111,9 +105,9 @@ def main():
         help="List of tasks to check (default: read from stdin, one per line)"
     )
     parser.add_argument(
-        "--results-dir",
-        default="results",
-        help="Results directory to scan (default: results)"
+        "--summary-file",
+        default="reports/agent_summary.json",
+        help="Summary file to check (default: reports/agent_summary.json)"
     )
     parser.add_argument(
         "--list-completed",
@@ -130,7 +124,7 @@ def main():
 
     if args.list_completed:
         # Just list completed tasks
-        completed = get_completed_tasks(args.model, args.results_dir)
+        completed = get_completed_tasks(args.model, args.summary_file)
         for task in sorted(completed):
             print(task)
         return
@@ -150,7 +144,7 @@ def main():
     remaining = filter_tasks(
         all_tasks,
         args.model,
-        args.results_dir,
+        args.summary_file,
         verbose=not args.quiet
     )
 

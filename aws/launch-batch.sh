@@ -37,10 +37,9 @@ fi
 echo ""
 echo "Which tasks do you want to run?"
 echo "  1) All tasks (154 tasks)"
-echo "  2) Random N tasks"
-echo "  3) Specific tasks (comma-separated)"
+echo "  2) Specific tasks (comma-separated)"
 echo ""
-read -p "Choice [1/2/3]: " TASK_CHOICE
+read -p "Choice [1/2]: " TASK_CHOICE
 
 case "$TASK_CHOICE" in
   1)
@@ -48,15 +47,6 @@ case "$TASK_CHOICE" in
     echo "  → Will run all 154 tasks"
     ;;
   2)
-    read -p "How many random tasks? " NUM_TASKS
-    if [ -z "$NUM_TASKS" ] || [ "$NUM_TASKS" -le 0 ]; then
-      echo "❌ ERROR: Invalid number of tasks"
-      exit 1
-    fi
-    TASK_ARGS="--random-tasks $NUM_TASKS"
-    echo "  → Will run $NUM_TASKS random tasks"
-    ;;
-  3)
     echo "Enter tasks separated by commas (e.g., svm,pca,kmeans):"
     read -p "Tasks: " TASKS_INPUT
     if [ -z "$TASKS_INPUT" ]; then
@@ -83,60 +73,39 @@ case "$TASK_CHOICE" in
     ALL_TASKS_LIST=$(find AlgoTuneTasks -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | grep -v __pycache__ | sort)
     ;;
   2)
-    # For random tasks, we'll check after selection
-    ALL_TASKS_LIST=""
-    ;;
-  3)
     # For specific tasks, use the provided list
     ALL_TASKS_LIST=$(echo "$TASKS_INPUT" | tr ',' '\n')
     ;;
 esac
 
-# Only check if we have a definite task list
+# Check for completed tasks
 SKIP_COMPLETED="no"
-if [ -n "$ALL_TASKS_LIST" ] && [ "$TASK_CHOICE" != "2" ]; then
-  COMPLETED_COUNT=$(echo "$ALL_TASKS_LIST" | python3 aws/check_completed.py --model "$MODEL" --quiet | wc -l)
-  TOTAL_COUNT=$(echo "$ALL_TASKS_LIST" | wc -l)
-  ALREADY_DONE=$((TOTAL_COUNT - COMPLETED_COUNT))
+COMPLETED_COUNT=$(echo "$ALL_TASKS_LIST" | python3 aws/check_completed.py --model "$MODEL" --quiet | wc -l)
+TOTAL_COUNT=$(echo "$ALL_TASKS_LIST" | wc -l)
+ALREADY_DONE=$((TOTAL_COUNT - COMPLETED_COUNT))
 
-  if [ "$ALREADY_DONE" -gt 0 ]; then
-    echo "  Found $ALREADY_DONE completed task(s) for model: $MODEL"
-    echo ""
-    read -p "Skip already-completed tasks? [Y/n]: " SKIP_CHOICE
-    if [[ ! "$SKIP_CHOICE" =~ ^[Nn]$ ]]; then
-      SKIP_COMPLETED="yes"
-      echo "  ✓ Will skip $ALREADY_DONE completed task(s)"
+if [ "$ALREADY_DONE" -gt 0 ]; then
+  echo "  Found $ALREADY_DONE completed task(s) for model: $MODEL"
+  echo ""
+  read -p "Skip already-completed tasks? [Y/n]: " SKIP_CHOICE
+  if [[ ! "$SKIP_CHOICE" =~ ^[Nn]$ ]]; then
+    SKIP_COMPLETED="yes"
+    echo "  ✓ Will skip $ALREADY_DONE completed task(s)"
 
-      # Filter the task list
-      if [ "$TASK_CHOICE" = "3" ]; then
-        # Update TASKS_INPUT with filtered list
-        FILTERED_TASKS=$(echo "$ALL_TASKS_LIST" | python3 aws/check_completed.py --model "$MODEL" --quiet)
-        TASKS_INPUT=$(echo "$FILTERED_TASKS" | tr '\n' ',' | sed 's/,$//')
-        TASK_ARGS="--tasks $TASKS_INPUT"
+    # Filter the task list
+    FILTERED_TASKS=$(echo "$ALL_TASKS_LIST" | python3 aws/check_completed.py --model "$MODEL" --quiet)
+    TASKS_INPUT=$(echo "$FILTERED_TASKS" | tr '\n' ',' | sed 's/,$//')
+    TASK_ARGS="--tasks $TASKS_INPUT"
 
-        if [ -z "$TASKS_INPUT" ]; then
-          echo "  ✓ All tasks already completed! Nothing to do."
-          exit 0
-        fi
-      elif [ "$TASK_CHOICE" = "1" ]; then
-        # For "all tasks", pass filtered list as specific tasks
-        FILTERED_TASKS=$(echo "$ALL_TASKS_LIST" | python3 aws/check_completed.py --model "$MODEL" --quiet)
-        TASKS_INPUT=$(echo "$FILTERED_TASKS" | tr '\n' ',' | sed 's/,$//')
-        TASK_ARGS="--tasks $TASKS_INPUT"
-
-        if [ -z "$TASKS_INPUT" ]; then
-          echo "  ✓ All tasks already completed! Nothing to do."
-          exit 0
-        fi
-      fi
-    else
-      echo "  → Will run all tasks (including completed ones)"
+    if [ -z "$TASKS_INPUT" ]; then
+      echo "  ✓ All tasks already completed! Nothing to do."
+      exit 0
     fi
   else
-    echo "  ✓ No completed tasks found, will run all selected tasks"
+    echo "  → Will run all tasks (including completed ones)"
   fi
 else
-  echo "  → Skipping completion check (random task selection)"
+  echo "  ✓ No completed tasks found, will run all selected tasks"
 fi
 
 echo ""
