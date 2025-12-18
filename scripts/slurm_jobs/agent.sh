@@ -103,12 +103,8 @@ env_vars+=("--env" "CODE_DIR=${CONTAINER_CODE_DIR}")
 [ ! -z "$MODEL" ] && env_vars+=("--env" "MODEL=${MODEL}")
 # Pass AGENT_MODE so it's set inside the container
 [ ! -z "$AGENT_MODE" ] && env_vars+=("--env" "AGENT_MODE=${AGENT_MODE}")
-# Pass API Keys if found in the sourced .env file
-[ ! -z "$DEEPSEEK_API_KEY" ] && env_vars+=("--env" "DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}")
-[ ! -z "$OPENAI_API_KEY" ] && env_vars+=("--env" "OPENAI_API_KEY=${OPENAI_API_KEY}")
-[ ! -z "$GEMINI_API_KEY" ] && env_vars+=("--env" "GEMINI_API_KEY=${GEMINI_API_KEY}")
-[ ! -z "$CLAUDE_API_KEY" ] && env_vars+=("--env" "CLAUDE_API_KEY=${CLAUDE_API_KEY}")
-[ ! -z "$TOGETHER_API_KEY" ] && env_vars+=("--env" "TOGETHER_API_KEY=${TOGETHER_API_KEY}")
+# Pass OpenRouter API Key (all models use OpenRouter)
+[ ! -z "$OPENROUTER_API_KEY" ] && env_vars+=("--env" "OPENROUTER_API_KEY=${OPENROUTER_API_KEY}")
 # Pass task-specific parameters from submit_agent.sh
 [ ! -z "$TASK_NAME" ] && env_vars+=("--env" "TASK_NAME=${TASK_NAME}")
 [ ! -z "$TASK_N" ] && env_vars+=("--env" "TASK_N=${TASK_N}")
