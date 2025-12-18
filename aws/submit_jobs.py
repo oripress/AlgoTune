@@ -2,7 +2,6 @@
 import os
 import sys
 import argparse
-import random
 import boto3
 import json
 from pathlib import Path
@@ -76,12 +75,6 @@ def parse_args():
         action="store_true",
         help="Run on all available tasks"
     )
-    task_group.add_argument(
-        "--random-tasks",
-        type=int,
-        metavar="N",
-        help="Run on N randomly selected tasks"
-    )
 
     # S3 bucket for results
     parser.add_argument(
@@ -111,13 +104,6 @@ def main():
     if args.all_tasks:
         selected_tasks = all_tasks
         print(f"Selected: All {len(selected_tasks)} tasks", file=sys.stderr)
-    elif args.random_tasks:
-        if args.random_tasks > len(all_tasks):
-            print(f"WARNING: Requested {args.random_tasks} tasks, but only {len(all_tasks)} available", file=sys.stderr)
-            selected_tasks = all_tasks
-        else:
-            selected_tasks = random.sample(all_tasks, args.random_tasks)
-        print(f"Selected: {len(selected_tasks)} random tasks", file=sys.stderr)
     else:  # args.tasks
         requested = [t.strip() for t in args.tasks.split(",")]
         selected_tasks = []
