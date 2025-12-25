@@ -144,19 +144,10 @@ Running AlgoTune on AWS is simple and requires only a minimal setup.
 ```bash
 # One-time setup
 ./aws/setup-aws.sh        # Interactive AWS configuration
-# Creates aws/.env with AWS credentials and settings
 
 # Launch jobs
 ./aws/launch-batch.sh     # Interactive: select model and tasks
-# Choose: all tasks or specific tasks
-
-**Docker Image**: A pre-built public image is available at `ghcr.io/oripress/algotune:latest`. 
-
-**Configuration Structure:**
-- **`.env`** (root) - API keys used by both local and AWS runs (OPENROUTER_API_KEY, CLAUDE_API_KEY, etc.)
-- **`aws/.env`** - AWS-specific settings (credentials, S3 bucket, ECR URI, Batch configs)
-
-Results are automatically uploaded to S3. HTML visualizations are generated automatically (matching the AlgoTune.io interface). See `aws/` directory for all scripts and configuration options.
+```
 
 ---
 
