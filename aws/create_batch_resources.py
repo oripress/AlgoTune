@@ -57,24 +57,31 @@ try:
     if resp['computeEnvironments']:
         print(f"  ✓ Compute environment '{CE_NAME}' already exists")
         ce_exists = True
+        existing_ce = resp['computeEnvironments'][0]
     else:
         ce_exists = False
+        existing_ce = None
 except Exception as e:
     ce_exists = False
+    existing_ce = None
 
 if not ce_exists:
     print(f"Creating compute environment '{CE_NAME}' ...")
 
     # Build the compute environment config
+    min_vcpus = int(os.getenv("BATCH_MIN_VCPUS", "0"))
+    max_vcpus = int(os.getenv("BATCH_MAX_VCPUS", "64"))
+    desired_vcpus = int(os.getenv("BATCH_DESIRED_VCPUS", str(min_vcpus)))
+
     ce_config = {
         "computeEnvironmentName": CE_NAME,
         "type": "MANAGED",
         "state": "ENABLED",
         "computeResources": {
             "type": "EC2",
-            "minvCpus": 0,
-            "maxvCpus": int(os.getenv("BATCH_MAX_VCPUS", "64")),
-            "desiredvCpus": 0,
+            "minvCpus": min_vcpus,
+            "maxvCpus": max_vcpus,
+            "desiredvCpus": desired_vcpus,
             "instanceTypes": os.getenv("BATCH_INSTANCE_TYPES", "c6a.4xlarge").split(","),
             "subnets": subnets,
             "securityGroupIds": security_groups,
@@ -88,6 +95,53 @@ if not ce_exists:
 
     resp_ce = batch.create_compute_environment(**ce_config)
     print("Compute Environment creation request submitted:", resp_ce)
+else:
+    # Compute environment exists - check if it needs to be re-enabled/scaled up
+    # (e.g., after Ctrl+C kill switch scaled it down)
+    min_vcpus = int(os.getenv("BATCH_MIN_VCPUS", "0"))
+    max_vcpus = int(os.getenv("BATCH_MAX_VCPUS", "64"))
+    desired_vcpus = int(os.getenv("BATCH_DESIRED_VCPUS", str(min_vcpus)))
+
+    current_state = existing_ce.get('state')
+    current_resources = existing_ce.get('computeResources', {})
+    current_min = current_resources.get('minvCpus')
+    current_max = current_resources.get('maxvCpus')
+    current_desired = current_resources.get('desiredvCpus')
+
+    needs_update = False
+    update_params = {
+        'computeEnvironment': CE_NAME
+    }
+
+    # Re-enable if disabled (e.g., by Ctrl+C kill switch)
+    if current_state == 'DISABLED':
+        print("  → Compute environment is DISABLED, re-enabling...")
+        update_params['state'] = 'ENABLED'
+        needs_update = True
+
+    # Ensure compute resources match current run settings (keeps ASG in sync).
+    if (
+        current_min != min_vcpus
+        or current_max != max_vcpus
+        or current_desired != desired_vcpus
+    ):
+        print(
+            "  → Updating compute resources to "
+            f"min={min_vcpus}, max={max_vcpus}, desired={desired_vcpus}..."
+        )
+        update_params['computeResources'] = {
+            'minvCpus': min_vcpus,
+            'maxvCpus': max_vcpus,
+            'desiredvCpus': desired_vcpus
+        }
+        needs_update = True
+
+    if needs_update:
+        try:
+            batch.update_compute_environment(**update_params)
+            print("  ✓ Compute environment updated")
+        except Exception as e:
+            print(f"  ⚠️  Warning: Failed to update compute environment: {e}")
 
 print(f"Waiting for compute environment '{CE_NAME}' to become VALID...")
 import time
@@ -122,10 +176,13 @@ try:
     if resp['jobQueues']:
         print(f"  ✓ Job queue '{QUEUE_NAME}' already exists")
         queue_exists = True
+        existing_queue = resp['jobQueues'][0]
     else:
         queue_exists = False
+        existing_queue = None
 except Exception as e:
     queue_exists = False
+    existing_queue = None
 
 if not queue_exists:
     print(f"Creating job queue '{QUEUE_NAME}' ...")
@@ -138,6 +195,23 @@ if not queue_exists:
         ]
     )
     print("Job queue created:", resp_queue)
+else:
+    desired_order = [{"order": 1, "computeEnvironment": CE_NAME}]
+    existing_order = existing_queue.get("computeEnvironmentOrder", []) if existing_queue else []
+    desired_priority = int(os.getenv("BATCH_QUEUE_PRIORITY", "1"))
+    existing_priority = existing_queue.get("priority") if existing_queue else None
+    existing_state = existing_queue.get("state") if existing_queue else None
+    if existing_order != desired_order or existing_priority != desired_priority or existing_state != "ENABLED":
+        print(f"Updating job queue '{QUEUE_NAME}' to use compute environment '{CE_NAME}' ...")
+        resp_queue = batch.update_job_queue(
+            jobQueue=QUEUE_NAME,
+            state="ENABLED",
+            priority=desired_priority,
+            computeEnvironmentOrder=desired_order
+        )
+        print("Job queue updated:", resp_queue)
+    else:
+        print(f"  ✓ Job queue '{QUEUE_NAME}' already configured for '{CE_NAME}'")
 
 # Check if job definition already exists and is ACTIVE
 print(f"Checking if job definition '{JOB_DEF_NAME}' exists...")
@@ -154,25 +228,30 @@ try:
 except Exception as e:
     jobdef_exists = False
 
-if not jobdef_exists:
+if jobdef_exists:
+    print(f"Registering new revision for job definition '{JOB_DEF_NAME}' to apply current settings...")
+else:
     print(f"Registering job definition '{JOB_DEF_NAME}' ...")
 
-    # Task role for container AWS API access (S3, etc.)
-    task_role_arn = f"arn:aws:iam::{account_id}:role/AlgoTuneBatchTaskRole"
+# Task role for container AWS API access (S3, etc.)
+task_role_arn = f"arn:aws:iam::{account_id}:role/AlgoTuneBatchTaskRole"
 
-    resp_jobdef = batch.register_job_definition(
-        jobDefinitionName=JOB_DEF_NAME,
-        type="container",
-        containerProperties={
-            "image": DOCKER_IMAGE,
-            "executionRoleArn": ecs_task_exec_role,
-            "jobRoleArn": task_role_arn,  # Container's AWS API access role
-            "vcpus": int(os.getenv("BATCH_JOB_VCPUS", "1")),
-            "memory": int(os.getenv("BATCH_JOB_MEMORY_MB", "16000")),
-            "command": []  # we'll override at submission
-            # Note: Using default CloudWatch logging + S3 uploads every 60s
-        }
-    )
-    print("Job definition registered:", resp_jobdef)
+resp_jobdef = batch.register_job_definition(
+    jobDefinitionName=JOB_DEF_NAME,
+    type="container",
+    timeout={
+        "attemptDurationSeconds": 432000  # 5 days (5 * 24 * 60 * 60)
+    },
+    containerProperties={
+        "image": DOCKER_IMAGE,
+        "executionRoleArn": ecs_task_exec_role,
+        "jobRoleArn": task_role_arn,  # Container's AWS API access role
+        "vcpus": int(os.getenv("BATCH_JOB_VCPUS", "1")),
+        "memory": int(os.getenv("BATCH_JOB_MEMORY_MB", "16000")),
+        "command": []  # we'll override at submission
+        # Note: Using default CloudWatch logging + S3 uploads every 60s
+    }
+)
+print("Job definition registered:", resp_jobdef)
 
 print("🎉 AWS Batch compute environment, job queue, and job definition are ready!")
