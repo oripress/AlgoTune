@@ -23,8 +23,17 @@ class TamperingDetector(ast.NodeVisitor):
     
     # Modules that should not be modified
     PROTECTED_MODULES = {
+        # Standard library - security sensitive
         'hmac', 'hashlib', 'os', 'sys', 'subprocess', 'importlib',
-        'builtins', '__builtins__', 'types', 'gc', 'inspect'
+        'builtins', '__builtins__', 'types', 'gc', 'inspect',
+        'base64', 'gzip', 'random', 'time', 'tempfile',
+        # Standard library - core functionality
+        'math', 'ast', 'collections', 'enum', 'itertools', 'logging',
+        'multiprocessing', 'numbers', 're', 'string', 'queue', 'traceback', 'typing',
+        # Third-party libraries used in tasks
+        'numpy', 'scipy', 'cvxpy', 'networkx', 'ortools', 'sklearn',
+        'sympy', 'pysat', 'mpmath', 'numba', 'cryptography', 'faiss',
+        'hdbscan', 'ot', 'orjson'
     }
     
     # Specific attributes that are commonly targets for tampering
