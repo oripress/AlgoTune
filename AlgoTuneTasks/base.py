@@ -508,14 +508,44 @@ class Task:
         disable_rlimit_as = pool_params.get("disable_rlimit_as", False)
         logging.info(f"GVP POOL_SETUP: num_workers={num_workers}, maxtasksperchild={maxtasks}, mem_limit_bytes={mem_limit_bytes}, disable_rlimit_as={disable_rlimit_as}")
 
+        # CRITICAL: Set threading env vars BEFORE creating pool to prevent fork+OpenMP deadlocks
+        # This is essential for libraries like FAISS that use OpenMP
+        os.environ.setdefault("OMP_NUM_THREADS", "1")
+        os.environ.setdefault("MKL_NUM_THREADS", "1")
+        os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+        os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+        logging.info("GVP POOL_SETUP: Set threading env vars to prevent fork+OpenMP deadlocks")
+
+        start_method_override = os.environ.get("ALGO_MP_START_METHOD")
         try:
-            mp_context = multiprocessing.get_context('fork')
-            logging.info(f"GVP POOL_INIT: Successfully got 'fork' multiprocessing context.")
+            if start_method_override:
+                mp_context = multiprocessing.get_context(start_method_override)
+                logging.info(
+                    "GVP POOL_INIT: Using multiprocessing context override '%s'.",
+                    start_method_override,
+                )
+            else:
+                mp_context = multiprocessing.get_context()
+                logging.info(
+                    "GVP POOL_INIT: Using default multiprocessing context '%s'.",
+                    mp_context.get_start_method(),
+                )
         except Exception as e:
-            logging.warning(f"GVP POOL_INIT: Failed to get 'fork' context, falling back to default. Error: {e}")
+            logging.warning(
+                "GVP POOL_INIT: Failed to get multiprocessing context%s, falling back to default. Error: %s",
+                f" '{start_method_override}'" if start_method_override else "",
+                e,
+            )
             mp_context = multiprocessing
 
-        logging.info(f"GVP POOL_INIT: Creating multiprocessing.Pool (using {mp_context.get_start_method()} context) with num_workers={num_workers}, maxtasksperchild={maxtasks}, mem_limit_bytes={mem_limit_bytes}, disable_rlimit_as={disable_rlimit_as}")
+        logging.info(
+            "GVP POOL_INIT: Creating multiprocessing.Pool (using %s context) with num_workers=%s, maxtasksperchild=%s, mem_limit_bytes=%s, disable_rlimit_as=%s",
+            mp_context.get_start_method(),
+            num_workers,
+            maxtasks,
+            mem_limit_bytes,
+            disable_rlimit_as,
+        )
         pool = mp_context.Pool(
             processes=num_workers,
             initializer=_pool_worker_initializer,

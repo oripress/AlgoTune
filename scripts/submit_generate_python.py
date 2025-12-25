@@ -159,7 +159,15 @@ def setup_environment(project_root: Path, standalone: bool = False) -> Dict[str,
     
     # Override with standalone-friendly defaults if needed
     if standalone:
-        # Use local paths for standalone mode if not set
+        # Respect explicit environment variables when config.env is missing.
+        if "DATA_DIR" not in env_vars and os.environ.get("DATA_DIR"):
+            env_vars["DATA_DIR"] = os.environ["DATA_DIR"]
+        if "TEMP_DIR_STORAGE" not in env_vars and os.environ.get("TEMP_DIR_STORAGE"):
+            env_vars["TEMP_DIR_STORAGE"] = os.environ["TEMP_DIR_STORAGE"]
+        if "TASKS_ROOT" not in env_vars and os.environ.get("TASKS_ROOT"):
+            env_vars["TASKS_ROOT"] = os.environ["TASKS_ROOT"]
+
+        # Use local paths for standalone mode if still not set
         if "DATA_DIR" not in env_vars:
             env_vars["DATA_DIR"] = str(project_root / "data")
         if "TEMP_DIR_STORAGE" not in env_vars:
@@ -276,11 +284,11 @@ def update_summary_file(summary_file: Path, results: Dict) -> None:
         json.dump(summary, f, indent=2)
 
 
-def run_standalone_mode(target_time_ms: int = None, task_name: str = None, 
+def run_standalone_mode(target_time_ms: int = None, task_name: str = None,
                        data_dir: Path = None, project_root: Path = None,
                        sequential: bool = False, task_list: str = None,
                        task_list_file: Path = None, tasks: List[str] = None,
-                       lazy: bool = False) -> None:
+                       lazy: bool = False, n_override: int = None) -> None:
     """Run timing evaluation in standalone mode (no SLURM)."""
     if project_root is None:
         project_root = Path.cwd()
@@ -467,10 +475,14 @@ def run_standalone_mode(target_time_ms: int = None, task_name: str = None,
                     print(f"{now()}: ❌ No cached target time for '{task}', skipping")
                     continue
             
-            # Get cached override_k if available
-            override_k = summary.get(task, {}).get("n")
-            if override_k:
-                print(f"{now()}: Using cached n={override_k} for '{task}'")
+            # Get cached override_k if available (override takes priority)
+            if n_override is not None:
+                override_k = n_override
+                print(f"{now()}: Using override n={override_k} for '{task}'")
+            else:
+                override_k = summary.get(task, {}).get("n")
+                if override_k:
+                    print(f"{now()}: Using cached n={override_k} for '{task}'")
             
             print(f"{now()}: Target time for '{task}': {task_target_time}ms")
             
@@ -518,8 +530,10 @@ def run_standalone_mode(target_time_ms: int = None, task_name: str = None,
                     print(f"{now()}: ❌ No cached target time for '{task}', skipping")
                     continue
             
-            # Get cached override_k if available
-            override_k = summary.get(task, {}).get("n")
+            # Get cached override_k if available (override takes priority)
+            override_k = n_override if n_override is not None else summary.get(task, {}).get("n")
+            if n_override is not None:
+                print(f"{now()}: Using override n={override_k} for '{task}'")
             
             print(f"{now()}: Target time for '{task}': {task_target_time}ms")
             
@@ -877,9 +891,12 @@ def main() -> None:
                        help="List of task names to run (standalone mode only). Example: --tasks svm kmeans")
     parser.add_argument("--lazy", action="store_true",
                        help="Only generate datasets for explicitly requested tasks (standalone mode only)")
+    parser.add_argument("--n", type=int,
+                       help="Override dataset n (standalone mode only, takes priority over target-time-ms)")
     args = parser.parse_args()
     
     target_time_ms = args.target_time_ms
+    n_override = args.n
     
     # Detect project root
     script_dir = Path(__file__).resolve().parent
@@ -915,10 +932,14 @@ def main() -> None:
             task_list=args.task_list,
             task_list_file=args.task_list_file,
             tasks=args.tasks,
-            lazy=args.lazy
+            lazy=args.lazy,
+            n_override=n_override
         )
     else:
         # Run in SLURM mode
+        if n_override is not None:
+            print("❌ --n is only supported in standalone mode")
+            sys.exit(1)
         if target_time_ms is None:
             print("❌ SLURM mode requires --target-time-ms to be specified")
             sys.exit(1)

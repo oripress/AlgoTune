@@ -20,9 +20,16 @@ except ImportError:
 def _pool_worker_initializer(memory_limit_bytes: int, disable_rlimit_as: bool = False):
     """Initializer for pool workers to set memory limits and suppress logs."""
     try:
+        # CRITICAL: Set OpenMP/MKL to single-threaded BEFORE any computation
+        # This prevents fork+OpenMP deadlocks with libraries like FAISS
+        os.environ["OMP_NUM_THREADS"] = "1"
+        os.environ["MKL_NUM_THREADS"] = "1"
+        os.environ["OPENBLAS_NUM_THREADS"] = "1"
+        os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
         worker_pid = os.getpid()
         start_time = time.time()
-        
+
         # Preserve any FileHandler(s) that were configured in the parent so that
         # worker-side logs continue to flow into the same log file.  Remove all
         # other handlers (e.g. StreamHandlers inherited from the parent) to

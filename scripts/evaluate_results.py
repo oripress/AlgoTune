@@ -838,29 +838,49 @@ def update_agent_summary(results: List[EvaluationResult], summary_file: Path, ge
         logging.info(f"{display_name}: Harmonic mean = {harmonic_mean:.4f}x "
                     f"(completed {completed_tasks}/{total_tasks} tasks)")
     
-    # Create ordered dictionary with harmonic means first
+    # Preserve existing summary and only update models from this evaluation run
+    # Start with existing data
     from collections import OrderedDict
-    ordered_summary = OrderedDict()
-    
-    # Add harmonic means section first (sorted by score descending)
-    sorted_models = sorted(model_harmonic_means.items(), key=lambda x: (-x[1], x[0]))
-    ordered_summary["_overall_scores"] = OrderedDict()
-    for model_name, mean in sorted_models:
-        ordered_summary["_overall_scores"][normalize_model_name(model_name)] = {
+    ordered_summary = OrderedDict(summary_data) if isinstance(summary_data, OrderedDict) else OrderedDict(summary_data)
+
+    # Get set of models being updated in this run
+    models_in_this_run = set(model_results.keys())
+
+    # Update/create _overall_scores section
+    if "_overall_scores" not in ordered_summary:
+        ordered_summary["_overall_scores"] = OrderedDict()
+
+    # Remove old scores for models in this run, keep others
+    existing_scores = ordered_summary.get("_overall_scores", {})
+    updated_scores = OrderedDict()
+    for model_key, score_data in existing_scores.items():
+        model_name = score_data.get("model_name", model_key)
+        if model_name not in models_in_this_run:
+            # Keep existing scores for models not in this run
+            updated_scores[model_key] = score_data
+
+    # Add new/updated scores for models in this run
+    for model_name, mean in model_harmonic_means.items():
+        updated_scores[normalize_model_name(model_name)] = {
             "harmonic_mean": f"{mean:.4f}",
             "model_name": model_name
         }
-    
-    # Then add individual task results
+
+    # Sort all scores by harmonic mean descending
+    sorted_scores = sorted(updated_scores.items(),
+                          key=lambda x: (-float(x[1].get("harmonic_mean", "0")), x[0]))
+    ordered_summary["_overall_scores"] = OrderedDict(sorted_scores)
+
+    # Update individual task results - only for models in this run
     for result in results:
         if result.task_name not in ordered_summary:
             ordered_summary[result.task_name] = {}
-        
+
         if result.success and result.speedup is not None:
             speedup_str = f"{result.speedup:.4f}"
         else:
             speedup_str = "N/A"
-        
+
         ordered_summary[result.task_name][result.model_name] = {
             "final_speedup": speedup_str
         }
