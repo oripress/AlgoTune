@@ -653,15 +653,9 @@ class BaseLLMInterface:
         if not contains_validation:
             logging.error("Validation function failed to be included in the message")
 
-        # For Anthropic models (Claude), we need to ensure first message has user role
-        if "claude" in self.model_config.name.lower():
-            # Add a placeholder user message first
-            self.state.messages.append({"role": "user", "content": "."})
-            # Then add system message
-            self.state.messages.append({"role": "system", "content": combined_content})
-        else:
-            # For other models, just add the system message
-            self.state.messages.append({"role": "system", "content": combined_content})
+        # Use user role for initial instructions (works better than system role)
+        # Testing showed user-only messages are more efficient and get better model responses
+        self.state.messages.append({"role": "user", "content": combined_content})
 
     def get_current_code(self) -> str:
         """Get the current state of solver.py"""
