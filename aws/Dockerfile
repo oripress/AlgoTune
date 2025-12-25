@@ -26,10 +26,18 @@ WORKDIR /app
 # Copy project files
 COPY pyproject.toml /app/pyproject.toml
 COPY algotune.py /app/algotune.py
+COPY algotune.sh /app/algotune.sh
 COPY config.env /opt/config.env
 
 COPY AlgoTuner /app/AlgoTuner
 COPY AlgoTuneTasks /app/AlgoTuneTasks
+COPY scripts /app/scripts
+
+# Make shell scripts executable
+RUN chmod +x /app/algotune.sh /app/scripts/*.sh
+
+# Create directories for logs and outputs
+RUN mkdir -p /app/logs /app/aws/outputs /app/aws/errors /app/reports
 
 # Install build tools
 RUN python3 -m pip install --upgrade pip setuptools wheel
