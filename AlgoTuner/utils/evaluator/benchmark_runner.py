@@ -123,7 +123,8 @@ class HardBenchmarkFailure(Exception):
 class BenchmarkPool:
     """
     Helper for running benchmarks with retries and hard resets on repeated timeouts.
-    Uses multiprocessing.get_context('spawn') to avoid file descriptor inheritance issues.
+    Uses multiprocessing.get_context('forkserver') for process isolation; may fall back to
+    spawn in isolated benchmark retry paths on ChildProcessError.
     Automatically reloads CODE_DIR modules on initialization and after reaching timeout thresholds,
     ensuring that worker processes always run fresh solver code.
     """
