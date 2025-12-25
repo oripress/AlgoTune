@@ -278,11 +278,13 @@ class FileManager:
 
     def __init__(self, state: EditorState):
         self.state = state
+        self.last_trimmed_lines = 0  # Track trailing lines trimmed in last read
 
     def read_file(self, file_path: Path) -> List[str]:
         """
         Reads a file and returns its content as a list of strings (lines).
         Handles both relative and absolute paths.
+        Strips excessive trailing whitespace to reduce token waste.
         """
         abs_path = self._make_absolute(file_path)
         logging.info(f"FileManager: Attempting to read file at absolute path: {abs_path}")
@@ -307,6 +309,16 @@ class FileManager:
         try:
             with open(abs_path, "r", encoding="utf-8") as f:
                 lines = f.readlines()
+
+            # Strip excessive trailing whitespace/empty lines to reduce token waste
+            original_len = len(lines)
+            while lines and lines[-1].strip() == '':
+                lines.pop()
+
+            self.last_trimmed_lines = original_len - len(lines)
+            if self.last_trimmed_lines > 0:
+                logging.info(f"FileManager: Stripped {self.last_trimmed_lines} trailing empty lines from {abs_path}")
+
             if not lines and file_size == 0 :
                 logging.info(f"FileManager: Successfully read file {abs_path}. File was empty (0 lines, 0 bytes).")
             elif not lines and file_size > 0:
@@ -425,6 +437,10 @@ class FileManager:
                 header += "\n..."
             if view_end_line < total_lines:
                 formatted_content += "\n..."
+
+            # Add note if trailing empty lines were trimmed
+            if self.last_trimmed_lines > 0:
+                formatted_content += f"\n... [{self.last_trimmed_lines} trailing empty lines trimmed]"
 
             return {
                 "success": True,
@@ -1486,12 +1502,14 @@ class Editor:
             abs_path = self.file_manager._make_absolute(file_path)
             original_lines = []
             old_content = ""
+            trimmed_lines_count = 0  # Initialize trim count
 
             if abs_path.exists():
                 logging.info(f"File {abs_path} exists, reading content.")
                 try:
                     original_lines = self.file_manager.read_file(file_path) # Read existing file
                     old_content = "".join(original_lines)
+                    trimmed_lines_count = self.file_manager.last_trimmed_lines  # Capture trim count
                 except Exception as e:
                     logging.error(f"Failed to read existing file {file_path}: {e}")
                     # Return error if reading an *existing* file fails
@@ -2184,15 +2202,18 @@ class Editor:
                 "file_path": str(file_path),
                 "compilation_status": compilation_status, # Include compilation status
                 "reverted_due_to_compilation": reverted_due_to_compilation, # Include revert status
+                "trimmed_lines_count": trimmed_lines_count, # Track trailing lines trimmed
             }
 
         except Exception as e:
             tb = traceback.format_exc()
             logging.error(tb)
             current = old_content
+            error_trimmed_lines = trimmed_lines_count  # Use the original trim count
             if file_path.exists():
                 try:
                     current = "".join(self.file_manager.read_file(file_path))
+                    error_trimmed_lines = self.file_manager.last_trimmed_lines  # Update if we re-read
                 except:
                     pass  # Keep the old_content if we can't read the file
             return {
@@ -2207,6 +2228,7 @@ class Editor:
                 "file_path": str(file_path),
                 "compilation_status": compilation_status, # Include compilation status
                 "reverted_due_to_compilation": reverted_due_to_compilation, # Include revert status
+                "trimmed_lines_count": error_trimmed_lines, # Track trailing lines trimmed
             }
         finally:
             # No temporary file is used anymore

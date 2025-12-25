@@ -366,7 +366,12 @@ class MessageWriter:
         else:
             lines_out.append("Contents of current file:")
             lines_out.append(f"File {filename} is empty.")
-            
+
+        # Add note if trailing empty lines were trimmed
+        trimmed_count = raw_result.get("trimmed_lines_count", 0)
+        if trimmed_count > 0:
+            lines_out.append(f"... [{trimmed_count} trailing empty lines trimmed]")
+
         # 5. Add performance statistics if available
         perf_score = raw_result.get("performance_score")
         if perf_score:

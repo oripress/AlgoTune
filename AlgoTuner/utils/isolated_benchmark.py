@@ -690,18 +690,39 @@ def _fork_run_worker(
         
         total_warmup_ns = 0
         warmup_result = None
-        
+
+        # Capture stdout/stderr during warmup to catch any error messages
+        from io import StringIO
+        from contextlib import redirect_stdout, redirect_stderr
+        warmup_stdout = StringIO()
+        warmup_stderr = StringIO()
+
         # Standard: 1 warmup per process
         t_w0 = time.perf_counter_ns()
-        warmup_result = solve(warmup_problem)
+        with redirect_stdout(warmup_stdout), redirect_stderr(warmup_stderr):
+            warmup_result = solve(warmup_problem)
         warmup_result = deep_materialize_fast(warmup_result)  # Force materialization
         single_warmup_ns = time.perf_counter_ns() - t_w0
         total_warmup_ns += single_warmup_ns
         logging.debug(f"[isolated_bm child] Warmup completed: {single_warmup_ns/1e6:.3f}ms")
-        
+
         # Check if warmup returned None
         if warmup_result is None:
-            raise ValueError("Solver returned None during warmup instead of a valid result dictionary")
+            captured_out = warmup_stdout.getvalue()
+            captured_err = warmup_stderr.getvalue()
+            error_details = []
+            if captured_out.strip():
+                error_details.append(f"Stdout: {captured_out.strip()}")
+            if captured_err.strip():
+                error_details.append(f"Stderr: {captured_err.strip()}")
+
+            if error_details:
+                error_msg = "Solver returned None during warmup. Captured output:\n" + "\n".join(error_details)
+            else:
+                error_msg = ("Solver returned None during warmup instead of a valid result dictionary.\n"
+                           "This usually means an exception was caught and silently ignored.\n"
+                           "Check your solve() method for 'except:' blocks that return None without logging the error.")
+            raise ValueError(error_msg)
             
         warmup_ns = total_warmup_ns
         logging.debug(f"[isolated_bm child] Warmup completed, total time: {warmup_ns/1e6:.3f}ms, result type: {type(warmup_result)}")
@@ -1828,11 +1849,33 @@ def _fork_run_worker_with_fetch(
         from AlgoTuner.utils.timing_config import WARMUPS
 
         # Warmup phase - standard: 1 warmup
+        # Capture stdout/stderr during warmup to catch any error messages
+        from io import StringIO
+        from contextlib import redirect_stdout, redirect_stderr
+        warmup_stdout = StringIO()
+        warmup_stderr = StringIO()
+
         t_w0 = time.perf_counter_ns()
-        warmup_result = solve(warmup_problem)
+        with redirect_stdout(warmup_stdout), redirect_stderr(warmup_stderr):
+            warmup_result = solve(warmup_problem)
         warmup_result = deep_materialize_fast(warmup_result)  # Force materialization
+
         if warmup_result is None:
-            raise ValueError("Solver returned None during warmup instead of a valid result dictionary")
+            captured_out = warmup_stdout.getvalue()
+            captured_err = warmup_stderr.getvalue()
+            error_details = []
+            if captured_out.strip():
+                error_details.append(f"Stdout: {captured_out.strip()}")
+            if captured_err.strip():
+                error_details.append(f"Stderr: {captured_err.strip()}")
+
+            if error_details:
+                error_msg = "Solver returned None during warmup. Captured output:\n" + "\n".join(error_details)
+            else:
+                error_msg = ("Solver returned None during warmup instead of a valid result dictionary.\n"
+                           "This usually means an exception was caught and silently ignored.\n"
+                           "Check your solve() method for 'except:' blocks that return None without logging the error.")
+            raise ValueError(error_msg)
         warmup_ns = time.perf_counter_ns() - t_w0
 
         # Timed phase
