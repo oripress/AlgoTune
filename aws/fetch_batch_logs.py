@@ -1,4 +1,19 @@
 #!/usr/bin/env python3
+"""
+OPTIONAL DEBUG TOOL - CloudWatch Logs Fetcher
+
+This script fetches logs directly from CloudWatch Logs instead of S3.
+It is NOT used in the main pipeline (launch-batch.sh).
+
+Use this ONLY for debugging when:
+1. S3 uploads are failing but jobs are running
+2. You need to see container logs immediately without waiting for S3 sync
+3. You have CloudWatch Logs permissions
+
+REQUIRES: IAM permissions for logs:GetLogEvents, logs:DescribeLogStreams
+
+Normal workflow uses S3 for log storage (see download_logs.py instead).
+"""
 import os
 import boto3
 from pathlib import Path

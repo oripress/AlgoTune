@@ -128,19 +128,19 @@ DEFAULT_VPC=$(aws ec2 describe-vpcs --filters "Name=isDefault,Values=true" --que
 if [ -n "$DEFAULT_VPC" ] && [ "$DEFAULT_VPC" != "None" ]; then
   echo "  ✓ Found default VPC: $DEFAULT_VPC"
 
-  # Get first subnet in default VPC
-  AWS_SUBNET_ID=${AWS_SUBNET_ID:-$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$DEFAULT_VPC" --query "Subnets[0].SubnetId" --output text 2>/dev/null || echo "")}
+  # Get all subnets in default VPC (comma-separated) for multi-AZ capacity
+  AWS_SUBNET_ID=${AWS_SUBNET_ID:-$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$DEFAULT_VPC" --query "Subnets[].SubnetId" --output text 2>/dev/null | tr '\t' ',' | sed 's/,$//' || echo "")}
 
   # Get default security group
   AWS_SG_ID=${AWS_SG_ID:-$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$DEFAULT_VPC" "Name=group-name,Values=default" --query "SecurityGroups[0].GroupId" --output text 2>/dev/null || echo "")}
 
-  echo "  ✓ Subnet: $AWS_SUBNET_ID"
+  echo "  ✓ Subnet(s): $AWS_SUBNET_ID"
   echo "  ✓ Security Group: $AWS_SG_ID"
   echo ""
   read -p "Use these network settings? [Y/n]: " USE_AUTO
 
   if [[ "$USE_AUTO" =~ ^[Nn] ]]; then
-    read -p "Enter Subnet ID: " AWS_SUBNET_ID
+    read -p "Enter Subnet ID(s) (comma-separated for multiple AZs): " AWS_SUBNET_ID
     read -p "Enter Security Group ID: " AWS_SG_ID
   fi
 else
@@ -158,18 +158,19 @@ else
 
   # Prompt for subnet
   if [ -n "${AWS_SUBNET_ID:-}" ]; then
-    echo "Current Subnet ID: $AWS_SUBNET_ID"
+    echo "Current Subnet ID(s): $AWS_SUBNET_ID"
     read -p "Keep this value? [Y/n]: " KEEP_SUBNET
     if [[ "$KEEP_SUBNET" =~ ^[Nn] ]]; then
-      read -p "Enter Subnet ID (e.g., subnet-abc123): " AWS_SUBNET_ID
+      read -p "Enter Subnet ID(s) (e.g., subnet-abc123,subnet-def456): " AWS_SUBNET_ID
     fi
   else
-    read -p "Enter Subnet ID (e.g., subnet-abc123): " AWS_SUBNET_ID
+    read -p "Enter Subnet ID(s) (e.g., subnet-abc123,subnet-def456): " AWS_SUBNET_ID
   fi
 
   # Get VPC from subnet to find matching security groups
   if [ -n "$AWS_SUBNET_ID" ]; then
-    VPC_ID=$(aws ec2 describe-subnets --subnet-ids "$AWS_SUBNET_ID" --query 'Subnets[0].VpcId' --output text 2>/dev/null || echo "")
+    PRIMARY_SUBNET=$(echo "$AWS_SUBNET_ID" | cut -d',' -f1)
+    VPC_ID=$(aws ec2 describe-subnets --subnet-ids "$PRIMARY_SUBNET" --query 'Subnets[0].VpcId' --output text 2>/dev/null || echo "")
 
     if [ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ]; then
       echo ""
@@ -250,17 +251,18 @@ echo "Step 4: Docker Image"
 echo "════════════════════════════════════════════════"
 echo ""
 
-# Use public GitHub Container Registry image by default
-ECR_IMAGE_URI="${ECR_IMAGE_URI:-ghcr.io/oripress/algotune:latest}"
+# Use public image by default (users can pull without building)
+DOCKER_IMAGE="${DOCKER_IMAGE:-ghcr.io/oripress/algotune:latest}"
 
-echo "→ Using Docker image: $ECR_IMAGE_URI"
+echo "→ Using Docker image: $DOCKER_IMAGE"
 echo ""
-echo "  ✓ Pre-built public image (no Docker build needed!)"
+echo "  ✓ Using public image (no build required)"
 echo ""
 echo "  To use a custom image instead:"
-echo "    1. Build: docker build -t algotune:latest -f aws/Dockerfile ."
-echo "    2. Push to your ECR: ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/algotune:latest"
-echo "    3. Set ECR_IMAGE_URI in aws/.env"
+echo "    1. Build: ./aws/build-image.sh"
+echo "    2. Tag: docker tag algotune:latest ghcr.io/yourusername/algotune:latest"
+echo "    3. Push: docker push ghcr.io/yourusername/algotune:latest"
+echo "    4. Update DOCKER_IMAGE in aws/.env"
 echo ""
 
 #######################################################
@@ -275,11 +277,12 @@ echo ""
 # Use existing values or defaults
 BATCH_JOB_QUEUE_NAME=${BATCH_JOB_QUEUE_NAME:-AlgoTuneQueue}
 BATCH_JOB_DEF_NAME=${BATCH_JOB_DEF_NAME:-AlgoTuneJobDef}
-BATCH_COMPUTE_ENV_NAME=${BATCH_COMPUTE_ENV_NAME:-AlgoTuneCE}
-BATCH_INSTANCE_TYPES=${BATCH_INSTANCE_TYPES:-c6a.2xlarge}
+BATCH_COMPUTE_ENV_NAME=${BATCH_COMPUTE_ENV_NAME:-AlgoTuneCE-r6a-fixed}
+BATCH_INSTANCE_TYPES=${BATCH_INSTANCE_TYPES:-r6a.large}
 BATCH_MAX_VCPUS=${BATCH_MAX_VCPUS:-8}
-BATCH_JOB_VCPUS=${BATCH_JOB_VCPUS:-8}
-BATCH_JOB_MEMORY_MB=${BATCH_JOB_MEMORY_MB:-16000}
+BATCH_MIN_VCPUS=${BATCH_MIN_VCPUS:-2}
+BATCH_JOB_VCPUS=${BATCH_JOB_VCPUS:-2}
+BATCH_JOB_MEMORY_MB=${BATCH_JOB_MEMORY_MB:-15000}
 
 echo "Using Batch configuration:"
 echo "  Queue: $BATCH_JOB_QUEUE_NAME"
@@ -288,6 +291,8 @@ echo "  Compute Environment: $BATCH_COMPUTE_ENV_NAME"
 echo "  Instance Type: $BATCH_INSTANCE_TYPES"
 echo "  vCPUs: $BATCH_JOB_VCPUS"
 echo "  Memory: ${BATCH_JOB_MEMORY_MB}MB"
+echo "  Min vCPUs: $BATCH_MIN_VCPUS"
+echo "  Note: Defaults target one job per instance with SLURM-like memory (16GB)."
 echo ""
 
 #######################################################
@@ -312,8 +317,8 @@ AWS_SG_ID=$AWS_SG_ID
 # S3 Results Bucket
 S3_RESULTS_BUCKET=$S3_RESULTS_BUCKET
 
-# ECR Image
-ECR_IMAGE_URI=$ECR_IMAGE_URI
+# Docker Image (DockerHub)
+DOCKER_IMAGE=$DOCKER_IMAGE
 
 # AWS Batch Configuration
 BATCH_JOB_QUEUE_NAME=$BATCH_JOB_QUEUE_NAME
@@ -321,6 +326,7 @@ BATCH_JOB_DEF_NAME=$BATCH_JOB_DEF_NAME
 BATCH_COMPUTE_ENV_NAME=$BATCH_COMPUTE_ENV_NAME
 BATCH_INSTANCE_TYPES=$BATCH_INSTANCE_TYPES
 BATCH_MAX_VCPUS=$BATCH_MAX_VCPUS
+BATCH_MIN_VCPUS=$BATCH_MIN_VCPUS
 BATCH_JOB_VCPUS=$BATCH_JOB_VCPUS
 BATCH_JOB_MEMORY_MB=$BATCH_JOB_MEMORY_MB
 EOF
@@ -341,12 +347,10 @@ echo "════════════════════════�
 echo ""
 echo "Next steps:"
 echo ""
-echo "1. Build and push Docker image:"
-echo "   aws ecr get-login-password --region $AWS_REGION | \\"
-echo "       docker login --username AWS --password-stdin $ECR_IMAGE_URI"
-echo "   docker build -t algotune:latest -f aws/Dockerfile ."
-echo "   docker tag algotune:latest $ECR_IMAGE_URI"
-echo "   docker push $ECR_IMAGE_URI"
+echo "1. Build and push Docker image to DockerHub:"
+echo "   ./aws/build-image.sh"
+echo "   docker tag algotune:latest $DOCKER_IMAGE"
+echo "   docker push $DOCKER_IMAGE"
 echo ""
 echo "2. Launch batch jobs:"
 echo "   ./aws/launch-batch.sh"
