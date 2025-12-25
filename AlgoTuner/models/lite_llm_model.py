@@ -93,36 +93,95 @@ class LiteLLMModel:
     
     def _extract_cost_from_response(self, response) -> float:
         """Extract cost from LiteLLM response with budget protection."""
-        
+
         # Method 1: Standard LiteLLM hidden params
         if hasattr(response, '_hidden_params') and response._hidden_params:
             cost = response._hidden_params.get("response_cost")
-            if cost is not None and cost > 0:
+            logging.debug(f"_hidden_params.response_cost value: {cost} (type: {type(cost)})")
+            if cost is not None and cost >= 0:  # Accept 0 cost (e.g., free models, reasoning-only responses)
+                # Warn if cost is 0 with suspicious token counts (possible API bug)
+                if cost == 0 and hasattr(response, 'usage') and response.usage:
+                    usage_dict = vars(response.usage) if hasattr(response.usage, '__dict__') else {}
+                    total_tokens = usage_dict.get('total_tokens', 0)
+                    prompt_tokens = usage_dict.get('prompt_tokens', 0)
+                    completion_tokens = usage_dict.get('completion_tokens', 0)
+
+                    # Check for reasoning tokens in nested structure
+                    reasoning_tokens = 0
+                    completion_details = usage_dict.get('completion_tokens_details')
+                    if completion_details and hasattr(completion_details, 'reasoning_tokens'):
+                        reasoning_tokens = completion_details.reasoning_tokens or 0
+
+                    # Warn if we have reasoning tokens but $0 cost, or if total is 0 despite having reasoning
+                    if reasoning_tokens > 0:
+                        if total_tokens == 0:
+                            logging.warning(f"⚠️  API returned total_tokens=0 but {reasoning_tokens} reasoning tokens exist - cost tracking may be broken!")
+                        logging.warning(f"⚠️  API returned $0 cost for {reasoning_tokens} reasoning tokens - cost may be underreported (preview model possibly free?)")
+
                 logging.debug(f"Cost extracted from _hidden_params: ${cost}")
                 return float(cost)
-        
+
         # Method 2: OpenRouter usage format (usage: {include: true})
         if hasattr(response, 'usage') and response.usage:
+            # Try direct attribute access
             if hasattr(response.usage, 'cost') and response.usage.cost is not None:
                 cost = float(response.usage.cost)
-                if cost > 0:
+                logging.debug(f"response.usage.cost value: {cost}")
+                if cost >= 0:  # Accept 0 cost
                     logging.debug(f"Cost extracted from response.usage.cost: ${cost}")
                     return cost
+            # Try dict-style access
             elif isinstance(response.usage, dict) and 'cost' in response.usage:
                 cost = response.usage.get('cost')
+                logging.debug(f"response.usage['cost'] value: {cost}")
                 if cost is not None:
                     cost = float(cost)
-                    if cost > 0:
+                    if cost >= 0:  # Accept 0 cost
                         logging.debug(f"Cost extracted from response.usage['cost']: ${cost}")
                         return cost
-        
+            # Try getting usage as dict and checking for cost
+            elif hasattr(response.usage, '__dict__'):
+                usage_dict = vars(response.usage)
+                if 'cost' in usage_dict and usage_dict['cost'] is not None:
+                    cost = float(usage_dict['cost'])
+                    logging.debug(f"Cost extracted from usage.__dict__: ${cost}")
+                    if cost >= 0:  # Accept 0 cost
+                        return cost
+
+        # Method 3: Check for cost in the main response dict
+        if isinstance(response, dict):
+            if 'cost' in response and response['cost'] is not None:
+                cost = float(response['cost'])
+                logging.debug(f"Cost extracted from response['cost']: ${cost}")
+                if cost >= 0:  # Accept 0 cost
+                    return cost
+
         # Budget protection: If no cost found, fail fast to prevent budget depletion
         logging.error(f"Cannot extract cost from response for model {self.model_name}")
+        logging.error(f"Response type: {type(response)}")
         logging.error(f"Response has _hidden_params: {hasattr(response, '_hidden_params')}")
+        if hasattr(response, '_hidden_params') and response._hidden_params:
+            logging.error(f"_hidden_params content: {response._hidden_params}")
         logging.error(f"Response has usage: {hasattr(response, 'usage')}")
-        if hasattr(response, 'usage'):
-            logging.error(f"Usage type: {type(response.usage)}, has cost: {hasattr(response.usage, 'cost') if response.usage else False}")
-        
+        if hasattr(response, 'usage') and response.usage:
+            logging.error(f"Usage type: {type(response.usage)}")
+            logging.error(f"Usage has cost attr: {hasattr(response.usage, 'cost')}")
+            if hasattr(response.usage, '__dict__'):
+                logging.error(f"Usage __dict__: {vars(response.usage)}")
+            elif isinstance(response.usage, dict):
+                logging.error(f"Usage dict: {response.usage}")
+            else:
+                logging.error(f"Usage object: {response.usage}")
+
+        # Log the full response structure for debugging (truncated)
+        try:
+            response_str = str(response)
+            if len(response_str) > 500:
+                response_str = response_str[:500] + "... (truncated)"
+            logging.error(f"Response structure: {response_str}")
+        except Exception as e:
+            logging.error(f"Could not log response structure: {e}")
+
         raise ValueError(f"Cannot extract cost from {self.model_name} response - budget protection engaged. Check model configuration and API response format.")
 
     def _is_retryable_error(self, error: Exception) -> bool:
@@ -212,7 +271,7 @@ class LiteLLMModel:
                 # Create a minimal message to prevent empty content error
                 completion_messages = [{'role': 'user', 'content': 'Hello'}]
                 logging.debug("Added fallback user message to prevent empty content error")
-            
+
             logging.debug(f"Final completion_messages count: {len(completion_messages)}")
             for i, msg in enumerate(completion_messages):
                 logging.debug(f"Final message {i}: role='{msg.get('role', 'MISSING')}', content_length={len(str(msg.get('content', '')))}")
@@ -223,7 +282,7 @@ class LiteLLMModel:
                 "api_key": self.api_key,
                 "timeout": 1800,  # 30 minutes for deep thinking models
             }
-            
+
             # Add max_tokens or max_completion_tokens if available
             if self.model_name in ["gpt-5", "gpt-5-mini"]:
                 # GPT-5 and GPT-5-mini only support max_completion_tokens
@@ -237,48 +296,74 @@ class LiteLLMModel:
             # Add system prompt if extracted for Vertex AI
             if system_prompt_content:
                 completion_params["system_prompt"] = system_prompt_content
-            
+
+            # Prepare extra_body for OpenRouter-specific parameters
+            extra_body = {}
+
             if self.additional_params:
+                # Extract OpenRouter-specific parameters that go in extra_body
+                openrouter_params = {}
+                if 'usage' in self.additional_params:
+                    openrouter_params['usage'] = self.additional_params['usage']
+                    logging.debug(f"Adding usage parameter to extra_body: {openrouter_params['usage']}")
+
+                # Add reasoning parameter if present (supported by most OpenRouter models including Minimax)
+                if 'reasoning' in self.additional_params:
+                    openrouter_params['reasoning'] = self.additional_params['reasoning']
+                    logging.debug(f"Adding reasoning parameter to extra_body: {openrouter_params['reasoning']}")
+
+                # Merge with any existing extra_body from config
+                if 'extra_body' in self.additional_params:
+                    if isinstance(self.additional_params['extra_body'], dict):
+                        openrouter_params.update(self.additional_params['extra_body'])
+
+                if openrouter_params:
+                    extra_body.update(openrouter_params)
+
                 # Handle Gemini thinking parameters specially
                 if self.model_name.startswith("gemini/") and any(k in self.additional_params for k in ['thinking_budget', 'include_thoughts']):
                     # Convert thinking_budget and include_thoughts to the thinking parameter format
                     thinking_budget = self.additional_params.get('thinking_budget', 32768)
                     include_thoughts = self.additional_params.get('include_thoughts', True)
-                    
+
                     # Create the thinking parameter in the format LiteLLM expects
                     completion_params['thinking'] = {
                         "type": "enabled",
                         "budget_tokens": thinking_budget
                     }
-                    
+
                     # Handle include_thoughts separately if needed
                     if include_thoughts:
                         completion_params['include_thoughts'] = True
-                    
+
                     # Add other params except the ones we've handled
-                    other_params = {k: v for k, v in self.additional_params.items() 
-                                  if k not in ['thinking_budget', 'include_thoughts']}
+                    other_params = {k: v for k, v in self.additional_params.items()
+                                  if k not in ['thinking_budget', 'include_thoughts', 'usage', 'reasoning', 'extra_body']}
                     completion_params.update(other_params)
-                    
+
                     logging.debug(f"Converted Gemini thinking params: thinking={completion_params['thinking']}, include_thoughts={include_thoughts}")
                 elif self.model_name in ["gpt-5", "gpt-5-mini"] and 'reasoning_effort' in self.additional_params:
                     # Handle GPT-5/GPT-5-mini reasoning_effort parameter
                     reasoning_effort = self.additional_params.get('reasoning_effort', 'high')
-                    
+
                     # Pass reasoning_effort in the format litellm expects
                     completion_params['reasoning_effort'] = reasoning_effort
-                    
-                    # Add other params except reasoning_effort
-                    other_params = {k: v for k, v in self.additional_params.items() 
-                                  if k != 'reasoning_effort'}
+
+                    # Add other params except reasoning_effort and openrouter params
+                    other_params = {k: v for k, v in self.additional_params.items()
+                                  if k not in ['reasoning_effort', 'usage', 'reasoning', 'extra_body']}
                     completion_params.update(other_params)
-                    
+
                     logging.debug(f"{self.model_name} reasoning_effort set to: {reasoning_effort}")
                 else:
-                    # For other models, pass params as-is
-                    completion_params.update(self.additional_params)
-                    
+                    # For other models, pass params as-is but exclude openrouter-specific ones
+                    other_params = {k: v for k, v in self.additional_params.items()
+                                  if k not in ['usage', 'reasoning', 'extra_body']}
+                    completion_params.update(other_params)
+
                 logging.debug(f"Passing additional params to litellm: {self.additional_params}")
+                if extra_body:
+                    logging.debug(f"Passing extra_body to litellm: {extra_body}")
 
             if self._uses_openai_responses_api() and 'reasoning_effort' in completion_params:
                 reasoning_effort_value = completion_params.pop('reasoning_effort')
@@ -306,7 +391,11 @@ class LiteLLMModel:
                 logging.debug(f"Gemini API call - Has system prompt: {system_prompt_content is not None}")
                 if completion_messages:
                     logging.debug(f"Gemini API call - First message: {completion_messages[0]}")
-            
+
+            # Add extra_body if present
+            if extra_body:
+                completion_params['extra_body'] = extra_body
+
             response = litellm.completion(
                 **completion_params,
                 drop_params=self.drop_call_params,
