@@ -58,7 +58,7 @@ echo "CLAUDE_API_KEY=your_key_here" > .env
 cat reports/agent_summary.json
 ```
 
-### Running on SLURM (cluster)  
+### Running on SLURM (cluster)
 When `sbatch` is available the launcher auto-detects SLURM. Use the same two-step workflow:
 
 ```bash
@@ -75,7 +75,100 @@ sudo singularity build algotune.sif slurm/image.def
 cat reports/agent_summary.json
 ```
 
+### Running on AWS Batch (cloud)
+Running AlgoTune on AWS is simple and requires only a minimal setup.
+
+#### Prerequisites & Permissions
+
+**AWS IAM Policy** - Create and attach this policy to your IAM user:
+
+1. Go to **IAM → Policies → Create policy**
+2. Click **JSON** tab and paste:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sts:GetCallerIdentity",
+        "batch:*",
+        "ecr:*",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeVpcs",
+        "ec2:DescribeRouteTables",
+        "ec2:DescribeVpcEndpoints",
+        "ec2:CreateVpcEndpoint",
+        "ec2:ModifyVpcEndpoint",
+        "ec2:DescribeInstances",
+        "ec2:RunInstances",
+        "ec2:TerminateInstances",
+        "ec2:CreateTags",
+        "s3:CreateBucket",
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "iam:PassRole",
+        "iam:GetRole",
+        "iam:CreateRole",
+        "iam:AttachRolePolicy",
+        "iam:CreateInstanceProfile",
+        "iam:AddRoleToInstanceProfile",
+        "iam:GetInstanceProfile",
+        "iam:CreateServiceLinkedRole",
+        "logs:GetLogEvents",
+        "ecs:ListTasks"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+3. Click **Next**, name it (e.g., `AlgoTuneBatchPolicy`)
+4. Click **Create policy**
+5. Go to **IAM → Users → [your user] → Permissions → Add permissions → Attach policies directly**
+6. Search for `AlgoTuneBatchPolicy` and attach it
+
+**If you have restricted permissions**, manually create:
+- **S3 bucket**: `algotune-results-{your-account-id}` in your region
+- **ECR repository**: `algotune` in your region
+- **VPC resources**: Note your subnet ID and security group ID
+
+#### Quick Start
+
+```bash
+# One-time setup (5 minutes)
+./aws/setup-aws.sh        # Interactive AWS configuration
+# Creates aws/.env with AWS credentials and settings
+
+# Launch jobs (30 seconds)
+./aws/launch-batch.sh     # Interactive: select model and tasks
+# Choose: all tasks, or specific tasks
+
+**Docker Image**: A pre-built public image is available at `ghcr.io/oripress/algotune:latest`. 
+
+**Configuration Structure:**
+- **`.env`** (root) - API keys used by both local and AWS runs (OPENROUTER_API_KEY, CLAUDE_API_KEY, etc.)
+- **`aws/.env`** - AWS-specific settings (credentials, S3 bucket, ECR URI, Batch configs)
+
+Results are automatically uploaded to S3. HTML visualizations are generated automatically (matching the AlgoTune.io interface). See `aws/` directory for all scripts and configuration options.
+
 ---
+
+## Viewing Results
+
+Extract the best code for each model/task:
+```bash
+python3 scripts/extract_results_from_logs.py
+```
+
+Or generate HTML logs in the style of AlgoTune.io:
+```bash
+./html/build-html.sh
+```
 
 ## Evaluating Code Without Running the Agent
 
@@ -91,158 +184,6 @@ You can add code for each task in directories (following the `./results/` struct
 # View aggregated speedup results
 cat reports/evaluate_summary.json
 ```
-
----
-
-## 🛠️ Contributing New Problems to AlgoTune
-
-We welcome contributions of new optimization problems! Each problem requires:
-- A textual description
-- A solver for generating optimal solutions  
-- An `is_solution` function for verification
-
-We prefer problems with existing solvers in common libraries (e.g., NumPy, SciPy, FAISS). For a complete example, see the [QR factorization task](AlgoTuneTasks/qr_factorization).
-
-**Example problems:** KD-Trees, Vector Quantization, K-Means, PageRank, Approximate FFT
-
-We especially seek real-world problems from active research and industry domains without known optimal solutions.
-
-### Technical Requirements
-
-Implement the following functions with the specified signatures:
-
-* **`generate_problem(n, random_seed=1)`**
-  - **`n`**: [Integer] Controls problem difficulty.
-  - **`random_seed`**: Controls any random seeds used in the generation process.
-  - **Returns**: A problem instance (e.g., list, list of lists, or string). The problem should scale in difficulty as `n` grows.
-
-  _Note_: The `n` parameter allows us to control problem difficulty and scale solve times to a target duration (e.g., 10 seconds) to enable meaningful speedup comparisons.
-
-* **`solve(problem)`**
-  - **`problem`**: An instance produced by `generate_problem`.
-  - **Returns**: The optimal solution in the format specific to your task.
-
-* **`is_solution(problem, solution)`**
-  - **`problem`**: The instance produced by `generate_problem`.
-  - **`solution`**: A proposed solution.
-  - **Returns**: A boolean value: True if the solution is valid and optimal, False otherwise.
-
-Ensure that:
-- All functions (except `__init__`) include explicit type annotations.
-- The function signatures are exactly as specified (including `self, problem, solution` for `is_solution`)
-
-### Example Task
-Example: QR Decomposition. Full implementation is [here](AlgoTuneTasks/qr_factorization).
-
-```python
-    def generate_problem(self, n: int, random_seed: int = 1) -> Dict[str, np.ndarray]:
-        np.random.seed(random_seed)
-        A = np.random.randn(n, n + 1)
-        problem = {"matrix": A}
-        return problem
-
-    def solve(
-        self, problem: Dict[str, np.ndarray]
-    ) -> Dict[str, Dict[str, List[List[float]]]]:
-        A = problem["matrix"]
-        Q, R = np.linalg.qr(A, mode="reduced")
-        solution = {"QR": {"Q": Q.tolist(), "R": R.tolist()}}
-        return solution
-
-    def is_solution(
-        self,
-        problem: Dict[str, np.ndarray],
-        solution: Dict[str, Dict[str, List[List[float]]]]
-    ) -> bool:
-        # (Additional checks for solution properties are omitted for brevity).
-
-        # Check orthonormality of Q: Q^T @ Q should be approximately the identity matrix.
-        if not np.allclose(Q.T @ Q, np.eye(n), atol=1e-6):
-            logging.error("Matrix Q does not have orthonormal columns.")
-            return False
-
-        # Check if the product Q @ R reconstructs A within tolerance.
-        if not np.allclose(A, Q @ R, atol=1e-6):
-            logging.error("Reconstructed matrix does not match the original matrix within tolerance.")
-            return False
-
-        # All checks passed
-        return True
-```
-
-- Each task requires a `description.txt` file defining the task, input, and output. It must contain the following headers in order:
-  - `Input:`
-  - `Example input:`
-  - `Output:`
-  - `Example output:`
-
-Provide raw examples for inputs and outputs.
-
-#### Guidelines:
-1. Prefer tasks where `solve()` is a concise wrapper around a function from an established, well-tested library (e.g., NumPy, SciPy). New libraries are acceptable if they are popular and tested.
-2. Before contributing, check existing tasks in the `AlgoTuneTasks/` directory to ensure novelty and maintain format consistency.
-
-## 📤 How to Submit
-
-Submit a pull request with your implementation, ensuring it follows the specified format and includes all required files. Tests can be run locally via provided scripts or will be executed automatically via GitHub Actions upon PR submission.
-
-## Development Setup
-
-### Installation
-
-To set up the development environment:
-
-```bash
-# Clone the repository
-git clone https://github.com/oripress/AlgoTune.git
-cd AlgoTune
-
-# Install the package with development dependencies
-pip install -e ".[dev]"
-```
-
-This will install all required dependencies listed in the pyproject.toml file, including pre-commit and ruff.
-
-### Pre-commit Hooks (Optional)
-
-This repository uses GitHub Actions to automatically run ruff checks on all pull requests. Additionally, you can optionally set up pre-commit hooks to run these checks locally before committing:
-
-1. After installing the development dependencies, install the git hook scripts:
-   ```bash
-   pre-commit install
-   ```
-
-2. (Optional) Run against all files:
-   ```bash
-   pre-commit run --all-files
-   ```
-
-Using pre-commit hooks is completely optional - if you don't install them, the GitHub workflow will still run ruff checks when you submit a pull request.
-
-## Running Workflow Tests
-
-You can run workflow tests (formatting and consistency checks) in two ways:
-
-**Push to GitHub:** Push your changes to a branch or create a pull request. The checks will run automatically via GitHub Actions.
-
-or:
-
-**Run Tests Locally:** Use the `pre-commit run --all-files` command to run Ruff formatting and linting checks on your local machine before pushing.
-And then, to run the validation and consistency tests for your changes:
-
-```bash
-# Run basic task unit tests (checks generate/solve/is_solution functionality)
-python .github/scripts/test_tasks.py                                     # <1 minute for all tasks together
-
-# Run timing and consistency tests for specific tasks (or all if omitted)
-# This finds the problem size 'n' where solve time exceeds a threshold and validates results.
-python .github/scripts/test_timing_and_consistency.py <task_a,task_b>    # ~1 minute/task
-
-# Run the is_solution return type check for all tasks
-# This ensures the is_solution method returns a standard Python boolean.
-python .github/scripts/test_is_solution_return_type.py                   # <1 minute for all tasks together
-```
-
 
 ## Citation
 
