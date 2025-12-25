@@ -33,11 +33,15 @@ COPY AlgoTuner /app/AlgoTuner
 COPY AlgoTuneTasks /app/AlgoTuneTasks
 COPY scripts /app/scripts
 
+# Create directories for logs and outputs FIRST
+RUN mkdir -p /app/logs /app/aws/outputs /app/aws/errors /app/reports
+
+# Copy generation config (contains n values for each task)
+# Use wildcard to make optional - if file doesn't exist, pattern won't match
+COPY reports/generation.jso[n] /app/reports/
+
 # Make shell scripts executable
 RUN chmod +x /app/algotune.sh /app/scripts/*.sh
-
-# Create directories for logs and outputs
-RUN mkdir -p /app/logs /app/aws/outputs /app/aws/errors /app/reports
 
 # Install build tools
 RUN python3 -m pip install --upgrade pip setuptools wheel

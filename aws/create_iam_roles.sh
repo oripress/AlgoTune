@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 set -e
 
-# Load AWS credentials from .env
-export $(cat .env | xargs)
+# Load AWS credentials from aws/.env
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AWS_ENV="$SCRIPT_DIR/.env"
+if [ -f "$AWS_ENV" ]; then
+  set -a
+  source "$AWS_ENV"
+  set +a
+else
+  echo "❌ ERROR: $AWS_ENV not found"
+  exit 1
+fi
 
 echo "🛠 Creating IAM roles required for AWS Batch ..."
 
