@@ -26,7 +26,7 @@ How good are language models at coming up with new algorithms? To try to answer 
 
 ---
 
-### ✨ **New:** AlgoTune can now be deployed on AWS with just an OpenRouter API key and AWS credentials. [Try it out!](#running-on-aws-batch-cloud)
+### ✨ **New:** AlgoTune can now be easily run on AWS with just an OpenRouter API key and AWS credentials. [Try it out!](#running-on-aws-batch-cloud)
 
 ## 🚀 Quick Start
 
