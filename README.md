@@ -82,6 +82,20 @@ Running AlgoTune on AWS is simple and requires only a minimal setup.
 
 #### Prerequisites & Permissions
 
+**AWS CLI** - Install if not already available:
+```bash
+# macOS
+brew install awscli
+
+# Linux
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
+# Or via pip
+pip install awscli
+```
+
 **AWS IAM Policy** - Create and attach this policy to your IAM user:
 
 1. Go to **IAM → Policies → Create policy**
