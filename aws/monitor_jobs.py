@@ -12,8 +12,10 @@ import argparse
 import re
 from pathlib import Path
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import defaultdict
+
+from download_logs import download_job_logs, cleanup_failed_logs
 
 # Load environment from both .env files
 root_dotenv = Path(__file__).parent.parent / ".env"
@@ -41,7 +43,12 @@ def extract_budget_from_logs(logs_client, log_stream_name):
     """
     Extract budget information from CloudWatch logs.
     Returns (used_budget, total_budget) or (None, None) if not found.
+
+    Note: CloudWatch access is optional. If permissions are missing, returns (None, None).
     """
+    if not logs_client or not log_stream_name:
+        return None, None
+
     try:
         response = logs_client.get_log_events(
             logGroupName='/aws/batch/job',
@@ -73,6 +80,8 @@ def extract_budget_from_logs(logs_client, log_stream_name):
             return used, None
 
     except Exception as e:
+        # CloudWatch access may fail due to missing permissions - this is OK
+        # Budget info is optional, jobs will still work without it
         pass
 
     return None, None
@@ -223,7 +232,7 @@ def format_duration(seconds):
         return f"{secs}s"
 
 
-def display_metrics(stats, refresh_count):
+def display_metrics(stats, refresh_count, last_updated, interval_seconds, start_time=None):
     """Display metrics in a nice format."""
     clear_screen()
 
@@ -232,9 +241,15 @@ def display_metrics(stats, refresh_count):
     print("╚═══════════════════════════════════════════════════════════╝")
     print()
 
-    # Current time and refresh count
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"Last updated: {now} (refresh #{refresh_count})")
+    # Start time and current time
+    if start_time:
+        start_str = start_time.strftime("%Y-%m-%d %H:%M:%S")
+        elapsed = last_updated - start_time
+        elapsed_str = format_duration(int(elapsed.total_seconds()))
+        print(f"Started:       {start_str} ({elapsed_str} ago)")
+
+    last_str = last_updated.strftime("%Y-%m-%d %H:%M:%S")
+    print(f"Last updated:  {last_str}")
     print()
 
     # Job status summary
@@ -248,21 +263,11 @@ def display_metrics(stats, refresh_count):
     print(f"  Pending:        {stats['pending']}")
     print()
 
-    # Budget statistics
-    print("─────────────────────────────────────────────────────────────")
-    print("BUDGET STATISTICS")
-    print("─────────────────────────────────────────────────────────────")
-
-    if stats['budgets']:
-        print(f"  Total Spent:    ${stats['total_budget_used']:.2f}")
-        print(f"  Median Spent:   ${stats['median_budget']:.2f}")
-        print(f"  Lowest Spent:   ${stats['min_budget']:.2f} ({stats['min_budget_task']})")
-        print(f"  Highest Spent:  ${stats['max_budget']:.2f} ({stats['max_budget_task']})")
-        print(f"  Jobs w/ data:   {len(stats['budgets'])} / {stats['total_jobs']}")
-    else:
-        print("  No budget data available yet")
-        print("  (Budget info appears once jobs start running)")
-    print()
+    # Show helpful note if jobs are pending and no logs yet
+    if stats['pending'] > 0 and stats['running'] == 0 and stats['succeeded'] == 0:
+        print("  💡 Logs should appear in the logs/ directory soon.")
+        print("     If not, jobs are likely generating datasets (can take 1-2 hours).")
+        print()
 
     # Status bar
     total = stats['total_jobs']
@@ -285,7 +290,7 @@ def display_metrics(stats, refresh_count):
     print()
 
 
-def monitor_jobs(job_ids_file, interval=30):
+def monitor_jobs(job_ids_file, interval=30, sync_logs=False, s3_bucket="", output_dir=".", cleanup_failed=False, summary_file=""):
     """
     Monitor jobs in real-time.
 
@@ -293,22 +298,30 @@ def monitor_jobs(job_ids_file, interval=30):
         job_ids_file: Path to file with job IDs (one per line)
         interval: Update interval in seconds
     """
-    # Load job IDs
-    try:
-        with open(job_ids_file) as f:
-            job_ids = [line.strip() for line in f if line.strip()]
-    except FileNotFoundError:
-        print(f"ERROR: Job IDs file not found: {job_ids_file}", file=sys.stderr)
-        sys.exit(1)
+    def load_job_ids():
+        try:
+            with open(job_ids_file) as f:
+                ids = [line.strip() for line in f if line.strip()]
+        except FileNotFoundError:
+            print(f"ERROR: Job IDs file not found: {job_ids_file}", file=sys.stderr)
+            sys.exit(1)
+        if not ids:
+            print("ERROR: No job IDs found in file", file=sys.stderr)
+            sys.exit(1)
+        return ids
 
-    if not job_ids:
-        print("ERROR: No job IDs found in file", file=sys.stderr)
-        sys.exit(1)
+    job_ids = load_job_ids()
 
     # Initialize AWS clients
     region = os.getenv('AWS_REGION', 'us-east-1')
     batch_client = boto3.client('batch', region_name=region)
-    logs_client = boto3.client('logs', region_name=region)
+    s3_client = None
+    if sync_logs and s3_bucket:
+        s3_client = boto3.client('s3', region_name=region)
+
+    # CloudWatch logs client is optional (previously used for budget info)
+    # Keeping it as None since we don't display budget stats
+    logs_client = None
 
     print(f"Monitoring {len(job_ids)} jobs...")
     print(f"Update interval: {interval} seconds")
@@ -316,10 +329,14 @@ def monitor_jobs(job_ids_file, interval=30):
     time.sleep(2)
 
     refresh_count = 0
+    start_time = datetime.now()
 
     try:
         while True:
             refresh_count += 1
+
+            # Refresh job IDs each iteration in case file changed
+            job_ids = load_job_ids()
 
             # Fetch metrics
             metrics = get_job_metrics(batch_client, logs_client, job_ids)
@@ -327,8 +344,14 @@ def monitor_jobs(job_ids_file, interval=30):
             # Calculate statistics
             stats = calculate_statistics(metrics)
 
+            if sync_logs and s3_client and s3_bucket:
+                for job_id in job_ids:
+                    download_job_logs(s3_client, s3_bucket, job_id, output_dir)
+            if cleanup_failed and summary_file:
+                cleanup_failed_logs(Path(output_dir), Path(summary_file))
+
             # Display
-            display_metrics(stats, refresh_count)
+            display_metrics(stats, refresh_count, datetime.now(), interval, start_time)
 
             # Check if all jobs are done
             if stats['running'] == 0 and stats['pending'] == 0:
@@ -346,7 +369,9 @@ def monitor_jobs(job_ids_file, interval=30):
         print("═══════════════════════════════════════════════════════════")
         print("Monitoring stopped by user")
         print("═══════════════════════════════════════════════════════════")
-        sys.exit(0)
+        # Exit with 130 (conventional exit code for SIGINT/Ctrl+C)
+        # This signals to parent script that cleanup is needed
+        sys.exit(130)
 
 
 def main():
@@ -364,10 +389,43 @@ def main():
         default=30,
         help="Update interval in seconds (default: 30)"
     )
+    parser.add_argument(
+        "--sync-logs",
+        action="store_true",
+        help="Download logs/aws outputs/errors on each refresh"
+    )
+    parser.add_argument(
+        "--s3-bucket",
+        default=os.getenv("S3_RESULTS_BUCKET", ""),
+        help="S3 bucket name (default: from aws/.env)"
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=str(Path(__file__).resolve().parents[1]),
+        help="Project root directory for logs (default: repo root)"
+    )
+    parser.add_argument(
+        "--cleanup-failed",
+        action="store_true",
+        help="Delete logs not marked successful in reports/agent_summary.json"
+    )
+    parser.add_argument(
+        "--summary-file",
+        default=str(Path(__file__).resolve().parents[1] / "reports" / "agent_summary.json"),
+        help="Summary file for cleanup (default: reports/agent_summary.json)"
+    )
 
     args = parser.parse_args()
 
-    monitor_jobs(args.job_ids_file, args.interval)
+    monitor_jobs(
+        args.job_ids_file,
+        args.interval,
+        sync_logs=args.sync_logs,
+        s3_bucket=args.s3_bucket,
+        output_dir=args.output_dir,
+        cleanup_failed=args.cleanup_failed,
+        summary_file=args.summary_file,
+    )
 
 
 if __name__ == "__main__":
