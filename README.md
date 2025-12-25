@@ -158,7 +158,7 @@ Extract the best code for each model/task:
 python3 scripts/extract_results_from_logs.py
 ```
 
-Or generate HTML logs in the style of AlgoTune.io:
+Or generate HTML logs in the style of [AlgoTune.io](https://algotune.io):
 ```bash
 ./html/build-html.sh
 ```
