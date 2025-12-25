@@ -1,5 +1,5 @@
 global:
-  spend_limit: 1.0 # in USD
+  spend_limit: 0.15 # in USD
   total_messages: 9999
   max_messages_in_history: 5
 
@@ -26,66 +26,54 @@ dataset:
   test_size: 100
 
 models:
-  o4-mini:
-    api_key_env: "OPENAI_API_KEY"
-    temperature: 0.0
-    reasoning_effort: "high"
-    max_completion_tokens: 100000
-    drop_params: true
-  o3:
-    api_key_env: "OPENAI_API_KEY"
-    temperature: 0.0
-    # OpenAI o4-mini with maximum reasoning effort and context
-    reasoning_effort: "high"
+  openrouter/openai/o4-mini:
+    api_key_env: "OPENROUTER_API_KEY"
+    reasoning:
+      effort: "high"
+    include_reasoning: true
     max_tokens: 100000
     drop_params: true
-  claude-opus-4-20250514:
-    api_key_env: "CLAUDE_API_KEY"
+  openrouter/openai/o3:
+    api_key_env: "OPENROUTER_API_KEY"
+    reasoning:
+      effort: "high"
+    include_reasoning: true
+    max_tokens: 100000
+    drop_params: true
+  openrouter/anthropic/claude-opus-4:
+    api_key_env: "OPENROUTER_API_KEY"
     temperature: 1.0
     top_p: 0.95
-    modify_params: true
-    # Claude Opus 4 with maximum thinking within API limits (thinking + output ≤ 32K total)
     max_tokens: 32000
-    thinking:
-      type: "enabled"
-      budget_tokens: 24000
-  deepseek/deepseek-reasoner:
-    api_key_env: "DEEPSEEK_API_KEY"
+    reasoning:
+      effort: "high"
+    include_reasoning: true
+  openrouter/deepseek/deepseek-r1:
+    api_key_env: "OPENROUTER_API_KEY"
     max_tokens: 64000
     temperature: 0.0
-    # DeepSeek R1 with maximum reasoning/thinking enabled
-    enable_reasoning: true
-    thinking_budget: 32768  # Maximum thinking tokens for DeepSeek R1
+    # DeepSeek R1 with maximum reasoning enabled
+    reasoning:
+      effort: "high"
+    include_reasoning: true
 
-  claude-sonnet-4-5-20250929:
-    api_key_env: "CLAUDE_API_KEY"
+  openrouter/anthropic/claude-sonnet-4.5:
+    api_key_env: "OPENROUTER_API_KEY"
     temperature: 1.0
-    modify_params: true
-    # Sonnet 4.5 supports long outputs; set a large cap if you need big dumps.
     max_tokens: 64000
-    # Extended thinking (summarized thinking in Claude 4.x). Counts toward max_tokens.
-    thinking:
-      type: "enabled"
-      # Aggressive budget; dial down if you hit latency/timeouts.
-      budget_tokens: 60000
+    reasoning:
+      effort: "high"
+    include_reasoning: true
 
-  gemini/gemini-2.5-pro:
-    api_key_env: "GEMINI_API_KEY"
+  openrouter/google/gemini-2.5-pro:
+    api_key_env: "OPENROUTER_API_KEY"
     temperature: 0.0
     top_p: 0.95
-    modify_params: true
-    # Gemini 2.5 Pro with MAXIMUM thinking and context (Google AI Studio)
+    # Gemini 2.5 Pro with MAXIMUM reasoning and context
     max_tokens: 64000
-    thinking_budget: 32768   # MAXIMUM thinking budget for Gemini 2.5 Pro (128-32,768 range)
-    include_thoughts: true   # Include full reasoning process in response
-  deepseek-ai/DeepSeek-R1:
-    api_key_env: "TOGETHER_API_KEY"
-    temperature: 0.0
-    top_p: 0.95
-    # DeepSeek-R1-0528 via Together API with maximum context
-    max_tokens: 32000
-    model_provider: "together"
-  # --- MoonshotAI / Kimi K2 (no explicit thinking mode) ---
+    reasoning:
+      effort: "high"
+    include_reasoning: true
   openrouter/moonshotai/kimi-k2:
     api_key_env: "OPENROUTER_API_KEY"
     temperature: 0.0
@@ -100,58 +88,120 @@ models:
     api_key_env: "OPENROUTER_API_KEY"
     temperature: 0.0
     top_p: 0.95
-    modify_params: true
     max_tokens: 65536
+    reasoning:
+      effort: "high"
     usage:
       include: true
 
   openrouter/z-ai/glm-4.5:
     api_key_env: "OPENROUTER_API_KEY"
     temperature: 0.0
-    modify_params: true
     max_tokens: 96000
     reasoning:
-      enabled: true       # GLM-4.5: on/off only
-      exclude: true     # think but don’t return the chain
+      effort: "medium"
+    include_reasoning: true
+    usage:
+      include: true
+  openrouter/z-ai/glm-4.7:
+    api_key_env: "OPENROUTER_API_KEY"
+    temperature: 0.0
+    max_tokens: 65536
+    reasoning:
+      effort: "high"
+    include_reasoning: true
     usage:
       include: true
 
-  anthropic/claude-opus-4-1-20250805:
-    api_key_env: "CLAUDE_API_KEY"
-    temperature: 1.0  # MUST be 1.0 when thinking is enabled
-    modify_params: true
+  openrouter/anthropic/claude-opus-4.1:
+    api_key_env: "OPENROUTER_API_KEY"
+    temperature: 1.0 
     max_tokens: 32768
-    thinking:
-      type: "enabled"
-      budget_tokens: 24000   # leaves ~8.7k tokens for answer text
+    reasoning:
+      effort: "high"
+    include_reasoning: true
 
   openrouter/openai/gpt-oss-120b:
     api_key_env: "OPENROUTER_API_KEY"
     temperature: 0.0
-    modify_params: true
     drop_params: true
     max_tokens: 100000
     reasoning:
-      effort: "high"     # max thinking (OpenAI-style effort control)
-      exclude: true      # hide chain-of-thought in the response (set to false to see it)
+      effort: "high"   
+    include_reasoning: true
     usage:
-      include: true      # return token and cost accounting in response
+      include: true    
 
-  gpt-5:
-    api_key_env: "OPENAI_API_KEY"
-    max_completion_tokens: 128000
-    reasoning_effort: "high"
+  openrouter/openai/gpt-5:
+    api_key_env: "OPENROUTER_API_KEY"
+    max_tokens: 128000
+    reasoning:
+      effort: "high"
+    include_reasoning: true
 
-  gpt-5-mini:
-    api_key_env: "OPENAI_API_KEY"
-    max_completion_tokens: 128000
-    reasoning_effort: "high" 
+  openrouter/openai/gpt-5-mini:
+    api_key_env: "OPENROUTER_API_KEY"
+    max_tokens: 128000
+    reasoning:
+      effort: "high"
+    include_reasoning: true
 
-  gpt-5-pro:
-    api_key_env: "OPENAI_API_KEY"
-    modify_params: true
+  openrouter/openai/gpt-5-pro:
+    api_key_env: "OPENROUTER_API_KEY"
     drop_params: false
-    max_tokens: 128000       # or as high as your quota / backend allows
-    reasoning_effort: "medium"
+    max_tokens: 128000       
+    reasoning:
+      effort: "medium"
+    include_reasoning: true
+    usage:
+      include: true
+
+  openrouter/minimax/minimax-m2.1:
+    api_key_env: "OPENROUTER_API_KEY"
+    temperature: 0.0
+    max_tokens: 64000
+    reasoning:
+      effort: "high"
+    include_reasoning: true
+    usage:
+      include: true
+
+  openrouter/google/gemini-3-pro-preview:
+    api_key_env: "OPENROUTER_API_KEY"
+    temperature: 0.0
+    top_p: 0.95
+    max_tokens: 64000
+    reasoning:
+      effort: "high"
+    include_reasoning: true
+    usage:
+      include: true
+
+  openrouter/google/gemini-3-flash-preview:
+    api_key_env: "OPENROUTER_API_KEY"
+    temperature: 0.0
+    top_p: 0.95
+    max_tokens: 64000
+    reasoning:
+      effort: "high"
+    include_reasoning: true
+    usage:
+      include: true
+
+  openrouter/openai/gpt-5.2:
+    api_key_env: "OPENROUTER_API_KEY"
+    max_tokens: 128000
+    reasoning:
+      effort: "medium"
+    include_reasoning: true
+    drop_params: true
+
+  openrouter/anthropic/claude-opus-4.5:
+    api_key_env: "OPENROUTER_API_KEY"
+    temperature: 1.0
+    max_tokens: 64000
+    reasoning:
+      effort: "medium"
+    include_reasoning: true
     usage:
       include: true

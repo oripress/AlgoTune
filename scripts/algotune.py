@@ -167,6 +167,8 @@ def run_timing_command(args):
             
             if args.target_time_ms is not None:
                 timing_args.extend(["--target-time-ms", str(args.target_time_ms)])
+            if args.n is not None:
+                timing_args.extend(["--n", str(args.n)])
             
             if args.standalone:
                 timing_args.append("--standalone")
@@ -204,6 +206,8 @@ def run_timing_command(args):
     
     if args.target_time_ms is not None:
         cmd_args.extend(["--target-time-ms", str(args.target_time_ms)])
+    if args.n is not None:
+        cmd_args.extend(["--n", str(args.n)])
     
     if args.standalone:
         cmd_args.append("--standalone")
@@ -927,6 +931,7 @@ def main():
     # Timing command
     timing_parser = subparsers.add_parser("timing", help="Run timing evaluations")
     timing_parser.add_argument("--target-time-ms", type=int, help="Target time in milliseconds (optional, uses cached values if not provided)")
+    timing_parser.add_argument("--n", type=int, help="Override dataset n (takes priority over target-time-ms)")
     timing_parser.add_argument("--standalone", action="store_true", help="Force standalone mode (no SLURM)")
     timing_parser.add_argument("--sequential", action="store_true", help="Process tasks sequentially")
     timing_parser.add_argument("--task", type=str, help="Single task to run")
