@@ -67,6 +67,7 @@ RUN python3 -m pip install --no-cache-dir \
         seaborn \
         networkx \
         orjson \
+        ortools \
         huggingface_hub
 
 # Expose /app on PYTHONPATH so imports resolve
