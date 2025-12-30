@@ -66,6 +66,7 @@ RUN python3 -m pip install --no-cache-dir \
         matplotlib \
         seaborn \
         networkx \
+        orjson \
         huggingface_hub
 
 # Expose /app on PYTHONPATH so imports resolve
