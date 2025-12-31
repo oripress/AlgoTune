@@ -27,6 +27,9 @@ else
     exit 1
 fi
 
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "${SCRIPT_DIR}/resolve_singularity_image.sh"
+
 # Output/Error/Log directories should be created by the submission script (submit_test.sh)
 
 # Compute the tasks directory based on the project root (if needed).
@@ -80,6 +83,11 @@ echo "Dataset Path: $DATASET_PATH"
 
 echo "Running test simulation for task ${TASK_NAME}..."
 
+# Ensure TEMP_DIR_STORAGE exists (important for the bind mount source)
+echo "[DEBUG] Ensuring TEMP_DIR_STORAGE exists: ${TEMP_DIR_STORAGE}"
+mkdir -p "${TEMP_DIR_STORAGE}"
+resolve_singularity_image
+
 # Debugging before singularity exec
 echo "[DEBUG] Host TEMP_DIR_STORAGE: ${TEMP_DIR_STORAGE}"
 echo "[DEBUG] Host DATA_DIR: ${DATA_DIR}"
@@ -91,10 +99,6 @@ ls -ld "${PROJECT_ROOT}"
 ls -ld "${DATA_DIR}" # Main data dir
 ls -ld "${DATASET_PATH}" # Specific task data dir (should exist)
 ls -ld "${TEMP_DIR_STORAGE}" || echo "[WARN] Host TEMP_DIR_STORAGE does not exist or is not accessible."
-
-# Ensure TEMP_DIR_STORAGE exists (important for the bind mount source)
-echo "[DEBUG] Ensuring TEMP_DIR_STORAGE exists: ${TEMP_DIR_STORAGE}"
-mkdir -p "${TEMP_DIR_STORAGE}"
 
 # Create a unique temporary directory for this task run on the host
 # Use Slurm Job ID and Task Name for uniqueness

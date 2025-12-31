@@ -20,6 +20,13 @@ TASK_LIST_FILE=""
 DATA_DIR=""
 TEST_MODE=false
 
+is_remote_image() {
+    case "$1" in
+        docker://*|oras://*|library://*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -168,7 +175,7 @@ if [ "$TEST_MODE" = true ]; then
                 exit 1
             fi
             
-            if [ -n "${SINGULARITY_IMAGE:-}" ] && [ -f "$SINGULARITY_IMAGE" ]; then
+            if [ -n "${SINGULARITY_IMAGE:-}" ] && { [ -f "$SINGULARITY_IMAGE" ] || is_remote_image "$SINGULARITY_IMAGE"; }; then
                 echo "🐍 Using Singularity: $SINGULARITY_IMAGE"
                 
                 # Build bind mounts
@@ -281,7 +288,7 @@ if [ "$SLURM_MODE" = true ]; then
             exit 1
         fi
 
-        if [ -z "${SINGULARITY_IMAGE:-}" ] || [ ! -f "$SINGULARITY_IMAGE" ]; then
+        if [ -z "${SINGULARITY_IMAGE:-}" ] || { [ ! -f "$SINGULARITY_IMAGE" ] && ! is_remote_image "$SINGULARITY_IMAGE"; }; then
             echo "❌ Singularity image not found: ${SINGULARITY_IMAGE:-<not set>}"
             exit 1
         fi
@@ -339,7 +346,7 @@ else
             exit 1
         fi
         
-        if [ -n "${SINGULARITY_IMAGE:-}" ] && [ -f "$SINGULARITY_IMAGE" ]; then
+        if [ -n "${SINGULARITY_IMAGE:-}" ] && { [ -f "$SINGULARITY_IMAGE" ] || is_remote_image "$SINGULARITY_IMAGE"; }; then
             echo "🐍 Using Singularity: $SINGULARITY_IMAGE"
             
             # Build bind mounts
