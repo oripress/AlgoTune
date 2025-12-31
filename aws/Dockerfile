@@ -47,8 +47,7 @@ RUN chmod +x /app/algotune.sh /app/scripts/*.sh
 RUN python3 -m pip install --upgrade pip setuptools wheel
 
 # **Core editable install** of your package via PEP 660
-# Avoid pulling heavy optional deps during image build.
-RUN python3 -m pip install --no-cache-dir --no-deps -e .
+RUN python3 -m pip install --no-cache-dir -e .
 
 # Later you can install heavy deps explicitly if needed
 # We *don’t install the entire huge dependency list blindly*
@@ -65,10 +64,7 @@ RUN python3 -m pip install --no-cache-dir \
         joblib \
         matplotlib \
         seaborn \
-        networkx \
-        orjson \
-        ortools \
-        huggingface_hub
+        networkx
 
 # Expose /app on PYTHONPATH so imports resolve
 ENV PYTHONPATH=/app:$PYTHONPATH
