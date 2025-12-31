@@ -149,21 +149,11 @@ def main():
     failed_count = len(results) - success_count
     finished_count = len(results)
 
-    usage_ratios = []
-    for result in results:
-        budget_total = result.get("budget_total")
-        budget_used = result.get("budget_used")
-        if budget_total and budget_used is not None:
-            usage_ratios.append(budget_used / budget_total)
-
     print("LOG ANALYSIS")
     print("────────────")
     print(f"Finished:   {finished_count}")
     print(f"Success:    {success_count}")
     print(f"Failed:     {failed_count}")
-    if usage_ratios:
-        avg_usage = sum(usage_ratios) / len(usage_ratios)
-        print(f"Avg budget: {avg_usage:.1%}")
     print()
 
     for result in results:

@@ -39,6 +39,10 @@ try:
     for i, model in enumerate(reversed(models), 1):
         # Strip openrouter/provider/ prefix for display
         display_name = model.split('/')[-1] if '/' in model else model
+        model_cfg = config.get('models', {}).get(model, {})
+        effort = (model_cfg.get('reasoning') or {}).get('effort')
+        if effort == 'medium':
+            display_name = f\"{display_name} (medium)\"
         print(f'{i}|{model}|{display_name}')
 except Exception as e:
     print(f'ERROR: {e}', file=sys.stderr)
@@ -428,14 +432,11 @@ echo ""
 
 # Submit jobs
 echo "→ Submitting jobs to AWS Batch..."
-JOB_IDS_DIR="$SCRIPT_DIR/job_ids"
-mkdir -p "$JOB_IDS_DIR"
-JOB_IDS_FILE="$JOB_IDS_DIR/batch_job_ids_$(date +%Y%m%d_%H%M%S).txt"
+JOB_IDS_FILE="$(mktemp /tmp/algotune_job_ids_XXXXXX)"
 if python3 "$SCRIPT_DIR/submit_jobs.py" --model "$MODEL" $TASK_ARGS --s3-bucket "$S3_RESULTS_BUCKET" > "$JOB_IDS_FILE"; then
   JOB_COUNT=$(wc -l < "$JOB_IDS_FILE" || echo "0")
   if [ "$JOB_COUNT" -gt 0 ]; then
     echo "  ✓ Submitted $JOB_COUNT job(s)"
-    echo "  Job IDs saved to: $JOB_IDS_FILE"
   else
     echo "⚠️  No jobs submitted (check aws/submit_jobs.py configuration)"
     exit 0
@@ -760,6 +761,9 @@ cleanup_downloader() {
     echo ""
     echo "✓ Stopped log downloader"
   fi
+  if [ -n "${JOB_IDS_FILE:-}" ] && [ -f "$JOB_IDS_FILE" ]; then
+    rm -f "$JOB_IDS_FILE"
+  fi
 }
 trap cleanup_downloader EXIT
 
@@ -822,7 +826,6 @@ python3 "$SCRIPT_DIR/download_logs.py" \
 
 echo "════════════════════════════════════════"
 echo "✅ All done!"
-echo "   Job IDs: $JOB_IDS_FILE"
 echo "   AWS Logs: $ROOT_DIR/aws/outputs and $ROOT_DIR/aws/errors"
 echo "   Application Logs: $ROOT_DIR/logs/"
 echo ""
