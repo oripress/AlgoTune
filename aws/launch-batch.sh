@@ -812,7 +812,7 @@ fi
 echo ""
 echo "→ Analyzing local logs..."
 TASKS_FILE="$(mktemp)"
-printf "%s\n" $TASK_LIST > "$TASKS_FILE"
+printf "%s\n" "$TASK_LIST" > "$TASKS_FILE"
 python3 "$SCRIPT_DIR/analyze_local_logs.py" \
     --log-dir "$ROOT_DIR/logs" \
     --model "$MODEL_DISPLAY" \
