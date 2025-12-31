@@ -15,6 +15,9 @@ else
     exit 1
 fi
 
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "${SCRIPT_DIR}/resolve_singularity_image.sh"
+
 # Define PROJECT_ROOT based on the submission directory
 PROJECT_ROOT=$(realpath "${SLURM_SUBMIT_DIR:-.}") # Use CWD as fallback if not in SLURM
 
@@ -27,6 +30,7 @@ mkdir -p "${PROJECT_ROOT}/logs"
 
 # Ensure the base temp storage directory exists
 mkdir -p "${TEMP_DIR_STORAGE}"
+resolve_singularity_image
 
 # Create a unique temporary directory for this task run on the host
 # Use Slurm Job ID and Task ID for uniqueness if available, otherwise use process ID

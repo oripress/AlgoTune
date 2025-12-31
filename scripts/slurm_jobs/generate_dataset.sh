@@ -41,10 +41,15 @@ else
     exit 1
 fi
 
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "${SCRIPT_DIR}/resolve_singularity_image.sh"
+
 if [ -z "${TEMP_DIR_STORAGE:-}" ] || [ -z "${SINGULARITY_IMAGE:-}" ] || [ -z "${DATA_DIR:-}" ]; then
     echo "Error: Missing TEMP_DIR_STORAGE or SINGULARITY_IMAGE or DATA_DIR in configuration" >&2
     exit 1
 fi
+mkdir -p "${TEMP_DIR_STORAGE}"
+resolve_singularity_image
 
 # --- Prepare dataset directory ---
 SHARED_DATASET_DIR_BASE="${DATA_DIR}"

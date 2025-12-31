@@ -40,6 +40,11 @@ else
     echo "$(date): WARNING: No config file found (config.env or slurm/run_config.env)" >&2
 fi
 
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "${SCRIPT_DIR}/resolve_singularity_image.sh"
+mkdir -p "${TEMP_DIR_STORAGE:-/tmp}"
+resolve_singularity_image
+
 # Define the summary file path
 SUMMARY_FILE="$PROJECT_ROOT/reports/generation.json"
 
