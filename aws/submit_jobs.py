@@ -349,34 +349,57 @@ SYNC_PID=$!;
 trap 'kill $SYNC_PID 2>/dev/null || true; upload_results' EXIT;
 """
 
-        # Add S3 dataset caching logic if bucket is configured
+        # Dataset loading priority: S3 cache → HuggingFace → Local generation
+        # HF datasets are uploaded to S3 for faster future access
         if s3_bucket:
             cmd += f"""
 EXIT_CODE=0;
 DATASET_S3_PREFIX="{dataset_s3_prefix}";
-
-echo '=== CHECKING S3 FOR CACHED DATASET ===';
 DATASET_FOUND=0;
+DATASET_SOURCE="";
+
+# Priority 1: Check S3 cache first (fastest - in AWS region)
+echo '=== CHECKING S3 FOR CACHED DATASET ===';
 if aws s3 ls s3://{s3_bucket}/$DATASET_S3_PREFIX/ 2>/dev/null | grep -q "_train.jsonl"; then
   echo 'Found cached dataset in S3';
 
   # Check dataset age and refresh if expiring soon (within 5 days)
   echo '=== CHECKING DATASET AGE ===';
-  OLDEST_FILE=$(aws s3api list-objects-v2 --bucket {s3_bucket} --prefix "$DATASET_S3_PREFIX/" --query 'Contents[0].LastModified' --output text 2>/dev/null);
+  OLDEST_FILE=$(aws s3api list-objects-v2 --bucket {s3_bucket} --prefix "$DATASET_S3_PREFIX/" --query 'Contents[0].LastModified' --output text 2>/dev/null | head -1);
   if [ -n "$OLDEST_FILE" ]; then
-    DATASET_AGE_DAYS=$(python3 -c "from datetime import datetime, timezone; import sys; dt=datetime.fromisoformat('$OLDEST_FILE'.replace('Z','+00:00')); age=(datetime.now(timezone.utc)-dt).days; print(age)" 2>/dev/null || echo "999");
-    DAYS_UNTIL_EXPIRY=$((21 - DATASET_AGE_DAYS));
-    echo "Dataset age: $DATASET_AGE_DAYS days, expires in $DAYS_UNTIL_EXPIRY days";
-
-    if [ $DAYS_UNTIL_EXPIRY -lt 5 ]; then
-      echo "⚠️  Dataset expires in <5 days - refreshing to extend lifecycle...";
-      # Copy all files to themselves to refresh LastModified date (resets 21-day clock)
-      aws s3 ls s3://{s3_bucket}/$DATASET_S3_PREFIX/ --recursive | awk '{{print $4}}' | while read key; do
-        aws s3 cp "s3://{s3_bucket}/$key" "s3://{s3_bucket}/$key" --metadata-directive REPLACE --only-show-errors;
-      done;
-      echo "✓ Dataset lifecycle extended by 21 days";
+    DATASET_AGE_DAYS=$(python3 -c "
+from datetime import datetime, timezone
+import sys
+try:
+    # Handle both ISO formats with and without microseconds
+    date_str = '$OLDEST_FILE'
+    if '.' in date_str:
+        # Has microseconds: 2024-12-25T10:30:45.123000+00:00
+        dt = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%f%z')
+    else:
+        # No microseconds: 2024-12-25T10:30:45+00:00
+        dt = datetime.strptime(date_str.replace('Z', '+00:00'), '%Y-%m-%dT%H:%M:%S%z')
+    age = (datetime.now(timezone.utc) - dt).days
+    print(age)
+except Exception:
+    print('999')
+" 2>/dev/null);
+    if [ "$DATASET_AGE_DAYS" = "999" ] || [ -z "$DATASET_AGE_DAYS" ]; then
+      echo "⚠️  Could not parse dataset age, skipping refresh check";
     else
-      echo "✓ Dataset has $DAYS_UNTIL_EXPIRY days remaining - no refresh needed";
+      DAYS_UNTIL_EXPIRY=$((21 - DATASET_AGE_DAYS));
+      echo "Dataset age: $DATASET_AGE_DAYS days, expires in $DAYS_UNTIL_EXPIRY days";
+
+      if [ $DAYS_UNTIL_EXPIRY -lt 5 ] && [ $DAYS_UNTIL_EXPIRY -gt 0 ]; then
+        echo "⚠️  Dataset expires in <5 days - refreshing to extend lifecycle...";
+        # Copy all files to themselves to refresh LastModified date (resets 21-day clock)
+        aws s3 ls s3://{s3_bucket}/$DATASET_S3_PREFIX/ --recursive | awk '{{print $4}}' | while read key; do
+          aws s3 cp "s3://{s3_bucket}/$key" "s3://{s3_bucket}/$key" --metadata-directive REPLACE --only-show-errors;
+        done;
+        echo "✓ Dataset lifecycle extended by 21 days";
+      else
+        echo "✓ Dataset has $DAYS_UNTIL_EXPIRY days remaining - no refresh needed";
+      fi;
     fi;
   fi;
 
@@ -384,39 +407,115 @@ if aws s3 ls s3://{s3_bucket}/$DATASET_S3_PREFIX/ 2>/dev/null | grep -q "_train.
   mkdir -p /app/AlgoTuner/data/{task_name};
   aws s3 sync s3://{s3_bucket}/$DATASET_S3_PREFIX/ /app/AlgoTuner/data/{task_name}/ --only-show-errors;
   if [ $? -eq 0 ]; then
-    echo 'Dataset downloaded from S3 successfully';
+    echo '✓ Dataset downloaded from S3 cache';
     DATASET_FOUND=1;
+    DATASET_SOURCE="s3";
   else
-    echo 'Failed to download dataset, will regenerate';
+    echo 'Failed to download dataset from S3';
   fi;
 else
   echo 'No cached dataset found in S3';
 fi;
 
+# Priority 2: Check HuggingFace (only if not found in S3)
+if [ $DATASET_FOUND -eq 0 ] && [ "${{ALGOTUNE_HF_DISABLE:-0}}" != "1" ]; then
+  echo '=== CHECKING FOR HUGGINGFACE DATASET ===';
+  # Run generate with --check-only to see if HF dataset exists
+  # The generate command will download from HF if available
+  # In lazy mode (ALGOTUNE_HF_LAZY=1), this only downloads .jsonl files
+  echo 'Attempting to load from HuggingFace...';
+  /app/algotune.sh --standalone generate {generation_arg} --tasks {task_name} || GENERATE_EXIT=$?;
+  if [ -d /app/AlgoTuner/data/{task_name} ] && [ -f /app/AlgoTuner/data/{task_name}/{task_name}_T*_train.jsonl ]; then
+    echo '✓ Dataset metadata loaded from HuggingFace';
+
+    # If in lazy mode, download .npy files now
+    if [ "${{ALGOTUNE_HF_LAZY:-0}}" = "1" ]; then
+      echo '=== DOWNLOADING .NPY FILES (LAZY MODE) ===';
+      python3 -c "from AlgoTuner.utils.hf_datasets import download_npy_files; download_npy_files('{task_name}')" || {{
+        echo '❌ Failed to download .npy files from HuggingFace';
+        DATASET_FOUND=0;
+      }};
+      if [ $DATASET_FOUND -eq 1 ]; then
+        echo '✓ Full dataset loaded from HuggingFace (lazy mode)';
+      fi;
+    else
+      echo '✓ Full dataset loaded from HuggingFace';
+    fi;
+
+    DATASET_FOUND=1;
+    DATASET_SOURCE="hf";
+
+    # Upload to S3 for faster future access
+    if [ $DATASET_FOUND -eq 1 ]; then
+      echo '=== UPLOADING HF DATASET TO S3 FOR CACHING ===';
+      aws s3 sync /app/AlgoTuner/data/{task_name}/ s3://{s3_bucket}/$DATASET_S3_PREFIX/ --only-show-errors;
+      if [ $? -eq 0 ]; then
+        echo "✓ Dataset uploaded to S3 cache (s3://{s3_bucket}/$DATASET_S3_PREFIX/)";
+      else
+        echo 'Warning: Failed to upload dataset to S3 cache';
+      fi;
+    fi;
+  else
+    echo 'Dataset not available on HuggingFace';
+  fi;
+fi;
+
+# Priority 3: Generate locally (only if not found in S3 or HF)
 if [ $DATASET_FOUND -eq 0 ]; then
-  echo '=== RUN generate ({task_name}) ===';
+  echo '=== GENERATING DATASET LOCALLY ===';
   /app/algotune.sh --standalone generate {generation_arg} --tasks {task_name} || EXIT_CODE=$?;
 
   if [ -d /app/AlgoTuner/data/{task_name} ] && [ $EXIT_CODE -eq 0 ]; then
-    echo '=== UPLOADING DATASET TO S3 ===';
+    echo '=== UPLOADING GENERATED DATASET TO S3 ===';
     aws s3 sync /app/AlgoTuner/data/{task_name}/ s3://{s3_bucket}/$DATASET_S3_PREFIX/ --only-show-errors;
     if [ $? -eq 0 ]; then
-      echo "Dataset uploaded to s3://{s3_bucket}/$DATASET_S3_PREFIX/";
+      echo "✓ Dataset uploaded to s3://{s3_bucket}/$DATASET_S3_PREFIX/";
+      DATASET_FOUND=1;
+      DATASET_SOURCE="generated";
     else
       echo 'Warning: Failed to upload dataset to S3';
     fi;
   fi;
+fi;
+
+if [ $DATASET_FOUND -eq 1 ]; then
+  echo "✓ Dataset ready (source: $DATASET_SOURCE)";
 else
-  echo 'Skipping generation, using cached dataset from S3';
+  echo "❌ Failed to obtain dataset";
+  exit 1;
 fi;
 
 echo '=== RUN agent ({args.model} on {task_name}) ===';
 /app/algotune.sh --standalone agent {args.model} {task_name} || EXIT_CODE=$?;
-echo '=== CLEANUP generated data ===';
-rm -rf /app/AlgoTuner/data/{task_name}/* || true;
-echo 'Deleted generated datasets for {task_name}';
+
+echo '=== CLEANUP ===';
+# Cleanup strategy: Keep all datasets in cache for reuse
+# All datasets (S3/HF/generated) are now in S3 with 21-day lifecycle
+echo "Dataset from ${{DATASET_SOURCE:-unknown}} - keeping in cache for future jobs";
+echo 'Cleanup complete for {task_name}';
 exit $EXIT_CODE;
 """
+        # If we have S3, upload the long script and use a short command override.
+        if s3_bucket:
+            script_ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            safe_task = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in task_name)
+            safe_model = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in args.model)
+            script_key = f"jobscripts/{safe_task}_{safe_model}_{script_ts}.sh"
+            try:
+                s3_client = boto3.client('s3', region_name=os.getenv("AWS_REGION"))
+                s3_client.put_object(
+                    Bucket=s3_bucket,
+                    Key=script_key,
+                    Body=cmd.encode("utf-8"),
+                    ContentType="text/x-shellscript",
+                )
+                cmd = (
+                    "set -e; "
+                    f"aws s3 cp \"s3://{s3_bucket}/{script_key}\" /tmp/algotune_job.sh; "
+                    "bash /tmp/algotune_job.sh"
+                )
+            except Exception as e:
+                print(f"WARNING: Failed to upload job script to S3: {e}", file=sys.stderr)
         else:
             # No S3 bucket - use original logic without caching
             cmd += f"""
@@ -425,9 +524,12 @@ echo '=== RUN generate ({task_name}) ===';
 /app/algotune.sh --standalone generate {generation_arg} --tasks {task_name} || EXIT_CODE=$?;
 echo '=== RUN agent ({args.model} on {task_name}) ===';
 /app/algotune.sh --standalone agent {args.model} {task_name} || EXIT_CODE=$?;
-echo '=== CLEANUP generated data ===';
-rm -rf /app/AlgoTuner/data/{task_name}/* || true;
-echo 'Deleted generated datasets for {task_name}';
+
+echo '=== CLEANUP ===';
+# Cleanup strategy: Keep all datasets in cache for reuse
+# All datasets (S3/HF/generated) are now in S3 with 21-day lifecycle
+echo "Dataset from ${{DATASET_SOURCE:-unknown}} - keeping in cache for future jobs";
+echo 'Cleanup complete for {task_name}';
 exit $EXIT_CODE;
 """
 
@@ -471,6 +573,17 @@ exit $EXIT_CODE;
         # Add S3 bucket if configured
         if s3_bucket:
             env_vars.append({"name": "S3_RESULTS_BUCKET", "value": s3_bucket})
+
+        # Add HuggingFace configuration
+        for key in ["HF_TOKEN", "ALGOTUNE_HF_LAZY", "ALGOTUNE_HF_DISABLE",
+                    "ALGOTUNE_HF_DATASET", "ALGOTUNE_HF_REVISION", "ALGOTUNE_HF_CACHE_DIR"]:
+            value = os.getenv(key, "")
+            if value:
+                env_vars.append({"name": key, "value": value})
+
+        # Set HF_HOME to control where HuggingFace stores all cache data
+        # This prevents using ~/.cache which could fill up the root filesystem
+        env_vars.append({"name": "HF_HOME", "value": "/app/.hf_cache"})
 
         try:
             # Submit job to AWS Batch

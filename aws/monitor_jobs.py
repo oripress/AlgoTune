@@ -39,6 +39,47 @@ def extract_task_from_job_name(job_name):
     return "unknown"
 
 
+def extract_hf_download_status(s3_client, bucket, job_id):
+    """
+    Extract HuggingFace download status from S3 job outputs.
+    Returns a status string or None if not downloading.
+    """
+    if not s3_client or not bucket or not job_id:
+        return None
+
+    try:
+        response = s3_client.get_object(
+            Bucket=bucket,
+            Key=f"jobs/{job_id}/outputs/{job_id}.out"
+        )
+        log_text = response['Body'].read().decode('utf-8', errors='ignore')
+
+        # Check for HF download indicators
+        if "📥 Downloading" in log_text and "HuggingFace" in log_text:
+            # Extract task name from download message
+            match = re.search(r"📥 Downloading (\S+) dataset from HuggingFace", log_text)
+            if match:
+                task = match.group(1)
+                # Check if download completed
+                if "✓ Download complete!" in log_text:
+                    return None  # Download done
+                return f"Downloading {task} from HuggingFace..."
+            return "Downloading from HuggingFace..."
+
+        # Check for old-style "Starting evaluation" without HF completion
+        if "Starting evaluation for" in log_text and "✓ Download complete!" not in log_text:
+            if "[Fri" in log_text or "[Thu" in log_text or "[Mon" in log_text:
+                # Has log sync messages but no actual progress = stuck downloading
+                match = re.search(r"Starting evaluation for '(\w+)'", log_text)
+                if match:
+                    return f"Loading {match.group(1)} dataset..."
+                return "Loading dataset..."
+    except Exception:
+        pass
+
+    return None
+
+
 def extract_budget_from_logs(logs_client, log_stream_name):
     """
     Extract budget information from CloudWatch logs.
@@ -87,7 +128,7 @@ def extract_budget_from_logs(logs_client, log_stream_name):
     return None, None
 
 
-def get_job_metrics(batch_client, logs_client, job_ids):
+def get_job_metrics(batch_client, logs_client, s3_client, s3_bucket, job_ids):
     """
     Fetch metrics for all jobs.
 
@@ -99,7 +140,8 @@ def get_job_metrics(batch_client, logs_client, job_ids):
             'total_budget': float or None,
             'started_at': datetime or None,
             'stopped_at': datetime or None,
-            'duration_seconds': int or None
+            'duration_seconds': int or None,
+            'hf_download_status': str or None
         }
     """
     metrics = {}
@@ -136,11 +178,16 @@ def get_job_metrics(batch_client, logs_client, job_ids):
                 # Get budget info from logs if job is running or completed
                 used_budget = None
                 total_budget = None
+                hf_download_status = None
 
                 if status in ['RUNNING', 'SUCCEEDED', 'FAILED']:
                     log_stream = job.get('container', {}).get('logStreamName')
                     if log_stream:
                         used_budget, total_budget = extract_budget_from_logs(logs_client, log_stream)
+
+                    # Check for HF download status if job is running
+                    if status == 'RUNNING':
+                        hf_download_status = extract_hf_download_status(s3_client, s3_bucket, job_id)
 
                 metrics[job_id] = {
                     'status': status,
@@ -149,7 +196,8 @@ def get_job_metrics(batch_client, logs_client, job_ids):
                     'total_budget': total_budget,
                     'started_at': started_at,
                     'stopped_at': stopped_at,
-                    'duration_seconds': duration_seconds
+                    'duration_seconds': duration_seconds,
+                    'hf_download_status': hf_download_status
                 }
 
         except Exception as e:
@@ -232,7 +280,7 @@ def format_duration(seconds):
         return f"{secs}s"
 
 
-def display_metrics(stats, refresh_count, last_updated, interval_seconds, start_time=None):
+def display_metrics(stats, refresh_count, last_updated, interval_seconds, start_time=None, metrics=None):
     """Display metrics in a nice format."""
     clear_screen()
 
@@ -263,10 +311,18 @@ def display_metrics(stats, refresh_count, last_updated, interval_seconds, start_
     print(f"  Pending:        {stats['pending']}")
     print()
 
+    # Show HF download status for running jobs
+    if metrics:
+        hf_downloads = [(info['task_name'], info['hf_download_status'])
+                        for job_id, info in metrics.items()
+                        if info.get('hf_download_status')]
+        if hf_downloads:
+            print("  💡 Logs will appear in the logs/ directory once data is loaded (this can take a while)")
+            print()
+
     # Show helpful note if jobs are pending and no logs yet
     if stats['pending'] > 0 and stats['running'] == 0 and stats['succeeded'] == 0:
-        print("  💡 Logs should appear in the logs/ directory soon.")
-        print("     If not, jobs are likely generating datasets (can take 1-2 hours).")
+        print("  💡 Logs should appear in the logs/ dir soon")
         print()
 
     # Status bar
@@ -339,7 +395,7 @@ def monitor_jobs(job_ids_file, interval=30, sync_logs=False, s3_bucket="", outpu
             job_ids = load_job_ids()
 
             # Fetch metrics
-            metrics = get_job_metrics(batch_client, logs_client, job_ids)
+            metrics = get_job_metrics(batch_client, logs_client, s3_client, s3_bucket, job_ids)
 
             # Calculate statistics
             stats = calculate_statistics(metrics)
@@ -351,7 +407,7 @@ def monitor_jobs(job_ids_file, interval=30, sync_logs=False, s3_bucket="", outpu
                 cleanup_failed_logs(Path(output_dir), Path(summary_file))
 
             # Display
-            display_metrics(stats, refresh_count, datetime.now(), interval, start_time)
+            display_metrics(stats, refresh_count, datetime.now(), interval, start_time, metrics)
 
             # Check if all jobs are done
             if stats['running'] == 0 and stats['pending'] == 0:
