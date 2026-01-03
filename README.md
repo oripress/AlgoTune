@@ -9,7 +9,7 @@
 </p>
 <p align="center">
   <a href="https://algotune.io/"><strong>Website</strong></a>&nbsp; | &nbsp;
-  <a href="https://arxiv.org/abs/2507.15887"><strong>Paper</strong></a>
+  <a href="https://arxiv.org/abs/2507.15887"><strong>Paper</strong></a>&nbsp; | &nbsp;
   <a href="https://huggingface.co/datasets/oripress/AlgoTune"><strong>Dataset</strong></a>
 </p>
 
