@@ -617,7 +617,7 @@ PY
   fi
 
   # Scale down ALL compute environments to stop EC2 instances
-  echo "→ Shutting down ALL compute environments..."
+  echo "→ Scaling down ALL compute environments..."
 
   # Get all compute environments
   ALL_CE_NAMES=$(aws batch describe-compute-environments \
@@ -641,43 +641,16 @@ PY
         --output text 2>/dev/null || echo "UNKNOWN")
 
       if [ "$CURRENT_STATE" = "DISABLED" ]; then
-        echo "    Already disabled, re-enabling to modify..."
+        echo "    Already disabled, skipping scale down..."
+      else
+        # Try to scale down (may fail for managed scaling)
         aws batch update-compute-environment \
           --compute-environment "$CE_NAME" \
-          --state ENABLED \
+          --compute-resources '{"minvCpus":0,"desiredvCpus":0}' \
           --region "$AWS_REGION" >/dev/null 2>&1 || true
-        sleep 1
-      fi
-
-      # Try to scale down (may fail for managed scaling)
-      aws batch update-compute-environment \
-        --compute-environment "$CE_NAME" \
-        --compute-resources '{"minvCpus":0,"desiredvCpus":0}' \
-        --region "$AWS_REGION" >/dev/null 2>&1 || true
-
-      # Disable the compute environment
-      echo "    → Disabling..."
-      if aws batch update-compute-environment \
-        --compute-environment "$CE_NAME" \
-        --state DISABLED \
-        --region "$AWS_REGION" >/dev/null 2>&1; then
-        echo "    ✓ Disabled"
-      else
-        echo "    ⚠️  Failed to disable"
       fi
     done
   fi
-
-  # Also disable the job queue to prevent new job submissions
-  echo "  → Disabling job queue..."
-  JOB_QUEUE_NAME="${BATCH_JOB_QUEUE_NAME:-AlgoTuneQueue}"
-  aws batch update-job-queue \
-    --job-queue "$JOB_QUEUE_NAME" \
-    --state DISABLED \
-    --region "$AWS_REGION" >/dev/null 2>&1 || true
-
-  # Wait a moment for changes to take effect
-  sleep 3
 
   # Directly terminate any running EC2 instances managed by Batch
   echo "  → Searching for EC2 instances to terminate..."
