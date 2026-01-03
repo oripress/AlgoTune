@@ -12,15 +12,17 @@ echo "Recreating Compute Environment: $CE_NAME"
 echo "========================================="
 echo ""
 
-# Step 1: Disable and delete the old CE
-echo "→ Step 1: Disabling $CE_NAME..."
-aws batch update-compute-environment \
-  --compute-environment "$CE_NAME" \
-  --state DISABLED \
-  --region "$AWS_REGION" || true
-
-echo "→ Waiting for CE to be disabled..."
-sleep 5
+# Step 1: Delete the old CE (only if already disabled)
+STATE=$(aws batch describe-compute-environments \
+  --compute-environments "$CE_NAME" \
+  --region "$AWS_REGION" \
+  --query 'computeEnvironments[0].state' \
+  --output text 2>/dev/null || echo "UNKNOWN")
+if [ "$STATE" != "DISABLED" ]; then
+  echo "→ Cannot delete $CE_NAME because state is $STATE."
+  echo "  Disable it manually if you want to recreate it."
+  exit 1
+fi
 
 echo "→ Deleting $CE_NAME..."
 aws batch delete-compute-environment \

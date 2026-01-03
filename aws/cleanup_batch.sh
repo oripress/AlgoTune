@@ -24,34 +24,25 @@ done
 echo "  → Waiting 10s for queue updates to propagate..."
 sleep 10
 
-# 2. Disable and delete all compute environments
+# 2. Scale down all compute environments
 echo ""
-echo "→ Step 2: Disabling all compute environments..."
+echo "→ Step 2: Scaling down all compute environments..."
 CES=$(aws batch describe-compute-environments --region $AWS_REGION --query 'computeEnvironments[*].computeEnvironmentName' --output text)
 for ce in $CES; do
-  echo "  → Disabling: $ce"
-  
-  # Enable first if disabled (needed to modify)
   STATE=$(aws batch describe-compute-environments --compute-environments "$ce" --region $AWS_REGION --query 'computeEnvironments[0].state' --output text)
   if [ "$STATE" = "DISABLED" ]; then
-    aws batch update-compute-environment --compute-environment "$ce" --state ENABLED --region $AWS_REGION 2>&1 || true
-    sleep 2
+    echo "  → Skipping scale down (already DISABLED): $ce"
+    continue
   fi
-  
-  # Scale to 0
+
+  echo "  → Scaling to 0 vCPUs: $ce"
   aws batch update-compute-environment \
     --compute-environment "$ce" \
     --compute-resources '{"minvCpus":0,"desiredvCpus":0}' \
     --region $AWS_REGION 2>&1 || true
-  
-  # Disable
-  aws batch update-compute-environment \
-    --compute-environment "$ce" \
-    --state DISABLED \
-    --region $AWS_REGION 2>&1 || true
 done
 
-echo "  → Waiting 15s for compute environments to disable..."
+echo "  → Waiting 15s for compute environments to scale down..."
 sleep 15
 
 # 3. Delete all job queues
@@ -65,10 +56,15 @@ done
 echo "  → Waiting 10s for queue deletion..."
 sleep 10
 
-# 4. Delete all compute environments
+# 4. Delete all compute environments (only if already disabled)
 echo ""
 echo "→ Step 4: Deleting all compute environments..."
 for ce in $CES; do
+  STATE=$(aws batch describe-compute-environments --compute-environments "$ce" --region $AWS_REGION --query 'computeEnvironments[0].state' --output text)
+  if [ "$STATE" != "DISABLED" ]; then
+    echo "  → Skipping delete (state=$STATE): $ce"
+    continue
+  fi
   echo "  → Deleting: $ce"
   aws batch delete-compute-environment --compute-environment "$ce" --region $AWS_REGION 2>&1 || true
 done

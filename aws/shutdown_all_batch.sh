@@ -25,7 +25,7 @@ fi
 echo "→ Found compute environments: $CE_NAMES"
 echo ""
 
-# Scale down and disable each compute environment
+# Scale down each compute environment without disabling it
 for CE_NAME in $CE_NAMES; do
   echo "→ Processing: $CE_NAME"
 
@@ -38,31 +38,17 @@ for CE_NAME in $CE_NAMES; do
 
   echo "  Current state: $CURRENT_STATE"
 
-  # Enable if disabled (needed to modify)
   if [ "$CURRENT_STATE" = "DISABLED" ]; then
-    echo "  → Enabling to allow modifications..."
+    echo "  → Skipping scale down (already DISABLED)"
+  else
+    # Scale to 0
+    echo "  → Scaling to 0 vCPUs..."
     aws batch update-compute-environment \
       --compute-environment "$CE_NAME" \
-      --state ENABLED \
+      --compute-resources '{"minvCpus":0,"desiredvCpus":0}' \
       --region "$AWS_REGION" 2>&1 || true
-    sleep 2
+    sleep 1
   fi
-
-  # Scale to 0
-  echo "  → Scaling to 0 vCPUs..."
-  aws batch update-compute-environment \
-    --compute-environment "$CE_NAME" \
-    --compute-resources '{"minvCpus":0,"desiredvCpus":0}' \
-    --region "$AWS_REGION" 2>&1 || true
-
-  sleep 1
-
-  # Disable
-  echo "  → Disabling..."
-  aws batch update-compute-environment \
-    --compute-environment "$CE_NAME" \
-    --state DISABLED \
-    --region "$AWS_REGION" 2>&1 || true
 
   echo "  ✓ Done"
   echo ""
