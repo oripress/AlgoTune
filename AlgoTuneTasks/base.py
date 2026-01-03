@@ -38,6 +38,7 @@ from AlgoTuner.utils.casting import parse_string  # noqa: F401
 from AlgoTuner.utils.type_inspection import describe_type
 from AlgoTuner.utils.isolated_benchmark import run_isolated_benchmark
 from AlgoTuner.utils.multiprocessing_utils import _pool_worker_initializer, load_pool_config, RESOURCE_AVAILABLE
+from AlgoTuner.utils.hf_datasets import ensure_hf_dataset
 from AlgoTuner.utils.k_search import find_k_for_time
 
 _bench_cfg      = load_config().get("benchmark", {})
@@ -354,6 +355,29 @@ class Task:
             train_gen = stream_jsonl(str(self._cached_train_file_path), decoder_base_dir=str(base_dir))
             test_gen = stream_jsonl(str(self._cached_test_file_path), decoder_base_dir=str(base_dir))
             return train_gen, test_gen
+
+        hf_data_dir = ensure_hf_dataset(current_task_name)
+        if hf_data_dir is not None:
+            logging.info("load_dataset: Checking HF dataset cache at %s", hf_data_dir)
+            original_data_dir = self.data_dir
+            self.data_dir = str(hf_data_dir)
+            try:
+                found_train_path, found_test_path, k_from_file, reason_for_next_step = self._find_dataset_files(
+                    target_time_ms=None,
+                    train_size=train_size,
+                    test_size=test_size,
+                    random_seed=random_seed
+                )
+            finally:
+                self.data_dir = original_data_dir
+
+            if found_train_path and found_test_path and k_from_file is not None:
+                logging.info("load_dataset: Using HF dataset files cached by _find_dataset_files (k=%s).", self.k)
+                base_dir = self._cached_train_file_path.parent
+                train_gen = stream_jsonl(str(self._cached_train_file_path), decoder_base_dir=str(base_dir))
+                test_gen = stream_jsonl(str(self._cached_test_file_path), decoder_base_dir=str(base_dir))
+                return train_gen, test_gen
+            logging.info("load_dataset: HF dataset not found; falling back to local generation. Reason: %s", reason_for_next_step)
         
         # _find_dataset_files will attempt to find files. 
         # It uses target_time_ms=None for wildcard search for T. 

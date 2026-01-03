@@ -17,9 +17,12 @@ fi
 # Delete old compute environments
 for ce in AlgoTuneCE-v2 AlgoTuneCE-r6a AlgoTuneCE-r6a-multi; do
   if aws batch describe-compute-environments --compute-environments $ce --region $AWS_REGION 2>/dev/null | grep -q $ce; then
+    STATE=$(aws batch describe-compute-environments --compute-environments $ce --region $AWS_REGION --query 'computeEnvironments[0].state' --output text 2>/dev/null || echo "UNKNOWN")
+    if [ "$STATE" != "DISABLED" ]; then
+      echo "→ Skipping delete (state=$STATE): $ce"
+      continue
+    fi
     echo "→ Deleting old CE: $ce..."
-    aws batch update-compute-environment --compute-environment $ce --state DISABLED --region $AWS_REGION 2>&1 || true
-    sleep 2
     aws batch delete-compute-environment --compute-environment $ce --region $AWS_REGION 2>&1 || true
   fi
 done

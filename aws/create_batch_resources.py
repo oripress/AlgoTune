@@ -17,6 +17,7 @@ load_dotenv(aws_dotenv)
 
 region = os.getenv("AWS_REGION")
 batch = boto3.client("batch", region_name=region)
+ec2 = boto3.client("ec2", region_name=region)
 
 # Your AWS resource names
 CE_NAME = os.getenv("BATCH_COMPUTE_ENV_NAME", "AlgoTuneCE")
@@ -25,6 +26,10 @@ JOB_DEF_NAME = os.getenv("BATCH_JOB_DEF_NAME", "AlgoTuneJobDef")
 
 # Docker image you built & pushed (DockerHub)
 DOCKER_IMAGE = os.getenv("DOCKER_IMAGE", "algotune:latest")
+
+# Optional: launch template for root volume sizing
+root_volume_gb = os.getenv("BATCH_ROOT_VOLUME_GB")
+launch_template_name = os.getenv("BATCH_LAUNCH_TEMPLATE_NAME", f"{CE_NAME}-lt") if root_volume_gb else None
 
 # Roles - get account ID to construct ARNs
 account_id = boto3.client('sts', region_name=region).get_caller_identity()['Account']
@@ -49,6 +54,62 @@ batch_service_role = os.getenv("AWS_BATCH_SERVICE_ROLE")  # will be auto-created
 # Network config
 subnets = os.getenv("AWS_SUBNET_ID", "").split(",")
 security_groups = os.getenv("AWS_SG_ID", "").split(",")
+
+# Ensure launch template exists if root volume override is requested.
+def ensure_launch_template():
+    if not root_volume_gb:
+        return None
+    volume_size = int(root_volume_gb)
+    lt_data = {
+        "BlockDeviceMappings": [
+            {
+                "DeviceName": "/dev/xvda",
+                "Ebs": {
+                    "VolumeSize": volume_size,
+                    "VolumeType": "gp3",
+                    "DeleteOnTermination": True,
+                },
+            }
+        ]
+    }
+
+    # Try to create/update the launch template
+    # Due to IAM permissions, we might not be able to check if it exists
+    # Try to create a new version first (if template exists), otherwise create new
+    try:
+        ec2.create_launch_template_version(
+            LaunchTemplateName=launch_template_name,
+            LaunchTemplateData=lt_data,
+        )
+        print(f"  ✓ Updated launch template '{launch_template_name}' (root {volume_size}GB)")
+    except ec2.exceptions.ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code', '')
+        if 'InvalidLaunchTemplateName.NotFoundException' in error_code or 'NotFoundException' in error_code:
+            # Template doesn't exist, create it
+            try:
+                ec2.create_launch_template(
+                    LaunchTemplateName=launch_template_name,
+                    LaunchTemplateData=lt_data,
+                    VersionDescription=f"root {volume_size}GB",
+                )
+                print(f"  ✓ Created launch template '{launch_template_name}' (root {volume_size}GB)")
+            except ec2.exceptions.ClientError as e2:
+                error_code2 = e2.response.get('Error', {}).get('Code', '')
+                if 'UnauthorizedOperation' in error_code2:
+                    print(f"  ⚠ Warning: No EC2 permissions to manage launch templates")
+                    print(f"    Will attempt to use existing template '{launch_template_name}'")
+                else:
+                    raise
+        elif 'UnauthorizedOperation' in error_code:
+            print(f"  ⚠ Warning: No EC2 permissions to manage launch templates")
+            print(f"    Will attempt to use existing template '{launch_template_name}'")
+        else:
+            raise
+
+    return launch_template_name
+
+if root_volume_gb:
+    ensure_launch_template()
 
 # Check if compute environment already exists
 print(f"Checking if compute environment '{CE_NAME}' exists...")
@@ -88,6 +149,11 @@ if not ce_exists:
             "instanceRole": ecs_instance_role,
         }
     }
+    if root_volume_gb:
+        ce_config["computeResources"]["launchTemplate"] = {
+            "launchTemplateName": launch_template_name,
+            "version": "$Latest",
+        }
 
     # Only add serviceRole if it's not a service-linked role (service-linked roles are auto-used)
     if batch_service_role and "aws-service-role" not in batch_service_role:
@@ -107,6 +173,7 @@ else:
     current_min = current_resources.get('minvCpus')
     current_max = current_resources.get('maxvCpus')
     current_desired = current_resources.get('desiredvCpus')
+    current_lt = current_resources.get('launchTemplate', {})
 
     needs_update = False
     update_params = {
@@ -135,6 +202,15 @@ else:
             'desiredvCpus': desired_vcpus
         }
         needs_update = True
+    if root_volume_gb:
+        desired_lt = {
+            "launchTemplateName": launch_template_name,
+            "version": "$Latest",
+        }
+        if current_lt != desired_lt:
+            update_params.setdefault('computeResources', {})
+            update_params['computeResources']['launchTemplate'] = desired_lt
+            needs_update = True
 
     if needs_update:
         try:
