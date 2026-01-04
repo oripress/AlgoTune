@@ -105,7 +105,7 @@ class AffineTransform2D(Task):
             # Return an empty list to indicate failure? Adjust based on benchmark policy.
             return {"transformed_image": []}
 
-        solution = {"transformed_image": transformed_image}
+        solution = {"transformed_image": transformed_image.tolist()}
         return solution
 
     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -> bool:
