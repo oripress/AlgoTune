@@ -80,7 +80,7 @@ class Zoom2D(Task):
             logging.error(f"scipy.ndimage.zoom failed: {e}")
             return {"zoomed_image": []}  # Indicate failure
 
-        solution = {"zoomed_image": zoomed_image}
+        solution = {"zoomed_image": zoomed_image.tolist()}
         return solution
 
     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -> bool:
