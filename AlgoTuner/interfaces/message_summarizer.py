@@ -1,13 +1,9 @@
 import re
+
 from AlgoTuner.interfaces.commands.types import EditStatus, EvalStatus
-from typing import Optional
-import logging
-from AlgoTuner.utils.message_writer import MessageWriter
-from AlgoTuner.utils.snippet_utils import compute_centered_snippet_bounds, compute_snippet_bounds
-from AlgoTuner.utils.profiler import TaskProfiler
 
 
-def extract_eval_info(content, eval_status: Optional[str] = None):
+def extract_eval_info(content, eval_status: str | None = None):
     """Extract evaluation information from a message."""
     avg_diff_match = re.search(r"Average Difference: ([\d.]+)", content)
     best_speedup_match = re.search(r"Snapshot .* saved as new best", content)
@@ -24,7 +20,7 @@ def extract_eval_info(content, eval_status: Optional[str] = None):
     return None
 
 
-def extract_edit_info(content, edit_status: Optional[str] = None):
+def extract_edit_info(content, edit_status: str | None = None):
     """Extract information about code edits."""
     lines = [
         line.strip()
