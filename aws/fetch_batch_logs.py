@@ -14,10 +14,13 @@ REQUIRES: IAM permissions for logs:GetLogEvents, logs:DescribeLogStreams
 
 Normal workflow uses S3 for log storage (see download_logs.py instead).
 """
+
 import os
-import boto3
 from pathlib import Path
+
+import boto3
 from dotenv import load_dotenv
+
 
 # Load environment from both .env files
 # 1. Load API keys from root .env
@@ -32,7 +35,8 @@ load_dotenv(aws_dotenv)
 LOG_GROUP = "/aws/batch/job"  # default CloudWatch Logs group for AWS Batch jobs
 
 batch = boto3.client("batch", region_name=os.getenv("AWS_REGION"))
-logs  = boto3.client("logs",  region_name=os.getenv("AWS_REGION"))
+logs = boto3.client("logs", region_name=os.getenv("AWS_REGION"))
+
 
 def download_logs_for_job(job_id: str, out_dir: str = "downloaded_logs"):
     """
@@ -78,19 +82,18 @@ def download_logs_for_job(job_id: str, out_dir: str = "downloaded_logs"):
 
     print(f"[SUCCESS] Saved logs for {job_id} → {outfile}")
 
+
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--job-ids-file",
-        required=True,
-        help="Path to a file with one AWS Batch job ID per line"
+        "--job-ids-file", required=True, help="Path to a file with one AWS Batch job ID per line"
     )
     parser.add_argument(
         "--out-dir",
         default="downloaded_logs",
-        help="Directory where fetched logs should be written"
+        help="Directory where fetched logs should be written",
     )
 
     args = parser.parse_args()

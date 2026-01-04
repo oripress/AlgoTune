@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-import time
-import random
-import boto3
 import os
+import random
+import time
 from pathlib import Path
+
+import boto3
 from dotenv import load_dotenv
+
 
 # Load environment from both .env files
 # 1. Load API keys from root .env
@@ -20,6 +22,7 @@ batch = boto3.client("batch", region_name=os.getenv("AWS_REGION"))
 
 TERMINAL_STATES = {"SUCCEEDED", "FAILED"}
 
+
 def check_jobs_complete(job_ids):
     """
     Returns a dict job_id -> status.
@@ -27,11 +30,12 @@ def check_jobs_complete(job_ids):
     statuses = {}
     # Batch.describe_jobs accepts up to 100 IDs at once
     for i in range(0, len(job_ids), 100):
-        chunk = job_ids[i:i + 100]
+        chunk = job_ids[i : i + 100]
         desc = batch.describe_jobs(jobs=chunk)
         for job in desc["jobs"]:
             statuses[job["jobId"]] = job["status"]
     return statuses
+
 
 def wait_for_jobs(job_ids, poll_interval=10):
     """
@@ -55,12 +59,14 @@ def wait_for_jobs(job_ids, poll_interval=10):
         time.sleep(delay)
         pending = still_running
 
+
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--job-ids-file", required=True,
-                        help="Path to file with AWS Batch job IDs (one per line)")
+    parser.add_argument(
+        "--job-ids-file", required=True, help="Path to file with AWS Batch job IDs (one per line)"
+    )
     args = parser.parse_args()
 
     with open(args.job_ids_file) as f:

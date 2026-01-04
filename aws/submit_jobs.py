@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
+import argparse
+import glob
+import json
 import os
 import sys
-import argparse
-import boto3
-import json
 import time
-import glob
 from datetime import datetime
 from pathlib import Path
+
+import boto3
 from dotenv import load_dotenv
+
 
 # Load environment from both .env files
 # 1. Load API keys from root .env
@@ -19,6 +21,7 @@ if root_dotenv.exists():
 # 2. Load AWS configuration from aws/.env
 aws_dotenv = Path(__file__).parent / ".env"
 load_dotenv(aws_dotenv)
+
 
 def setup_s3_lifecycle_policy(s3_client, bucket: str, dataset_retention_days: int = 21):
     """
@@ -34,27 +37,33 @@ def setup_s3_lifecycle_policy(s3_client, bucket: str, dataset_retention_days: in
     """
     try:
         lifecycle_config = {
-            'Rules': [
+            "Rules": [
                 {
-                    'Id': 'DeleteOldDatasets',
-                    'Status': 'Enabled',
-                    'Filter': {'Prefix': 'datasets/'},
-                    'Expiration': {'Days': dataset_retention_days}
+                    "Id": "DeleteOldDatasets",
+                    "Status": "Enabled",
+                    "Filter": {"Prefix": "datasets/"},
+                    "Expiration": {"Days": dataset_retention_days},
                 }
             ]
         }
 
         s3_client.put_bucket_lifecycle_configuration(
-            Bucket=bucket,
-            LifecycleConfiguration=lifecycle_config
+            Bucket=bucket, LifecycleConfiguration=lifecycle_config
         )
 
-        print(f"✓ S3 lifecycle policy set: datasets/ prefix will expire after {dataset_retention_days} days", file=sys.stderr)
+        print(
+            f"✓ S3 lifecycle policy set: datasets/ prefix will expire after {dataset_retention_days} days",
+            file=sys.stderr,
+        )
         return True
     except Exception as e:
         print(f"Warning: Could not set S3 lifecycle policy: {e}", file=sys.stderr)
-        print(f"         Datasets will not auto-delete. You may need to clean them up manually.", file=sys.stderr)
+        print(
+            "         Datasets will not auto-delete. You may need to clean them up manually.",
+            file=sys.stderr,
+        )
         return False
+
 
 def load_generation_config():
     """Load generation.json to get 'n' values for each task."""
@@ -62,17 +71,17 @@ def load_generation_config():
 
     if not generation_file.exists():
         print(f"WARNING: generation.json not found at {generation_file}", file=sys.stderr)
-        print(f"         Will use default target-time-ms=100 for all tasks", file=sys.stderr)
+        print("         Will use default target-time-ms=100 for all tasks", file=sys.stderr)
         return {}
 
     try:
-        with open(generation_file, 'r') as f:
+        with open(generation_file) as f:
             data = json.load(f)
         print(f"Loaded generation config with {len(data)} tasks", file=sys.stderr)
         return data
     except Exception as e:
         print(f"WARNING: Failed to load generation.json: {e}", file=sys.stderr)
-        print(f"         Will use default target-time-ms=100 for all tasks", file=sys.stderr)
+        print("         Will use default target-time-ms=100 for all tasks", file=sys.stderr)
         return {}
 
 
@@ -91,38 +100,31 @@ def discover_all_tasks():
 
     return tasks
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Submit AlgoTune optimization jobs to AWS Batch"
-    )
+    parser = argparse.ArgumentParser(description="Submit AlgoTune optimization jobs to AWS Batch")
 
     # Model selection (required)
     parser.add_argument(
         "--model",
         required=True,
-        help="Model to use (e.g., o4-mini, openrouter/anthropic/claude-3.5-sonnet)"
+        help="Model to use (e.g., o4-mini, openrouter/anthropic/claude-3.5-sonnet)",
     )
 
     # Task selection (mutually exclusive)
     task_group = parser.add_mutually_exclusive_group(required=True)
-    task_group.add_argument(
-        "--tasks",
-        help="Comma-separated list of tasks (e.g., svm,pca,kmeans)"
-    )
-    task_group.add_argument(
-        "--all-tasks",
-        action="store_true",
-        help="Run on all available tasks"
-    )
+    task_group.add_argument("--tasks", help="Comma-separated list of tasks (e.g., svm,pca,kmeans)")
+    task_group.add_argument("--all-tasks", action="store_true", help="Run on all available tasks")
 
     # S3 bucket for results
     parser.add_argument(
         "--s3-bucket",
         default=os.getenv("S3_RESULTS_BUCKET", ""),
-        help="S3 bucket for results (default: from .env S3_RESULTS_BUCKET)"
+        help="S3 bucket for results (default: from .env S3_RESULTS_BUCKET)",
     )
 
     return parser.parse_args()
+
 
 def main():
     args = parse_args()
@@ -186,13 +188,13 @@ def main():
                 time.sleep(poll_interval)
                 waited += poll_interval
 
-    print(f"", file=sys.stderr)
+    print("", file=sys.stderr)
     print(f"Submitting jobs to queue: {job_queue}", file=sys.stderr)
     print(f"Job definition: {job_def}", file=sys.stderr)
     print(f"Model: {args.model}", file=sys.stderr)
     if s3_bucket:
         print(f"S3 results bucket: s3://{s3_bucket}/", file=sys.stderr)
-    print(f"", file=sys.stderr)
+    print("", file=sys.stderr)
 
     # Load config to inject into container so model definitions stay in sync
     config_path = Path(__file__).resolve().parents[1] / "AlgoTuner" / "config" / "config.yaml"
@@ -208,7 +210,7 @@ def main():
         config_text = config_text.rstrip() + "\nDATA_DIR: /app/AlgoTuner/data\n"
         config_key = f"config/config_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.yaml"
         try:
-            s3_client = boto3.client('s3', region_name=os.getenv("AWS_REGION"))
+            s3_client = boto3.client("s3", region_name=os.getenv("AWS_REGION"))
             s3_client.put_object(Bucket=s3_bucket, Key=config_key, Body=config_text.encode("utf-8"))
             config_s3_uri = f"s3://{s3_bucket}/{config_key}"
             print(f"Uploaded config to {config_s3_uri}", file=sys.stderr)
@@ -220,7 +222,7 @@ def main():
             print(f"WARNING: Failed to upload config.yaml to S3: {e}", file=sys.stderr)
 
     # Extract model display name (strip provider prefix like "openrouter/")
-    model_display = args.model.split('/')[-1] if '/' in args.model else args.model
+    model_display = args.model.split("/")[-1] if "/" in args.model else args.model
 
     # Submit a job for each selected task
     submitted_count = 0
@@ -241,11 +243,11 @@ def main():
                     print(f"  ⚠️  Warning: Could not delete {log_file}: {e}", file=sys.stderr)
         # Get target_time_ms and n from generation config if available
         task_config = generation_config.get(task_name, {})
-        target_time_ms = task_config.get('target_time_ms', 100)
-        n_value = task_config.get('n', 'auto')
+        target_time_ms = task_config.get("target_time_ms", 100)
+        n_value = task_config.get("n", "auto")
 
         # Prioritize n value over target_time_ms for generation
-        if n_value and n_value != 'auto':
+        if n_value and n_value != "auto":
             generation_arg = f"--n {n_value}"
             dataset_s3_prefix = f"datasets/{task_name}_n{n_value}"
             print(f"Task {task_name}: n={n_value} (ignoring target_time_ms)", file=sys.stderr)
@@ -502,7 +504,7 @@ exit $EXIT_CODE;
             safe_model = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in args.model)
             script_key = f"jobscripts/{safe_task}_{safe_model}_{script_ts}.sh"
             try:
-                s3_client = boto3.client('s3', region_name=os.getenv("AWS_REGION"))
+                s3_client = boto3.client("s3", region_name=os.getenv("AWS_REGION"))
                 s3_client.put_object(
                     Bucket=s3_bucket,
                     Key=script_key,
@@ -511,7 +513,7 @@ exit $EXIT_CODE;
                 )
                 cmd = (
                     "set -e; "
-                    f"aws s3 cp \"s3://{s3_bucket}/{script_key}\" /tmp/algotune_job.sh; "
+                    f'aws s3 cp "s3://{s3_bucket}/{script_key}" /tmp/algotune_job.sh; '
                     "bash /tmp/algotune_job.sh"
                 )
             except Exception as e:
@@ -550,22 +552,31 @@ exit $EXIT_CODE;
         ]
 
         dataset_size = task_config.get("dataset_size")
-        if n_value and n_value != 'auto':
+        if n_value and n_value != "auto":
             env_vars.append({"name": "TASK_N", "value": str(n_value)})
         if target_time_ms:
             env_vars.append({"name": "TASK_TARGET_TIME_MS", "value": str(target_time_ms)})
         if dataset_size:
             env_vars.append({"name": "TASK_DATASET_SIZE", "value": str(dataset_size)})
 
-        for key in ["PRESIGNED_STDOUT_URL", "PRESIGNED_STDERR_URL",
-                    "PRESIGNED_STDOUT_PATH", "PRESIGNED_STDERR_PATH"]:
+        for key in [
+            "PRESIGNED_STDOUT_URL",
+            "PRESIGNED_STDERR_URL",
+            "PRESIGNED_STDOUT_PATH",
+            "PRESIGNED_STDERR_PATH",
+        ]:
             value = os.getenv(key, "")
             if value:
                 env_vars.append({"name": key, "value": value})
 
         # Add optional API keys if present
-        for key in ["OPENAI_API_KEY", "CLAUDE_API_KEY", "DEEPSEEK_API_KEY",
-                    "GEMINI_API_KEY", "TOGETHER_API_KEY"]:
+        for key in [
+            "OPENAI_API_KEY",
+            "CLAUDE_API_KEY",
+            "DEEPSEEK_API_KEY",
+            "GEMINI_API_KEY",
+            "TOGETHER_API_KEY",
+        ]:
             value = os.getenv(key, "")
             if value:
                 env_vars.append({"name": key, "value": value})
@@ -575,8 +586,14 @@ exit $EXIT_CODE;
             env_vars.append({"name": "S3_RESULTS_BUCKET", "value": s3_bucket})
 
         # Add HuggingFace configuration
-        for key in ["HF_TOKEN", "ALGOTUNE_HF_LAZY", "ALGOTUNE_HF_DISABLE",
-                    "ALGOTUNE_HF_DATASET", "ALGOTUNE_HF_REVISION", "ALGOTUNE_HF_CACHE_DIR"]:
+        for key in [
+            "HF_TOKEN",
+            "ALGOTUNE_HF_LAZY",
+            "ALGOTUNE_HF_DISABLE",
+            "ALGOTUNE_HF_DATASET",
+            "ALGOTUNE_HF_REVISION",
+            "ALGOTUNE_HF_CACHE_DIR",
+        ]:
             value = os.getenv(key, "")
             if value:
                 env_vars.append({"name": key, "value": value})
@@ -596,11 +613,13 @@ exit $EXIT_CODE;
                 containerOverrides={
                     "command": [cmd],  # Use image ENTRYPOINT for shell execution
                     "environment": env_vars,
-                }
+                },
             )
 
             job_id = response["jobId"]
-            print(f"✓ Submitted {task_name} (model: {args.model}) - job id: {job_id}", file=sys.stderr)
+            print(
+                f"✓ Submitted {task_name} (model: {args.model}) - job id: {job_id}", file=sys.stderr
+            )
             print(job_id)  # Output just the job ID to stdout for capture
             submitted_count += 1
 
@@ -608,15 +627,16 @@ exit $EXIT_CODE;
             print(f"✗ Failed to submit {task_name}: {e}", file=sys.stderr)
             failed_count += 1
 
-    print(f"", file=sys.stderr)
-    print(f"════════════════════════════════════════", file=sys.stderr)
+    print("", file=sys.stderr)
+    print("════════════════════════════════════════", file=sys.stderr)
     print(f"Submitted: {submitted_count} jobs", file=sys.stderr)
     if failed_count > 0:
         print(f"Failed: {failed_count} jobs", file=sys.stderr)
-    print(f"════════════════════════════════════════", file=sys.stderr)
+    print("════════════════════════════════════════", file=sys.stderr)
 
     if submitted_count == 0:
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

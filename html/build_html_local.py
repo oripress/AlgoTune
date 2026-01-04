@@ -3,12 +3,12 @@
 Build the HTML report from local logs without extra inputs.
 Defaults to repo/logs and a timestamped results directory.
 """
+
 from __future__ import annotations
 
 import os
-import sys
 import shutil
-from datetime import datetime
+import sys
 from pathlib import Path
 
 
@@ -38,13 +38,13 @@ def main() -> int:
     if output_dir.exists():
         print(f"🧹 Cleaning up old HTML files in: {output_dir}")
         for item in output_dir.iterdir():
-            if item.is_file() and item.suffix in {'.html', '.css'}:
+            if item.is_file() and item.suffix in {".html", ".css"}:
                 item.unlink()
                 print(f"   Deleted: {item.name}")
-            elif item.is_dir() and item.name in {'assets', '.mplconfig'}:
+            elif item.is_dir() and item.name in {"assets", ".mplconfig"}:
                 shutil.rmtree(item)
                 print(f"   Deleted directory: {item.name}")
-        print(f"✓ Cleanup complete\n")
+        print("✓ Cleanup complete\n")
 
     sys.path.insert(0, str(script_dir))
     import batch_html_generator

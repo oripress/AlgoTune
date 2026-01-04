@@ -6,10 +6,11 @@ It imports every tasks.task_<X>.<task_name> module so that
 @register_task decorators run, then prints the sorted registry keys.
 """
 
-import os
-import sys
 import importlib
 import logging
+import os
+import sys
+
 
 # Ensure project root is on sys.path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
@@ -18,6 +19,7 @@ if PROJECT_ROOT not in sys.path:
 
 # Import registry
 from AlgoTuneTasks.base import TASK_REGISTRY
+
 
 def discover_and_import_tasks():
     """Dynamically imports all task modules under AlgoTuneTasks to populate TASK_REGISTRY."""
@@ -45,21 +47,31 @@ def discover_and_import_tasks():
         return
     for dirpath, dirnames, filenames in os.walk(tasks_root):
         # Skip any cache directories
-        if '__pycache__' in dirpath:
+        if "__pycache__" in dirpath:
             continue
         for fname in filenames:
-            if not fname.endswith('.py') or fname in ('__init__.py', 'base.py', 'registry.py', 'factory.py', 'base_old.py'):
+            if not fname.endswith(".py") or fname in (
+                "__init__.py",
+                "base.py",
+                "registry.py",
+                "factory.py",
+                "base_old.py",
+            ):
                 continue
             file_path = os.path.join(dirpath, fname)
             # Compute module name relative to PROJECT_ROOT
             relpath = os.path.relpath(file_path, PROJECT_ROOT)
             # Convert path to module name: AlgoTuneTasks.<subdir>.<module>
-            module_name = os.path.splitext(relpath)[0].replace(os.sep, '.')
-            logging.debug(f"discover_and_import_tasks: Importing module {module_name} from {file_path}")
+            module_name = os.path.splitext(relpath)[0].replace(os.sep, ".")
+            logging.debug(
+                f"discover_and_import_tasks: Importing module {module_name} from {file_path}"
+            )
             try:
                 # Skip if already loaded to avoid duplicate module objects (keeps class identity stable)
                 if module_name in sys.modules:
-                    logging.debug(f"discover_and_import_tasks: Module already loaded, skipping: {module_name}")
+                    logging.debug(
+                        f"discover_and_import_tasks: Module already loaded, skipping: {module_name}"
+                    )
                     continue
 
                 spec = importlib.util.spec_from_file_location(module_name, file_path)
@@ -72,10 +84,16 @@ def discover_and_import_tasks():
                 # Skip modules with missing dependencies or Python version syntax issues
                 logging.debug(f"discover_and_import_tasks: Skipping module {module_name}: {e}")
             except Exception as e:
-                logging.error(f"discover_and_import_tasks: Error importing module {module_name}: {e}", exc_info=True)
-    logging.info(f"discover_and_import_tasks: Finished discovery. TASK_REGISTRY keys: {list(TASK_REGISTRY.keys())}")
+                logging.error(
+                    f"discover_and_import_tasks: Error importing module {module_name}: {e}",
+                    exc_info=True,
+                )
+    logging.info(
+        f"discover_and_import_tasks: Finished discovery. TASK_REGISTRY keys: {list(TASK_REGISTRY.keys())}"
+    )
+
 
 if __name__ == "__main__":
     discover_and_import_tasks()
     # Print space-separated list of registered task names
-    print(" ".join(sorted(TASK_REGISTRY.keys())), flush=True) 
+    print(" ".join(sorted(TASK_REGISTRY.keys())), flush=True)

@@ -11,6 +11,7 @@ import sys
 import time
 from pathlib import Path
 
+
 # Add project root to Python path
 script_dir = Path(__file__).parent
 project_root = script_dir.parent
@@ -20,6 +21,7 @@ sys.path.insert(0, str(project_root))
 def acquire_lock(lock_file_path, timeout=60):
     """Attempts to acquire an exclusive lock using a lock file."""
     import time
+
     start_time = time.time()
     while time.time() - start_time < timeout:
         try:
@@ -56,54 +58,52 @@ def main():
     parser.add_argument("--num-runs", type=int, default=10)
     parser.add_argument("--max-workers", type=int, default=1)
     parser.add_argument("--standalone", action="store_true")
-    
+
     args = parser.parse_args()
-    
+
     model = args.models[0]
     task = args.tasks[0]
-    
+
     print(f"Evaluating {task} for {model}")
-    
+
     # Simulate some work
     time.sleep(2)
-    
+
     # Generate a fake speedup result
     fake_speedup = 2.5
-    
+
     # Write result to summary file using lock mechanism
-    lock_file_path = args.output.with_suffix('.lock')
-    
+    lock_file_path = args.output.with_suffix(".lock")
+
     if not acquire_lock(str(lock_file_path)):
         print(f"Failed to acquire lock for {args.output}")
         sys.exit(1)
-    
+
     try:
         # Load existing summary or create new one
         summary_data = {}
         if args.output.exists():
             try:
-                with open(args.output, 'r') as f:
+                with open(args.output) as f:
                     summary_data = json.load(f)
             except (json.JSONDecodeError, FileNotFoundError):
                 print(f"Could not load existing summary file {args.output}, creating new one")
                 summary_data = {}
-        
+
         # Add this result to summary
         if task not in summary_data:
             summary_data[task] = {}
-        
-        summary_data[task][model] = {
-            "final_speedup": f"{fake_speedup:.4f}"
-        }
-        
+
+        summary_data[task][model] = {"final_speedup": f"{fake_speedup:.4f}"}
+
         # Write updated summary
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        with open(args.output, 'w') as f:
+        with open(args.output, "w") as f:
             json.dump(summary_data, f, indent=2, sort_keys=True)
-            
+
         print(f"✅ {task}/{model}: {fake_speedup:.4f}x speedup (FAKE)")
         print(f"Result written to summary: {args.output}")
-        
+
     finally:
         release_lock(str(lock_file_path))
 

@@ -1,7 +1,7 @@
-import os
 import logging
-from datetime import datetime
+import os
 import sys
+from datetime import datetime
 
 
 def setup_logging(task=None, model=None):
@@ -28,7 +28,7 @@ def setup_logging(task=None, model=None):
     # Generate log filename with timestamp and task/model info
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     components = []
-    
+
     # Create log file for all runs, including test runs
     if task:
         components.append(task)
@@ -63,8 +63,8 @@ def setup_logging(task=None, model=None):
                 pass
         except OSError as e:
             raise OSError(f"Cannot write to log file {log_file}: {e}")
-            
-        file_handler = logging.FileHandler(log_file, 'w')
+
+        file_handler = logging.FileHandler(log_file, "w")
         file_handler.setLevel(level)
         file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
         logger.addHandler(file_handler)
@@ -72,9 +72,11 @@ def setup_logging(task=None, model=None):
     # Always add console handler
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(level)
-    console_handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))  # Simpler format for console
+    console_handler.setFormatter(
+        logging.Formatter("%(levelname)s - %(message)s")
+    )  # Simpler format for console
     logger.addHandler(console_handler)
-    
+
     # Log initial messages
     logger.debug("Logger initialized with DEBUG level file logging")
     if log_file:

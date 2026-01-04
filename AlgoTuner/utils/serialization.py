@@ -1,17 +1,15 @@
+import base64
 import json
 import logging
-import numpy as np
-import base64
 import os
-import copy
 import traceback
-import functools
-import inspect
-from enum import Enum
-from typing import Any, Dict, List, Union, Type, Optional
-from scipy import sparse
 import uuid
 from pathlib import Path
+from typing import Any
+
+import numpy as np
+from scipy import sparse
+
 
 # Size threshold (in bytes) for storing numpy arrays inline vs. externally
 NDARRAY_INLINE_THRESHOLD_BYTES = 100 * 1024  # 100 KB
@@ -52,7 +50,7 @@ class DatasetEncoder(json.JSONEncoder):
             # tools consume this output.
             # Python integers have arbitrary precision, so direct serialization can fail.
             if obj < -9223372036854775808 or obj > 9223372036854775807:
-                return str(obj) # Convert to string if too large
+                return str(obj)  # Convert to string if too large
             # Otherwise, let it be handled by subsequent checks or super().default
             # if it's a standard-sized int that orjson can handle as a number.
 
@@ -171,6 +169,7 @@ class DatasetEncoder(json.JSONEncoder):
 
 # Helper for externalizing large arrays
 
+
 def externalize_large_arrays(obj: Any, base_dir: Path, npy_subdir_name: str = "_npy_data") -> Any:
     """
     Recursively traverse obj, saving large ndarrays externally and replacing them with references.
@@ -198,7 +197,10 @@ def externalize_large_arrays(obj: Any, base_dir: Path, npy_subdir_name: str = "_
             # Fast check: if first element is list/int/float assume numeric list
             if obj and isinstance(obj[0], (list, int, float, np.number)):
                 arr_candidate = np.asarray(obj, dtype=float)
-                if arr_candidate.ndim >= 1 and arr_candidate.nbytes > NDARRAY_INLINE_THRESHOLD_BYTES:
+                if (
+                    arr_candidate.ndim >= 1
+                    and arr_candidate.nbytes > NDARRAY_INLINE_THRESHOLD_BYTES
+                ):
                     # Recursively handle the ndarray path – this will externalise
                     # it to .npy and return a reference dict.
                     return externalize_large_arrays(arr_candidate, base_dir, npy_subdir_name)
@@ -212,7 +214,7 @@ def externalize_large_arrays(obj: Any, base_dir: Path, npy_subdir_name: str = "_
     elif isinstance(obj, tuple):
         # Handle tuples similarly to lists for externalization
         return tuple(externalize_large_arrays(item, base_dir, npy_subdir_name) for item in obj)
-    elif sparse.isspmatrix(obj): # Check for any SciPy sparse matrix
+    elif sparse.isspmatrix(obj):  # Check for any SciPy sparse matrix
         logging.debug(f"Externalizing SciPy sparse matrix of type {type(obj)}, shape {obj.shape}")
         # Determine the type of sparse matrix to reconstruct it later
         if sparse.isspmatrix_csr(obj):
@@ -223,14 +225,16 @@ def externalize_large_arrays(obj: Any, base_dir: Path, npy_subdir_name: str = "_
             matrix_type_str = "scipy_coo_matrix_ref"
         # Add other sparse types if needed (bsr, dia, lil)
         else:
-            logging.warning(f"Unsupported SciPy sparse matrix type {type(obj)} for externalization. Returning as is.")
-            return obj # Or handle as an error
+            logging.warning(
+                f"Unsupported SciPy sparse matrix type {type(obj)} for externalization. Returning as is."
+            )
+            return obj  # Or handle as an error
 
         # Externalize components
         ext_data = externalize_large_arrays(obj.data, base_dir, npy_subdir_name)
         ext_indices = externalize_large_arrays(obj.indices, base_dir, npy_subdir_name)
         ext_indptr = None
-        if hasattr(obj, 'indptr'): # COO matrices do not have indptr
+        if hasattr(obj, "indptr"):  # COO matrices do not have indptr
             ext_indptr = externalize_large_arrays(obj.indptr, base_dir, npy_subdir_name)
 
         ref_dict = {
@@ -255,12 +259,12 @@ def externalize_large_arrays(obj: Any, base_dir: Path, npy_subdir_name: str = "_
             # We've already stored obj.data as "data"
             # Remove "indices" if it was from a generic sparse.isspmatrix path and not specific to COO needs
             if "indices" in ref_dict and matrix_type_str == "scipy_coo_matrix_ref":
-                 # For COO, data is typically reconstructed with (data, (row, col))
-                 # obj.indices is not a standard construction parameter for coo_matrix directly with data, row, col.
-                 # Let's ensure we are not confusing. scipy.sparse.coo_matrix constructor takes (data, (row, col))
-                 # The attributes are .data, .row, .col
-                 # So, we remove the generic .indices which might have been picked up.
-                 del ref_dict["indices"] # We will use row and col for COO
+                # For COO, data is typically reconstructed with (data, (row, col))
+                # obj.indices is not a standard construction parameter for coo_matrix directly with data, row, col.
+                # Let's ensure we are not confusing. scipy.sparse.coo_matrix constructor takes (data, (row, col))
+                # The attributes are .data, .row, .col
+                # So, we remove the generic .indices which might have been picked up.
+                del ref_dict["indices"]  # We will use row and col for COO
 
         return ref_dict
     elif _is_large_ndarray(obj):
@@ -272,8 +276,12 @@ def externalize_large_arrays(obj: Any, base_dir: Path, npy_subdir_name: str = "_
         filename = f"{uuid.uuid4()}.npy"
         npy_file_path = npy_dir / filename
         try:
-            np.save(npy_file_path, obj, allow_pickle=False) # Save without pickle for security/portability
-            logging.debug(f"Externalized large array ({obj.shape}, {obj.dtype}, {obj.nbytes} bytes) to {npy_file_path}")
+            np.save(
+                npy_file_path, obj, allow_pickle=False
+            )  # Save without pickle for security/portability
+            logging.debug(
+                f"Externalized large array ({obj.shape}, {obj.dtype}, {obj.nbytes} bytes) to {npy_file_path}"
+            )
         except Exception as e:
             logging.error(f"Failed to save large ndarray to {npy_file_path}: {e}", exc_info=True)
             # Decide on fallback: re-raise, return original obj, or return error marker?
@@ -284,29 +292,29 @@ def externalize_large_arrays(obj: Any, base_dir: Path, npy_subdir_name: str = "_
         # Return the reference dictionary
         return {
             "__type__": "ndarray_ref",
-            "npy_path": f"{npy_subdir_name}/{filename}" # Relative path
+            "npy_path": f"{npy_subdir_name}/{filename}",  # Relative path
         }
     elif _is_large_bytes(obj):
         # Externalize large bytes objects similar to arrays
         npy_dir = base_dir / npy_subdir_name
         npy_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Generate unique filename and save the bytes
         filename = f"{uuid.uuid4()}.bin"
         bin_file_path = npy_dir / filename
         try:
-            with open(bin_file_path, 'wb') as f:
+            with open(bin_file_path, "wb") as f:
                 f.write(obj)
             logging.debug(f"Externalized large bytes ({len(obj)} bytes) to {bin_file_path}")
         except Exception as e:
             logging.error(f"Failed to save large bytes to {bin_file_path}: {e}", exc_info=True)
             return obj
-        
+
         # Return the reference dictionary
         return {
             "__type__": "bytes_ref",
             "bin_path": f"{npy_subdir_name}/{filename}",  # Relative path
-            "size": len(obj)
+            "size": len(obj),
         }
     else:
         # Return other types unchanged
@@ -315,7 +323,8 @@ def externalize_large_arrays(obj: Any, base_dir: Path, npy_subdir_name: str = "_
 
 # Import helper for custom classes
 
-def get_class(class_path: str) -> Optional[Type]:
+
+def get_class(class_path: str) -> type | None:
     try:
         module_path, class_name = class_path.rsplit(".", 1)
         module = __import__(module_path, fromlist=[class_name])
@@ -327,7 +336,8 @@ def get_class(class_path: str) -> Optional[Type]:
 
 # Decoder (stream‑friendly, mmap for big arrays)
 
-def dataset_decoder(dct: Any, base_dir: Optional[str] = None) -> Any:
+
+def dataset_decoder(dct: Any, base_dir: str | None = None) -> Any:
     """Inverse of *DatasetEncoder* with lazy mmap loading for ndarray refs."""
 
     # Fast path – untyped structures: recurse into dicts/lists
@@ -387,14 +397,16 @@ def dataset_decoder(dct: Any, base_dir: Optional[str] = None) -> Any:
     # ---------------- external bytes (memory-mapped file)
     if type_name == "bytes_ref":
         if base_dir is None:
-            logging.error("dataset_decoder: base_dir not provided for bytes_ref; returning reference dict")
+            logging.error(
+                "dataset_decoder: base_dir not provided for bytes_ref; returning reference dict"
+            )
             return dct
-        
+
         bin_path = os.path.join(base_dir, dct["bin_path"])
         if not os.path.exists(bin_path):
             logging.error("dataset_decoder: bin file not found at %s", bin_path)
             return dct
-        
+
         try:
             # Heuristic: eagerly load "moderate"-sized blobs because certain
             # third-party libraries (e.g. *cryptography*’s AEAD ciphers) expect a
@@ -402,7 +414,9 @@ def dataset_decoder(dct: Any, base_dir: Optional[str] = None) -> Any:
             # ``mmap.mmap`` object.  The threshold can be overridden via the
             # env-var ``DATASET_EAGER_BYTES_MAX`` (bytes).
 
-            max_eager = int(os.environ.get("DATASET_EAGER_BYTES_MAX", str(16 * 2**20)))  # 16 MB default
+            max_eager = int(
+                os.environ.get("DATASET_EAGER_BYTES_MAX", str(16 * 2**20))
+            )  # 16 MB default
             file_size = os.path.getsize(bin_path)
 
             if file_size <= max_eager:
@@ -422,8 +436,9 @@ def dataset_decoder(dct: Any, base_dir: Optional[str] = None) -> Any:
             # network mounts).  Fall back to an eager read so callers still get
             # something usable, albeit at the cost of extra RAM.
             logging.warning(
-                "dataset_decoder: memory-mapping failed for %s (%s) – falling back to eager read", 
-                bin_path, exc,
+                "dataset_decoder: memory-mapping failed for %s (%s) – falling back to eager read",
+                bin_path,
+                exc,
             )
             try:
                 with open(bin_path, "rb") as f:
@@ -444,16 +459,20 @@ def dataset_decoder(dct: Any, base_dir: Optional[str] = None) -> Any:
                     return arr.reshape(shape)
                 except ValueError:
                     logging.warning(f"Could not reshape buffer to {shape}, returning as 1D array.")
-                    return arr # Fallback to flat array if reshape fails
+                    return arr  # Fallback to flat array if reshape fails
             else:
                 # Shape was empty '()', indicating a scalar
                 if arr.size == 1:
-                     logging.warning(f"Decoded ndarray_b64 resulted in a scalar. Wrapping in 1x1 array.")
-                     # Ensure correct dtype is preserved when wrapping
-                     return np.array([[arr.item()]], dtype=arr.dtype)
+                    logging.warning(
+                        "Decoded ndarray_b64 resulted in a scalar. Wrapping in 1x1 array."
+                    )
+                    # Ensure correct dtype is preserved when wrapping
+                    return np.array([[arr.item()]], dtype=arr.dtype)
                 else:
-                     logging.warning(f"Decoded ndarray_b64 has empty shape but non-scalar buffer size ({arr.size}). Returning flat array.")
-                     return arr # Fallback for unexpected non-scalar buffer with empty shape
+                    logging.warning(
+                        f"Decoded ndarray_b64 has empty shape but non-scalar buffer size ({arr.size}). Returning flat array."
+                    )
+                    return arr  # Fallback for unexpected non-scalar buffer with empty shape
         except Exception as exc:
             logging.error("Failed to decode ndarray_b64: %s", exc)
             logging.error(traceback.format_exc())
@@ -491,7 +510,9 @@ def dataset_decoder(dct: Any, base_dir: Optional[str] = None) -> Any:
             data = dataset_decoder(dct["data"], base_dir=base_dir)
             indices = dataset_decoder(dct["indices"], base_dir=base_dir)
             indptr = dataset_decoder(dct["indptr"], base_dir=base_dir)
-            shape = tuple(dataset_decoder(dct["shape"], base_dir=base_dir)) # Shape is usually small list/tuple
+            shape = tuple(
+                dataset_decoder(dct["shape"], base_dir=base_dir)
+            )  # Shape is usually small list/tuple
             return sparse.csr_matrix((data, indices, indptr), shape=shape)
         except Exception as exc:
             logging.error(f"Failed to decode scipy_csr_matrix_ref: {exc}", exc_info=True)
@@ -522,7 +543,9 @@ def dataset_decoder(dct: Any, base_dir: Optional[str] = None) -> Any:
     # ---------------- custom / generic object
     if type_name in ("custom", "object"):
         cls = get_class(dct["class"])
-        data_decoded = {k: dataset_decoder(v, base_dir=base_dir) for k, v in dct.get("data", {}).items()}
+        data_decoded = {
+            k: dataset_decoder(v, base_dir=base_dir) for k, v in dct.get("data", {}).items()
+        }
         if cls and type_name == "custom" and hasattr(cls, "from_dict"):
             return cls.from_dict(data_decoded)
         if cls:

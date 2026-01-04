@@ -10,8 +10,10 @@ existing log statements expect for the `:.3f` format specifier.
 
 from time import perf_counter as _perf_counter
 
+
 __all__ = ["ts"]
+
 
 def ts() -> float:  # noqa: D401
     """Return a monotonically increasing timestamp in seconds."""
-    return _perf_counter() 
+    return _perf_counter()

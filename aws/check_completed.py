@@ -3,10 +3,10 @@
 Check which tasks have already been completed for a given model.
 Checks reports/agent_summary.json to avoid re-running completed jobs.
 """
-import os
-import sys
+
 import argparse
 import json
+import sys
 from pathlib import Path
 
 
@@ -30,9 +30,9 @@ def get_completed_tasks(model_name, summary_file="reports/agent_summary.json", i
         return completed, na_tasks
 
     try:
-        with open(summary_path, 'r') as f:
+        with open(summary_path) as f:
             summary_data = json.load(f)
-    except (json.JSONDecodeError, IOError) as e:
+    except (OSError, json.JSONDecodeError) as e:
         print(f"WARNING: Could not read summary file: {e}", file=sys.stderr)
         return completed, na_tasks
 
@@ -49,7 +49,7 @@ def get_completed_tasks(model_name, summary_file="reports/agent_summary.json", i
         if model_name in models_data:
             task_result = models_data[model_name]
             if isinstance(task_result, dict):
-                speedup = task_result.get('final_speedup')
+                speedup = task_result.get("final_speedup")
                 if speedup is not None:
                     if speedup == "N/A":
                         na_tasks.add(task_name)
@@ -61,7 +61,13 @@ def get_completed_tasks(model_name, summary_file="reports/agent_summary.json", i
     return completed, na_tasks
 
 
-def filter_tasks(all_tasks, model_name, summary_file="reports/agent_summary.json", verbose=False, interactive=False):
+def filter_tasks(
+    all_tasks,
+    model_name,
+    summary_file="reports/agent_summary.json",
+    verbose=False,
+    interactive=False,
+):
     """
     Filter out already-completed tasks.
 
@@ -85,7 +91,10 @@ def filter_tasks(all_tasks, model_name, summary_file="reports/agent_summary.json
 
     # If interactive and we have N/A tasks, ask whether to re-run them
     if interactive and na_in_list:
-        print(f"\n⚠️  Found {len(na_in_list)} tasks with N/A results (failed/crashed):", file=sys.stderr)
+        print(
+            f"\n⚠️  Found {len(na_in_list)} tasks with N/A results (failed/crashed):",
+            file=sys.stderr,
+        )
         for task in sorted(na_in_list):
             print(f"  - {task}", file=sys.stderr)
         print("", file=sys.stderr)
@@ -93,10 +102,10 @@ def filter_tasks(all_tasks, model_name, summary_file="reports/agent_summary.json
         # Ask user
         while True:
             response = input("Re-run these N/A tasks? [y/N]: ").strip().lower()
-            if response in ['y', 'yes']:
+            if response in ["y", "yes"]:
                 include_na = False
                 break
-            elif response in ['n', 'no', '']:
+            elif response in ["n", "no", ""]:
                 include_na = True
                 break
             else:
@@ -109,13 +118,19 @@ def filter_tasks(all_tasks, model_name, summary_file="reports/agent_summary.json
     if verbose and completed:
         non_na_completed = completed - na_tasks
         if non_na_completed:
-            print(f"Found {len(non_na_completed)} successfully completed tasks for {model_name}:", file=sys.stderr)
+            print(
+                f"Found {len(non_na_completed)} successfully completed tasks for {model_name}:",
+                file=sys.stderr,
+            )
             for task in sorted(non_na_completed):
                 print(f"  - {task}", file=sys.stderr)
             print("", file=sys.stderr)
 
         if include_na and na_in_list:
-            print(f"Skipping {len(na_in_list)} N/A tasks (use --interactive to change):", file=sys.stderr)
+            print(
+                f"Skipping {len(na_in_list)} N/A tasks (use --interactive to change):",
+                file=sys.stderr,
+            )
             for task in sorted(na_in_list):
                 print(f"  - {task}", file=sys.stderr)
             print("", file=sys.stderr)
@@ -141,32 +156,24 @@ def main():
     parser.add_argument(
         "--model",
         required=True,
-        help="Model name (e.g., 'openrouter/openai/o4-mini', 'openrouter/anthropic/claude-opus-4-20250514')"
+        help="Model name (e.g., 'openrouter/openai/o4-mini', 'openrouter/anthropic/claude-opus-4-20250514')",
     )
     parser.add_argument(
-        "--tasks",
-        nargs="+",
-        help="List of tasks to check (default: read from stdin, one per line)"
+        "--tasks", nargs="+", help="List of tasks to check (default: read from stdin, one per line)"
     )
     parser.add_argument(
         "--summary-file",
         default="reports/agent_summary.json",
-        help="Summary file to check (default: reports/agent_summary.json)"
+        help="Summary file to check (default: reports/agent_summary.json)",
     )
     parser.add_argument(
-        "--list-completed",
-        action="store_true",
-        help="Just list completed tasks and exit"
+        "--list-completed", action="store_true", help="Just list completed tasks and exit"
     )
     parser.add_argument(
-        "--quiet",
-        action="store_true",
-        help="Don't print verbose information to stderr"
+        "--quiet", action="store_true", help="Don't print verbose information to stderr"
     )
     parser.add_argument(
-        "--interactive",
-        action="store_true",
-        help="Ask whether to re-run N/A (failed) tasks"
+        "--interactive", action="store_true", help="Ask whether to re-run N/A (failed) tasks"
     )
 
     args = parser.parse_args()
@@ -197,7 +204,7 @@ def main():
         args.model,
         args.summary_file,
         verbose=not args.quiet,
-        interactive=args.interactive
+        interactive=args.interactive,
     )
 
     # Output one task per line

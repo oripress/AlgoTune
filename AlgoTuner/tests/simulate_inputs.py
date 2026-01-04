@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 import sys
-from typing import List
 from pathlib import Path
 
 from interfaces.commands.handlers import CommandHandlers
 from interfaces.core.base_interface import BaseLLMInterface
 
+
 INPUT_SEPARATOR = "[INPUT_SEPARATOR]"
 
 
-def read_inputs(file_path: str) -> List[str]:
+def read_inputs(file_path: str) -> list[str]:
     """Read inputs from a file, separated by INPUT_SEPARATOR."""
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         content = f.read()
         # Split by separator and filter out empty inputs
         inputs = [inp.strip() for inp in content.split(INPUT_SEPARATOR)]
         return [inp for inp in inputs if inp]
 
 
-def simulate_inputs(inputs: List[str]):
+def simulate_inputs(inputs: list[str]):
     """
     Simulates sending a series of inputs to the system, one at a time,
     waiting for each response before sending the next input.

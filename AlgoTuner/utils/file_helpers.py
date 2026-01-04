@@ -1,7 +1,6 @@
-import os
 import logging
+import os
 from pathlib import Path
-from typing import Optional, Union, List
 
 
 class FileManager:
@@ -10,12 +9,12 @@ class FileManager:
     Handles file reading, path validation, and workspace management.
     """
 
-    def __init__(self, workspace_root: Union[str, Path]):
+    def __init__(self, workspace_root: str | Path):
         self.workspace_root = Path(workspace_root).resolve()
         if not self.workspace_root.exists():
             raise ValueError(f"Workspace root does not exist: {self.workspace_root}")
 
-    def load_file_content(self, file_path: Union[str, Path]) -> str:
+    def load_file_content(self, file_path: str | Path) -> str:
         """
         Loads and returns the content of a given file.
 
@@ -31,7 +30,7 @@ class FileManager:
         """
         try:
             full_path = self._get_safe_file_path(file_path)
-            with open(full_path, "r", encoding="utf-8") as f:
+            with open(full_path, encoding="utf-8") as f:
                 return f.read()
         except FileNotFoundError:
             logging.critical(f"File not found: {file_path}")
@@ -41,7 +40,7 @@ class FileManager:
             raise
 
     def save_file_content(
-        self, file_path: Union[str, Path], content: str, create_dirs: bool = True
+        self, file_path: str | Path, content: str, create_dirs: bool = True
     ) -> None:
         """
         Save content to a file, optionally creating parent directories.
@@ -67,10 +66,10 @@ class FileManager:
 
     def read_lines(
         self,
-        file_path: Union[str, Path],
+        file_path: str | Path,
         start_line: int = 1,
-        end_line: Optional[int] = None,
-    ) -> List[str]:
+        end_line: int | None = None,
+    ) -> list[str]:
         """
         Read specific lines from a file.
 
@@ -89,13 +88,11 @@ class FileManager:
         if start_line < 1:
             raise ValueError(f"start_line must be >= 1, got {start_line}")
         if end_line is not None and end_line < start_line:
-            raise ValueError(
-                f"end_line ({end_line}) must be >= start_line ({start_line})"
-            )
+            raise ValueError(f"end_line ({end_line}) must be >= start_line ({start_line})")
 
         try:
             full_path = self._get_safe_file_path(file_path)
-            with open(full_path, "r", encoding="utf-8") as f:
+            with open(full_path, encoding="utf-8") as f:
                 lines = f.readlines()
 
             if end_line is None or end_line > len(lines):
@@ -106,7 +103,7 @@ class FileManager:
             logging.error(f"Error reading lines from {file_path}: {e}")
             raise
 
-    def list_files(self, pattern: Optional[str] = None) -> List[Path]:
+    def list_files(self, pattern: str | None = None) -> list[Path]:
         """
         List all files in the workspace, optionally filtered by a glob pattern.
 
@@ -128,7 +125,7 @@ class FileManager:
             logging.error(f"Error listing files: {e}")
             raise
 
-    def ensure_dir(self, dir_path: Union[str, Path]) -> Path:
+    def ensure_dir(self, dir_path: str | Path) -> Path:
         """
         Ensure a directory exists, creating it if necessary.
 
@@ -149,9 +146,7 @@ class FileManager:
             logging.error(f"Error ensuring directory exists: {e}")
             raise
 
-    def delete_file(
-        self, file_path: Union[str, Path], missing_ok: bool = False
-    ) -> None:
+    def delete_file(self, file_path: str | Path, missing_ok: bool = False) -> None:
         """
         Delete a file from the workspace.
 
@@ -174,7 +169,7 @@ class FileManager:
             logging.error(f"Error deleting file {file_path}: {e}")
             raise
 
-    def _get_safe_file_path(self, file_path: Union[str, Path]) -> Path:
+    def _get_safe_file_path(self, file_path: str | Path) -> Path:
         """
         Safely convert a file path to an absolute Path object with validation.
         Ensures the file path is within the workspace and properly formatted.
@@ -207,28 +202,28 @@ class FileManager:
             logging.error(f"Invalid file path {file_path}: {e}")
             raise ValueError(f"Invalid file path {file_path}: {e}")
 
-    def exists(self, file_path: Union[str, Path]) -> bool:
+    def exists(self, file_path: str | Path) -> bool:
         """Check if a file exists within the workspace."""
         try:
             return self._get_safe_file_path(file_path).exists()
         except ValueError:
             return False
 
-    def is_file(self, file_path: Union[str, Path]) -> bool:
+    def is_file(self, file_path: str | Path) -> bool:
         """Check if a path points to a file within the workspace."""
         try:
             return self._get_safe_file_path(file_path).is_file()
         except ValueError:
             return False
 
-    def get_relative_path(self, file_path: Union[str, Path]) -> Path:
+    def get_relative_path(self, file_path: str | Path) -> Path:
         """Convert an absolute or relative path to workspace-relative path."""
         abs_path = self._get_safe_file_path(file_path)
         return abs_path.relative_to(self.workspace_root)
 
 
 # Legacy function for backward compatibility
-def load_file_content(file_path: Union[str, Path]) -> str:
+def load_file_content(file_path: str | Path) -> str:
     """
     Legacy function that creates a FileManager instance for a single operation.
     For better performance, create and reuse a FileManager instance.

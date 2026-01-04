@@ -5,9 +5,12 @@ This module MUST be imported before any other imports that might use DaCe.
 It sets up the DaCe environment variables before DaCe is imported anywhere.
 """
 
-import os
 import logging
-import tempfile, uuid, pathlib
+import os
+import pathlib
+import tempfile
+import uuid
+
 
 def _ensure_dace_config():
     """
@@ -23,21 +26,22 @@ def _ensure_dace_config():
 
     temp_dir_str = str(temp_base)
 
-    os.environ['DACE_CACHE'] = temp_dir_str
-    os.environ['DACE_CACHE_ROOT'] = temp_dir_str
-    os.environ['DACE_default_build_folder'] = temp_dir_str
+    os.environ["DACE_CACHE"] = temp_dir_str
+    os.environ["DACE_CACHE_ROOT"] = temp_dir_str
+    os.environ["DACE_default_build_folder"] = temp_dir_str
 
     logging.debug(f"DaCe default build folder set to temp dir: {temp_dir_str}")
 
     # Redirect OS temp dirs to the same folder for isolation
-    os.environ['TMPDIR'] = temp_dir_str
-    os.environ['TEMP'] = temp_dir_str
-    os.environ['TMP'] = temp_dir_str
-    os.environ['NUMBA_CACHE_DIR'] = temp_dir_str
-    os.environ['JOBLIB_CACHE_DIR'] = temp_dir_str
+    os.environ["TMPDIR"] = temp_dir_str
+    os.environ["TEMP"] = temp_dir_str
+    os.environ["TMP"] = temp_dir_str
+    os.environ["NUMBA_CACHE_DIR"] = temp_dir_str
+    os.environ["JOBLIB_CACHE_DIR"] = temp_dir_str
 
     try:
         import tempfile as _tf
+
         _tf.tempdir = temp_dir_str
         logging.debug(f"Python tempfile.tempdir set to temp dir: {temp_dir_str}")
     except Exception as e:
@@ -48,6 +52,7 @@ def _ensure_dace_config():
     # Configure joblib cache monkey patch
     try:
         from .dace_config import configure_joblib_cache
+
         configure_joblib_cache(temp_dir_str)
         logging.debug(f"Joblib cache configured to temp dir: {temp_dir_str}")
     except Exception as e:
@@ -56,15 +61,20 @@ def _ensure_dace_config():
     # If DaCe is already imported, apply API override for default_build_folder
     try:
         import sys
-        if 'dace' in sys.modules:
+
+        if "dace" in sys.modules:
             import dace
+
             try:
-                dace.config.Config.set('cache', 'default_build_folder', temp_dir_str)
-                logging.debug(f"Configured existing DaCe default_build_folder via API: {temp_dir_str}")
+                dace.config.Config.set("cache", "default_build_folder", temp_dir_str)
+                logging.debug(
+                    f"Configured existing DaCe default_build_folder via API: {temp_dir_str}"
+                )
             except Exception as e:
                 logging.debug(f"Could not configure DaCe API default_build_folder: {e}")
     except Exception:
         pass
 
+
 # Run configuration immediately on module import
-_ensure_dace_config() 
+_ensure_dace_config()
