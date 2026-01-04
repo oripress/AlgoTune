@@ -81,7 +81,7 @@ class Shift2D(Task):
             logging.error(f"scipy.ndimage.shift failed: {e}")
             return {"shifted_image": []}  # Indicate failure
 
-        solution = {"shifted_image": shifted_image.tolist()}
+        solution = {"shifted_image": shifted_image}
         return solution
 
     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -> bool:
