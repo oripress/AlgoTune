@@ -1,0 +1,110 @@
+name: PR Checks
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'AlgoTuneTasks/**'
+      - '.github/workflows/pr-checks.yml'
+      - '.github/scripts/**'
+      - 'pyproject.toml'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'AlgoTuneTasks/**'
+      - '.github/workflows/pr-checks.yml'
+      - '.github/scripts/**'
+      - 'pyproject.toml'
+  workflow_dispatch:
+
+jobs:
+  test-all:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[auto-format]'))
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
+          # fetch-depth: 0 # Not strictly needed if not diffing for tests
+
+      - name: Set environment for minimal logs
+        run: |
+          echo "Setting environment variables to minimize solver logs..."
+          echo "GLOG_minloglevel=3" >> $GITHUB_ENV
+          echo "GLOG_logtostderr=0" >> $GITHUB_ENV
+          echo "GUROBI_SILENCE=1" >> $GITHUB_ENV
+          echo "CPLEX_SILENCE=1" >> $GITHUB_ENV
+          echo "ORTOOLS_LOG_THRESHOLD=3" >> $GITHUB_ENV
+          echo "CP_SAT_DISPLAY_PROGRESSBAR=0" >> $GITHUB_ENV
+          echo "CP_SAT_LOG_SEARCH_PROGRESS=false" >> $GITHUB_ENV
+          echo "CP_MODEL_DUMP_LNSS=false" >> $GITHUB_ENV
+          echo "PYTHONWARNINGS=ignore" >> $GITHUB_ENV
+          echo "TF_CPP_MIN_LOG_LEVEL=3" >> $GITHUB_ENV
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          echo "Installing dependencies..."
+          python -m pip install --upgrade pip uv -q
+          uv pip compile pyproject.toml -o requirements.txt --universal --all-extras
+          git diff --quiet -- requirements.txt  # Returns 1 if this file has changed.
+          python -m pip install -r requirements.txt -q
+          echo "Dependencies installed."
+
+      # --- Ruff Formatting & Linting --- #
+      - name: Checks with pre-commit
+        uses: pre-commit/action@v3.0.1
+
+      # --- Task Name Check --- #
+      - name: Check Task Names
+        run: python -u .github/scripts/test_task_names.py
+
+      # --- Task File Structure Check --- #
+      # This must run BEFORE __init__.py files are created
+      - name: Check Task File Structure
+        run: python -u .github/scripts/test_task_file_structure.py
+
+      # --- No Main Blocks Check --- #
+      - name: Check No Main Blocks
+        run: python -u .github/scripts/test_no_main_blocks.py
+
+      # --- Prepare for Tests --- #
+      - name: Prepare AlgoTuneTasks directory for imports
+        run: |
+          echo "Ensuring __init__.py files exist in AlgoTuneTasks directory..."
+          mkdir -p AlgoTuneTasks
+          touch AlgoTuneTasks/__init__.py
+          find AlgoTuneTasks -type d -not -path '*/__pycache__*' -exec touch {}/__init__.py \;
+          echo "__init__.py files ensured."
+
+      # --- Task Tests --- #
+      - name: Run Task Tests
+        run: |
+          echo "Running all task tests"
+          python -W ignore -u .github/scripts/test_tasks.py
+          echo "Task tests completed."
+
+      # --- is_solution Return Type Check --- #
+      - name: Check is_solution Return Type
+        run: python -u .github/scripts/test_is_solution_return_type.py
+
+      # --- Timing and Consistency Tests --- #
+      - name: Run Timing and Consistency Tests
+        env:
+          # Keep environment variables for minimizing solver logs
+          GLOG_minloglevel: 3
+          GLOG_logtostderr: 0
+          GUROBI_SILENCE: 1
+          CPLEX_SILENCE: 1
+          ORTOOLS_LOG_THRESHOLD: 3
+          CP_SAT_DISPLAY_PROGRESSBAR: 0
+          CP_SAT_LOG_SEARCH_PROGRESS: false
+          PYTHONWARNINGS: "ignore"
+          TF_CPP_MIN_LOG_LEVEL: 3
+        run: python -W ignore -u .github/scripts/test_timing_and_consistency.py
