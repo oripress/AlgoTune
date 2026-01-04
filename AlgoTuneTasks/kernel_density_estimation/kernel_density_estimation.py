@@ -2,13 +2,13 @@
 # https://github.com/oripress/AlgoTune
 import logging
 import random
+from numbers import Real
 from typing import Any
 
 import numpy as np
 from scipy.stats import multivariate_normal
 from sklearn.exceptions import NotFittedError
 from sklearn.neighbors import KernelDensity
-from numbers import Real
 
 from AlgoTuneTasks.base import register_task, Task
 

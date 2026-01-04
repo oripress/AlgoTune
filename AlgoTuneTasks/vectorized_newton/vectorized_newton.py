@@ -1,11 +1,11 @@
 # Copyright (c) 2025 Ori Press and the AlgoTune contributors
 # https://github.com/oripress/AlgoTune
 import logging
+import numbers
 import random
 
 import numpy as np
 import scipy.optimize
-import numbers
 
 from AlgoTuneTasks.base import register_task, Task
 
@@ -189,9 +189,7 @@ class VectorizedNewton(Task):
             return False
 
         if ref_arr.shape[0] != n:
-            logging.error(
-                f"Internal error: reference length {ref_arr.shape[0]} != expected {n}."
-            )
+            logging.error(f"Internal error: reference length {ref_arr.shape[0]} != expected {n}.")
             return False
 
         rtol = 1e-5
@@ -205,7 +203,9 @@ class VectorizedNewton(Task):
             # Log up to 5 mismatches
             bad_idxs = np.flatnonzero(mism)[:5]
             for i in bad_idxs:
-                logging.error(f"Mismatch at index {i}: Proposed={proposed_arr[i]}, Ref={ref_arr[i]}")
+                logging.error(
+                    f"Mismatch at index {i}: Proposed={proposed_arr[i]}, Ref={ref_arr[i]}"
+                )
             return False
 
         # Optional: Basic validity check f(root) ~= 0 (warn-only, as before)

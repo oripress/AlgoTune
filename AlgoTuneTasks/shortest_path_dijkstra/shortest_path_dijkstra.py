@@ -141,7 +141,7 @@ class ShortestPathDijkstra(Task):
                 return len(x) == 0
             except TypeError:
                 return False
-        
+
         if _is_empty(proposed_list):
             logging.warning("Proposed solution is empty (potential failure).")
             try:
