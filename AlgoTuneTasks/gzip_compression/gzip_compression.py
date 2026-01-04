@@ -387,7 +387,6 @@ class GzipCompression(Task):
         # ref_ratio = (reference_len / original_len) if original_len > 0 else float('inf')
         # sol_ratio = (solution_len / original_len) if original_len > 0 else float('inf')
 
-
         if solution_len > max_allowed_len:
             logging.error(
                 f"Compressed data length ({solution_len}) is more than 0.1% larger than reference length ({reference_len}). Max allowed: {max_allowed_len}."
