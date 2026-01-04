@@ -56,7 +56,7 @@ class MatrixExponential(Task):
         """
         A = problem["matrix"]
         expA = expm(A)
-        solution = {"exponential": expA.tolist()}
+        solution = {"exponential": expA}
         return solution
 
     def is_solution(

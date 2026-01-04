@@ -82,7 +82,7 @@ class Rotate2D(Task):
             logging.error(f"scipy.ndimage.rotate failed: {e}")
             return {"rotated_image": []}  # Indicate failure
 
-        solution = {"rotated_image": rotated_image.tolist()}
+        solution = {"rotated_image": rotated_image}
         return solution
 
     def is_solution(self, problem: dict[str, Any], solution: dict[str, Any]) -> bool:
