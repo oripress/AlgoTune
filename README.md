@@ -167,7 +167,8 @@ You can add code for each task in directories (following the `./results/` struct
 cat reports/evaluate_summary.json
 ```
 
-Note: AlgoTuner streams datasets from Hugging Face. For offline runs, generate them locally first:
+### Generating Datasets for Offline Runs
+AlgoTuner streams datasets from Hugging Face. For offline runs, generate them locally first:
 ```bash
 # Example: generate datasets for two tasks with a 100 ms target
 ./algotune.sh --standalone generate --target-time-ms 100 --tasks svm
