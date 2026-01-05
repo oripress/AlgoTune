@@ -51,7 +51,7 @@ cat reports/agent_summary.json
 ```
 
 ### Running on SLURM
-When `sbatch` is available the launcher auto-detects SLURM and uses the public container automatically.
+When `sbatch` is available the launcher auto-detects SLURM.
 
 ```bash
 # Run AlgoTuner on all tasks
@@ -152,12 +152,6 @@ Or generate HTML logs in the style of [AlgoTune.io](https://algotune.io):
 ./html/build-html.sh
 ```
 
-Note: AlgoTuner streams datasets from Hugging Face. For offline runs, generate them locally first:
-```bash
-# Example: generate datasets for two tasks with a 100 ms target
-./algotune.sh --standalone generate --target-time-ms 100 --tasks svm
-```
-
 ## Evaluating Code Without Running the Agent
 
 You can add code for each task in directories (following the `./results/` structure) and it will be compiled and evaluated. Note that you have to generate the datasets first.
@@ -171,6 +165,15 @@ You can add code for each task in directories (following the `./results/` struct
 
 # View aggregated speedup results
 cat reports/evaluate_summary.json
+```
+
+Note: AlgoTuner streams datasets from Hugging Face. For offline runs, generate them locally first:
+```bash
+# Example: generate datasets for two tasks with a 100 ms target
+./algotune.sh --standalone generate --target-time-ms 100 --tasks svm
+
+# Increase target time if you need more headroom
+./algotune.sh --standalone generate --target-time-ms 250 --tasks svm
 ```
 
 ## Citation
