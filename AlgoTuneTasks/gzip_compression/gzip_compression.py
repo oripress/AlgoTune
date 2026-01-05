@@ -1,5 +1,7 @@
 # Copyright (c) 2025 Ori Press and the AlgoTune contributors
 # https://github.com/oripress/AlgoTune
+from __future__ import annotations
+
 import gzip
 import logging
 import math  # Added for ceiling function
@@ -386,7 +388,6 @@ class GzipCompression(Task):
         # Avoid division by zero if original_plaintext is empty
         # ref_ratio = (reference_len / original_len) if original_len > 0 else float('inf')
         # sol_ratio = (solution_len / original_len) if original_len > 0 else float('inf')
-
 
         if solution_len > max_allowed_len:
             logging.error(
