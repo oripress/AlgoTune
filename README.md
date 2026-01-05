@@ -173,8 +173,8 @@ AlgoTuner streams datasets from Hugging Face. For offline runs, generate them lo
 # Example: generate datasets for two tasks with a 100 ms target
 ./algotune.sh --standalone generate --target-time-ms 100 --tasks svm
 
-# Increase target time if you need more headroom
-./algotune.sh --standalone generate --target-time-ms 250 --tasks svm
+# Generate all datasets with a 250 ms target
+./algotune.sh --standalone generate --target-time-ms 250
 ```
 
 ## Citation
