@@ -50,13 +50,10 @@ echo "OPENROUTER_API_KEY=your_key_here" > .env
 cat reports/agent_summary.json
 ```
 
-### Running on SLURM (cluster)
-When `sbatch` is available the launcher auto-detects SLURM. Use the same two-step workflow:
+### Running on SLURM
+When `sbatch` is available the launcher auto-detects SLURM and uses the public container automatically.
 
 ```bash
-# Pull the public container (used automatically by the launcher)
-docker pull ghcr.io/oripress/algotune:latest
-
 # Run AlgoTuner on all tasks
 ./algotune.sh agent o4-mini
 
@@ -64,7 +61,7 @@ docker pull ghcr.io/oripress/algotune:latest
 cat reports/agent_summary.json
 ```
 
-### Running on AWS Batch (cloud)
+### Running on AWS Batch
 Running AlgoTune on AWS is simple and requires only a minimal setup.
 
 #### Prerequisites & Permissions
