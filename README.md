@@ -38,20 +38,10 @@ pip install -e .  # or, if you prefer conda:
 # pip install -e .
 
 # 2. Add your API key
-echo "OPENAI_API_KEY=your_key_here" > .env
-# OR
-echo "CLAUDE_API_KEY=your_key_here" > .env
+echo "OPENROUTER_API_KEY=your_key_here" > .env
 ```
 
-### Run AlgoTune (stand-alone mode)
-
-#### Generate
-```bash
-# Measure baseline speed for two tasks (100 ms target)
-./algotune.sh --standalone generate --target-time-ms 100 --tasks svm
-```
-
-#### Run Agent
+### Run AlgoTuner (stand-alone mode)
 ```bash
 # Ask an LM to optimise the same tasks with model "o4-mini"
 ./algotune.sh --standalone agent o4-mini svm
@@ -64,13 +54,10 @@ cat reports/agent_summary.json
 When `sbatch` is available the launcher auto-detects SLURM. Use the same two-step workflow:
 
 ```bash
-# One-time image build (only once per cluster)
-sudo singularity build algotune.sif slurm/image.def
+# Pull the public container (used automatically by the launcher)
+docker pull ghcr.io/oripress/algotune:latest
 
-# Generate baseline datasets for all tasks
-./algotune.sh generate --target-time-ms 100
-
-# Run the agent on all tasks
+# Run AlgoTuner on all tasks
 ./algotune.sh agent o4-mini
 
 # Results are summarised in:
@@ -166,6 +153,12 @@ python3 scripts/extract_results_from_logs.py
 Or generate HTML logs in the style of [AlgoTune.io](https://algotune.io):
 ```bash
 ./html/build-html.sh
+```
+
+Note: AlgoTuner streams datasets from Hugging Face. For offline runs, generate them locally first:
+```bash
+# Example: generate datasets for two tasks with a 100 ms target
+./algotune.sh --standalone generate --target-time-ms 100 --tasks svm
 ```
 
 ## Evaluating Code Without Running the Agent
