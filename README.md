@@ -38,20 +38,10 @@ pip install -e .  # or, if you prefer conda:
 # pip install -e .
 
 # 2. Add your API key
-echo "OPENAI_API_KEY=your_key_here" > .env
-# OR
-echo "CLAUDE_API_KEY=your_key_here" > .env
+echo "OPENROUTER_API_KEY=your_key_here" > .env
 ```
 
-### Run AlgoTune (stand-alone mode)
-
-#### Generate
-```bash
-# Measure baseline speed for two tasks (100 ms target)
-./algotune.sh --standalone generate --target-time-ms 100 --tasks svm
-```
-
-#### Run Agent
+### Run AlgoTuner (stand-alone mode)
 ```bash
 # Ask an LM to optimise the same tasks with model "o4-mini"
 ./algotune.sh --standalone agent o4-mini svm
@@ -60,24 +50,18 @@ echo "CLAUDE_API_KEY=your_key_here" > .env
 cat reports/agent_summary.json
 ```
 
-### Running on SLURM (cluster)
-When `sbatch` is available the launcher auto-detects SLURM. Use the same two-step workflow:
+### Running on SLURM
+When `sbatch` is available the launcher auto-detects SLURM.
 
 ```bash
-# One-time image build (only once per cluster)
-sudo singularity build algotune.sif slurm/image.def
-
-# Generate baseline datasets for all tasks
-./algotune.sh generate --target-time-ms 100
-
-# Run the agent on all tasks
+# Run AlgoTuner on all tasks
 ./algotune.sh agent o4-mini
 
 # Results are summarised in:
 cat reports/agent_summary.json
 ```
 
-### Running on AWS Batch (cloud)
+### Running on AWS Batch
 Running AlgoTune on AWS is simple and requires only a minimal setup.
 
 #### Prerequisites & Permissions
@@ -181,6 +165,16 @@ You can add code for each task in directories (following the `./results/` struct
 
 # View aggregated speedup results
 cat reports/evaluate_summary.json
+```
+
+### Generating Datasets for Offline Runs
+AlgoTuner streams datasets from Hugging Face. For offline runs, generate them locally first:
+```bash
+# Example: generate datasets for two tasks with a 100 ms target
+./algotune.sh --standalone generate --target-time-ms 100 --tasks svm
+
+# Generate all datasets with a 250 ms target
+./algotune.sh --standalone generate --target-time-ms 250
 ```
 
 ## Citation
