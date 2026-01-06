@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import json
 import logging
@@ -103,11 +105,11 @@ class DatasetEncoder(json.JSONEncoder):
                 }
 
         # Scalar NumPy numbers → Python scalars
-        if isinstance(obj, (np.integer, np.floating)):
+        if isinstance(obj, np.integer | np.floating):
             return obj.item()
 
         # Complex numbers
-        if isinstance(obj, (np.complexfloating, complex)):
+        if isinstance(obj, np.complexfloating | complex):
             return {"__type__": "complex", "real": float(obj.real), "imag": float(obj.imag)}
 
         # SciPy CSR sparse matrix
@@ -195,7 +197,7 @@ def externalize_large_arrays(obj: Any, base_dir: Path, npy_subdir_name: str = "_
         # `.tolist()` on large arrays before returning the problem dict.
         try:
             # Fast check: if first element is list/int/float assume numeric list
-            if obj and isinstance(obj[0], (list, int, float, np.number)):
+            if obj and isinstance(obj[0], list | int | float | np.number):
                 arr_candidate = np.asarray(obj, dtype=float)
                 if (
                     arr_candidate.ndim >= 1
@@ -300,7 +302,8 @@ def externalize_large_arrays(obj: Any, base_dir: Path, npy_subdir_name: str = "_
         npy_dir.mkdir(parents=True, exist_ok=True)
 
         # Generate unique filename and save the bytes
-        filename = f"{uuid.uuid4()}.bin"
+        # Use .bytes extension (HuggingFace prefers this over .bin)
+        filename = f"{uuid.uuid4()}.bytes"
         bin_file_path = npy_dir / filename
         try:
             with open(bin_file_path, "wb") as f:
@@ -311,6 +314,7 @@ def externalize_large_arrays(obj: Any, base_dir: Path, npy_subdir_name: str = "_
             return obj
 
         # Return the reference dictionary
+        # Note: Key remains "bin_path" for backward compatibility with existing data
         return {
             "__type__": "bytes_ref",
             "bin_path": f"{npy_subdir_name}/{filename}",  # Relative path
@@ -403,9 +407,29 @@ def dataset_decoder(dct: Any, base_dir: str | None = None) -> Any:
             return dct
 
         bin_path = os.path.join(base_dir, dct["bin_path"])
+
+        # Robustly handle both .bin and .bytes extensions
+        # Try the path as-is first, then try alternate extension if not found
         if not os.path.exists(bin_path):
-            logging.error("dataset_decoder: bin file not found at %s", bin_path)
-            return dct
+            # Try alternate extension (.bin <-> .bytes)
+            if bin_path.endswith(".bin"):
+                alt_path = bin_path[:-4] + ".bytes"
+            elif bin_path.endswith(".bytes"):
+                alt_path = bin_path[:-6] + ".bin"
+            else:
+                alt_path = None
+
+            if alt_path and os.path.exists(alt_path):
+                logging.debug(
+                    f"dataset_decoder: bin file not found at {bin_path}, using alternate: {alt_path}"
+                )
+                bin_path = alt_path
+            else:
+                logging.error(
+                    "dataset_decoder: bin file not found at %s (also tried alternate extension)",
+                    bin_path,
+                )
+                return dct
 
         try:
             # Heuristic: eagerly load "moderate"-sized blobs because certain

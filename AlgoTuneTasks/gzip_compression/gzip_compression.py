@@ -1,5 +1,7 @@
 # Copyright (c) 2025 Ori Press and the AlgoTune contributors
 # https://github.com/oripress/AlgoTune
+from __future__ import annotations
+
 import gzip
 import logging
 import math  # Added for ceiling function
