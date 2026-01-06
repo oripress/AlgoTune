@@ -2,14 +2,19 @@
 TimingManager: central service for calibrated phase timing.
 """
 
-import time
-import threading
 import contextlib
-import statistics
 import gc
+import statistics
+import threading
+import time
 from enum import Enum
 
-from AlgoTuner.utils.precise_timing import _initialize_timing_system, _timing_overhead_ns, _capture_overhead_ns
+from AlgoTuner.utils.precise_timing import (
+    _capture_overhead_ns,
+    _initialize_timing_system,
+    _timing_overhead_ns,
+)
+
 
 class Phase(Enum):
     TASK_LOADING = "task_loading"
@@ -23,8 +28,10 @@ class Phase(Enum):
     ORACLE_RUN = "oracle_run"
     AGGREGATION = "aggregation"
 
+
 class TimingManager:
     """Singleton service to manage timing calibration and per-phase statistics."""
+
     _instance = None
     _lock = threading.Lock()
 
@@ -88,4 +95,4 @@ class TimingManager:
             yield
         finally:
             if was_enabled:
-                gc.enable() 
+                gc.enable()

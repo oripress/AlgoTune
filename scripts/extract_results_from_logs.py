@@ -3,12 +3,14 @@
 Extract best-performing code from local logs and write to results/.
 Uses the same code-extraction logic as the HTML generator.
 """
+
 from __future__ import annotations
 
 import os
 import re
 import sys
 from pathlib import Path
+
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent

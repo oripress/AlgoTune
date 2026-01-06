@@ -5,14 +5,13 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from typing import Optional, List
 
 
 def _project_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def _load_dotenv_token() -> Optional[str]:
+def _load_dotenv_token() -> str | None:
     # Try HF_TOKEN first (official HuggingFace env var), then fall back to old names
     token = os.environ.get("HF_TOKEN")
     if token:
@@ -64,7 +63,7 @@ def _is_lazy_mode() -> bool:
     return os.environ.get("ALGOTUNE_HF_LAZY") == "1"
 
 
-def ensure_hf_dataset(task_name: Optional[str] = None) -> Optional[Path]:
+def ensure_hf_dataset(task_name: str | None = None) -> Path | None:
     """
     Ensure HF datasets are available locally and return the data directory to use.
 
@@ -115,15 +114,16 @@ def ensure_hf_dataset(task_name: Optional[str] = None) -> Optional[Path]:
 
     if lazy_mode:
         print(f"📥 Downloading {task_name or 'all tasks'} metadata from HuggingFace ({repo_id})...")
-        print(f"   (Lazy mode: .npy files will be downloaded on-demand)")
+        print("   (Lazy mode: .npy files will be downloaded on-demand)")
     else:
         print(f"📥 Downloading {task_name or 'all tasks'} dataset from HuggingFace ({repo_id})...")
-        print(f"   This may take several minutes for large datasets...")
+        print("   This may take several minutes for large datasets...")
 
     try:
         # Import tqdm for progress display if available
         try:
             from tqdm import tqdm
+
             tqdm_class = tqdm
         except ImportError:
             tqdm_class = None
@@ -196,12 +196,13 @@ def download_npy_files(task_name: str) -> bool:
     token = _load_dotenv_token()
 
     print(f"📥 Downloading {task_name} .npy files from HuggingFace...")
-    print(f"   This may take several minutes for large datasets...")
+    print("   This may take several minutes for large datasets...")
 
     try:
         # Import tqdm for progress display if available
         try:
             from tqdm import tqdm
+
             tqdm_class = tqdm
         except ImportError:
             tqdm_class = None
@@ -231,7 +232,7 @@ def download_npy_files(task_name: str) -> bool:
         return False
 
 
-def cleanup_npy_files(task_name: Optional[str] = None) -> None:
+def cleanup_npy_files(task_name: str | None = None) -> None:
     """
     Clean up .npy files to free disk space (manual cleanup utility).
 
@@ -265,8 +266,12 @@ def cleanup_npy_files(task_name: Optional[str] = None) -> None:
                 npy_file.unlink()
                 cleaned_count += 1
                 freed_bytes += size
-            logging.info("Cleaned up %d .npy files for task %s (freed %.2f GB)",
-                        cleaned_count, task_name, freed_bytes / 1e9)
+            logging.info(
+                "Cleaned up %d .npy files for task %s (freed %.2f GB)",
+                cleaned_count,
+                task_name,
+                freed_bytes / 1e9,
+            )
     else:
         # Clean up all tasks
         for npy_file in local_dir.glob("**/*.npy"):
@@ -274,10 +279,9 @@ def cleanup_npy_files(task_name: Optional[str] = None) -> None:
             npy_file.unlink()
             cleaned_count += 1
             freed_bytes += size
-        logging.info("Cleaned up %d .npy files (freed %.2f GB)",
-                    cleaned_count, freed_bytes / 1e9)
+        logging.info("Cleaned up %d .npy files (freed %.2f GB)", cleaned_count, freed_bytes / 1e9)
 
     if cleaned_count > 0:
         print(f"🧹 Cleaned up {cleaned_count} .npy files (freed {freed_bytes / 1e9:.2f} GB)")
     else:
-        print(f"🧹 No .npy files found to clean up")
+        print("🧹 No .npy files found to clean up")

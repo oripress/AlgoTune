@@ -1,33 +1,34 @@
 import argparse
-import os
-import litellm
-import sys
+import json
 import logging
-import warnings
+import math
 import multiprocessing
+import os
+import random
+import sys
+import time
+import warnings
+from pathlib import Path
+
+import litellm
+
 from AlgoTuner.config.loader import load_config
-from AlgoTuner.config.model_config import GlobalConfig, GenericAPIModelConfig
+from AlgoTuner.config.model_config import GenericAPIModelConfig, GlobalConfig
 from AlgoTuner.interfaces.llm_interface import LLMInterface
+from AlgoTuner.utils.initialize_solver import initialize_solver_from_task
 from AlgoTuner.utils.logger import setup_logging
 from AlgoTuneTasks.factory import TaskFactory
-from AlgoTuner.utils.initialize_solver import initialize_solver_from_task
-import json
-import time
-import random
-import fcntl
-import math
-from pathlib import Path
-from typing import Optional
+
 
 # Ensure proper multiprocessing initialization before any imports that might use it
-if __name__ == '__main__':
+if __name__ == "__main__":
     # The AlgoTuner system uses forkserver for process isolation
     try:
-        multiprocessing.set_start_method('forkserver', force=True)
+        multiprocessing.set_start_method("forkserver", force=True)
     except RuntimeError:
         # Already set, which is fine
         pass
-    
+
     # Also set NUMBA threading layer for fork safety
     if "NUMBA_THREADING_LAYER" not in os.environ:
         os.environ["NUMBA_THREADING_LAYER"] = "workqueue"
@@ -35,6 +36,7 @@ if __name__ == '__main__':
 warnings.filterwarnings("ignore", ".*resource_tracker.*")
 warnings.filterwarnings("ignore", ".*loky.*")
 warnings.filterwarnings("ignore", category=UserWarning, module=".*resource_tracker.*")
+
 
 def acquire_lock(lock_file_path, timeout=60):
     """Attempts to acquire an exclusive lock using a lock file."""
@@ -55,6 +57,7 @@ def acquire_lock(lock_file_path, timeout=60):
     logging.error(f"Timeout acquiring lock after {timeout}s: {lock_file_path}")
     return False
 
+
 def release_lock(lock_file_path):
     """Releases the lock by removing the lock file."""
     try:
@@ -65,7 +68,10 @@ def release_lock(lock_file_path):
     except Exception as e:
         logging.error(f"Error releasing lock {lock_file_path}: {e}")
 
-def update_summary_json(summary_file_path_str: str, task_name: str, model_name: str, speedup: Optional[float]):
+
+def update_summary_json(
+    summary_file_path_str: str, task_name: str, model_name: str, speedup: float | None
+):
     """Atomically updates the summary JSON file with the final speedup."""
     summary_file_path = Path(summary_file_path_str)
     lock_file_path = summary_file_path.with_suffix(".json.lock")
@@ -79,17 +85,21 @@ def update_summary_json(summary_file_path_str: str, task_name: str, model_name: 
         summary_data = {}
         if summary_file_path.exists():
             try:
-                with open(summary_file_path, 'r') as f:
+                with open(summary_file_path) as f:
                     summary_data = json.load(f)
                     if not isinstance(summary_data, dict):
-                         logging.warning(f"Summary file {summary_file_path} did not contain a JSON object, resetting.")
-                         summary_data = {}
+                        logging.warning(
+                            f"Summary file {summary_file_path} did not contain a JSON object, resetting."
+                        )
+                        summary_data = {}
             except json.JSONDecodeError:
                 logging.warning(f"Could not decode JSON from {summary_file_path}, resetting.")
                 summary_data = {}
             except Exception as e:
-                 logging.error(f"Error reading summary file {summary_file_path}: {e}. Proceeding with empty data.")
-                 summary_data = {}
+                logging.error(
+                    f"Error reading summary file {summary_file_path}: {e}. Proceeding with empty data."
+                )
+                summary_data = {}
 
         if speedup is None or not math.isfinite(speedup):
             speedup_str = "N/A"
@@ -98,10 +108,12 @@ def update_summary_json(summary_file_path_str: str, task_name: str, model_name: 
 
         task_entry = summary_data.setdefault(task_name, {})
         task_entry[model_name] = {"final_speedup": speedup_str}
-        logging.info(f"Updating summary for Task: {task_name}, Model: {model_name} with Speedup: {speedup_str}")
+        logging.info(
+            f"Updating summary for Task: {task_name}, Model: {model_name} with Speedup: {speedup_str}"
+        )
 
         try:
-            with open(summary_file_path, 'w') as f:
+            with open(summary_file_path, "w") as f:
                 json.dump(summary_data, f, indent=4)
             logging.info(f"Successfully updated summary file: {summary_file_path}")
         except Exception as e:
@@ -109,6 +121,7 @@ def update_summary_json(summary_file_path_str: str, task_name: str, model_name: 
 
     finally:
         release_lock(str(lock_file_path))
+
 
 def main():
     parser = argparse.ArgumentParser(description="LLM Interface Script")
@@ -134,31 +147,38 @@ def main():
     memory_monitor = None
     try:
         from AlgoTuner.utils.process_monitor import init_worker_memory_monitor
-        
+
         # Load memory limit from config - use evaluation_pool settings
         config = load_config()
-        memory_limit_gb = config.get("benchmark", {}).get("evaluation_pool", {}).get("memory_limit_per_worker")
-        
+        memory_limit_gb = (
+            config.get("benchmark", {}).get("evaluation_pool", {}).get("memory_limit_per_worker")
+        )
+
         if memory_limit_gb is not None:
             # Initialize process memory monitor (sets RLIMIT_AS)
             memory_monitor = init_worker_memory_monitor(memory_limit_gb)
-            logging.info(f"Initialized parent process memory monitor with {memory_limit_gb}GB limit")
+            logging.info(
+                f"Initialized parent process memory monitor with {memory_limit_gb}GB limit"
+            )
         else:
-            logging.info("No memory limit configured in benchmark.evaluation_pool.memory_limit_per_worker")
+            logging.info(
+                "No memory limit configured in benchmark.evaluation_pool.memory_limit_per_worker"
+            )
     except Exception as e:
         logging.warning(f"Could not initialize parent process memory monitor: {e}")
 
     summary_file_env = os.environ.get("SUMMARY_FILE")
     if not summary_file_env:
-         logging.warning("SUMMARY_FILE environment variable not set. Cannot update summary JSON.")
+        logging.warning("SUMMARY_FILE environment variable not set. Cannot update summary JSON.")
 
     logger = setup_logging(task=task_name, model=desired_model_name)
 
     # Configure per-job isolated Python cache to avoid network filesystem stress
     import uuid
+
     cache_id = str(uuid.uuid4())[:8]  # Use first 8 chars of UUID for brevity
-    cache_dir = f'/tmp/pycache_{os.getpid()}_{cache_id}'
-    os.environ['PYTHONPYCACHEPREFIX'] = cache_dir
+    cache_dir = f"/tmp/pycache_{os.getpid()}_{cache_id}"
+    os.environ["PYTHONPYCACHEPREFIX"] = cache_dir
     os.makedirs(cache_dir, exist_ok=True)
     logger.info(f"Set PYTHONPYCACHEPREFIX to {cache_dir}")
 
@@ -174,9 +194,7 @@ def main():
     global_config = GlobalConfig(**global_config_data)
 
     if desired_model_name == "human":
-        task_instance = TaskFactory(
-            task_name, oracle_time_limit=global_config.oracle_time_limit
-        )
+        task_instance = TaskFactory(task_name, oracle_time_limit=global_config.oracle_time_limit)
         llm_interface = LLMInterface(
             model_config=None,
             global_config=None,
@@ -188,9 +206,7 @@ def main():
 
     model_info = config["models"].get(desired_model_name)
     if not model_info:
-        logger.critical(
-            f"Model '{desired_model_name}' is not defined in the configuration."
-        )
+        logger.critical(f"Model '{desired_model_name}' is not defined in the configuration.")
         sys.exit(1)
 
     budget = model_info.get("spend_limit", global_config.spend_limit)
@@ -205,9 +221,7 @@ def main():
         sys.exit(1)
     api_key = os.getenv(api_key_env)
     if not api_key:
-        logger.critical(
-            f"API key not found. Set the {api_key_env} environment variable."
-        )
+        logger.critical(f"API key not found. Set the {api_key_env} environment variable.")
         sys.exit(1)
 
     litellm.drop_params = True
@@ -225,33 +239,39 @@ def main():
     # Check for max_completion_tokens first (for models like gpt-5, gpt-5-mini)
     configured_max_completion_tokens = model_info.get("max_completion_tokens", None)
     configured_max_tokens = model_info.get("max_tokens", None)
-    
+
     config_params = {
         "name": llm_model_name,
         "api_key": api_key,
         "spend_limit": model_info.get("spend_limit", 0.0),
         "api_key_env": api_key_env,
     }
-    
+
     # Add the appropriate token limit parameter
     if configured_max_completion_tokens:
         config_params["max_completion_tokens"] = configured_max_completion_tokens
-        logger.info(f"Using max_completion_tokens from config for model '{desired_model_name}': {configured_max_completion_tokens}.")
+        logger.info(
+            f"Using max_completion_tokens from config for model '{desired_model_name}': {configured_max_completion_tokens}."
+        )
     elif configured_max_tokens:
         config_params["max_tokens"] = configured_max_tokens
-        logger.info(f"Using max_tokens from config for model '{desired_model_name}': {configured_max_tokens}.")
+        logger.info(
+            f"Using max_tokens from config for model '{desired_model_name}': {configured_max_tokens}."
+        )
     else:
         config_params["max_tokens"] = max_output_tokens
-        logger.info(f"Using default max_output_tokens for model '{desired_model_name}': {max_output_tokens}.")
-    
+        logger.info(
+            f"Using default max_output_tokens for model '{desired_model_name}': {max_output_tokens}."
+        )
+
     # Only set temperature if explicitly provided in config
     if "temperature" in model_info:
         config_params["temperature"] = model_info["temperature"]
-    
+
     # Only set top_p if explicitly provided in config
     if "top_p" in model_info:
         config_params["top_p"] = model_info["top_p"]
-    
+
     model_config = GenericAPIModelConfig(**config_params)
 
     default_params = model_info.get("default_params", {})
@@ -269,31 +289,35 @@ def main():
         f"Oracle time limit: {oracle_time_limit} ms, Evaluator time limit: {evaluator_time_limit} ms"
     )
 
-    task_n = os.environ.get('TASK_N')
-    task_dataset_size = os.environ.get('TASK_DATASET_SIZE')
-    task_target_time_ms = os.environ.get('TASK_TARGET_TIME_MS')
-    
+    task_n = os.environ.get("TASK_N")
+    task_dataset_size = os.environ.get("TASK_DATASET_SIZE")
+    task_target_time_ms = os.environ.get("TASK_TARGET_TIME_MS")
+
     task_params_for_factory = {}
     try:
-        if task_n is not None: task_params_for_factory['n'] = int(task_n)
-        if task_dataset_size is not None: task_params_for_factory['dataset_size'] = int(task_dataset_size)
-        if task_target_time_ms is not None: task_params_for_factory['target_time_ms'] = int(task_target_time_ms)
+        if task_n is not None:
+            task_params_for_factory["n"] = int(task_n)
+        if task_dataset_size is not None:
+            task_params_for_factory["dataset_size"] = int(task_dataset_size)
+        if task_target_time_ms is not None:
+            task_params_for_factory["target_time_ms"] = int(task_target_time_ms)
         logger.info(f"Read dataset params from env: {task_params_for_factory}")
     except ValueError as e:
-        logger.error(f"Error converting dataset env vars to int: {e}. Check submit_agent.sh export.")
+        logger.error(
+            f"Error converting dataset env vars to int: {e}. Check submit_agent.sh export."
+        )
         task_params_for_factory = {}
 
-    data_dir = os.environ.get('DATA_DIR')
+    data_dir = os.environ.get("DATA_DIR")
     if not data_dir:
-        logger.warning("DATA_DIR environment variable not set. Dataset loading might fail or use default path.")
+        logger.warning(
+            "DATA_DIR environment variable not set. Dataset loading might fail or use default path."
+        )
     else:
         logger.info(f"Using DATA_DIR from environment: {data_dir}")
 
     task_instance = TaskFactory(
-        task_name,
-        oracle_time_limit=oracle_time_limit,
-        data_dir=data_dir,
-        **task_params_for_factory
+        task_name, oracle_time_limit=oracle_time_limit, data_dir=data_dir, **task_params_for_factory
     )
 
     code_dir = Path(os.environ.get("CODE_DIR", "llm_src"))
@@ -309,44 +333,49 @@ def main():
     )
 
     try:
-        logger.info("Starting LLM interface run_task (with final snapshot restore and test evaluation)...")
+        logger.info(
+            "Starting LLM interface run_task (with final snapshot restore and test evaluation)..."
+        )
         llm_interface.run_task()
         logger.info("LLM interface run_task completed successfully.")
 
         if summary_file_env:
-             test_speedup = None
-             
-             if hasattr(llm_interface, '_final_eval_metrics') and llm_interface._final_eval_metrics:
-                 test_speedup = llm_interface._final_eval_metrics.get('mean_speedup')
-                 logger.info(f"Using test dataset speedup for summary: {test_speedup}")
-             else:
-                 logger.info("No test evaluation metrics available, will use N/A in summary")
-             
-             logger.info(f"Recording test speedup ({test_speedup}) to summary file.")
-             update_summary_json(summary_file_env, task_name, desired_model_name, test_speedup)
-        else:
-             logger.warning("Skipping summary file update because SUMMARY_FILE env var was not set.")
+            test_speedup = None
 
-    except MemoryError as e:
+            if hasattr(llm_interface, "_final_eval_metrics") and llm_interface._final_eval_metrics:
+                test_speedup = llm_interface._final_eval_metrics.get("mean_speedup")
+                logger.info(f"Using test dataset speedup for summary: {test_speedup}")
+            else:
+                logger.info("No test evaluation metrics available, will use N/A in summary")
+
+            logger.info(f"Recording test speedup ({test_speedup}) to summary file.")
+            update_summary_json(summary_file_env, task_name, desired_model_name, test_speedup)
+        else:
+            logger.warning("Skipping summary file update because SUMMARY_FILE env var was not set.")
+
+    except MemoryError:
         # Handle memory limit exceeded with proper context
-        logger.error(f"Memory limit exceeded during evaluation of task '{task_name}' with model '{desired_model_name}'")
-        
+        logger.error(
+            f"Memory limit exceeded during evaluation of task '{task_name}' with model '{desired_model_name}'"
+        )
+
         # Try to save error information if summary file was specified
         if summary_file_env:
             try:
                 # Get memory limit info for error message
-                if memory_monitor and hasattr(memory_monitor, 'memory_limit_gb'):
+                if memory_monitor and hasattr(memory_monitor, "memory_limit_gb"):
                     memory_info = f"Memory limit ({memory_monitor.memory_limit_gb}GB) exceeded"
                 else:
                     memory_info = "Memory limit exceeded"
-                
+
                 # Record failure in summary with context
-                update_summary_json(summary_file_env, task_name, desired_model_name, None, 
-                                  error=memory_info)
-                logger.info(f"Saved memory error to summary file")
+                update_summary_json(
+                    summary_file_env, task_name, desired_model_name, None, error=memory_info
+                )
+                logger.info("Saved memory error to summary file")
             except Exception as save_error:
                 logger.error(f"Could not save error to summary: {save_error}")
-        
+
         # Exit with error code
         sys.exit(137)  # Standard exit code for OOM
     except Exception as e:
@@ -356,6 +385,7 @@ def main():
         pass
 
     logger.info("Script finished successfully.")
+
 
 if __name__ == "__main__":
     main()

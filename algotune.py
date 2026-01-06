@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+
 script_dir = Path(__file__).parent
 script_path = script_dir / "scripts/algotune.py"
 

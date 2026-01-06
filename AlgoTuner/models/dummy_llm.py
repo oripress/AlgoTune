@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Union
+
 from AlgoTuner.utils.message_writer import MessageWriter
 
 
@@ -14,7 +14,7 @@ class DummyLLM:
         self.message_writer = MessageWriter()
         logging.info(self.message_writer.format_system_message("DummyLLM initialized"))
 
-    def query(self, messages: List[Dict[str, str]]) -> Dict[str, Union[str, float]]:
+    def query(self, messages: list[dict[str, str]]) -> dict[str, str | float]:
         """Process messages and return response with cost calculation."""
         # Calculate input cost based on total characters in messages
         input_chars = sum(len(msg["content"]) for msg in messages)

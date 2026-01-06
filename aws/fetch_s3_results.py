@@ -5,13 +5,16 @@ Fetch AlgoTune results from S3 bucket.
 Downloads logs and summary.json files for completed AWS Batch jobs
 from S3 storage.
 """
+
+import argparse
+import json
 import os
 import sys
-import json
-import argparse
-import boto3
 from pathlib import Path
+
+import boto3
 from dotenv import load_dotenv
+
 
 # Load environment from both .env files
 # 1. Load API keys from root .env
@@ -22,6 +25,7 @@ if root_dotenv.exists():
 # 2. Load AWS configuration from aws/.env
 aws_dotenv = Path(__file__).parent / ".env"
 load_dotenv(aws_dotenv)
+
 
 def download_job_results(s3_client, bucket: str, job_id: str, out_dir: Path):
     """
@@ -42,16 +46,16 @@ def download_job_results(s3_client, bucket: str, job_id: str, out_dir: Path):
     # Download logs directory
     prefix = f"jobs/{job_id}/logs/"
     try:
-        paginator = s3_client.get_paginator('list_objects_v2')
+        paginator = s3_client.get_paginator("list_objects_v2")
         pages = paginator.paginate(Bucket=bucket, Prefix=prefix)
 
         log_count = 0
         for page in pages:
-            if 'Contents' not in page:
+            if "Contents" not in page:
                 continue
 
-            for obj in page['Contents']:
-                key = obj['Key']
+            for obj in page["Contents"]:
+                key = obj["Key"]
                 # Extract filename from key
                 filename = Path(key).name
 
@@ -82,6 +86,7 @@ def download_job_results(s3_client, bucket: str, job_id: str, out_dir: Path):
 
     print()
 
+
 def aggregate_summaries(out_dir: Path):
     """
     Aggregate all summary.json files into a combined report.
@@ -100,9 +105,9 @@ def aggregate_summaries(out_dir: Path):
         summary_file = job_dir / "summary.json"
         if summary_file.exists():
             try:
-                with open(summary_file, 'r') as f:
+                with open(summary_file) as f:
                     summary = json.load(f)
-                    summary['job_id'] = job_dir.name
+                    summary["job_id"] = job_dir.name
                     all_summaries.append(summary)
             except Exception as e:
                 print(f"  ⚠️  Failed to read {summary_file}: {e}")
@@ -113,7 +118,7 @@ def aggregate_summaries(out_dir: Path):
 
     # Write aggregated report
     aggregate_file = out_dir / "aggregated_results.json"
-    with open(aggregate_file, 'w') as f:
+    with open(aggregate_file, "w") as f:
         json.dump(all_summaries, f, indent=2)
 
     print(f"  ✓ Aggregated {len(all_summaries)} summaries to {aggregate_file}")
@@ -128,7 +133,7 @@ def aggregate_summaries(out_dir: Path):
     # Count by status if available
     status_counts = {}
     for summary in all_summaries:
-        status = summary.get('status', 'unknown')
+        status = summary.get("status", "unknown")
         status_counts[status] = status_counts.get(status, 0) + 1
 
     for status, count in sorted(status_counts.items()):
@@ -136,34 +141,34 @@ def aggregate_summaries(out_dir: Path):
 
     print()
 
+
 def main():
-    parser = argparse.ArgumentParser(
-        description="Download AlgoTune results from S3"
-    )
+    parser = argparse.ArgumentParser(description="Download AlgoTune results from S3")
 
     parser.add_argument(
-        "--job-ids-file",
-        required=True,
-        help="Path to a file with one AWS Batch job ID per line"
+        "--job-ids-file", required=True, help="Path to a file with one AWS Batch job ID per line"
     )
 
     parser.add_argument(
         "--out-dir",
         default="s3_results",
-        help="Directory where fetched results should be written (default: s3_results)"
+        help="Directory where fetched results should be written (default: s3_results)",
     )
 
     parser.add_argument(
         "--s3-bucket",
         default=os.getenv("S3_RESULTS_BUCKET", ""),
-        help="S3 bucket name (default: from .env S3_RESULTS_BUCKET)"
+        help="S3 bucket name (default: from .env S3_RESULTS_BUCKET)",
     )
 
     args = parser.parse_args()
 
     # Validate S3 bucket
     if not args.s3_bucket:
-        print("ERROR: S3 bucket not specified. Use --s3-bucket or set S3_RESULTS_BUCKET in .env", file=sys.stderr)
+        print(
+            "ERROR: S3 bucket not specified. Use --s3-bucket or set S3_RESULTS_BUCKET in .env",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     # Load job IDs from file
@@ -188,7 +193,7 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # Initialize S3 client
-    s3 = boto3.client('s3', region_name=os.getenv('AWS_REGION', 'us-east-1'))
+    s3 = boto3.client("s3", region_name=os.getenv("AWS_REGION", "us-east-1"))
 
     # Download results for each job
     for job_id in job_ids:
@@ -201,6 +206,7 @@ def main():
     print("✅ All results downloaded!")
     print(f"Results saved to: {out_dir.absolute()}")
     print("════════════════════════════════════════")
+
 
 if __name__ == "__main__":
     main()

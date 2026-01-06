@@ -103,12 +103,7 @@ class MatrixMultiplication(Task):
             logging.error("Problem dictionary missing 'A' or 'B' key.")
             return False
 
-        # Check solution type
-        if not isinstance(solution, list):
-            logging.error("Solution must be a list of lists.")
-            return False
-
-        # Attempt to convert lists to NumPy arrays
+        # Accept both lists and numpy arrays
         try:
             A = np.array(problem["A"])
             B = np.array(problem["B"])

@@ -1,8 +1,9 @@
 # Copyright (c) 2025 Ori Press and the AlgoTune contributors
 # https://github.com/oripress/AlgoTune
 import logging
-import random
 import numbers
+import random
+
 import sympy
 
 from AlgoTuneTasks.base import register_task, Task
@@ -70,7 +71,9 @@ class IntegerFactorization(Task):
         try:
             composite = sympy.Integer(composite_val)
         except (TypeError, ValueError) as e:
-            raise ValueError(f"The composite value '{composite_val}' could not be converted to a SymPy Integer: {e}")
+            raise ValueError(
+                f"The composite value '{composite_val}' could not be converted to a SymPy Integer: {e}"
+            )
 
         # Extract the prime factors using sympy's factorization
         factors = [prime for prime, exp in sympy.factorint(composite).items() for _ in range(exp)]
@@ -161,7 +164,9 @@ class IntegerFactorization(Task):
 
         # Fast check: product must match
         if p * q != composite:
-            logging.error(f"Product of p*q ({p}*{q}={p*q}) does not equal composite ({composite}).")
+            logging.error(
+                f"Product of p*q ({p}*{q}={p * q}) does not equal composite ({composite})."
+            )
             return False
 
         # Primality checks (now that we know the product is correct)

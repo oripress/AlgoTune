@@ -1,7 +1,7 @@
 # Copyright (c) 2025 Ori Press and the AlgoTune contributors
 # https://github.com/oripress/AlgoTune
 import logging
-from typing import Any, Dict
+from typing import Any
 
 import cvxpy as cp
 import numpy as np
@@ -35,7 +35,7 @@ class SVMTask(Task):
         self,
         n: int,
         random_seed: int = 1,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generates a random SVM instance whose difficulty scales with `n`.
 
@@ -55,8 +55,8 @@ class SVMTask(Task):
         # -----------------------------------------------------------------
         # Class sizes – never drop a sample when n is odd
         # -----------------------------------------------------------------
-        n_neg = n // 2          # ⌊n / 2⌋ negatives
-        n_pos = n - n_neg       # ⌈n / 2⌉ positives
+        n_neg = n // 2  # ⌊n / 2⌋ negatives
+        n_pos = n - n_neg  # ⌈n / 2⌉ positives
         class_counts = {-1: n_neg, 1: n_pos}
 
         # Difficulty: smaller separation, higher variance, extra clusters
@@ -117,7 +117,7 @@ class SVMTask(Task):
             outlier_idx = rng.choice(n_samples, n_outliers, replace=False)
             for idx in outlier_idx:
                 if rng.random() < 0.5:
-                    y[idx] = -y[idx]                # label flip
+                    y[idx] = -y[idx]  # label flip
                 else:
                     X[idx] += rng.normal(0, separation_factor, size=p)  # move
 
@@ -138,8 +138,8 @@ class SVMTask(Task):
     # ---------------------------------------------------------------------
     def solve(
         self,
-        problem: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        problem: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Solves the SVM using CVXPY and returns
             beta0 : float
@@ -195,8 +195,8 @@ class SVMTask(Task):
     # ---------------------------------------------------------------------
     def is_solution(
         self,
-        problem: Dict[str, Any],
-        solution: Dict[str, Any],
+        problem: dict[str, Any],
+        solution: dict[str, Any],
     ) -> bool:
         """
         Verifies the supplied solution against a fresh solve() result.

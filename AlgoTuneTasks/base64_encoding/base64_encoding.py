@@ -5,7 +5,7 @@ import hmac
 import logging
 
 # Removed math, string imports
-from typing import Any, Union  # Standard library
+from typing import Any  # Standard library
 
 import numpy as np  # Third-party needed for seeded random bytes
 
@@ -82,7 +82,7 @@ class Base64Encoding(Task):
             logging.error(f"Error during Base64 encoding in solve: {e}")
             raise  # Re-raise exception
 
-    def is_solution(self, problem: dict[str, Any], solution: Union[dict[str, bytes], Any]) -> bool:
+    def is_solution(self, problem: dict[str, Any], solution: dict[str, bytes] | Any) -> bool:
         """
         Verify the provided solution by comparing its encoded data
         against the result obtained from calling the task's own solve() method.
