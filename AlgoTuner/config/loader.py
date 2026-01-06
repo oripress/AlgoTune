@@ -1,6 +1,7 @@
 import os
+import threading  # Import threading for lock
 from pathlib import Path
-import threading # Import threading for lock
+
 
 # Handle optional YAML dependency
 try:
@@ -16,11 +17,11 @@ _config_cache = None
 _config_lock = threading.Lock()
 # --- End Singleton Pattern ---
 
+
 def load_config(config_path: str = f"{_CONFIG_DIR_NAME}/{_DEFAULT_CONFIG_FILENAME}"):
     global _config_cache
     # Check cache first (double-checked locking pattern)
     if _config_cache is not None:
- 
         return _config_cache
 
     with _config_lock:
@@ -31,42 +32,49 @@ def load_config(config_path: str = f"{_CONFIG_DIR_NAME}/{_DEFAULT_CONFIG_FILENAM
         # --- Original loading logic starts here ---
         if yaml is None:
             print("PyYAML not installed, returning empty config.", file=os.sys.stderr)
-            _config_cache = {} # Cache the empty dict
+            _config_cache = {}  # Cache the empty dict
             return _config_cache
 
         # Build potential paths - avoid Path.cwd() which can fail if directory doesn't exist
         potential_paths = [
             # Environment variable override - HIGHEST PRIORITY
-            Path(os.environ.get("ALGOTUNE_CONFIG_PATH")) if os.environ.get("ALGOTUNE_CONFIG_PATH") else None,
-            
+            Path(os.environ.get("ALGOTUNE_CONFIG_PATH"))
+            if os.environ.get("ALGOTUNE_CONFIG_PATH")
+            else None,
             # Path relative to this loader.py file's parent (AlgoTuner/config/)
             Path(__file__).resolve().parent / _DEFAULT_CONFIG_FILENAME,
-
             # Path relative to this loader.py file's parent's parent (project root)
             Path(__file__).resolve().parent.parent / _CONFIG_DIR_NAME / _DEFAULT_CONFIG_FILENAME,
         ]
-        
+
         # Only add CWD-based paths if we can safely get the current directory
         try:
             cwd = Path.cwd()
-            potential_paths.extend([
-                Path(config_path),  # Path as provided (e.g., "config/config.yaml" relative to CWD)
-                
-                # Path relative to CWD if config_path was just the default "config/config.yaml"
-                cwd / _CONFIG_DIR_NAME / _DEFAULT_CONFIG_FILENAME,
-                
-                # Path if config_path was just "config.yaml" and it's in CWD
-                cwd / _DEFAULT_CONFIG_FILENAME if config_path == _DEFAULT_CONFIG_FILENAME else None,
-            ])
+            potential_paths.extend(
+                [
+                    Path(
+                        config_path
+                    ),  # Path as provided (e.g., "config/config.yaml" relative to CWD)
+                    # Path relative to CWD if config_path was just the default "config/config.yaml"
+                    cwd / _CONFIG_DIR_NAME / _DEFAULT_CONFIG_FILENAME,
+                    # Path if config_path was just "config.yaml" and it's in CWD
+                    cwd / _DEFAULT_CONFIG_FILENAME
+                    if config_path == _DEFAULT_CONFIG_FILENAME
+                    else None,
+                ]
+            )
         except (OSError, FileNotFoundError):
             # Can't get current directory - it may have been deleted
             # Still try to use config_path as an absolute path if it looks absolute
             if config_path and os.path.isabs(config_path):
                 potential_paths.append(Path(config_path))
             else:
-                print(f"Warning: Cannot access current directory and config_path '{config_path}' is relative", file=os.sys.stderr)
+                print(
+                    f"Warning: Cannot access current directory and config_path '{config_path}' is relative",
+                    file=os.sys.stderr,
+                )
 
-        loaded_config = None # Variable to store the successfully loaded config
+        loaded_config = None  # Variable to store the successfully loaded config
 
         for p_path in potential_paths:
             if p_path is None:
@@ -76,26 +84,34 @@ def load_config(config_path: str = f"{_CONFIG_DIR_NAME}/{_DEFAULT_CONFIG_FILENAM
                 abs_path = p_path.resolve()
                 if abs_path.exists() and abs_path.is_file():
                     print(f"Attempting to load config from: {abs_path}", file=os.sys.stderr)
-                    with open(abs_path, "r") as file:
+                    with open(abs_path) as file:
                         loaded_yaml = yaml.safe_load(file)
                         if loaded_yaml is not None:
-                            print(f"Successfully loaded config from: {abs_path}", file=os.sys.stderr)
-                            loaded_config = loaded_yaml # Store the loaded config
-                            break # Stop searching once loaded
+                            print(
+                                f"Successfully loaded config from: {abs_path}", file=os.sys.stderr
+                            )
+                            loaded_config = loaded_yaml  # Store the loaded config
+                            break  # Stop searching once loaded
                         else:
-                            print(f"Config file loaded but was empty: {abs_path}", file=os.sys.stderr)
+                            print(
+                                f"Config file loaded but was empty: {abs_path}", file=os.sys.stderr
+                            )
                             # Treat empty file as empty config, but keep searching for non-empty
-                            if loaded_config is None: # Only set if we haven't found a non-empty one yet
-                                loaded_config = {} 
+                            if (
+                                loaded_config is None
+                            ):  # Only set if we haven't found a non-empty one yet
+                                loaded_config = {}
                 else:
- 
-                    pass # Silently try next path
+                    pass  # Silently try next path
             except Exception as e:
                 print(f"Error loading or parsing config file {abs_path}: {e}", file=os.sys.stderr)
                 # Continue to try other paths
 
-        if loaded_config is None: # If loop finished without loading anything valid
-            print(f"Failed to load config from any potential paths. Defaulting to empty config. Searched: {[str(pp.resolve() if pp else 'None') for pp in potential_paths]}", file=os.sys.stderr)
+        if loaded_config is None:  # If loop finished without loading anything valid
+            print(
+                f"Failed to load config from any potential paths. Defaulting to empty config. Searched: {[str(pp.resolve() if pp else 'None') for pp in potential_paths]}",
+                file=os.sys.stderr,
+            )
             loaded_config = {}
 
         # Cache the final result (either loaded config or empty dict)

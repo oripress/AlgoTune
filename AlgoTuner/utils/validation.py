@@ -1,19 +1,22 @@
-import os
-from typing import Any, Optional, Tuple
 import logging
-import sys
-import importlib
 import traceback
 from pathlib import Path
+from typing import Any
 
-from AlgoTuner.utils.error_utils import create_standard_error_result, SolverFileNotFoundError, SOLVER_NOT_FOUND_GENERIC_MSG
-from AlgoTuner.utils.solver_loader import load_solver_module, get_solve_callable, with_working_dir
+from AlgoTuner.utils.error_utils import (
+    SOLVER_NOT_FOUND_GENERIC_MSG,
+    SolverFileNotFoundError,
+)
+from AlgoTuner.utils.solver_loader import load_solver_module, with_working_dir
 
-def validate_solver_setup(code_dir: Path, command_source: Optional[str] = None) -> Tuple[bool, Optional[dict]]:
+
+def validate_solver_setup(
+    code_dir: Path, command_source: str | None = None
+) -> tuple[bool, dict | None]:
     """Validate solver.py setup and imports."""
     solver_file = code_dir / "solver.py"
     logging.info(f"Looking for solver at: {solver_file}")
-    
+
     if not solver_file.is_file():
         error_msg = SOLVER_NOT_FOUND_GENERIC_MSG
         logging.error(f"{error_msg} (Path checked: {solver_file})")
@@ -54,6 +57,7 @@ def validate_solver_setup(code_dir: Path, command_source: Optional[str] = None) 
     except OSError as e:
         # Use standardized error utility to classify and format
         import traceback as _tb
+
         from AlgoTuner.utils.error_utils import create_standard_error_result
 
         logging.error(f"OSError encountered while loading solver.py: {e}\n{_tb.format_exc()}")
@@ -77,7 +81,7 @@ def validate_solver_setup(code_dir: Path, command_source: Optional[str] = None) 
             raise AttributeError("Method 'solve' not found or not callable in Solver class")
         logging.info("Found Solver class with solve method in solver.py")
         return True, None
-    except AttributeError as e: 
+    except AttributeError as e:
         # Custom error messages based on what was missing
         if "Class 'Solver' not found" in str(e):
             error_msg = "Solver class not found in solver.py. Please define a class named 'Solver' with a 'solve' method."
@@ -85,7 +89,7 @@ def validate_solver_setup(code_dir: Path, command_source: Optional[str] = None) 
         elif "Method 'solve' not found" in str(e):
             error_msg = "Class 'Solver' found but no callable 'solve' method. Please add a method named 'solve' to your Solver class."
             error_type = "missing_solver_method"
-        else: # Other potential AttributeErrors
+        else:  # Other potential AttributeErrors
             error_msg = f"Error accessing Solver/solve in solver.py: {e}"
             error_type = "attribute_error"
         logging.error(error_msg)
@@ -109,15 +113,22 @@ def validate_solver_setup(code_dir: Path, command_source: Optional[str] = None) 
     # Should not reach here
     return True, None
 
-def validate_dataset(data: Any, data_subset: str, command_source: Optional[str] = None) -> Tuple[bool, Optional[dict], Any]:
+
+def validate_dataset(
+    data: Any, data_subset: str, command_source: str | None = None
+) -> tuple[bool, dict | None, Any]:
     """Validate dataset and handle dataset subsets."""
     if not data:
-        return False, {
-            "success": False,
-            "error": "No data available for evaluation",
-            "output_logs": "",
-            "command_source": command_source,
-        }, None
+        return (
+            False,
+            {
+                "success": False,
+                "error": "No data available for evaluation",
+                "output_logs": "",
+                "command_source": command_source,
+            },
+            None,
+        )
 
     # Handle dataset subsets
     if isinstance(data, tuple):
@@ -125,14 +136,19 @@ def validate_dataset(data: Any, data_subset: str, command_source: Optional[str] 
         data = train_data if data_subset == "train" else test_data
 
     if not data:
-        return False, {
-            "success": False,
-            "error": f"No data available for {data_subset} subset",
-            "output_logs": "",
-            "command_source": command_source,
-        }, None
-    
+        return (
+            False,
+            {
+                "success": False,
+                "error": f"No data available for {data_subset} subset",
+                "output_logs": "",
+                "command_source": command_source,
+            },
+            None,
+        )
+
     return True, None, data
+
 
 def validate_structure(example: Any, input_data: Any) -> bool:
     """Recursively validate the structure of input_data against example."""
@@ -141,7 +157,7 @@ def validate_structure(example: Any, input_data: Any) -> bool:
         if isinstance(example, (list, tuple)) and isinstance(input_data, (list, tuple)):
             return len(example) == len(input_data)
         return False
-    
+
     if isinstance(example, (list, tuple)):
         if len(example) == 0 and len(input_data) == 0:
             return True
@@ -151,15 +167,16 @@ def validate_structure(example: Any, input_data: Any) -> bool:
         if len(example) > 0 and len(example) != len(input_data):
             return False
         return all(validate_structure(e, i) for e, i in zip(example, input_data))
-    
+
     return True
 
+
 def validate_optimal_time(
-    optimal_time: Optional[float],
+    optimal_time: float | None,
     idx: int,
     last_output_logs: str,
-    command_source: Optional[str] = None
-) -> Tuple[bool, Optional[dict]]:
+    command_source: str | None = None,
+) -> tuple[bool, dict | None]:
     """Validate optimal time exists and is valid."""
     if optimal_time is None:
         return False, {
@@ -168,4 +185,4 @@ def validate_optimal_time(
             "output_logs": last_output_logs,
             "command_source": command_source,
         }
-    return True, None 
+    return True, None

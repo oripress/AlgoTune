@@ -2,11 +2,7 @@ import difflib
 
 
 def unified_diff(
-    old: str,
-    new: str,
-    fromfile: str = "current",
-    tofile: str = "proposed",
-    n_context: int = 3
+    old: str, new: str, fromfile: str = "current", tofile: str = "proposed", n_context: int = 3
 ) -> str:
     """Return a unified diff string between two code blobs."""
     old_lines = old.splitlines(keepends=True)
@@ -19,4 +15,4 @@ def unified_diff(
         lineterm="",
         n=n_context,
     )
-    return "".join(diff) 
+    return "".join(diff)

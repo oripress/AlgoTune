@@ -13,12 +13,10 @@ import logging
 import math
 import multiprocessing as mp
 import os
-import queue
-import signal
 import pickle
-from typing import Dict, List, Optional, Tuple, Callable
-
+import queue
 import resource  # Unix only; present on typical Slurm nodes
+import signal
 
 # ----------------------------------------------------------------------
 # third-party
@@ -34,6 +32,7 @@ from AlgoTuner.utils.precise_timing import (
 )
 from AlgoTuner.utils.timing_config import RUNS, WARMUPS
 
+
 # ----------------------------------------------------------------------
 # logging
 # ----------------------------------------------------------------------
@@ -42,6 +41,7 @@ from AlgoTuner.utils.timing_config import RUNS, WARMUPS
 # ======================================================================
 #  sandbox helpers
 # ======================================================================
+
 
 def _child_worker_isolated(q, task_bytes, k, warmup_seed, timed_seed):
     """Sub-process: generate + solve with isolated warmup and timed problems."""
@@ -62,7 +62,7 @@ def _child_worker_isolated(q, task_bytes, k, warmup_seed, timed_seed):
         # Generate separate problems for warmup and timed measurement
         warmup_problem = task.generate_problem(k, random_seed=warmup_seed)
         timed_problem = task.generate_problem(k, random_seed=timed_seed)
-        
+
         # Do warmup run on warmup problem
         warmup_result = time_execution_ns(
             func=task.solve,
@@ -71,11 +71,11 @@ def _child_worker_isolated(q, task_bytes, k, warmup_seed, timed_seed):
             warmup_runs=WARMUPS,
             capture_output=False,
         )
-        
+
         if not warmup_result.get("success"):
             q.put(("error", f"Warmup failed: {warmup_result.get('error', 'Unknown warmup error')}"))
             return
-        
+
         # Do timed run on different problem (no warmup needed since we just warmed up)
         timing_result = time_execution_ns(
             func=task.solve,
@@ -106,7 +106,9 @@ def _run_probe_safely_isolated(task, k, warmup_seed, timed_seed, timeout_s, memo
     env["MEM_LIMIT_BYTES"] = str(mem_bytes)
 
     q: mp.Queue = mp.Queue()
-    p = mp.Process(target=_child_worker_isolated, args=(q, pickle.dumps(task), k, warmup_seed, timed_seed))
+    p = mp.Process(
+        target=_child_worker_isolated, args=(q, pickle.dumps(task), k, warmup_seed, timed_seed)
+    )
     p.start()
     p.join(timeout_s)
 
@@ -129,29 +131,33 @@ def _run_probe_safely_isolated(task, k, warmup_seed, timed_seed, timeout_s, memo
     return status, payload
 
 
-def _run_probe_in_process(task, k, warmup_seed, timed_seed, timing_num_runs=5, timing_warmup_runs=3, memory_limit_mb=None):
+def _run_probe_in_process(
+    task, k, warmup_seed, timed_seed, timing_num_runs=5, timing_warmup_runs=3, memory_limit_mb=None
+):
     """Run probe in current process for efficiency - avoids subprocess overhead."""
     try:
         # Check estimated memory usage for tasks known to have quadratic memory requirements
-        task_name = getattr(task, '__class__', type(task)).__name__.lower()
-        if 'sinkhorn' in task_name and memory_limit_mb:
+        task_name = getattr(task, "__class__", type(task)).__name__.lower()
+        if "sinkhorn" in task_name and memory_limit_mb:
             # Sinkhorn needs k^2 * 8 bytes for cost matrix plus overhead
             estimated_mb = (k * k * 8) / (1024 * 1024) * 1.5  # 1.5x for overhead
             if estimated_mb > memory_limit_mb * 0.8:  # Use 80% as safety margin
-                logging.debug(f"Skipping k={k} for sinkhorn: estimated {estimated_mb:.1f}MB > limit {memory_limit_mb * 0.8:.1f}MB")
+                logging.debug(
+                    f"Skipping k={k} for sinkhorn: estimated {estimated_mb:.1f}MB > limit {memory_limit_mb * 0.8:.1f}MB"
+                )
                 return "oom", None
-        
+
         # Generate problems with different seeds
         np.random.seed(warmup_seed)
         warmup_problem = task.generate_problem(n=k, random_seed=warmup_seed)
-        
+
         np.random.seed(timed_seed)
         timed_problem = task.generate_problem(n=k, random_seed=timed_seed)
-        
+
         # Run warmup separately
         for _ in range(timing_warmup_runs):
             _ = task.solve(warmup_problem)
-        
+
         # Time the solve function on timed problem
         timing_result = time_execution_ns(
             func=task.solve,
@@ -161,9 +167,9 @@ def _run_probe_in_process(task, k, warmup_seed, timed_seed, timing_num_runs=5, t
             warmup_runs=0,  # Already did warmup above
             capture_output=False,
             working_dir=None,
-            solver_module=None
+            solver_module=None,
         )
-        
+
         if timing_result["success"]:
             mean_time_s = timing_result["mean_time_ms"] / 1000.0
             return "ok", mean_time_s
@@ -171,19 +177,22 @@ def _run_probe_in_process(task, k, warmup_seed, timed_seed, timing_num_runs=5, t
             error_msg = timing_result.get("error", "Unknown timing error")
             logging.debug(f"Timing failed for k={k}: {error_msg}")
             return "error", None
-            
+
     except MemoryError:
         logging.debug(f"Memory error for k={k}, treating as OOM")
         return "oom", None
     except Exception as e:
         import traceback
+
         logging.error(f"Probe failed for k={k}: {type(e).__name__}: {str(e)}")
         logging.debug(f"Full traceback:\n{traceback.format_exc()}")
         return "error", None
 
+
 # ======================================================================
 #  measure_solve_time — helper used by the k-search
 # ======================================================================
+
 
 def measure_solve_time(
     task,
@@ -198,10 +207,10 @@ def measure_solve_time(
     memory_limit_mb: int = 4096,
     log_level: int = logging.DEBUG,
     use_isolated: bool = False,  # New parameter to control subprocess vs in-process
-) -> Tuple[Optional[float], Dict[str, any]]:
+) -> tuple[float | None, dict[str, any]]:
     """Measure mean solve time for *k* using in-process evaluation by default (fast) or isolated subprocesses."""
     logging.getLogger(__name__).setLevel(log_level)
-    times: List[float] = []
+    times: list[float] = []
     errors = timeouts = ooms = 0
     early_exit = False
     error_messages = []  # Collect actual error messages
@@ -219,7 +228,7 @@ def measure_solve_time(
             base_seed = random_seed + i * 1000  # Large offset to ensure different problems
             warmup_seed = base_seed
             timed_seed = base_seed + 500  # Different problem for timed measurement
-            
+
             try:
                 if use_isolated:
                     # Original subprocess-based approach (kept for compatibility)
@@ -243,7 +252,10 @@ def measure_solve_time(
                         memory_limit_mb,
                     )
             except Exception as exc:
-                logging.error(f"probe (k={k}, warmup_seed={warmup_seed}, timed_seed={timed_seed}) crashed: {exc}", exc_info=True)
+                logging.error(
+                    f"probe (k={k}, warmup_seed={warmup_seed}, timed_seed={timed_seed}) crashed: {exc}",
+                    exc_info=True,
+                )
                 errors += 1
                 break
 
@@ -260,7 +272,7 @@ def measure_solve_time(
                 break
             else:
                 errors += 1
-                if reported_s:  # reported_s contains the error message when status is "error"  
+                if reported_s:  # reported_s contains the error message when status is "error"
                     error_messages.append(str(reported_s))
                 break
 
@@ -314,9 +326,11 @@ def measure_solve_time(
                 os.environ["AGENT_MODE"] = original_agent_mode
             logging.debug(f"Restored AGENT_MODE to {original_agent_mode}")
 
+
 # ======================================================================
 #  Public search API
 # ======================================================================
+
 
 def find_k_for_time(
     task,
@@ -331,13 +345,13 @@ def find_k_for_time(
     memory_limit_mb: int = 8192,
     timing_num_runs: int = 5,
     timing_warmup_runs: int = 3,
-) -> Tuple[Optional[int], Dict[str, any]]:
+) -> tuple[int | None, dict[str, any]]:
     """Search for *k* whose mean solve time ≈ *target_time* (seconds)."""
     assert target_time > 0
     min_k = max(1, min_k)
     max_k = max(min_k, max_k)
 
-    cache: Dict[int, Tuple[Optional[float], Dict[str, any]]] = {}
+    cache: dict[int, tuple[float | None, dict[str, any]]] = {}
 
     def probe(k: int):
         if k in cache:
@@ -371,16 +385,16 @@ def find_k_for_time(
                 failure_reasons.append("oom")
             if st.get("errors", 0) > 0:
                 failure_reasons.append(f"error({st['errors']})")
-            
+
             reason = ",".join(failure_reasons) if failure_reasons else "unknown"
-            
+
             # Add actual error messages if available
             error_details = ""
             if st.get("error_messages"):
                 error_details = f" - {'; '.join(st['error_messages'])}"
-            
+
             msg = f"FAILED: {reason}{error_details}"
-        
+
         logging.info(f"[probe] k={k:>5}: {msg}")
         return cache[k]
 
@@ -438,4 +452,4 @@ def find_k_for_time(
             else:
                 low = mid
 
-    return best_k, best_stats 
+    return best_k, best_stats

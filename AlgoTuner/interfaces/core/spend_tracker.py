@@ -1,6 +1,6 @@
 import logging
 from threading import Lock
-from typing import Dict, Any, Optional
+from typing import Any
 
 from AlgoTuner.interfaces.core.base_interface import BaseLLMInterface
 from AlgoTuner.utils.message_writer import MessageWriter
@@ -14,7 +14,7 @@ class SpendTracker:
         self.spend_lock = Lock()
         self.message_writer = MessageWriter()
 
-    def update_spend(self, amount: float) -> Dict[str, Any]:
+    def update_spend(self, amount: float) -> dict[str, Any]:
         """
         Update the total spend and check against limits.
         Returns a dict with status and any relevant messages.
@@ -44,7 +44,7 @@ class SpendTracker:
 
             return {"success": True, "spend": self.interface.state.spend}
 
-    def get_spend_status(self) -> Dict[str, float]:
+    def get_spend_status(self) -> dict[str, float]:
         """Get current spending status."""
         with self.spend_lock:
             return {
@@ -74,7 +74,7 @@ class SpendTracker:
             messages_remaining=status["messages_remaining"],
         )
 
-    def check_limits(self) -> Optional[str]:
+    def check_limits(self) -> str | None:
         """
         Check if any limits have been reached.
         Returns a formatted error message if limits are reached, None otherwise.
@@ -92,7 +92,7 @@ class SpendTracker:
 
             return None
 
-    def _check_limit(self) -> Optional[str]:
+    def _check_limit(self) -> str | None:
         """
         Check if spending has exceeded the limit.
         Returns an error message if the limit has been reached, otherwise None.

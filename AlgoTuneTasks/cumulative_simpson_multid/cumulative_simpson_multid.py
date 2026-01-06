@@ -20,20 +20,20 @@ class CumulativeSimpsonMultiD(Task):
         over [0, 5] but whose amplitude and phase vary per (i, j) “pixel”.
 
         The random seed controls two (100×100) arrays:
-        • `A`   – amplitudes in [0.5, 1.5]  
+        • `A`   – amplitudes in [0.5, 1.5]
         • `phi` – phases in [0, 2π)
 
         y2[i, j, k] = A[i, j] * sin(2π x[k] + phi[i, j])
         """
         rng = np.random.default_rng(random_seed)
 
-        x, dx = np.linspace(0, 5, n, retstep=True)      # 1‑D grid
-        x = x[None, None, :]                            # shape (1,1,n) for broadcasting
+        x, dx = np.linspace(0, 5, n, retstep=True)  # 1‑D grid
+        x = x[None, None, :]  # shape (1,1,n) for broadcasting
 
-        A   = rng.uniform(0.5, 1.5,  size=(100, 100, 1))        # amplitudes
-        phi = rng.uniform(0, 2 * np.pi, size=(100, 100, 1))     # phases
+        A = rng.uniform(0.5, 1.5, size=(100, 100, 1))  # amplitudes
+        phi = rng.uniform(0, 2 * np.pi, size=(100, 100, 1))  # phases
 
-        y2 = A * np.sin(2 * np.pi * x + phi)            # broadcast multiply/add
+        y2 = A * np.sin(2 * np.pi * x + phi)  # broadcast multiply/add
         return {"y2": y2, "dx": dx}
 
     def solve(self, problem: dict) -> NDArray:

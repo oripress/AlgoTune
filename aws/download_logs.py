@@ -4,15 +4,17 @@ Download logs from S3 for AWS Batch jobs.
 Can download logs for specific jobs or all jobs, with optional watch mode.
 """
 
+import argparse
+import json
 import os
+import re
 import sys
 import time
-import json
-import re
-import argparse
-import boto3
 from pathlib import Path
+
+import boto3
 from dotenv import load_dotenv
+
 
 # Load environment from aws/.env
 aws_dotenv = Path(__file__).parent / ".env"
@@ -184,16 +186,13 @@ def cleanup_failed_logs_s3(s3_client, bucket: str, project_root: Path, summary_p
         try:
             # List all objects for this job
             response = s3_client.list_objects_v2(Bucket=bucket, Prefix=prefix)
-            if 'Contents' not in response:
+            if "Contents" not in response:
                 continue
 
             # Delete all objects for this job
-            objects_to_delete = [{'Key': obj['Key']} for obj in response['Contents']]
+            objects_to_delete = [{"Key": obj["Key"]} for obj in response["Contents"]]
             if objects_to_delete:
-                s3_client.delete_objects(
-                    Bucket=bucket,
-                    Delete={'Objects': objects_to_delete}
-                )
+                s3_client.delete_objects(Bucket=bucket, Delete={"Objects": objects_to_delete})
                 removed += len(objects_to_delete)
         except Exception as e:
             print(f"Warning: Failed to delete S3 objects for job {job_id}: {e}", file=sys.stderr)
@@ -298,7 +297,9 @@ def cleanup_failed_logs(project_root: Path, summary_path: Path) -> int:
                     except Exception:
                         pass
 
-    for output_path in list(aws_outputs_dir.glob("batch-*.out")) + list(aws_errors_dir.glob("batch-*.err")):
+    for output_path in list(aws_outputs_dir.glob("batch-*.out")) + list(
+        aws_errors_dir.glob("batch-*.err")
+    ):
         job_id = output_path.stem.replace("batch-", "")
         if job_id in job_map:
             continue
@@ -329,6 +330,7 @@ def cleanup_failed_logs(project_root: Path, summary_path: Path) -> int:
                 except Exception:
                     pass
     return removed
+
 
 def merge_agent_summary(local_summary_path: Path, new_summary_path: Path) -> None:
     local_summary = load_agent_summary(local_summary_path)
@@ -372,26 +374,26 @@ def download_job_logs(s3_client, bucket, job_id, project_root="."):
         # List all objects for this job
         response = s3_client.list_objects_v2(Bucket=bucket, Prefix=prefix)
 
-        if 'Contents' not in response:
+        if "Contents" not in response:
             return downloaded
 
-        for obj in response['Contents']:
-            key = obj['Key']
+        for obj in response["Contents"]:
+            key = obj["Key"]
             # Skip directory markers
-            if key.endswith('/'):
+            if key.endswith("/"):
                 continue
 
             # Determine local path based on S3 structure
-            relative_path = key[len(prefix):]
+            relative_path = key[len(prefix) :]
 
             # Map S3 paths to local structure
-            if relative_path.startswith('outputs/'):
+            if relative_path.startswith("outputs/"):
                 # aws/outputs/batch-<jobid>.out
                 local_path = aws_outputs_dir / f"batch-{job_id}.out"
-            elif relative_path.startswith('errors/'):
+            elif relative_path.startswith("errors/"):
                 # aws/errors/batch-<jobid>.err
                 local_path = aws_errors_dir / f"batch-{job_id}.err"
-            elif relative_path.startswith('logs/'):
+            elif relative_path.startswith("logs/"):
                 # logs/<filename> (SLURM-compatible)
                 log_filename = relative_path[5:]  # Remove 'logs/' prefix
                 local_path = logs_dir / log_filename
@@ -419,7 +421,7 @@ def download_job_logs(s3_client, bucket, job_id, project_root="."):
             should_download = True
             if local_path.exists():
                 local_mtime = local_path.stat().st_mtime
-                s3_mtime = obj['LastModified'].timestamp()
+                s3_mtime = obj["LastModified"].timestamp()
                 should_download = s3_mtime > local_mtime
 
             if should_download:
@@ -431,17 +433,18 @@ def download_job_logs(s3_client, bucket, job_id, project_root="."):
 
     return downloaded
 
+
 def download_all_logs(s3_client, bucket, project_root="."):
     """Download logs for all jobs in the bucket."""
     try:
         # List all job directories
-        response = s3_client.list_objects_v2(Bucket=bucket, Prefix='jobs/', Delimiter='/')
+        response = s3_client.list_objects_v2(Bucket=bucket, Prefix="jobs/", Delimiter="/")
 
-        if 'CommonPrefixes' not in response:
+        if "CommonPrefixes" not in response:
             print("No jobs found in S3 bucket", file=sys.stderr)
             return []
 
-        job_ids = [prefix['Prefix'].split('/')[1] for prefix in response['CommonPrefixes']]
+        job_ids = [prefix["Prefix"].split("/")[1] for prefix in response["CommonPrefixes"]]
 
         all_downloaded = []
         for job_id in job_ids:
@@ -455,75 +458,64 @@ def download_all_logs(s3_client, bucket, project_root="."):
         print(f"Error downloading all logs: {e}", file=sys.stderr)
         return []
 
+
 def load_job_ids_from_file(filepath):
     """Load job IDs from a file (one per line)."""
     try:
-        with open(filepath, 'r') as f:
+        with open(filepath) as f:
             return [line.strip() for line in f if line.strip()]
     except Exception as e:
         print(f"Error reading job IDs file: {e}", file=sys.stderr)
         return []
 
+
 def main():
-    parser = argparse.ArgumentParser(
-        description="Download logs from S3 for AWS Batch jobs"
-    )
+    parser = argparse.ArgumentParser(description="Download logs from S3 for AWS Batch jobs")
 
     parser.add_argument(
         "--s3-bucket",
         default=os.getenv("S3_RESULTS_BUCKET", ""),
-        help="S3 bucket name (default: from .env S3_RESULTS_BUCKET)"
+        help="S3 bucket name (default: from .env S3_RESULTS_BUCKET)",
     )
 
     parser.add_argument(
         "--output-dir",
         default=str(DEFAULT_OUTPUT_DIR),
-        help="Project root directory (default: repo root)"
+        help="Project root directory (default: repo root)",
     )
 
     parser.add_argument(
         "--cleanup-failed",
         action="store_true",
-        help="Delete logs not marked successful in reports/agent_summary.json"
+        help="Delete logs not marked successful in reports/agent_summary.json",
     )
     parser.add_argument(
         "--prune-local",
         action="store_true",
-        help="Prune local logs/outputs/errors without contacting S3"
+        help="Prune local logs/outputs/errors without contacting S3",
     )
     parser.add_argument(
         "--summary-file",
         default=str(DEFAULT_OUTPUT_DIR / "reports" / "agent_summary.json"),
-        help="Summary file for cleanup (default: reports/agent_summary.json)"
+        help="Summary file for cleanup (default: reports/agent_summary.json)",
     )
 
-    parser.add_argument(
-        "--job-ids-file",
-        help="File containing job IDs (one per line)"
-    )
+    parser.add_argument("--job-ids-file", help="File containing job IDs (one per line)")
+
+    parser.add_argument("--job-id", help="Download logs for a specific job ID")
 
     parser.add_argument(
-        "--job-id",
-        help="Download logs for a specific job ID"
-    )
-
-    parser.add_argument(
-        "--all",
-        action="store_true",
-        help="Download logs for all jobs in the bucket"
+        "--all", action="store_true", help="Download logs for all jobs in the bucket"
     )
 
     parser.add_argument(
         "--watch",
         action="store_true",
-        help="Watch mode: continuously download logs every 60 seconds"
+        help="Watch mode: continuously download logs every 60 seconds",
     )
 
     parser.add_argument(
-        "--interval",
-        type=int,
-        default=60,
-        help="Interval in seconds for watch mode (default: 60)"
+        "--interval", type=int, default=60, help="Interval in seconds for watch mode (default: 60)"
     )
 
     args = parser.parse_args()
@@ -535,7 +527,10 @@ def main():
         return
 
     if not args.s3_bucket:
-        print("Error: S3 bucket not specified. Use --s3-bucket or set S3_RESULTS_BUCKET in aws/.env", file=sys.stderr)
+        print(
+            "Error: S3 bucket not specified. Use --s3-bucket or set S3_RESULTS_BUCKET in aws/.env",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     if not (args.job_id or args.job_ids_file or args.all):
@@ -544,7 +539,7 @@ def main():
         sys.exit(1)
 
     # Initialize S3 client
-    s3_client = boto3.client('s3', region_name=os.getenv("AWS_REGION"))
+    s3_client = boto3.client("s3", region_name=os.getenv("AWS_REGION"))
 
     # Determine which jobs to download
     if args.job_id:
@@ -586,7 +581,9 @@ def main():
         # Cleanup after download (if requested)
         if args.cleanup_failed:
             # Clean up S3 first
-            removed_s3 = cleanup_failed_logs_s3(s3_client, args.s3_bucket, Path(args.output_dir), Path(args.summary_file))
+            removed_s3 = cleanup_failed_logs_s3(
+                s3_client, args.s3_bucket, Path(args.output_dir), Path(args.summary_file)
+            )
             if removed_s3:
                 print(f"Removed {removed_s3} S3 object(s)")
             # Then clean up local files
@@ -614,6 +611,7 @@ def main():
     else:
         download_once()
         print(f"\nLogs saved to: {args.output_dir}/")
+
 
 if __name__ == "__main__":
     main()

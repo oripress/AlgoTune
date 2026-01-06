@@ -4,6 +4,7 @@ Prepare retry for tasks with N/A results for a specific model.
 Deletes local logs/outputs/errors for those task+model entries and removes the
 model entry from reports/agent_summary.json. Outputs tasks to retry (one per line).
 """
+
 import argparse
 import json
 from pathlib import Path
@@ -27,7 +28,9 @@ def save_json(path: Path, data: dict) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Prepare retry for N/A tasks.")
     parser.add_argument("--model", required=True, help="Full model name in summary.json")
-    parser.add_argument("--model-display", required=True, help="Model display name in log filenames")
+    parser.add_argument(
+        "--model-display", required=True, help="Model display name in log filenames"
+    )
     parser.add_argument("--logs-dir", required=True, help="Local logs directory")
     parser.add_argument("--job-map", required=True, help="Path to reports/job_map.json")
     parser.add_argument("--summary-file", required=True, help="Path to reports/agent_summary.json")
@@ -57,7 +60,10 @@ def main() -> int:
     if logs_dir.exists():
         for log_path in logs_dir.glob("*.log"):
             name = log_path.name
-            if name.startswith(tuple(f"{task}_" for task in tasks_to_retry)) and args.model_display in name:
+            if (
+                name.startswith(tuple(f"{task}_" for task in tasks_to_retry))
+                and args.model_display in name
+            ):
                 try:
                     log_path.unlink()
                 except Exception:

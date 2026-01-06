@@ -3,4 +3,5 @@
 from .array_cache import ArrayCache
 from .cached_loader import CachedDatasetLoader
 
-__all__ = ['ArrayCache', 'CachedDatasetLoader']
+
+__all__ = ["ArrayCache", "CachedDatasetLoader"]

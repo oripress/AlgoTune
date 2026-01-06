@@ -1,17 +1,19 @@
-import os
 import logging
-from line_profiler import LineProfiler
-from functools import wraps
-import tempfile
+import os
 import re
-import io
-import numpy as np
-from AlgoTuner.utils.message_writer import MessageWriter
-from AlgoTuner.utils.casting import cast_input
+import tempfile
 import traceback
 from pathlib import Path
-from AlgoTuner.utils.solver_loader import load_solver_module, get_solve_callable, with_working_dir
-from AlgoTuner.utils.error_utils import extract_error_context, SolverFileNotFoundError, SOLVER_NOT_FOUND_GENERIC_MSG
+
+from line_profiler import LineProfiler
+
+from AlgoTuner.utils.error_utils import (
+    extract_error_context,
+    SOLVER_NOT_FOUND_GENERIC_MSG,
+    SolverFileNotFoundError,
+)
+from AlgoTuner.utils.message_writer import MessageWriter
+from AlgoTuner.utils.solver_loader import load_solver_module, with_working_dir
 
 
 class TaskProfiler:
@@ -40,11 +42,11 @@ class TaskProfiler:
         """
         try:
             logging.info(f"TaskProfiler.profile_solve: Problem type: {type(problem)}")
-            if hasattr(problem, 'shape'):
+            if hasattr(problem, "shape"):
                 logging.info(f"TaskProfiler.profile_solve: Problem shape: {problem.shape}")
             if focus_lines:
                 logging.info(f"TaskProfiler.profile_solve: Focus lines: {focus_lines}")
-            
+
             # --- FILENAME HANDLING ---
             code_dir = Path(os.environ.get("CODE_DIR", "."))
             solver_filename = filename if filename else "solver.py"
@@ -54,14 +56,14 @@ class TaskProfiler:
                     "success": False,
                     "error": f"Specified file '{solver_filename}' is not a Python (.py) file.",
                     "error_type": "invalid_file_type",
-                    "file_path": str(solver_path)
+                    "file_path": str(solver_path),
                 }
             if not solver_path.is_file():
                 return {
                     "success": False,
                     "error": f"File '{solver_filename}' not found in code directory.",
                     "error_type": "file_not_found",
-                    "file_path": solver_filename  # report only the filename
+                    "file_path": solver_filename,  # report only the filename
                 }
             # --- END FILENAME HANDLING ---
             try:
@@ -74,7 +76,7 @@ class TaskProfiler:
                         "success": False,
                         "error": f"Class 'Solver' not found in {solver_filename}.",
                         "error_type": "solver_class_not_found",
-                        "file_path": str(solver_path)
+                        "file_path": str(solver_path),
                     }
                 solver_instance = SolverClass()
                 solve_method = getattr(solver_instance, "solve", None)
@@ -83,19 +85,21 @@ class TaskProfiler:
                         "success": False,
                         "error": f"Method 'solve' not found or not callable on Solver instance in {solver_filename}.",
                         "error_type": "solve_method_not_found",
-                        "file_path": str(solver_path)
+                        "file_path": str(solver_path),
                     }
                 # --- END NEW ---
                 logging.info(f"TaskProfiler.profile_solve: Loaded Solver.solve from {solver_path}")
             except SolverFileNotFoundError as e:
                 tb = traceback.format_exc()
-                logging.error(f"SolverFileNotFoundError during profile_solve: {e} (Path: {solver_path})")
+                logging.error(
+                    f"SolverFileNotFoundError during profile_solve: {e} (Path: {solver_path})"
+                )
                 return {
                     "success": False,
                     "error": SOLVER_NOT_FOUND_GENERIC_MSG,
                     "error_type": "solver_not_found_error",
                     "traceback": tb,
-                    "code_context": None
+                    "code_context": None,
                 }
             except Exception as e:
                 tb = traceback.format_exc()
@@ -107,44 +111,56 @@ class TaskProfiler:
                     "error": enhanced_message,
                     "error_type": "solver_load_error",
                     "traceback": tb,
-                    "code_context": context_snippet
+                    "code_context": context_snippet,
                 }
             # Store original solve method
             original_solve = solve_method
 
             try:
                 # First do line profiling
-                logging.info(f"TaskProfiler.profile_solve: Applying line profiler to Solver.solve")
+                logging.info("TaskProfiler.profile_solve: Applying line profiler to Solver.solve")
                 profiled_solve = self.line_profiler(solve_method)
                 # Call the profiled solve method
-                logging.info(f"TaskProfiler.profile_solve: Calling profiled solve method with problem")
-                
+                logging.info(
+                    "TaskProfiler.profile_solve: Calling profiled solve method with problem"
+                )
+
                 # Ensure we're in the correct directory when executing solver code
                 # Use the shared with_working_dir from solver_loader to avoid shadowing
                 code_dir = os.environ.get("CODE_DIR", os.getcwd())
                 with with_working_dir(code_dir):
                     solution = profiled_solve(problem)
-                
-                logging.info(f"TaskProfiler.profile_solve: Solve function returned result of type: {type(solution)}")
+
+                logging.info(
+                    f"TaskProfiler.profile_solve: Solve function returned result of type: {type(solution)}"
+                )
 
                 # Get line profiling stats
-                logging.info(f"TaskProfiler.profile_solve: Getting line profiler stats")
+                logging.info("TaskProfiler.profile_solve: Getting line profiler stats")
                 with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp:
                     self.line_profiler.print_stats(tmp)
                     tmp.seek(0)
                     raw_output = tmp.read()
                 os.unlink(tmp.name)
-                
+
                 # Log information about the line profiler output
-                logging.info(f"TaskProfiler.profile_solve: Line profiler output length: {len(raw_output)} characters")
-                logging.debug(f"TaskProfiler.profile_solve: First 200 chars of raw output: {raw_output[:200]}")
+                logging.info(
+                    f"TaskProfiler.profile_solve: Line profiler output length: {len(raw_output)} characters"
+                )
+                logging.debug(
+                    f"TaskProfiler.profile_solve: First 200 chars of raw output: {raw_output[:200]}"
+                )
                 if not raw_output:
-                    logging.warning("TaskProfiler.profile_solve: Empty line profiler output received!")
+                    logging.warning(
+                        "TaskProfiler.profile_solve: Empty line profiler output received!"
+                    )
                 if "Total time:" not in raw_output:
-                    logging.warning("TaskProfiler.profile_solve: 'Total time:' not found in line profiler output")
+                    logging.warning(
+                        "TaskProfiler.profile_solve: 'Total time:' not found in line profiler output"
+                    )
 
                 # Parse and filter the line profiler output
-                logging.info(f"TaskProfiler.profile_solve: Filtering line profiler output")
+                logging.info("TaskProfiler.profile_solve: Filtering line profiler output")
                 line_output, missing_lines = self._filter_line_profiler_output(
                     raw_output,
                     focus_lines,
@@ -170,87 +186,85 @@ class TaskProfiler:
                 else:
                     # If total time not found in output, estimate it from the sum of line times
                     total_time_ms = 0.0
-                    for line in line_output.split('\n'):
+                    for line in line_output.split("\n"):
                         match = re.match(r"\s*\d+\s+\d+\s+(\d+\.\d+)", line)
                         if match:
                             total_time_ms += float(match.group(1))
-                    
+
                     # Add total time line if it doesn't exist
                     combined_output += f"\nTotal time: {total_time_ms:.6f} ms"
 
                 # Clean up file path to just show solver.py
-                combined_output = re.sub(
-                    r"File: .*?solver\.py", "File: solver.py", combined_output
-                )
+                combined_output = re.sub(r"File: .*?solver\.py", "File: solver.py", combined_output)
 
                 # Remove 'at line X' from function descriptions
-                combined_output = re.sub(
-                    r"(Function:.*?)(?: at line \d+)", r"\1", combined_output
-                )
+                combined_output = re.sub(r"(Function:.*?)(?: at line \d+)", r"\1", combined_output)
 
                 # Add warning about missing lines if any
                 if missing_lines:
                     combined_output += f"\nNote: Lines {', '.join(map(str, missing_lines))} were not found in the code."
 
                 # Format the result using MessageWriter
-                logging.info(f"TaskProfiler.profile_solve: Formatting profile result")
+                logging.info("TaskProfiler.profile_solve: Formatting profile result")
                 mw = MessageWriter()
-                
+
                 # Prepare dict for formatter
                 profile_success_dict = {
                     "success": True,
-                    "profile_output": combined_output, 
-                    "focus_lines": focus_lines 
+                    "profile_output": combined_output,
+                    "focus_lines": focus_lines,
                 }
                 formatted_message = mw.format_profile_result(profile_success_dict)
 
                 # Log the total time being returned
-                logging.info(f"TaskProfiler.profile_solve: Total profiling time: {total_time_ms:.6f} ms")
-                
-                logging.info(f"TaskProfiler.profile_solve: Returning successful result")
+                logging.info(
+                    f"TaskProfiler.profile_solve: Total profiling time: {total_time_ms:.6f} ms"
+                )
+
+                logging.info("TaskProfiler.profile_solve: Returning successful result")
                 return {
                     "success": True,
                     "result": solution,
                     "profile_output": combined_output,
                     "formatted_message": formatted_message,
                     "elapsed_ms": total_time_ms,
-                    "file_path": solver_path
+                    "file_path": solver_path,
                 }
 
             except Exception as e:
                 error_msg = f"Error during profiling: {str(e)}"
                 tb = traceback.format_exc()
                 logging.error(f"{error_msg}\n{tb}")
-                
+
                 # Call extractor
                 context_info = extract_error_context(tb, str(e))
                 enhanced_message = context_info.get("enhanced_error_message", error_msg)
                 context_snippet = context_info.get("code_context_snippet")
-                
+
                 return {
                     "success": False,
                     "error": enhanced_message,
                     "error_type": "profiling_error",
-                    "file_path": solver_path,  
+                    "file_path": solver_path,
                     "traceback": tb,
-                    "code_context": context_snippet
+                    "code_context": context_snippet,
                 }
         except Exception as e:
             error_msg = f"Unexpected error in profile_solve: {str(e)}"
             tb = traceback.format_exc()
             logging.error(f"{error_msg}\n{tb}")
-            
+
             # Call extractor
             context_info = extract_error_context(tb, str(e))
             enhanced_message = context_info.get("enhanced_error_message", error_msg)
             context_snippet = context_info.get("code_context_snippet")
-            
+
             return {
                 "success": False,
                 "error": enhanced_message,
                 "error_type": "unexpected_error",
                 "traceback": tb,
-                "code_context": context_snippet
+                "code_context": context_snippet,
             }
         finally:
             # Always restore original solve method
@@ -341,15 +355,17 @@ class TaskProfiler:
                         placeholder_raw = (
                             f"{ln:>9} {0:>9} {0.0:>9.1f} {0.0:>9.1f} {0.0:>8.1f} {code_txt}"
                         )
-                        lines.append({
-                            "line_no": ln,
-                            "hits": 0,
-                            "time": 0.0,
-                            "per_hit": 0.0,
-                            "percent": 0.0,
-                            "code": code_txt,
-                            "raw": placeholder_raw,
-                        })
+                        lines.append(
+                            {
+                                "line_no": ln,
+                                "hits": 0,
+                                "time": 0.0,
+                                "per_hit": 0.0,
+                                "percent": 0.0,
+                                "code": code_txt,
+                                "raw": placeholder_raw,
+                            }
+                        )
                         added_any = True
                     else:
                         still_missing.append(ln)
@@ -364,6 +380,8 @@ class TaskProfiler:
                     result = header_plus
                     missing_lines = still_missing
             except Exception as _read_err:
-                logging.debug(f"_filter_line_profiler_output: Could not add placeholders: {_read_err}")
+                logging.debug(
+                    f"_filter_line_profiler_output: Could not add placeholders: {_read_err}"
+                )
 
         return result, missing_lines

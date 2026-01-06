@@ -5,27 +5,29 @@ Replaces thread-based memory monitoring with signal-based and resource limit app
 to prevent thread accumulation in long-lived worker processes.
 """
 
+import logging
 import os
 import signal
-import time
-import logging
-from typing import Optional
+
 
 try:
     import psutil
+
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
-    logging.warning("psutil not available - process memory monitoring will use limited functionality")
+    logging.warning(
+        "psutil not available - process memory monitoring will use limited functionality"
+    )
 
 
 class ProcessMemoryMonitor:
     """Process-level memory monitoring using resource limits and signals."""
-    
+
     def __init__(self, memory_limit_gb: float, check_interval: float = 0.1):
         """
         Initialize process memory monitor.
-        
+
         Args:
             memory_limit_gb: Memory limit in GB
             check_interval: How often to check memory (seconds)
@@ -36,39 +38,48 @@ class ProcessMemoryMonitor:
         self._monitoring = False
         self._original_alarm_handler = None
         self.pid = os.getpid()
-        
+
         # Thresholds for different actions
         self.warning_threshold = 0.8  # 80% of limit
         self.critical_threshold = 0.9  # 90% of limit
-        
-        logging.info(f"ProcessMemoryMonitor (PID: {self.pid}): Initialized with {memory_limit_gb:.2f}GB limit")
-    
+
+        logging.info(
+            f"ProcessMemoryMonitor (PID: {self.pid}): Initialized with {memory_limit_gb:.2f}GB limit"
+        )
+
     def start_monitoring(self):
         """Start memory monitoring using process resource limits."""
         if self._monitoring:
             logging.warning(f"ProcessMemoryMonitor (PID: {self.pid}): Already monitoring")
             return
-            
+
         # Check if RLIMIT_AS should be skipped (e.g., for pysat compatibility)
-        skip_rlimit_as = os.environ.get('SKIP_RLIMIT_AS', '').lower() in ('1', 'true', 'yes')
+        skip_rlimit_as = os.environ.get("SKIP_RLIMIT_AS", "").lower() in ("1", "true", "yes")
         if skip_rlimit_as:
-            logging.info(f"ProcessMemoryMonitor (PID: {self.pid}): Skipping RLIMIT_AS due to SKIP_RLIMIT_AS environment variable")
+            logging.info(
+                f"ProcessMemoryMonitor (PID: {self.pid}): Skipping RLIMIT_AS due to SKIP_RLIMIT_AS environment variable"
+            )
             self._monitoring = True
             return
-            
+
         try:
             # Set resource limits respecting current hard limits to avoid permission issues
             import resource
-            
+
             # Check current limits first
             current_as_limit = resource.getrlimit(resource.RLIMIT_AS)
-            if current_as_limit[1] != resource.RLIM_INFINITY and current_as_limit[1] < self.memory_limit_bytes:
+            if (
+                current_as_limit[1] != resource.RLIM_INFINITY
+                and current_as_limit[1] < self.memory_limit_bytes
+            ):
                 # Hard limit is lower than what we want to set, use the hard limit
                 actual_limit = current_as_limit[1]
-                logging.warning(f"ProcessMemoryMonitor (PID: {self.pid}): Using existing hard limit {actual_limit / (1024**3):.2f}GB instead of requested {self.memory_limit_gb:.2f}GB")
+                logging.warning(
+                    f"ProcessMemoryMonitor (PID: {self.pid}): Using existing hard limit {actual_limit / (1024**3):.2f}GB instead of requested {self.memory_limit_gb:.2f}GB"
+                )
             else:
                 actual_limit = self.memory_limit_bytes
-                
+
             try:
                 # Attempt to set RLIMIT_AS to the desired (possibly clamped) value.
                 resource.setrlimit(resource.RLIMIT_AS, (actual_limit, current_as_limit[1]))
@@ -97,6 +108,7 @@ class ProcessMemoryMonitor:
                 try:
                     if PSUTIL_AVAILABLE:
                         import psutil  # local import to avoid mandatory dep
+
                         mem = psutil.Process(self.pid).memory_info()
                         current_rss = mem.rss
                         current_vms = getattr(mem, "vms", current_rss)
@@ -104,6 +116,7 @@ class ProcessMemoryMonitor:
                         current_rss = current_usage  # rename for subsequent code, keep semantics
                     else:
                         import resource as _res
+
                         current_rss = _res.getrusage(_res.RUSAGE_SELF).ru_maxrss * 1024
                 except Exception as _mem_err:
                     logging.error(
@@ -116,7 +129,7 @@ class ProcessMemoryMonitor:
 
                 # Add a 20 %% head-room plus an extra 512 MiB to avoid frequent
                 # re-tries while still keeping the cap reasonable.
-                slack_bytes = int(current_rss * 1.2) + (512 * 1024 ** 2)
+                slack_bytes = int(current_rss * 1.2) + (512 * 1024**2)
                 retry_limit = max(slack_bytes, self.memory_limit_bytes)
 
                 # Ensure we never exceed the existing hard limit (if finite).
@@ -132,8 +145,8 @@ class ProcessMemoryMonitor:
                     logging.info(
                         "ProcessMemoryMonitor (PID: %d): RLIMIT_AS re-set to %.2fGB (rss≈%.2fGB).",
                         self.pid,
-                        retry_limit / (1024 ** 3),
-                        current_rss / (1024 ** 3),
+                        retry_limit / (1024**3),
+                        current_rss / (1024**3),
                     )
                 except Exception as final_err:
                     logging.warning(
@@ -142,7 +155,7 @@ class ProcessMemoryMonitor:
                         self.pid,
                         final_err,
                     )
-                
+
             # Try to set RSS limit too (not all systems support this)
             try:
                 current_rss_soft, current_rss_hard = resource.getrlimit(resource.RLIMIT_RSS)
@@ -171,8 +184,10 @@ class ProcessMemoryMonitor:
                         f"ProcessMemoryMonitor (PID: {self.pid}): Set RLIMIT_RSS soft={fallback_soft / (1024**3):.2f}GB (hard unchanged)"
                     )
             except (AttributeError, OSError) as e:
-                logging.debug(f"ProcessMemoryMonitor (PID: {self.pid}): RSS limit not supported: {e}")
-                
+                logging.debug(
+                    f"ProcessMemoryMonitor (PID: {self.pid}): RSS limit not supported: {e}"
+                )
+
         except (ImportError, Exception) as e:
             # --------------------------------------------------------------
             # EXTRA DIAGNOSTICS – why did RLIMIT setting fail?
@@ -190,14 +205,14 @@ class ProcessMemoryMonitor:
                 logging.error(
                     "[MEM_DIAG %d] RLIMIT_AS soft=%.2f GB, hard=%s",
                     self.pid,
-                    (soft_as / 1024**3) if soft_as != _res_diag.RLIM_INFINITY else float('inf'),
-                    (hard_as / 1024**3) if hard_as != _res_diag.RLIM_INFINITY else 'inf',
+                    (soft_as / 1024**3) if soft_as != _res_diag.RLIM_INFINITY else float("inf"),
+                    (hard_as / 1024**3) if hard_as != _res_diag.RLIM_INFINITY else "inf",
                 )
                 logging.error(
                     "[MEM_DIAG %d] RLIMIT_RSS soft=%s, hard=%s",
                     self.pid,
-                    (soft_rss / 1024**3) if soft_rss != _res_diag.RLIM_INFINITY else 'inf',
-                    (hard_rss / 1024**3) if hard_rss != _res_diag.RLIM_INFINITY else 'inf',
+                    (soft_rss / 1024**3) if soft_rss != _res_diag.RLIM_INFINITY else "inf",
+                    (hard_rss / 1024**3) if hard_rss != _res_diag.RLIM_INFINITY else "inf",
                 )
 
                 if PSUTIL_AVAILABLE:
@@ -217,74 +232,76 @@ class ProcessMemoryMonitor:
                 logging.debug(
                     f"[MEM_DIAG {self.pid}] Unable to collect diagnostic info: {_diag_err}"
                 )
-        
+
         self._monitoring = True
         logging.info(f"ProcessMemoryMonitor (PID: {self.pid}): Monitoring started")
-    
+
     def stop_monitoring(self):
         """Clean stop of monitoring."""
         if not self._monitoring:
             return
-            
+
         # Cancel any pending alarms
         signal.alarm(0)
-        
+
         # Restore original signal handler if we had one
         if self._original_alarm_handler is not None:
             signal.signal(signal.SIGALRM, self._original_alarm_handler)
             self._original_alarm_handler = None
-            
+
         self._monitoring = False
         logging.info(f"ProcessMemoryMonitor (PID: {self.pid}): Monitoring stopped")
-    
-    def check_memory_once(self) -> Optional[Exception]:
+
+    def check_memory_once(self) -> Exception | None:
         """
         Single memory check without threads.
-        
+
         PERFORMANCE OPTIMIZATION: Disabled expensive psutil monitoring since we use 14GB OS limits.
-        
+
         Returns:
             None - monitoring disabled, relying on OS memory limits
         """
         # Memory monitoring disabled for performance - using OS-enforced 14GB limits instead
         # This eliminates expensive psutil syscalls that were called frequently during evaluation
         return None
-    
+
     def get_memory_stats(self) -> dict:
         """Get current memory statistics."""
         if not PSUTIL_AVAILABLE:
             return {
-                'rss_mb': 0,
-                'vms_mb': 0,
-                'rss_gb': 0,
-                'vms_gb': 0,
-                'limit_gb': self.memory_limit_gb,
-                'rss_ratio': 0,
-                'vms_ratio': 0,
-                'error': 'psutil not available'
+                "rss_mb": 0,
+                "vms_mb": 0,
+                "rss_gb": 0,
+                "vms_gb": 0,
+                "limit_gb": self.memory_limit_gb,
+                "rss_ratio": 0,
+                "vms_ratio": 0,
+                "error": "psutil not available",
             }
-            
+
         try:
             process = psutil.Process(self.pid)
             memory_info = process.memory_info()
-            
+
             return {
-                'rss_mb': memory_info.rss / (1024**2),
-                'vms_mb': memory_info.vms / (1024**2),
-                'rss_gb': memory_info.rss / (1024**3),
-                'vms_gb': memory_info.vms / (1024**3),
-                'limit_gb': self.memory_limit_gb,
-                'rss_ratio': (memory_info.rss / (1024**3)) / self.memory_limit_gb,
-                'vms_ratio': (memory_info.vms / (1024**3)) / self.memory_limit_gb,
-                'pid': self.pid
+                "rss_mb": memory_info.rss / (1024**2),
+                "vms_mb": memory_info.vms / (1024**2),
+                "rss_gb": memory_info.rss / (1024**3),
+                "vms_gb": memory_info.vms / (1024**3),
+                "limit_gb": self.memory_limit_gb,
+                "rss_ratio": (memory_info.rss / (1024**3)) / self.memory_limit_gb,
+                "vms_ratio": (memory_info.vms / (1024**3)) / self.memory_limit_gb,
+                "pid": self.pid,
             }
         except Exception as e:
-            logging.warning(f"ProcessMemoryMonitor (PID: {self.pid}): Error getting memory stats: {e}")
-            return {'error': str(e), 'pid': self.pid}
+            logging.warning(
+                f"ProcessMemoryMonitor (PID: {self.pid}): Error getting memory stats: {e}"
+            )
+            return {"error": str(e), "pid": self.pid}
 
 
 # Global instance for worker processes
-_worker_memory_monitor: Optional[ProcessMemoryMonitor] = None
+_worker_memory_monitor: ProcessMemoryMonitor | None = None
 
 
 def init_worker_memory_monitor(memory_limit_gb: float) -> ProcessMemoryMonitor:
@@ -296,12 +313,12 @@ def init_worker_memory_monitor(memory_limit_gb: float) -> ProcessMemoryMonitor:
     return _worker_memory_monitor
 
 
-def get_worker_memory_monitor() -> Optional[ProcessMemoryMonitor]:
+def get_worker_memory_monitor() -> ProcessMemoryMonitor | None:
     """Get the current worker memory monitor."""
     return _worker_memory_monitor
 
 
-def check_worker_memory() -> Optional[Exception]:
+def check_worker_memory() -> Exception | None:
     """Convenience function to check worker memory."""
     monitor = get_worker_memory_monitor()
     if monitor:

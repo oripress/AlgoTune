@@ -2,22 +2,21 @@
 # https://github.com/oripress/AlgoTune
 import logging
 import random
+from collections import deque as _deque
 from typing import Any
 
-import numpy as np
 import numpy as _np
+import numpy as np
+from numpy.linalg import eigh as _eigh
 from scipy.spatial.distance import pdist, squareform
 from sklearn import datasets
 from sklearn.cluster import SpectralClustering
-from sklearn.metrics.pairwise import polynomial_kernel, rbf_kernel
-from numpy.linalg import eigh as _eigh
 from sklearn.metrics import (
     adjusted_rand_score as _ari,
     normalized_mutual_info_score as _nmi,
     silhouette_score as _sil,
 )
-from collections import deque as _deque
-
+from sklearn.metrics.pairwise import polynomial_kernel, rbf_kernel
 
 from AlgoTuneTasks.base import register_task, Task
 
@@ -420,7 +419,7 @@ class SpectralClusteringTask(Task):
         _np.fill_diagonal(S01, 0.0)
         off = S01[_np.triu_indices(n, 1)]
         off_std = float(off.std()) if off.size else 0.0
-        near_constant = (off_std < 1e-3)
+        near_constant = off_std < 1e-3
 
         # Connected components in binary graph (edge if S>0)
         def _num_components_bin(A):
@@ -470,7 +469,7 @@ class SpectralClusteringTask(Task):
         pass_signals = []
 
         iu = _np.triu_indices(n, 1)
-        same_mask = (labels[:, None] == labels[None, :])
+        same_mask = labels[:, None] == labels[None, :]
 
         # Within-vs-between similarity margin
         try:
@@ -522,7 +521,7 @@ class SpectralClusteringTask(Task):
                         continue
                     A_cc = float(A[_np.ix_(idx_c, idx_c)].sum())
                     k_c = float(k_w[idx_c].sum())
-                    Q += (A_cc - (k_c * k_c) / two_m)
+                    Q += A_cc - (k_c * k_c) / two_m
                 Q /= two_m
                 Q_thr = -0.05 if weak_signal else 0.02
                 pass_signals.append(Q >= Q_thr)
@@ -590,7 +589,9 @@ class SpectralClusteringTask(Task):
                 thr_nmi = 0.40 if weak_signal else 0.55
                 slack = 0.30 if weak_signal else 0.15
 
-                spectral_pass = (ari_det >= thr_ari or nmi_det >= thr_nmi) or (ncut_stu <= ncut_ref + slack)
+                spectral_pass = (ari_det >= thr_ari or nmi_det >= thr_nmi) or (
+                    ncut_stu <= ncut_ref + slack
+                )
                 pass_signals.append(spectral_pass)
         except Exception as e:
             logging.warning(f"Deterministic spectral baseline check failed: {e}")
@@ -633,8 +634,12 @@ class SpectralClusteringTask(Task):
                 if e <= n:
                     hack_blk_raw = _np.argmax(S_raw[:, s:e], axis=1)
                     hack_blk_use = _np.argmax(S_use[:, s:e], axis=1)
-                    if _agree(hack_blk_raw, 0.985, 0.985, 0.985) or _agree(hack_blk_use, 0.985, 0.985, 0.985):
-                        logging.error("Detected argmax over a contiguous k-column window (hard fail).")
+                    if _agree(hack_blk_raw, 0.985, 0.985, 0.985) or _agree(
+                        hack_blk_use, 0.985, 0.985, 0.985
+                    ):
+                        logging.error(
+                            "Detected argmax over a contiguous k-column window (hard fail)."
+                        )
                         return False
         except Exception as e:
             logging.warning(f"Contiguous-window hard-fail check failed: {e}")
@@ -645,7 +650,9 @@ class SpectralClusteringTask(Task):
             topk_deg = _np.argsort(col_deg)[-k:]
             hack_deg_raw = _np.argmax(S_raw[:, topk_deg], axis=1)
             hack_deg_use = _np.argmax(S_use[:, topk_deg], axis=1)
-            if _agree(hack_deg_raw, 0.997, 0.997, 0.995) or _agree(hack_deg_use, 0.997, 0.997, 0.995):
+            if _agree(hack_deg_raw, 0.997, 0.997, 0.995) or _agree(
+                hack_deg_use, 0.997, 0.997, 0.995
+            ):
                 logging.error("Detected argmax over top-degree columns (suspicious).")
                 suspicious = True
         except Exception as e:
@@ -658,7 +665,9 @@ class SpectralClusteringTask(Task):
             topk_eig = _np.argsort(v1)[-k:]
             hack_eig_raw = _np.argmax(S_raw[:, topk_eig], axis=1)
             hack_eig_use = _np.argmax(S_use[:, topk_eig], axis=1)
-            if _agree(hack_eig_raw, 0.997, 0.997, 0.995) or _agree(hack_eig_use, 0.997, 0.997, 0.995):
+            if _agree(hack_eig_raw, 0.997, 0.997, 0.995) or _agree(
+                hack_eig_use, 0.997, 0.997, 0.995
+            ):
                 logging.error("Detected argmax over highest-eigencentrality columns (suspicious).")
                 suspicious = True
         except Exception as e:
@@ -670,23 +679,28 @@ class SpectralClusteringTask(Task):
             trials = min(64, max(24, 4 * k))
             if n >= k:
                 candidates = []
-                if 'topk_deg' in locals(): candidates.append(topk_deg)
-                if 'topk_eig' in locals(): candidates.append(topk_eig)
+                if "topk_deg" in locals():
+                    candidates.append(topk_deg)
+                if "topk_eig" in locals():
+                    candidates.append(topk_eig)
                 for _ in range(trials - len(candidates)):
                     candidates.append(rng.choice(n, size=k, replace=False))
                 for cols in candidates:
                     chosen_raw = _np.argmax(S_raw[:, cols], axis=1)
                     chosen_use = _np.argmax(S_use[:, cols], axis=1)
+
                     # one-to-one column usage & dominance gap (helps avoid chance matches)
                     def _passes_gap(sub):
                         part = _np.partition(sub, -2, axis=1)
                         second = part[:, -2]
                         first = part[:, -1]
                         return float(_np.mean(_np.maximum(0.0, first - second))) >= 0.05
+
                     sub_raw = S_raw[:, cols]
                     sub_use = S_use[:, cols]
-                    if (_passes_gap(sub_raw) and _agree(chosen_raw, 0.999, 0.999, 0.998)) or \
-                       (_passes_gap(sub_use) and _agree(chosen_use, 0.999, 0.999, 0.998)):
+                    if (_passes_gap(sub_raw) and _agree(chosen_raw, 0.999, 0.999, 0.998)) or (
+                        _passes_gap(sub_use) and _agree(chosen_use, 0.999, 0.999, 0.998)
+                    ):
                         logging.error("Detected argmax over a k-column subset (suspicious).")
                         suspicious = True
                         break

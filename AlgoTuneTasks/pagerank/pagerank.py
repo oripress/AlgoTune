@@ -145,7 +145,6 @@ class PageRankTask(Task):
                 else:
                     logging.warning(f"PageRank returned score for unexpected node {node}")
 
-
         except nx.PowerIterationFailedConvergence:
             logging.error(f"networkx.pagerank failed to converge after {self.max_iter} iterations.")
             # Return uniform distribution as a fallback? Or zeros? Let's return zeros.

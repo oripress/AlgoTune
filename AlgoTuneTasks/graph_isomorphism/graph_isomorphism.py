@@ -139,7 +139,7 @@ class GraphIsomorphism(Task):
         # (e.g., avoids mappings like [0, 1, 5] for n=3 if the previous check alone was used)
         if not all(isinstance(x, int) and 0 <= x < n for x in proposed_mapping):
             logging.error(
-                f"Mapping contains invalid node indices (not integers or out of range [0, {n-1}])."
+                f"Mapping contains invalid node indices (not integers or out of range [0, {n - 1}])."
             )
             return False
 
@@ -147,7 +147,7 @@ class GraphIsomorphism(Task):
         # This is a very robust way to check for permutation after confirming len and uniqueness.
         if sorted(list(set(proposed_mapping))) != list(range(n)):
             logging.error(
-                f"Mapping values, though unique, do not form the complete set of nodes [0, ..., {n-1}]."
+                f"Mapping values, though unique, do not form the complete set of nodes [0, ..., {n - 1}]."
             )
             return False
 

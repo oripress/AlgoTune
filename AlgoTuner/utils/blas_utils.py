@@ -2,11 +2,12 @@
 blas_utils.py – central place to keep the BLAS thread-count configuration consistent
 across baseline measurements and solver benchmarks.
 """
+
 from __future__ import annotations
 
-import os
 import logging
-from typing import Optional
+import os
+
 
 # Vars understood by the usual BLAS / OpenMP libraries
 _ENV_VARS = (
@@ -17,7 +18,7 @@ _ENV_VARS = (
 )
 
 
-def _desired_thread_count(override: Optional[int] = None) -> int:
+def _desired_thread_count(override: int | None = None) -> int:
     """Pick the thread count that should be used for *all* timings."""
     if override is not None and override > 0:
         return int(override)
@@ -38,12 +39,13 @@ def _desired_thread_count(override: Optional[int] = None) -> int:
     # 3) fall back to total logical cores
     try:
         import psutil
+
         return psutil.cpu_count(logical=True) or 1
     except Exception:
         return os.cpu_count() or 1
 
 
-def set_blas_threads(n_threads: Optional[int] = None) -> int:
+def set_blas_threads(n_threads: int | None = None) -> int:
     """Make *this* process use exactly *n_threads* BLAS / OpenMP threads.
 
     The value is also exported via environment so that forked/spawned children
@@ -87,9 +89,8 @@ def log_current_blas_threads(msg_prefix: str = "") -> None:
 
         pools = threadpoolctl.threadpool_info()
         logging.info(
-            f"{msg_prefix}Current BLAS pools: " + ", ".join(
-                f"{p['internal_api']}({p['prefix']}):{p['num_threads']}" for p in pools
-            )
+            f"{msg_prefix}Current BLAS pools: "
+            + ", ".join(f"{p['internal_api']}({p['prefix']}):{p['num_threads']}" for p in pools)
         )
     except Exception as e:
         logging.debug(f"Could not obtain BLAS pool info: {e}")
@@ -99,7 +100,9 @@ def log_cpu_affinity(prefix: str = "") -> None:
     """Log the number of CPUs the current process is allowed to run on."""
     try:
         cpus = os.sched_getaffinity(0)
-        logging.info(f"{prefix}CPU affinity: {len(cpus)} cores ({sorted(cpus)[:8]}{'...' if len(cpus)>8 else ''})")
+        logging.info(
+            f"{prefix}CPU affinity: {len(cpus)} cores ({sorted(cpus)[:8]}{'...' if len(cpus) > 8 else ''})"
+        )
     except AttributeError:
         logging.debug("sched_getaffinity not available on this platform")
 
@@ -107,6 +110,4 @@ def log_cpu_affinity(prefix: str = "") -> None:
 def log_thread_env(prefix: str = "") -> None:
     """Log current thread-related environment variables (OMP, MKL, etc.)."""
     vals = {var: os.environ.get(var, "<unset>") for var in _ENV_VARS}
-    logging.info(
-        f"{prefix}Thread env vars: " + ", ".join(f"{k}={v}" for k, v in vals.items())
-    ) 
+    logging.info(f"{prefix}Thread env vars: " + ", ".join(f"{k}={v}" for k, v in vals.items()))

@@ -184,6 +184,7 @@ class KalmanFilterTask(Task):
         ref = self.solve(problem)
         # Check if solver failed - compatible with both arrays and lists
         x_hat = ref.get("x_hat")
+
         def _is_empty(x):
             if x is None:
                 return True
@@ -193,7 +194,7 @@ class KalmanFilterTask(Task):
                 return len(x) == 0
             except TypeError:
                 return False
-        
+
         if _is_empty(x_hat):  # solver failed – accept feasibility only
             logging.warning("Reference solve failed; skipping optimality test.")
             return True

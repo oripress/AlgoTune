@@ -1,11 +1,7 @@
 # Copyright (c) 2025 Ori Press and the AlgoTune contributors
 # https://github.com/oripress/AlgoTune
 import importlib
-import pkgutil
 import logging
-import AlgoTuneTasks
-import os
-from typing import Optional, Type
 
 from AlgoTuneTasks.base import TASK_REGISTRY
 
@@ -38,15 +34,19 @@ def TaskFactory(task_name, **kwargs):
         task_cls = TASK_REGISTRY.get(task_name)
         if task_cls is None:
             # Pass original task_name and the module_name attempted
-            raise ValueError(f"Task '{task_name}' is not registered after import (tried {module_name})")
+            raise ValueError(
+                f"Task '{task_name}' is not registered after import (tried {module_name})"
+            )
 
     # Ensure target_time_ms is passed if oracle_time_limit is present in kwargs
-    if 'oracle_time_limit' in kwargs and 'target_time_ms' not in kwargs:
-        kwargs['target_time_ms'] = kwargs.pop('oracle_time_limit')
-        logging.info(f"TaskFactory: Mapped oracle_time_limit to target_time_ms: {kwargs['target_time_ms']}")
+    if "oracle_time_limit" in kwargs and "target_time_ms" not in kwargs:
+        kwargs["target_time_ms"] = kwargs.pop("oracle_time_limit")
+        logging.info(
+            f"TaskFactory: Mapped oracle_time_limit to target_time_ms: {kwargs['target_time_ms']}"
+        )
 
     # Create task instance
     task_instance = task_cls(**kwargs)
-    setattr(task_instance, 'task_name', task_name)
+    setattr(task_instance, "task_name", task_name)
     logging.info(f"TaskFactory: Set task_instance.task_name to raw '{task_name}'")
     return task_instance

@@ -1,5 +1,6 @@
 from AlgoTuner.config.loader import load_config
 
+
 """Shared timing configuration.
 This centralises the default numbers of warm-up iterations, measurement
 iterations, and the warm-up-to-timeout multiplier so they can be changed in
@@ -24,4 +25,4 @@ DATASET_RUNS: int = EVAL_RUNS  # Default to eval_runs
 DATASET_WARMUPS: int = WARMUPS
 
 # Factor by which warm-up time contributes to the timeout heuristic.
-WARMUP_MULTIPLIER: float = 5.0 
+WARMUP_MULTIPLIER: float = 5.0

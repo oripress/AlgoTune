@@ -1,20 +1,18 @@
-import os
-import re
+import base64
 import html
 import json
-import math
-import matplotlib.pyplot as plt
-import base64
-from io import BytesIO
-from datetime import datetime
-import numpy as np
-import matplotlib.ticker as mticker
 import logging
-import seaborn as sns
+import math
+import os
+import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union
-import time
-from multiprocessing import Pool, cpu_count
+from datetime import datetime
+from io import BytesIO
+from multiprocessing import cpu_count, Pool
+
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+
 
 # --- Log Current Working Directory ---
 CWD = os.getcwd()
@@ -37,9 +35,7 @@ LOG_LINE_REGEX = re.compile(
     re.DOTALL,
 )
 CONFIG_REGEX = re.compile(r"Config loaded:\s*([^\n]+)", re.IGNORECASE)
-PROMPT_REGEX = re.compile(
-    r"--BEGIN DEMONSTRATION--.*?--END OF DEMONSTRATION--", re.DOTALL
-)
+PROMPT_REGEX = re.compile(r"--BEGIN DEMONSTRATION--.*?--END OF DEMONSTRATION--", re.DOTALL)
 FAILED_EDIT_REGEX = re.compile(r"(Edit failed|Cannot apply edit)", re.IGNORECASE)
 
 # --- Mappings for Template Rendering ---
@@ -65,6 +61,7 @@ CMD_DISPLAY = {
     "other": "Invalid Command",
 }
 
+
 def get_speedup_color(speedup_value):
     """Return an RGB color string for a given speed-up.
 
@@ -89,21 +86,24 @@ def get_speedup_color(speedup_value):
     else:
         return "#006400"  # Dark green for speedups >= 1.005x
 
+
 def strip_thinking_blocks(text):
     """
     Remove <think>...</think> blocks from the text.
     """
     import re
+
     # Remove <think>...</think> blocks (case-insensitive, multiline)
-    pattern = r'<think\b[^>]*>.*?</think>'
-    return re.sub(pattern, '', text, flags=re.DOTALL | re.IGNORECASE).strip()
+    pattern = r"<think\b[^>]*>.*?</think>"
+    return re.sub(pattern, "", text, flags=re.DOTALL | re.IGNORECASE).strip()
+
 
 # --- Model Name Mapping ---
 def clean_model_name(raw_model_name):
     """Convert internal model identifiers to readable display names."""
     if not raw_model_name:
         return "Unknown Model"
-    
+
     # Mapping dictionary for model name cleanup
     model_mappings = {
         # Gemini models
@@ -153,22 +153,23 @@ def clean_model_name(raw_model_name):
         # Minimax
         "minimax-m2.1": "Minimax M2.1",
     }
-    
+
     # Check for exact matches first
     if raw_model_name in model_mappings:
         return model_mappings[raw_model_name]
-    
+
     # Extract model identifier from log filename if it's a full filename
     # Pattern: taskname_modelname_timestamp.log
     import re
-    filename_pattern = re.compile(r'^[^_]+_(.+?)_\d{8}_\d{6}(?:\.log)?$')
+
+    filename_pattern = re.compile(r"^[^_]+_(.+?)_\d{8}_\d{6}(?:\.log)?$")
     filename_match = filename_pattern.match(raw_model_name)
     if filename_match:
         model_part = filename_match.group(1)
         # Check if this extracted model part matches any mapping
         if model_part in model_mappings:
             return model_mappings[model_part]
-    
+
     # Smart partial matching - check longer patterns first to avoid substring confusion
     # Sort by length descending to match longer patterns first (gpt-5-mini before gpt-5)
     sorted_mappings = sorted(model_mappings.items(), key=lambda x: len(x[0]), reverse=True)
@@ -181,17 +182,22 @@ def clean_model_name(raw_model_name):
             if idx != -1:
                 # Check what comes after the pattern
                 after_idx = idx + len(pattern)
-                if after_idx >= len(raw_model_name) or raw_model_name[after_idx] in ('_', ' ', '-', '.'):
+                if after_idx >= len(raw_model_name) or raw_model_name[after_idx] in (
+                    "_",
+                    " ",
+                    "-",
+                    ".",
+                ):
                     # Also check what comes before for completeness
-                    if idx == 0 or raw_model_name[idx-1] in ('_', ' ', '/', '-'):
+                    if idx == 0 or raw_model_name[idx - 1] in ("_", " ", "/", "-"):
                         return display_name
-    
+
     # Fallback: clean up the raw name
     # Remove common prefixes and make more readable
     cleaned = raw_model_name.replace("-", " ").replace("_", " ")
     # Capitalize words
     cleaned = " ".join(word.capitalize() for word in cleaned.split())
-    
+
     return cleaned
 
 
@@ -223,7 +229,7 @@ def get_model_logo(clean_model_name):
         "GLM-4.5": "z_logo.png",
         "GLM-4.7": "z_logo.png",
         "Kimi K2": "moonshot_logo.png",
-        "Minimax M2.1": "minimax_logo.png"
+        "Minimax M2.1": "minimax_logo.png",
     }
 
     return logo_mapping.get(clean_model_name, None)
@@ -232,37 +238,39 @@ def get_model_logo(clean_model_name):
 # --- Data Structures ---
 @dataclass
 class TrainingEvaluationResult:
-    performance_score: Optional[float] = None
-    used_budget: Optional[float] = None
-    your_time: Optional[float] = None
-    oracle_time: Optional[float] = None
+    performance_score: float | None = None
+    used_budget: float | None = None
+    your_time: float | None = None
+    oracle_time: float | None = None
     is_new_best: bool = False
+
 
 @dataclass
 class TestEvaluationResult:
-    performance_score: Optional[float] = None
-    your_time: Optional[float] = None
-    oracle_time: Optional[float] = None
+    performance_score: float | None = None
+    your_time: float | None = None
+    oracle_time: float | None = None
+
 
 @dataclass
 class LogExtractionResult:
-    conversation: List = field(default_factory=list)
-    training_results: List[TrainingEvaluationResult] = field(default_factory=list)
-    command_sequence: List = field(default_factory=list)
-    initial_prompts: List = field(default_factory=list)
-    config: Dict = field(default_factory=dict)
-    dates: List = field(default_factory=list)
-    test_score_result: Optional[TestEvaluationResult] = None
+    conversation: list = field(default_factory=list)
+    training_results: list[TrainingEvaluationResult] = field(default_factory=list)
+    command_sequence: list = field(default_factory=list)
+    initial_prompts: list = field(default_factory=list)
+    config: dict = field(default_factory=dict)
+    dates: list = field(default_factory=list)
+    test_score_result: TestEvaluationResult | None = None
     # Internal state tracked during processing, might not be needed in final result
-    best_so_far_score: Optional[float] = None 
-    pending_edit_index: Optional[int] = None
-    last_used_budget: Optional[float] = None
+    best_so_far_score: float | None = None
+    pending_edit_index: int | None = None
+    last_used_budget: float | None = None
     # New fields for collapsible sections
     initial_system_prompt: str = ""
     task_description: str = ""
     reference_implementation: str = ""
     # Map of filename -> code for the best snapshot(s)
-    best_code: Dict[str, str] = field(default_factory=dict)
+    best_code: dict[str, str] = field(default_factory=dict)
 
 
 def extract_total_budget_from_log(content):
@@ -321,12 +329,17 @@ def get_baseline_implementation(task_name):
             for file in os.scandir(entry.path):
                 if file.name.endswith(".py") and not file.name.startswith("__"):
                     try:
-                        with open(file.path, "r", encoding="utf-8") as f:
+                        with open(file.path, encoding="utf-8") as f:
                             content = f.read()
-                            if f"@register_task('{task_name}')" in content or f'@register_task("{task_name}")' in content:
+                            if (
+                                f"@register_task('{task_name}')" in content
+                                or f'@register_task("{task_name}")' in content
+                            ):
                                 # Find the class that contains the solve method
                                 class_pattern = re.compile(
-                                    r"@register_task\(['\"]" + re.escape(task_name) + r"['\"]\)\s*\n\s*class\s+(\w+)\(.*?\):",
+                                    r"@register_task\(['\"]"
+                                    + re.escape(task_name)
+                                    + r"['\"]\)\s*\n\s*class\s+(\w+)\(.*?\):",
                                     re.DOTALL,
                                 )
                                 class_match = class_pattern.search(content)
@@ -343,9 +356,16 @@ def get_baseline_implementation(task_name):
                                         # Remove indentation from the extracted code
                                         baseline_lines = baseline.splitlines()
                                         # Find the minimum indentation level (excluding empty lines)
-                                        min_indent = min((len(line) - len(line.lstrip())) for line in baseline_lines if line.strip())
+                                        min_indent = min(
+                                            (len(line) - len(line.lstrip()))
+                                            for line in baseline_lines
+                                            if line.strip()
+                                        )
                                         # Remove that amount of indentation from each line
-                                        baseline = '\n'.join(line[min_indent:] if line.strip() else line for line in baseline_lines)
+                                        baseline = "\n".join(
+                                            line[min_indent:] if line.strip() else line
+                                            for line in baseline_lines
+                                        )
                                         # Baseline implementation extracted successfully
                                         pass
                                         return baseline
@@ -363,165 +383,185 @@ def parse_log_file(filepath):
     Returns (list_of_blocks, task_name, best_score_test, model_name, total_budget).
     """
     # Parsing log file
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         content = f.read()
 
     total_budget = extract_total_budget_from_log(content)
 
     # Extract model name - comprehensive regex patterns for all log formats
     model_name = None
-    
+
     # List of regex patterns to try in order
     model_patterns = [
-        re.compile(r"Using max_completion_tokens from config for model '([^']+)'"),  # GPT-5-mini pattern
+        re.compile(
+            r"Using max_completion_tokens from config for model '([^']+)'"
+        ),  # GPT-5-mini pattern
         re.compile(r"Using default max_output_tokens for model '([^']+)'"),  # GPT-5 pattern
         re.compile(r"Using max_tokens from config for model '([^']+)'"),
         re.compile(r"Max tokens for model\s+'([^']+)'"),
         re.compile(r"Initialized LiteLLMModel with model_name:\s+(\S+)"),
-        re.compile(r"BaseLLMInterface __init__ started for model:\s+([\S]+)"),  # Another common pattern
-        re.compile(r"Initializing LiteLLMModel with params:.*'model_name':\s*'([^']+)'"),  # From dict params
+        re.compile(
+            r"BaseLLMInterface __init__ started for model:\s+([\S]+)"
+        ),  # Another common pattern
+        re.compile(
+            r"Initializing LiteLLMModel with params:.*'model_name':\s*'([^']+)'"
+        ),  # From dict params
     ]
-    
+
     # Try each pattern until we find a match
     for pattern in model_patterns:
         match = pattern.search(content)
         if match:
             model_name = match.group(1)
             break
-    
+
     if not model_name:
         fallback_name = os.path.basename(filepath).replace(".log", "")
         model_name = fallback_name
-    
+
     # Keep raw model name for accurate identification
     # Don't clean it here - clean it only when displaying
 
     # Extract task name with multiple fallback methods
     task_name = None
-    
+
     # Method 1: Running LLM interface
     run_regex = re.compile(r"Running LLM interface for task ([^\.]+)\.{3}")
     run_match = run_regex.search(content)
     if run_match:
         task_name = run_match.group(1)
-    
-    # Method 2: Creating task instance  
+
+    # Method 2: Creating task instance
     if not task_name:
         create_regex = re.compile(r"Creating task instance for ([^\.]+)\.{3}")
         task_match = create_regex.search(content)
         if task_match:
             task_name = task_match.group(1)
-    
+
     # Method 2b: TaskFactory pattern (new models use this)
     if not task_name:
         factory_regex = re.compile(r"TaskFactory: Set task_instance\.task_name to raw '([^']+)'")
         factory_match = factory_regex.search(content)
         if factory_match:
             task_name = factory_match.group(1)
-    
+
     # Method 3: Extract from filename pattern
     if not task_name:
         filename = os.path.basename(filepath)
         # Pattern: task_name_model_timestamp.log
         # Examples: count_connected_components_o4-mini_20250610_030911.log
         #           count_riemann_zeta_zeros_DeepSeek-R1_20250611_225011.log
-        
+
         # Remove .log extension
-        name_part = filename.replace('.log', '')
-        
+        name_part = filename.replace(".log", "")
+
         # Known model prefixes to help identify where task name ends
         # Order by length (longest first) to match most specific patterns first
         known_models = [
-            'claude-opus-4-1-20250805', 'claude-opus-4-20250514', 'gemini-2.5-pro-preview', 
-            'deepseek-reasoner', 'gemini-2.5-pro', 'qwen3-coder', 'gpt-oss-120b', 
-            'claude-opus-4', 'DeepSeek-R1', 'glm-4.5', 'o4-mini'
+            "claude-opus-4-1-20250805",
+            "claude-opus-4-20250514",
+            "gemini-2.5-pro-preview",
+            "deepseek-reasoner",
+            "gemini-2.5-pro",
+            "qwen3-coder",
+            "gpt-oss-120b",
+            "claude-opus-4",
+            "DeepSeek-R1",
+            "glm-4.5",
+            "o4-mini",
         ]
-        
+
         # Try to find where model name starts
         for model in known_models:
             if model in name_part:
-                task_part = name_part.split(model)[0].rstrip('_')
+                task_part = name_part.split(model)[0].rstrip("_")
                 if task_part and len(task_part) > 2:
                     task_name = task_part
                     break
-        
+
         # Fallback: assume task name is everything before the first date pattern
         if not task_name:
             # Look for date pattern like _20250610_
-            date_match = re.search(r'_\d{8}_', name_part)
+            date_match = re.search(r"_\d{8}_", name_part)
             if date_match:
                 # Everything before the date pattern
-                before_date = name_part[:date_match.start()]
+                before_date = name_part[: date_match.start()]
                 # Remove the last part (likely model name)
-                parts = before_date.split('_')
+                parts = before_date.split("_")
                 if len(parts) >= 2:
                     # Task name is likely first few parts, excluding the last (model)
-                    task_name = '_'.join(parts[:-1]) if len(parts) > 1 else parts[0]
+                    task_name = "_".join(parts[:-1]) if len(parts) > 1 else parts[0]
             else:
                 # No date pattern, try first part
-                parts = name_part.split('_')
+                parts = name_part.split("_")
                 if len(parts) > 1:
                     # Treat the final segment as the model name; everything before that is the task
-                    task_name = '_'.join(parts[:-1])
+                    task_name = "_".join(parts[:-1])
                 elif parts:
                     candidate = parts[0]
                     if len(candidate) > 2:
                         task_name = candidate
-    
+
     # Method 4: Look for task patterns in content
     if not task_name:
         task_patterns = [
             r"task[:\s]+([a-zA-Z_][a-zA-Z0-9_]*)",
             r"Problem[:\s]+([a-zA-Z_][a-zA-Z0-9_]*)",
-            r"Solving[:\s]+([a-zA-Z_][a-zA-Z0-9_]*)"
+            r"Solving[:\s]+([a-zA-Z_][a-zA-Z0-9_]*)",
         ]
         for pattern in task_patterns:
             match = re.search(pattern, content, re.IGNORECASE)
             if match:
                 task_name = match.group(1)
                 break
-    
+
     if not task_name:
         if logging.getLogger().isEnabledFor(logging.WARNING):
             logging.warning(f"No task name found in {filepath}; defaulting to 'unknown'")
         task_name = "unknown"
 
-    # --- Extract Final Test Performance Score --- 
+    # --- Extract Final Test Performance Score ---
     final_test_score_result = None
     final_results_marker = "Final Test Results:"
     if final_results_marker in content:
         final_results_part = content.split(final_results_marker, 1)[1]
-        
+
         # Use the existing regexes, but search only within this part
-        perf_match = re.compile(r"Performance score(?:\s*\(.*\))?:\s*([\d\.]+)(?:x)?", re.IGNORECASE).search(final_results_part)
-        time_match = re.search(r"Average solver time:\s*([\d\.]+)\s*ms", final_results_part, re.IGNORECASE)
+        perf_match = re.compile(
+            r"Performance score(?:\s*\(.*\))?:\s*([\d\.]+)(?:x)?", re.IGNORECASE
+        ).search(final_results_part)
+        time_match = re.search(
+            r"Average solver time:\s*([\d\.]+)\s*ms", final_results_part, re.IGNORECASE
+        )
         # Look for Baseline time instead
-        baseline_match = re.search(r"Average baseline time:\s*([\d\.]+)\s*ms", final_results_part, re.IGNORECASE) 
-        
+        baseline_match = re.search(
+            r"Average baseline time:\s*([\d\.]+)\s*ms", final_results_part, re.IGNORECASE
+        )
+
         if perf_match:
             try:
                 perf_score = float(perf_match.group(1))
                 your_time = float(time_match.group(1)) if time_match else None
                 baseline_time = float(baseline_match.group(1)) if baseline_match else None
                 final_test_score_result = TestEvaluationResult(
-                    performance_score=perf_score,
-                    your_time=your_time,
-                    oracle_time=baseline_time
+                    performance_score=perf_score, your_time=your_time, oracle_time=baseline_time
                 )
                 if logging.getLogger().isEnabledFor(logging.DEBUG):
-                    logging.debug(f"Extracted Final Test Score from dedicated block: {final_test_score_result}")
+                    logging.debug(
+                        f"Extracted Final Test Score from dedicated block: {final_test_score_result}"
+                    )
             except (ValueError, AttributeError):
                 if logging.getLogger().isEnabledFor(logging.WARNING):
                     logging.warning("Found 'Final Test Results:' but failed to parse score/times.")
-                pass # Fall through to other methods if parsing fails
+                pass  # Fall through to other methods if parsing fails
         else:
             pass  # Final Test Results block found but no score
     else:
         pass  # Final Test Results marker not found
 
-    # --- Legacy/Fallback Score Extraction (kept for now, might be removable) --- 
+    # --- Legacy/Fallback Score Extraction (kept for now, might be removable) ---
     # Extract best test performance score from "After Run Results:" if final score wasn't found
-    initial_best_test_score_val = None # Used if final_test_score_result isn't populated
+    initial_best_test_score_val = None  # Used if final_test_score_result isn't populated
     if final_test_score_result is None:
         pass  # Falling back to After Run Results
         AFTER_RUN_MARKER = "After Run Results:"
@@ -532,14 +572,20 @@ def parse_log_file(filepath):
             after_run_content = after_run_parts[1]
             if DATA_SUBSET_TEST in after_run_content:
                 test_part = after_run_content.split(DATA_SUBSET_TEST, 1)[1]
-                perf_match_fallback = re.compile(r"Performance score(?:\s*\(.*\))?:\s*([\d\.]+)(?:x)?", re.IGNORECASE).search(test_part)
+                perf_match_fallback = re.compile(
+                    r"Performance score(?:\s*\(.*\))?:\s*([\d\.]+)(?:x)?", re.IGNORECASE
+                ).search(test_part)
                 if perf_match_fallback:
                     try:
                         initial_best_test_score_val = float(perf_match_fallback.group(1))
                     except ValueError:
                         pass
-            if initial_best_test_score_val is None: # If not found in test subset or no subset exists
-                perf_match_fallback = re.compile(r"Performance score(?:\s*\(.*\))?:\s*([\d\.]+)(?:x)?", re.IGNORECASE).search(after_run_content)
+            if (
+                initial_best_test_score_val is None
+            ):  # If not found in test subset or no subset exists
+                perf_match_fallback = re.compile(
+                    r"Performance score(?:\s*\(.*\))?:\s*([\d\.]+)(?:x)?", re.IGNORECASE
+                ).search(after_run_content)
                 if perf_match_fallback:
                     try:
                         initial_best_test_score_val = float(perf_match_fallback.group(1))
@@ -558,9 +604,9 @@ def parse_log_file(filepath):
                 except ValueError:
                     pass
         if initial_best_test_score_val is not None:
-             pass  # Found fallback test score
+            pass  # Found fallback test score
         else:
-             pass  # No test score found via fallback
+            pass  # No test score found via fallback
 
     # Define PERF_SCORE_REGEX here if not already global, needed by score extraction logic below
     PERF_SCORE_REGEX = re.compile(
@@ -568,9 +614,7 @@ def parse_log_file(filepath):
     )
 
     # Split content into log blocks
-    LOG_MESSAGE_REGEX = re.compile(
-        r"^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3}\s+-\s+\w+\s+-\s+"
-    )
+    LOG_MESSAGE_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3}\s+-\s+\w+\s+-\s+")
     messages = []
     current_block = []
     lines = content.split("\n")
@@ -588,7 +632,13 @@ def parse_log_file(filepath):
     # Log file parsing completed
     # Return the TestEvaluationResult object if found, otherwise the fallback float value
     # The caller (process_log_file_data) will prioritize the object if present
-    return messages, task_name, final_test_score_result if final_test_score_result else initial_best_test_score_val, model_name, total_budget
+    return (
+        messages,
+        task_name,
+        final_test_score_result if final_test_score_result else initial_best_test_score_val,
+        model_name,
+        total_budget,
+    )
 
 
 def extract_budget_from_filename(filename):
@@ -612,9 +662,9 @@ def format_and_escape(text):
     # Early return for empty text
     if not text or not text.strip():
         return ""
-    
+
     text = text.replace("\\n", "\n")
-    
+
     # Lazy evaluation: only compile regex if text contains code blocks
     if "```" not in text:
         # Simple case: just escape and convert newlines
@@ -622,7 +672,7 @@ def format_and_escape(text):
         # Replace literal <br> tags with newlines before escaping
         escaped = escaped.replace("&lt;br&gt;", "\n")
         return escaped.replace("\n", "<br>")
-    
+
     code_pattern = re.compile(r"```(\w*)\s*\n?(.*?)\n?```", re.DOTALL | re.MULTILINE)
     segments = []
     last_end = 0
@@ -639,19 +689,24 @@ def format_and_escape(text):
         code = html.escape(code)
         lang_display = language.upper() if language else "PYTHON"
         lang_class = f"language-{language.lower()}" if language else "language-python"
-        
+
         # Generate unique ID for each code block
         import hashlib
+
         code_id = hashlib.md5(code.encode()).hexdigest()[:8]
-        
+
         # Determine if code needs expand/collapse (more than 15 lines)
-        code_lines = code.count('\n') + 1
+        code_lines = code.count("\n") + 1
         needs_expand = code_lines > 15
-        expand_class = ' code-expandable' if needs_expand else ''
-        
-        expand_button = f'<button class="code-expand-btn" onclick="toggleExpand(\'{code_id}\')"></button>' if needs_expand else ''
-        content_class = ' expanded' if not needs_expand else ''
-        
+        expand_class = " code-expandable" if needs_expand else ""
+
+        expand_button = (
+            f'<button class="code-expand-btn" onclick="toggleExpand(\'{code_id}\')"></button>'
+            if needs_expand
+            else ""
+        )
+        content_class = " expanded" if not needs_expand else ""
+
         # Use a much simpler markup for code blocks (no header or copy button)
         segments.append(f'<pre><code class="{lang_class}">{code}</code></pre>')
         last_end = match.end()
@@ -673,13 +728,9 @@ def format_and_escape(text):
             context = get_error_context(lines, idx)
             for ctx_line, is_err in context:
                 if is_err:
-                    formatted_lines.append(
-                        f'<span class="error-line">{ctx_line}</span>'
-                    )
+                    formatted_lines.append(f'<span class="error-line">{ctx_line}</span>')
                 else:
-                    formatted_lines.append(
-                        f'<span class="context-line">{ctx_line}</span>'
-                    )
+                    formatted_lines.append(f'<span class="context-line">{ctx_line}</span>')
             idx += len(context)
         else:
             formatted_lines.append(line)
@@ -692,26 +743,27 @@ def remove_code_blocks(text):
     Remove all code blocks (```...```) from text, leaving only the regular text.
     """
     import re
+
     # Pattern to match code blocks with optional language specifier
     code_pattern = re.compile(r"```(\w*)\s*\n?(.*?)\n?```", re.DOTALL | re.MULTILINE)
-    
+
     # Replace all code blocks with empty string
     result = code_pattern.sub("", text)
-    
+
     # Clean up any extra whitespace left behind
-    lines = result.split('\n')
+    lines = result.split("\n")
     cleaned_lines = []
-    
+
     for line in lines:
         # Keep the line but strip trailing whitespace
         cleaned_lines.append(line.rstrip())
-    
+
     # Join back and remove excessive blank lines
-    result = '\n'.join(cleaned_lines)
-    
+    result = "\n".join(cleaned_lines)
+
     # Replace multiple consecutive newlines with at most 2
-    result = re.sub(r'\n{3,}', '\n\n', result)
-    
+    result = re.sub(r"\n{3,}", "\n\n", result)
+
     return result.strip()
 
 
@@ -751,6 +803,7 @@ def format_system_text(text):
     # line as header so that the numbered lines appear inside the code block.
 
     import re
+
     first_line = lines[0].strip()
     header_line_count = 2  # default
     if re.match(r"^(Code Context:|Invalid Example\b)", first_line):
@@ -759,20 +812,21 @@ def format_system_text(text):
     # If we have enough lines, move the remainder into a code block.
     if len(lines) > header_line_count:
         header_raw = "\n".join(lines[:header_line_count])
-        code_raw   = "\n".join(lines[header_line_count:])
+        code_raw = "\n".join(lines[header_line_count:])
     else:
         header_raw = "\n".join(lines)
-        code_raw   = ""
+        code_raw = ""
 
     # Escape the header (but keep newlines as <br>) and color speedup numbers
     def _color_speedup_in_text(text: str) -> str:
         """Color speedup numbers in regular text (not code blocks)"""
+
         # Regex to capture "Speedup: <value>" (case-insensitive, optional whitespace, optional trailing 'x')
         def replace_speedup(match):
             prefix = match.group(1)
             value_str = match.group(2)
             suffix = match.group(3)
-            
+
             # Determine colour
             value_lower = value_str.lower()
             if value_lower in {"n/a", "na"}:
@@ -784,11 +838,18 @@ def format_system_text(text):
                     colour = get_speedup_color(None)
                 else:
                     colour = get_speedup_color(val)
-            
-            return f'{prefix}<span style="color:{colour}; font-weight:600;">{value_str}</span>{suffix}'
-        
-        return re.sub(r"(Speedup:\s*)([-+]?[0-9]*\.?[0-9]+|N/?A)(x?)", replace_speedup, text, flags=re.IGNORECASE)
-    
+
+            return (
+                f'{prefix}<span style="color:{colour}; font-weight:600;">{value_str}</span>{suffix}'
+            )
+
+        return re.sub(
+            r"(Speedup:\s*)([-+]?[0-9]*\.?[0-9]+|N/?A)(x?)",
+            replace_speedup,
+            text,
+            flags=re.IGNORECASE,
+        )
+
     header_html = _color_speedup_in_text(html.escape(header_raw)).replace("\n", "<br>")
 
     # --- Identify and wrap only the "true" code lines ---------------------
@@ -821,7 +882,9 @@ def format_system_text(text):
                 if current_is_code:
                     formatted_parts.append(_build_code_block(segment))
                 else:
-                    formatted_parts.append(_color_speedup_in_text(html.escape(segment)).replace("\n", "<br>"))
+                    formatted_parts.append(
+                        _color_speedup_in_text(html.escape(segment)).replace("\n", "<br>")
+                    )
                 current_buf = []
                 current_is_code = line_is_code
 
@@ -833,13 +896,16 @@ def format_system_text(text):
             if current_is_code:
                 formatted_parts.append(_build_code_block(segment))
             else:
-                formatted_parts.append(_color_speedup_in_text(html.escape(segment)).replace("\n", "<br>"))
+                formatted_parts.append(
+                    _color_speedup_in_text(html.escape(segment)).replace("\n", "<br>")
+                )
 
     return "<br>".join(part for part in formatted_parts if part)
 
 
 def _build_code_block(code_text: str) -> str:
     """Return a <pre><code> block with Speedup numbers colour-coded."""
+
     def _colour_speedup_line(line: str) -> str:
         # Regex to capture "Speedup: <value>" (case-insensitive, optional whitespace, optional trailing 'x')
         m = re.search(r"(Speedup:\s*)([-+]?[0-9]*\.?[0-9]+|N/?A)(x?)", line, re.IGNORECASE)
@@ -896,7 +962,14 @@ def _filter_best_code(best_code: dict[str, str]) -> dict[str, str]:
     # Extensions we consider as source files for a Python import – this covers
     # regular Python, Cython and generated C/C++ as well as headers.
     _SOURCE_EXTS: tuple[str, ...] = (
-        ".py", ".pyx", ".pxd", ".c", ".cc", ".cpp", ".h", ".hpp",
+        ".py",
+        ".pyx",
+        ".pxd",
+        ".c",
+        ".cc",
+        ".cpp",
+        ".h",
+        ".hpp",
     )
 
     used_files: set[str] = {"solver.py"}
@@ -932,7 +1005,7 @@ def extract_command(raw_message: str) -> str:
     # Early return if no code blocks
     if "```" not in raw_message:
         return "other"
-    
+
     # Quick check for common commands in the message
     message_lower = raw_message.lower()
     for cmd in ["ls", "view_file", "edit", "oracle", "eval_input", "revert"]:
@@ -940,14 +1013,16 @@ def extract_command(raw_message: str) -> str:
             break
     else:
         return "other"  # No command keywords found
-    
+
     # Updated regex pattern to ensure ``` are on their own line
     # This pattern requires:
     # 1. ``` to be at the start of a line (after optional whitespace)
     # 2. Optional language identifier (python, etc)
     # 3. Content
     # 4. ``` to be on its own line at the end
-    backtick_blocks = re.finditer(r'^[ \t]*```(?:python)?\s*\n(.*?)\n[ \t]*```[ \t]*$', raw_message, re.DOTALL | re.MULTILINE)
+    backtick_blocks = re.finditer(
+        r"^[ \t]*```(?:python)?\s*\n(.*?)\n[ \t]*```[ \t]*$", raw_message, re.DOTALL | re.MULTILINE
+    )
     for block in backtick_blocks:
         content = block.group(1).strip()
         first_line = content.split("\n")[0].strip()
@@ -970,7 +1045,7 @@ def parse_training_evaluation(block: str) -> TrainingEvaluationResult:
     If the block does not match the expected patterns, returns an instance
     with default (None) values.
     """
-    result = TrainingEvaluationResult() # Initialize with defaults
+    result = TrainingEvaluationResult()  # Initialize with defaults
     if not block:
         return result
 
@@ -979,66 +1054,62 @@ def parse_training_evaluation(block: str) -> TrainingEvaluationResult:
     # Look for something like "Performance Score (...): 0.1x" or "Performance score: 6.67" or "Speedup: 2.86x"
     # Make the parenthesized part and the trailing 'x' optional
     perf_match = re.search(
-        r"(?:Performance score(?:\s*\(.*\))?|Speedup):\s*([\d\.]+)(?:x)?",
-        block,
-        re.IGNORECASE
+        r"(?:Performance score(?:\s*\(.*\))?|Speedup):\s*([\d\.]+)(?:x)?", block, re.IGNORECASE
     )
     # Look for "Your average time: 152.8 ms" or "Average solver time: ..."
     your_time_match = re.search(
-        r"(?:Your average time|Average solver time):\s*([\d\.]+)\s*ms",
-        block,
-        re.IGNORECASE
+        r"(?:Your average time|Average solver time):\s*([\d\.]+)\s*ms", block, re.IGNORECASE
     )
     # Look for "Average baseline time: ..." instead of Oracle/Optimal time
     baseline_time_match = re.search(
-        r"Average baseline time:\s*([\d\.]+)\s*ms",
-        block,
-        re.IGNORECASE
+        r"Average baseline time:\s*([\d\.]+)\s*ms", block, re.IGNORECASE
     )
 
     # Extract used budget from log text (you had this function in your code).
     used_budget = extract_used_budget_from_log(block)
 
     # Check for "New best performance achieved"
-    is_new_best = ("New best performance achieved" in block)
+    is_new_best = "New best performance achieved" in block
 
     # Regex matches processed (debug removed for performance)
 
     # If there's no performance score, skip (this block doesn't represent training eval)
     if not perf_match:
-        return result # Return default instance
+        return result  # Return default instance
 
     # Convert the captures to floats (or None if invalid)
     try:
         result.performance_score = float(perf_match.group(1))
     except (ValueError, AttributeError):
-        pass # Keep default None
+        pass  # Keep default None
 
     try:
         result.your_time = float(your_time_match.group(1)) if your_time_match else None
     except ValueError:
-        pass # Keep default None
+        pass  # Keep default None
 
     try:
         result.oracle_time = float(baseline_time_match.group(1)) if baseline_time_match else None
     except ValueError:
-        pass # Keep default None
+        pass  # Keep default None
 
-    result.used_budget = used_budget # Already extracted
-    result.is_new_best = is_new_best # Already extracted
+    result.used_budget = used_budget  # Already extracted
+    result.is_new_best = is_new_best  # Already extracted
 
     # Training evaluation parsed
 
     return result
 
 
-def parse_test_score_from_block(block: str, current_test_result: Optional[TestEvaluationResult]) -> Optional[TestEvaluationResult]:
+def parse_test_score_from_block(
+    block: str, current_test_result: TestEvaluationResult | None
+) -> TestEvaluationResult | None:
     """Parse test evaluation block to extract performance score, your average time, and optimal average time.
-    
+
     This function treats a block as a test evaluation block if it:
       - Contains "Final Test Speedup (mean):" (highest priority)
       - OR does NOT contain "Sent to LLM:" AND contains both "Performance Score" and "Your average time:" markers.
-    
+
     Returns a TestEvaluationResult instance if found, otherwise returns the current_test_result.
     """
     if not block:
@@ -1052,7 +1123,7 @@ def parse_test_score_from_block(block: str, current_test_result: Optional[TestEv
             test_result = TestEvaluationResult(
                 performance_score=perf_score,
                 your_time=None,  # Final test speedup doesn't include timing details
-                oracle_time=None
+                oracle_time=None,
             )
             return test_result
         except (ValueError, AttributeError):
@@ -1063,33 +1134,37 @@ def parse_test_score_from_block(block: str, current_test_result: Optional[TestEv
         return current_test_result
 
     # Ensure the block likely contains test evaluation details.
-    if ("Performance Score" not in block and "Speedup:" not in block) or "Your average time:" not in block:
+    if (
+        "Performance Score" not in block and "Speedup:" not in block
+    ) or "Your average time:" not in block:
         return current_test_result
 
     performance_score_regex = re.compile(
         r"(?:Performance Score \((?:ratio|speedup), (?:lower|higher) is better!\)|Speedup):\s*([\d\.]+)x",
-        re.IGNORECASE
+        re.IGNORECASE,
     )
     time_regex = re.compile(r"Your average time:\s*([\d\.]+)\s*ms", re.IGNORECASE)
     # optimal_time_regex = re.compile(r"(?:Optimal average|Average oracle) time:\s*([\d\.]+)\s*ms", re.IGNORECASE) # OLD REGEX
-    baseline_time_regex = re.compile(r"Average baseline time:\s*([\d\.]+)\s*ms", re.IGNORECASE) # NEW REGEX
+    baseline_time_regex = re.compile(
+        r"Average baseline time:\s*([\d\.]+)\s*ms", re.IGNORECASE
+    )  # NEW REGEX
 
     perf_match = performance_score_regex.search(block)
     time_match = time_regex.search(block)
     # optimal_match = optimal_time_regex.search(block) # OLD
-    baseline_match = baseline_time_regex.search(block) # NEW
+    baseline_match = baseline_time_regex.search(block)  # NEW
 
     if perf_match:
         try:
             perf_score = float(perf_match.group(1))
             your_time = float(time_match.group(1)) if time_match else None
             # optimal_time = float(optimal_match.group(1)) if optimal_match else None # OLD
-            baseline_time = float(baseline_match.group(1)) if baseline_match else None # NEW
+            baseline_time = float(baseline_match.group(1)) if baseline_match else None  # NEW
             test_result = TestEvaluationResult(
                 performance_score=perf_score,
                 your_time=your_time,
                 # oracle_time=optimal_time # OLD
-                oracle_time=baseline_time # NEW - Store Baseline time in oracle_time field
+                oracle_time=baseline_time,  # NEW - Store Baseline time in oracle_time field
             )
             # Test evaluation parsed
             return test_result
@@ -1101,10 +1176,11 @@ def parse_test_score_from_block(block: str, current_test_result: Optional[TestEv
 
 # --- Log Block Processing Helpers ---
 
+
 def _extract_config_from_block(block: str, current_config: dict):
     """Extracts config key-value pairs from a log block if present."""
-    if "Config loaded:" in block: # Ensure this line has exactly 4 leading spaces
-        match = CONFIG_REGEX.search(block) # Ensure this line has exactly 8 leading spaces
+    if "Config loaded:" in block:  # Ensure this line has exactly 4 leading spaces
+        match = CONFIG_REGEX.search(block)  # Ensure this line has exactly 8 leading spaces
         if match:
             config_str = match.group(1).strip()
             pairs = config_str.split()
@@ -1118,6 +1194,7 @@ def _extract_config_from_block(block: str, current_config: dict):
                     except ValueError:
                         current_config[key] = value
 
+
 def _extract_prompt_from_block(block: str, current_prompts: list):
     """Extracts formatted initial prompt from a log block if present."""
     if "--BEGIN DEMONSTRATION--" in block:
@@ -1125,8 +1202,9 @@ def _extract_prompt_from_block(block: str, current_prompts: list):
         if match:
             d_text = match.group(0)
             d_text = d_text.replace("\\n", "\n")
-            d_text = format_and_escape(d_text) # Assuming format_and_escape exists
+            d_text = format_and_escape(d_text)  # Assuming format_and_escape exists
             current_prompts.append(d_text)
+
 
 def _process_log_block_for_conversation(block: str, result: LogExtractionResult):
     """Processes a single log block to extract conversation messages, dates, and commands."""
@@ -1134,7 +1212,7 @@ def _process_log_block_for_conversation(block: str, result: LogExtractionResult)
     top_line = lines[0]
     match = LOG_LINE_REGEX.match(top_line)
     if not match:
-        return # Not a standard log message line
+        return  # Not a standard log message line
 
     date_str = match.group("date")
     result.dates.append(date_str.split()[0])
@@ -1148,25 +1226,27 @@ def _process_log_block_for_conversation(block: str, result: LogExtractionResult)
     if "Sent to LLM:" in rest:
         splitted = rest.split("Sent to LLM:", 1)
         full_text = splitted[-1].strip()
-        if len(lines) > 1: full_text += "\n" + lines[1]
+        if len(lines) > 1:
+            full_text += "\n" + lines[1]
         # Strip thinking blocks before formatting
         full_text = strip_thinking_blocks(full_text)
-        text_html = format_system_text(full_text) # Assuming format_system_text exists
+        text_html = format_system_text(full_text)  # Assuming format_system_text exists
         role = "system"
 
     elif "Received from LLM:" in rest:
         splitted = rest.split("Received from LLM:", 1)
         full_text = splitted[-1].strip()
-        if len(lines) > 1: full_text += "\n" + lines[1]
+        if len(lines) > 1:
+            full_text += "\n" + lines[1]
         # Strip thinking blocks before formatting
         full_text = strip_thinking_blocks(full_text)
-        text_html = format_and_escape(full_text) # Assuming format_and_escape exists
-        command_type = extract_command(full_text) # Assuming extract_command exists
+        text_html = format_and_escape(full_text)  # Assuming format_and_escape exists
+        command_type = extract_command(full_text)  # Assuming extract_command exists
         role = "assistant"
         if command_type == "edit":
             is_edit_command = True
         elif command_type != "other":
-             # Record non-edit, non-other commands immediately
+            # Record non-edit, non-other commands immediately
             result.command_sequence.append((len(result.conversation), command_type, None))
 
     if role and text_html:
@@ -1174,23 +1254,25 @@ def _process_log_block_for_conversation(block: str, result: LogExtractionResult)
         if role == "assistant":
             message_data["command"] = command_type
         result.conversation.append(message_data)
-        
+
         # If this was an edit command, mark it for later status update
         if is_edit_command:
-             result.command_sequence.append((len(result.conversation) - 1, command_type, None)) # Mark with None status initially
-             result.pending_edit_index = len(result.command_sequence) - 1
+            result.command_sequence.append(
+                (len(result.conversation) - 1, command_type, None)
+            )  # Mark with None status initially
+            result.pending_edit_index = len(result.command_sequence) - 1
 
 
 def extract_system_message_sections(log_content: str) -> tuple[str, str, str]:
     """Extract initial system prompt, task description, and reference implementation from log content.
-    
+
     Returns:
         tuple: (initial_prompt, task_description, reference_implementation)
     """
     initial_prompt = ""
     task_description = ""
     reference_impl = ""
-    
+
     # Extract initial system message
     system_start = log_content.find("--- Full Initial System Message Content ---")
     if system_start != -1:
@@ -1200,7 +1282,7 @@ def extract_system_message_sections(log_content: str) -> tuple[str, str, str]:
         system_end = log_content.find("\n---", system_start)
         if system_end != -1:
             initial_prompt = log_content[system_start:system_end].strip()
-    
+
     # Extract task description
     task_desc_start = log_content.find("**TASK DESCRIPTION:**")
     if task_desc_start != -1:
@@ -1213,16 +1295,21 @@ def extract_system_message_sections(log_content: str) -> tuple[str, str, str]:
             task_description = log_content[task_desc_start:task_desc_end].strip()
             # Strip leading '**TASK DESCRIPTION:**' if present
             import re
-            task_description = re.sub(r'^\*\*?TASK DESCRIPTION:?\*\*?\s*', '', task_description, flags=re.IGNORECASE)
-    
+
+            task_description = re.sub(
+                r"^\*\*?TASK DESCRIPTION:?\*\*?\s*", "", task_description, flags=re.IGNORECASE
+            )
+
     # Extract reference implementation
     ref_impl_start = log_content.find("Below is the reference implementation")
     if ref_impl_start != -1:
         # Find the validation function section as the end
-        ref_impl_end = log_content.find("This function will be used to check if your solution is valid", ref_impl_start)
+        ref_impl_end = log_content.find(
+            "This function will be used to check if your solution is valid", ref_impl_start
+        )
         if ref_impl_end != -1:
             reference_impl = log_content[ref_impl_start:ref_impl_end].strip()
-    
+
     return initial_prompt, task_description, reference_impl
 
 
@@ -1251,6 +1338,7 @@ def extract_best_code(log_content: str) -> dict[str, str]:
     """
 
     import re
+
     best_code: dict[str, str] = {}
     log_line_re = re.compile(r"^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3}\s+-\s+\w+\s+-\s+")
 
@@ -1286,7 +1374,11 @@ def extract_best_code(log_content: str) -> dict[str, str]:
         code_block = _sanitize_code_block(m.group("code").rstrip())
         if not fname or not code_block:
             continue
-        if fname == "solver.py" and "class Solver" not in code_block and "def solve" not in code_block:
+        if (
+            fname == "solver.py"
+            and "class Solver" not in code_block
+            and "def solve" not in code_block
+        ):
             continue
 
         # Heuristic: keep only typical source files to avoid huge HTML blobs.
@@ -1341,8 +1433,8 @@ def extract_conversation_from_messages(messages) -> LogExtractionResult:
     """Extracts various data points from a list of log message blocks."""
     result = LogExtractionResult()
     # Removed temporary storage - add directly to result.training_results
-    # potential_training_results = [] 
-    # pending_edit_eval_map = {} 
+    # potential_training_results = []
+    # pending_edit_eval_map = {}
 
     for block_idx, block in enumerate(messages):
         # 1. Track last seen budget
@@ -1352,52 +1444,62 @@ def extract_conversation_from_messages(messages) -> LogExtractionResult:
 
         # 2. Parse Training Evaluation - Add directly if valid
         tr_eval_result = parse_training_evaluation(block)
-        
-        # --- Condition Update: Check for score AND "Sent to LLM:" marker --- 
+
+        # --- Condition Update: Check for score AND "Sent to LLM:" marker ---
         if tr_eval_result.performance_score is not None and "Sent to LLM:" in block:
             # Performance data point added
             # Apply budget fallback if necessary
-            if (tr_eval_result.used_budget is None or tr_eval_result.used_budget == 0) and result.last_used_budget is not None:
+            if (
+                tr_eval_result.used_budget is None or tr_eval_result.used_budget == 0
+            ) and result.last_used_budget is not None:
                 # Applying fallback budget
                 tr_eval_result.used_budget = result.last_used_budget
-            
-            # Add if score is valid AND block contained "Sent to LLM:". 
-            # Budget check moved implicitly to _prepare_performance_data
-            result.training_results.append(tr_eval_result);
-        elif tr_eval_result.performance_score is not None:
-             # Log why a score is being ignored if it doesn't meet the new criteria
-             # Performance score found but no 'Sent to LLM:' marker
-             pass
 
-        # --- Separate logic for updating edit command status --- 
+            # Add if score is valid AND block contained "Sent to LLM:".
+            # Budget check moved implicitly to _prepare_performance_data
+            result.training_results.append(tr_eval_result)
+        elif tr_eval_result.performance_score is not None:
+            # Log why a score is being ignored if it doesn't meet the new criteria
+            # Performance score found but no 'Sent to LLM:' marker
+            pass
+
+        # --- Separate logic for updating edit command status ---
         # This affects the Action Sequence plot legend, not the perf plot points
         # Only update edit status if a valid score was found (regardless of 'Sent to LLM:')
         if tr_eval_result.performance_score is not None:
-            current_perf = tr_eval_result.performance_score # Score is not None here
-            if result.pending_edit_index is not None: # Check if an edit is pending status update
-                 # Decide status based on best_so_far_score
-                 new_status = None
-                 if result.best_so_far_score is None or current_perf > result.best_so_far_score:
-                     result.best_so_far_score = current_perf  # Update best score seen
-                     new_status = "edit(best)"
-                 else:
-                     # This score did not improve over the best so far - Edit still succeeded (non-failure) but didn't improve the best
-                     new_status = "edit"
-                 
-                 # Find and update the pending edit in command_sequence
-                 if result.pending_edit_index < len(result.command_sequence):
-                     old_entry = result.command_sequence[result.pending_edit_index]
-                     result.command_sequence[result.pending_edit_index] = (old_entry[0], old_entry[1], new_status)
-                 
-                 result.pending_edit_index = None # Clear pending edit
-                 # Updated pending edit status
-        
+            current_perf = tr_eval_result.performance_score  # Score is not None here
+            if result.pending_edit_index is not None:  # Check if an edit is pending status update
+                # Decide status based on best_so_far_score
+                new_status = None
+                if result.best_so_far_score is None or current_perf > result.best_so_far_score:
+                    result.best_so_far_score = current_perf  # Update best score seen
+                    new_status = "edit(best)"
+                else:
+                    # This score did not improve over the best so far - Edit still succeeded (non-failure) but didn't improve the best
+                    new_status = "edit"
+
+                # Find and update the pending edit in command_sequence
+                if result.pending_edit_index < len(result.command_sequence):
+                    old_entry = result.command_sequence[result.pending_edit_index]
+                    result.command_sequence[result.pending_edit_index] = (
+                        old_entry[0],
+                        old_entry[1],
+                        new_status,
+                    )
+
+                result.pending_edit_index = None  # Clear pending edit
+                # Updated pending edit status
+
         # 3. Check for edit failures separately (for updating command status)
         if FAILED_EDIT_REGEX.search(block) and result.pending_edit_index is not None:
             # Mark the pending edit as failed
             if result.pending_edit_index < len(result.command_sequence):
                 old_entry = result.command_sequence[result.pending_edit_index]
-                result.command_sequence[result.pending_edit_index] = (old_entry[0], old_entry[1], "edit(failed)")
+                result.command_sequence[result.pending_edit_index] = (
+                    old_entry[0],
+                    old_entry[1],
+                    "edit(failed)",
+                )
             result.pending_edit_index = None
             # Marked pending edit as failed
 
@@ -1415,15 +1517,15 @@ def extract_conversation_from_messages(messages) -> LogExtractionResult:
     return result
 
 
-def _prepare_performance_data(training_results: List[TrainingEvaluationResult]):
+def _prepare_performance_data(training_results: list[TrainingEvaluationResult]):
     """
     Processes a list of TrainingEvaluationResult objects to prepare data for plotting.
     Only includes results with both performance_score and used_budget.
-    
+
     Returns (budgets_list, performances_list, times_list, oracle_times_list).
     """
     budgets, performances, times, oracle_times = [], [], [], []
-    
+
     for result in training_results:
         # Only include results that have both performance score and budget
         if result.performance_score is not None and result.used_budget is not None:
@@ -1435,100 +1537,129 @@ def _prepare_performance_data(training_results: List[TrainingEvaluationResult]):
         else:
             # Performance data point excluded
             pass
-    
+
     # Performance data prepared for plotting
     return budgets, performances, times, oracle_times
 
 
-def create_performance_plot(training_results: List[TrainingEvaluationResult], is_higher_better=True, mobile: bool = False, output_path: Optional[str] = None):
+def create_performance_plot(
+    training_results: list[TrainingEvaluationResult],
+    is_higher_better=True,
+    mobile: bool = False,
+    output_path: str | None = None,
+):
     """Create a clean, minimal performance vs budget plot."""
     if not training_results:
         return ""
-    
+
     budgets, performances, times, oracle_times = _prepare_performance_data(training_results)
-    
+
     if not budgets:  # No valid data points
         return ""
-    
+
     # Slightly larger canvas for mobile because tick labels/legends are scaled up
     if mobile:
         fig, ax = plt.subplots(figsize=(8, 5))  # keep same physical size, fonts will increase
     else:
         fig, ax = plt.subplots(figsize=(8, 5))
-    
-    fig.patch.set_facecolor('white')
-    ax.set_facecolor('white')
-    
+
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
     # Use blue dots for all points
-    blue_color = '#2196F3'
-    
+    blue_color = "#2196F3"
+
     marker_size = 180 if mobile else 120
-    ax.scatter(budgets, performances, s=marker_size, c=blue_color, alpha=0.8, edgecolors='white', linewidth=1)
-    
+    ax.scatter(
+        budgets,
+        performances,
+        s=marker_size,
+        c=blue_color,
+        alpha=0.8,
+        edgecolors="white",
+        linewidth=1,
+    )
+
     label_fs = 22 if mobile else 16
-    ax.set_xlabel('Budget Used', fontsize=label_fs)
-    ax.set_ylabel('Speedup', fontsize=label_fs)
-    
+    ax.set_xlabel("Budget Used", fontsize=label_fs)
+    ax.set_ylabel("Speedup", fontsize=label_fs)
+
     # Format y-axis ticks to nearest hundredth for speedup
     if is_higher_better:
-        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'{x:.2f}x'))
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f"{x:.2f}x"))
         # Limit the number of y-axis ticks and round to reasonable values
         y_min, y_max = ax.get_ylim()
         tick_count = min(6, max(3, int((y_max - y_min) / 0.5) + 1))  # Reasonable number of ticks
-        ax.yaxis.set_major_locator(mticker.MaxNLocator(nbins=tick_count, prune='lower'))
+        ax.yaxis.set_major_locator(mticker.MaxNLocator(nbins=tick_count, prune="lower"))
     else:
         # For "lower is better" metrics, we might want different formatting
-        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'{x:.2f}'))
-        ax.yaxis.set_major_locator(mticker.MaxNLocator(nbins=6, prune='lower'))
-    
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f"{x:.2f}"))
+        ax.yaxis.set_major_locator(mticker.MaxNLocator(nbins=6, prune="lower"))
+
     # Format x-axis ticks with dollar signs and proper padding
-    ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'${x:,.2f}'))
+    ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f"${x:,.2f}"))
     # Limit x-axis ticks as well
-    ax.xaxis.set_major_locator(mticker.MaxNLocator(nbins=6, prune='lower'))
-    
+    ax.xaxis.set_major_locator(mticker.MaxNLocator(nbins=6, prune="lower"))
+
     # Show only bottom and left spines (x and y axes)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['bottom'].set_visible(True)
-    ax.spines['left'].set_visible(True)
-    
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["bottom"].set_visible(True)
+    ax.spines["left"].set_visible(True)
+
     # Style the visible spines
-    ax.spines['bottom'].set_color('black')
-    ax.spines['left'].set_color('black')
-    ax.spines['bottom'].set_linewidth(1)
-    ax.spines['left'].set_linewidth(1)
-    
+    ax.spines["bottom"].set_color("black")
+    ax.spines["left"].set_color("black")
+    ax.spines["bottom"].set_linewidth(1)
+    ax.spines["left"].set_linewidth(1)
+
     # Remove grid
     ax.grid(False)
-    
+
     tick_fs = 20 if mobile else 16
     tick_len = 10 if mobile else 8
-    ax.tick_params(axis='both', which='major', labelsize=tick_fs, colors='black', 
-                   length=tick_len, pad=10, width=2)
-    
+    ax.tick_params(
+        axis="both",
+        which="major",
+        labelsize=tick_fs,
+        colors="black",
+        length=tick_len,
+        pad=10,
+        width=2,
+    )
+
     plt.tight_layout()
-    
+
     # Convert to base64
     dpi_val = 140 if mobile else 120
     if output_path:
         # Ensure directory exists and save to disk
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plt.savefig(output_path, format='png', dpi=dpi_val, bbox_inches='tight', facecolor='white', edgecolor='none')
+        plt.savefig(
+            output_path,
+            format="png",
+            dpi=dpi_val,
+            bbox_inches="tight",
+            facecolor="white",
+            edgecolor="none",
+        )
         plt.close(fig)
         # Return path relative to OUTPUT_DIR for HTML embedding
-        return os.path.relpath(output_path, OUTPUT_DIR).replace(os.sep, '/')
+        return os.path.relpath(output_path, OUTPUT_DIR).replace(os.sep, "/")
     else:
         buf = BytesIO()
-        plt.savefig(buf, format='png', dpi=dpi_val, bbox_inches='tight', facecolor='white', edgecolor='none')
+        plt.savefig(
+            buf, format="png", dpi=dpi_val, bbox_inches="tight", facecolor="white", edgecolor="none"
+        )
         buf.seek(0)
-        img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+        img_base64 = base64.b64encode(buf.read()).decode("utf-8")
         plt.close(fig)
         return f"data:image/png;base64,{img_base64}"
 
 
 def _clean_reference_implementation(ref_impl_text):
     """Clean up reference implementation text for display.
-    
+
     Removes:
     - The "Below is the reference implementation" header
     - Line numbers in format "| 01: " or "| 02: "
@@ -1536,25 +1667,25 @@ def _clean_reference_implementation(ref_impl_text):
     """
     if not ref_impl_text:
         return ""
-    
+
     # Remove the header line
-    lines = ref_impl_text.split('\n')
+    lines = ref_impl_text.split("\n")
     cleaned_lines = []
-    
+
     for line in lines:
         # Skip the header line
         if line.strip().startswith("Below is the reference implementation"):
             continue
-        
+
         # Remove line numbers (format: "| 01: code" or "| 02:     code")
         # Check if line contains the pattern (may have leading spaces)
-        if '|' in line and ':' in line:
-            pipe_idx = line.find('|')
-            colon_idx = line.find(':', pipe_idx)
+        if "|" in line and ":" in line:
+            pipe_idx = line.find("|")
+            colon_idx = line.find(":", pipe_idx)
             # Check if this looks like a line number pattern
             if colon_idx > pipe_idx and colon_idx - pipe_idx < 6:  # "| 01: " is 6 chars
                 # Extract everything after the colon and space
-                cleaned_line = line[colon_idx + 1:]
+                cleaned_line = line[colon_idx + 1 :]
                 cleaned_lines.append(cleaned_line)
             else:
                 # Not a line number pattern, keep as is
@@ -1562,212 +1693,242 @@ def _clean_reference_implementation(ref_impl_text):
         else:
             # Keep lines that don't start with |
             cleaned_lines.append(line)
-    
+
     # Join back and strip extra whitespace
-    result = '\n'.join(cleaned_lines)
-    
+    result = "\n".join(cleaned_lines)
+
     # Remove any leading/trailing whitespace
     result = result.strip()
-    
+
     return result
 
 
-def create_action_sequence_plot(command_sequence, mobile: bool = False, output_path: Optional[str] = None):
+def create_action_sequence_plot(
+    command_sequence, mobile: bool = False, output_path: str | None = None
+):
     """Create a minimal action sequence plot with 5 actions per row and consistent colors.
     If `mobile` is True, use larger marker sizes, tick labels and legend fonts for better readability on small screens."""
     if not command_sequence:
         return ""
-    
+
     # Prepare data for plotting
     colors = []
     markers = []
     display_commands = []
-    
+
     # Bold, contrasting color palette - consistent across all trajectories
     color_map = {
-        'ls': '#FFC107',          # Bold Yellow
-        'view_file': '#20B2AA',   # Turquoise  
-        'edit': '#0077B6',        # Bold Blue (all edit types use same color)
-        'edit(best)': '#0077B6',  # Bold Blue (same as edit)
-        'edit(failed)': '#0077B6', # Bold Blue (same as edit)
-        'eval_input': '#E91E63',  # Deep Pink
-        'revert': '#6C757D',      # Medium Gray
-        'reference': '#9C27B0',   # Purple
-        'delete': '#F44336',      # Red
-        'profile': '#4CAF50',     # Green (same color for both profile types)
-        'profile_lines': '#4CAF50' # Green (same as profile)
+        "ls": "#FFC107",  # Bold Yellow
+        "view_file": "#20B2AA",  # Turquoise
+        "edit": "#0077B6",  # Bold Blue (all edit types use same color)
+        "edit(best)": "#0077B6",  # Bold Blue (same as edit)
+        "edit(failed)": "#0077B6",  # Bold Blue (same as edit)
+        "eval_input": "#E91E63",  # Deep Pink
+        "revert": "#6C757D",  # Medium Gray
+        "reference": "#9C27B0",  # Purple
+        "delete": "#F44336",  # Red
+        "profile": "#4CAF50",  # Green (same color for both profile types)
+        "profile_lines": "#4CAF50",  # Green (same as profile)
     }
-    
+
     # Different markers for edit types and profile variants
     marker_map = {
-        'ls': 's',               # Square
-        'view_file': 's',        # Square
-        'edit': 's',             # Square
-        'edit(best)': 'P',       # Plus (filled) - more visible than star
-        'edit(failed)': 'X',     # X (filled) - more visible than lowercase x
-        'eval_input': 's',       # Square
-        'revert': 's',           # Square
-        'reference': 's',        # Square
-        'delete': 's',           # Square
-        'profile': 'o',          # Circle
-        'profile_lines': 'D'     # Diamond
+        "ls": "s",  # Square
+        "view_file": "s",  # Square
+        "edit": "s",  # Square
+        "edit(best)": "P",  # Plus (filled) - more visible than star
+        "edit(failed)": "X",  # X (filled) - more visible than lowercase x
+        "eval_input": "s",  # Square
+        "revert": "s",  # Square
+        "reference": "s",  # Square
+        "delete": "s",  # Square
+        "profile": "o",  # Circle
+        "profile_lines": "D",  # Diamond
     }
-    
+
     for i, (msg_idx, cmd_type, status) in enumerate(command_sequence):
         # Determine the display command and color
-        if cmd_type == 'edit' and status:
+        if cmd_type == "edit" and status:
             display_cmd = status  # Use status like 'edit(best)' or 'edit(failed)'
         else:
             display_cmd = cmd_type
-            
+
         # Use mapped color or default to gray for unmapped commands
-        colors.append(color_map.get(display_cmd, '#6C757D'))  # Default gray for unmapped
-        markers.append(marker_map.get(display_cmd, 's'))      # Default square for unmapped
+        colors.append(color_map.get(display_cmd, "#6C757D"))  # Default gray for unmapped
+        markers.append(marker_map.get(display_cmd, "s"))  # Default square for unmapped
         display_commands.append(display_cmd)
-    
+
     if not colors:
         return ""
-    
+
     # Calculate grid dimensions (5 actions per row)
     actions_per_row = 5
     total_actions = len(command_sequence)
     num_rows = (total_actions + actions_per_row - 1) // actions_per_row  # Ceiling division
-    
+
     # Minimal figure sizing (same physical size; fonts/markers scale for mobile)
     fig_width = 6
     fig_height = max(3, num_rows * 0.6 + 2)
-    
+
     fig, ax = plt.subplots(figsize=(fig_width, fig_height))
-    fig.patch.set_facecolor('white')
-    ax.set_facecolor('white')
-    
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
     # Create grid positions
     x_positions = []
     y_positions = []
-    
+
     for i in range(total_actions):
         row = i // actions_per_row
         col = i % actions_per_row
         x_positions.append(col)
         y_positions.append(num_rows - row - 1)  # Invert y to start from top
-    
+
     # Plot each marker individually to use different shapes
     for i, (x, y, color, marker) in enumerate(zip(x_positions, y_positions, colors, markers)):
         base_size_special = 260 if mobile else 200
         base_size = 200 if mobile else 150
-        marker_size = base_size_special if marker in ['P', 'X'] else base_size
-        ax.scatter(x, y, c=color, s=marker_size, alpha=0.9, 
-                  edgecolors='white', linewidth=2, marker=marker)
-    
+        marker_size = base_size_special if marker in ["P", "X"] else base_size
+        ax.scatter(
+            x, y, c=color, s=marker_size, alpha=0.9, edgecolors="white", linewidth=2, marker=marker
+        )
+
     # Set up the plot - completely despined and minimal
     ax.set_xlim(-0.5, actions_per_row - 0.5)
     ax.set_ylim(-0.5, num_rows - 0.5)
-    
+
     # Remove all spines
     for spine in ax.spines.values():
         spine.set_visible(False)
-    
+
     # Remove x-axis elements but keep y-axis labels
     ax.set_xticks([])
-    ax.set_xlabel('')
-    ax.set_ylabel('')
-    
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+
     # Add y-axis labels for action ranges (1-10, 11-20, etc.)
     y_tick_positions = []
     y_tick_labels = []
-    
+
     for row in range(num_rows):
         y_pos = num_rows - row - 1  # Same inversion as the plotting
         start_action = row * actions_per_row + 1
         end_action = min((row + 1) * actions_per_row, total_actions)
-        
+
         y_tick_positions.append(y_pos)
         if start_action == end_action:
             y_tick_labels.append(f"{start_action}")
         else:
             y_tick_labels.append(f"{start_action}-{end_action}")
-    
+
     tick_fs = 14 if mobile else 10
     # Explicitly set tick positions before assigning the labels to ensure they line up correctly.
     ax.set_yticks(y_tick_positions)
-    ax.set_yticklabels(y_tick_labels, fontsize=tick_fs, ha='right')
-    ax.tick_params(axis='y', length=0, pad=8, labelsize=tick_fs)
-    
+    ax.set_yticklabels(y_tick_labels, fontsize=tick_fs, ha="right")
+    ax.tick_params(axis="y", length=0, pad=8, labelsize=tick_fs)
+
     # Define consistent legend order - edit actions first, then view, ls, then others
     legend_order = [
-        'edit',           # Regular edit
-        'edit(best)',     # Best edit
-        'edit(failed)',   # Failed edit
-        'view_file',      # View file
-        'ls',             # List files
-        'eval_input',     # Input evaluation
-        'profile',        # Profile
-        'profile_lines',  # Profile lines
-        'revert',         # Revert changes
-        'reference',      # Reference
-        'delete',         # Delete
+        "edit",  # Regular edit
+        "edit(best)",  # Best edit
+        "edit(failed)",  # Failed edit
+        "view_file",  # View file
+        "ls",  # List files
+        "eval_input",  # Input evaluation
+        "profile",  # Profile
+        "profile_lines",  # Profile lines
+        "revert",  # Revert changes
+        "reference",  # Reference
+        "delete",  # Delete
         # Any other commands will be added at the end in alphabetical order
     ]
-    
+
     # Find unique commands that actually appear in this plot
     unique_commands_set = set(display_commands)
-    
+
     # Create ordered list of commands that appear, following the defined order
     ordered_commands = []
     for cmd in legend_order:
         if cmd in unique_commands_set:
             ordered_commands.append(cmd)
-    
+
     # Add any remaining commands not in the predefined order (alphabetically)
     remaining_commands = sorted([cmd for cmd in unique_commands_set if cmd not in legend_order])
     ordered_commands.extend(remaining_commands)
-    
+
     # Create legend handles with consistent ordering
     legend_handles = []
     for cmd in ordered_commands:
-        color = color_map.get(cmd, '#6C757D')  # Default gray for unmapped
-        marker = marker_map.get(cmd, 's')      # Default square for unmapped
-        
+        color = color_map.get(cmd, "#6C757D")  # Default gray for unmapped
+        marker = marker_map.get(cmd, "s")  # Default square for unmapped
+
         # Create clean labels for legend
-        if cmd.startswith('edit('):
-            if 'best' in cmd:
-                label = 'Best Edit'
-            elif 'failed' in cmd:
-                label = 'Failed Edit'
+        if cmd.startswith("edit("):
+            if "best" in cmd:
+                label = "Best Edit"
+            elif "failed" in cmd:
+                label = "Failed Edit"
             else:
-                label = 'Edit'
+                label = "Edit"
         else:
             label = CMD_DISPLAY.get(cmd, cmd.title())
-        
-        legend_ms = 18 if mobile else 14 if marker in ['P','X'] else 14 if mobile else 10
+
+        legend_ms = 18 if mobile else 14 if marker in ["P", "X"] else 14 if mobile else 10
         marker_size = legend_ms
-        legend_handles.append(plt.Line2D([0], [0], marker=marker, color='w', 
-                                       markerfacecolor=color, markersize=marker_size, 
-                                       label=label, markeredgecolor='white', 
-                                       markeredgewidth=1.5, linestyle='None'))
-    
+        legend_handles.append(
+            plt.Line2D(
+                [0],
+                [0],
+                marker=marker,
+                color="w",
+                markerfacecolor=color,
+                markersize=marker_size,
+                label=label,
+                markeredgecolor="white",
+                markeredgewidth=1.5,
+                linestyle="None",
+            )
+        )
+
     # Place compact legend at bottom
     legend_fs = 14 if mobile else 10
-    ax.legend(handles=legend_handles, loc='upper center', bbox_to_anchor=(0.5, -0.02), 
-              ncol=min(3, len(legend_handles)), frameon=False, fontsize=legend_fs,
-              handlelength=1, handletextpad=0.5, columnspacing=1)
-    
+    ax.legend(
+        handles=legend_handles,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.02),
+        ncol=min(3, len(legend_handles)),
+        frameon=False,
+        fontsize=legend_fs,
+        handlelength=1,
+        handletextpad=0.5,
+        columnspacing=1,
+    )
+
     plt.tight_layout()
-    
+
     # Convert to base64
     dpi_val = 140 if mobile else 120
     if output_path:
         # Ensure directory exists and save to disk
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plt.savefig(output_path, format='png', dpi=dpi_val, bbox_inches='tight', facecolor='white', edgecolor='none')
+        plt.savefig(
+            output_path,
+            format="png",
+            dpi=dpi_val,
+            bbox_inches="tight",
+            facecolor="white",
+            edgecolor="none",
+        )
         plt.close(fig)
         # Return path relative to OUTPUT_DIR for HTML embedding
-        return os.path.relpath(output_path, OUTPUT_DIR).replace(os.sep, '/')
+        return os.path.relpath(output_path, OUTPUT_DIR).replace(os.sep, "/")
     else:
         buf = BytesIO()
-        plt.savefig(buf, format='png', dpi=dpi_val, bbox_inches='tight', facecolor='white', edgecolor='none')
+        plt.savefig(
+            buf, format="png", dpi=dpi_val, bbox_inches="tight", facecolor="white", edgecolor="none"
+        )
         buf.seek(0)
-        img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+        img_base64 = base64.b64encode(buf.read()).decode("utf-8")
         plt.close(fig)
         return f"data:image/png;base64,{img_base64}"
 
@@ -1775,28 +1936,30 @@ def create_action_sequence_plot(command_sequence, mobile: bool = False, output_p
 def process_log_file_data(filepath):
     """Process a single log file and return structured data for template rendering."""
     # Processing log file
-    
+
     try:
         messages, task_name, test_score_result, model_name, total_budget = parse_log_file(filepath)
         extraction_result = extract_conversation_from_messages(messages)
-        
+
         # Use test_score_result from parse_log_file if extraction didn't find one
         if extraction_result.test_score_result is None:
             extraction_result.test_score_result = test_score_result
-        
+
         # Extract collapsible sections from raw log content
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             log_content = f.read()
-        
-        initial_prompt, task_description, reference_impl = extract_system_message_sections(log_content)
+
+        initial_prompt, task_description, reference_impl = extract_system_message_sections(
+            log_content
+        )
         best_code = extract_best_code(log_content)
 
         # Store in extraction result
         extraction_result.initial_system_prompt = initial_prompt
-        extraction_result.task_description = task_description 
+        extraction_result.task_description = task_description
         extraction_result.reference_implementation = reference_impl
         extraction_result.best_code = best_code
-        
+
         # Create plots if we have data
         performance_plot = ""
         action_plot = ""
@@ -1804,70 +1967,71 @@ def process_log_file_data(filepath):
         if extraction_result.training_results:
             perf_abs = os.path.join(PLOTS_DIR, f"{slug}_perf.png")
             performance_plot = create_performance_plot(
-                extraction_result.training_results,
-                mobile=True,
-                output_path=perf_abs
+                extraction_result.training_results, mobile=True, output_path=perf_abs
             )
         if extraction_result.command_sequence:
             act_abs = os.path.join(PLOTS_DIR, f"{slug}_actions.png")
             action_plot = create_action_sequence_plot(
-                extraction_result.command_sequence,
-                mobile=True,
-                output_path=act_abs
+                extraction_result.command_sequence, mobile=True, output_path=act_abs
             )
-        
+
         # Calculate final test score value for display
         final_test_score = None
         if isinstance(extraction_result.test_score_result, TestEvaluationResult):
             final_test_score = extraction_result.test_score_result.performance_score
         elif isinstance(extraction_result.test_score_result, (int, float)):
             final_test_score = extraction_result.test_score_result
-        
+
         # Calculate invalid commands count
         # Count both "other" commands and system error responses indicating parsing failures
         invalid_commands_count = 0
-        
+
         # Count commands with type "other"
-        invalid_commands_count += sum(1 for _, cmd_type, _ in extraction_result.command_sequence if cmd_type == "other")
-        
+        invalid_commands_count += sum(
+            1 for _, cmd_type, _ in extraction_result.command_sequence if cmd_type == "other"
+        )
+
         # Count system messages that indicate command parsing errors
         error_patterns = [
             "Command parsing failed",
-            "Error: Command parsing failed", 
+            "Error: Command parsing failed",
             "parsing failed",
             "Invalid command",
             "Unrecognized command",
             "Command not recognized",
             "Unknown command",
             "Failed to parse command",
-            "Could not parse command"
+            "Could not parse command",
         ]
-        
+
         for msg in extraction_result.conversation:
-            if msg.get('role') == 'system':
-                text = msg.get('text', '').lower()
+            if msg.get("role") == "system":
+                text = msg.get("text", "").lower()
                 for pattern in error_patterns:
                     if pattern.lower() in text:
                         invalid_commands_count += 1
                         break  # Only count once per message
-        
+
         # Calculate average reference time from generation.json
         average_reference_time = "N/A"
         try:
             import json
-            generation_file_path = os.path.join(os.path.dirname(os.path.dirname(filepath)), 'reports', 'generation.json')
+
+            generation_file_path = os.path.join(
+                os.path.dirname(os.path.dirname(filepath)), "reports", "generation.json"
+            )
             if os.path.exists(generation_file_path):
-                with open(generation_file_path, 'r') as f:
+                with open(generation_file_path) as f:
                     generation_data = json.load(f)
-                
+
                 task_data = generation_data.get(task_name)
-                if task_data and 'baseline_runs' in task_data:
+                if task_data and "baseline_runs" in task_data:
                     # Get all avg_min_ms values from baseline runs
                     avg_times = []
-                    for run_data in task_data['baseline_runs'].values():
-                        if isinstance(run_data, dict) and 'avg_min_ms' in run_data:
-                            avg_times.append(run_data['avg_min_ms'])
-                    
+                    for run_data in task_data["baseline_runs"].values():
+                        if isinstance(run_data, dict) and "avg_min_ms" in run_data:
+                            avg_times.append(run_data["avg_min_ms"])
+
                     if avg_times:
                         # Calculate mean of all baseline runs
                         mean_reference_time = sum(avg_times) / len(avg_times)
@@ -1875,32 +2039,32 @@ def process_log_file_data(filepath):
         except Exception as e:
             logging.debug(f"Could not load reference time for {task_name}: {e}")
             average_reference_time = "N/A"
-        
+
         return {
-            'filepath': filepath,
-            'filename': os.path.basename(filepath),
-            'task_name': task_name,
-            'model_name': model_name,
-            'conversation': extraction_result.conversation,
-            'training_results_count': len(extraction_result.training_results),
-            'command_sequence_count': len(extraction_result.command_sequence),
-            'invalid_commands_count': invalid_commands_count,
-            'average_reference_time': average_reference_time,
-            'config': extraction_result.config,
-            'initial_prompts': extraction_result.initial_prompts,
-            'dates': list(set(extraction_result.dates)),  # unique dates
-            'performance_plot': performance_plot,
-            'action_plot': action_plot,
-            'final_test_score': final_test_score,
-            'total_budget': total_budget,
-            'budget_from_filename': extract_budget_from_filename(os.path.basename(filepath)),
+            "filepath": filepath,
+            "filename": os.path.basename(filepath),
+            "task_name": task_name,
+            "model_name": model_name,
+            "conversation": extraction_result.conversation,
+            "training_results_count": len(extraction_result.training_results),
+            "command_sequence_count": len(extraction_result.command_sequence),
+            "invalid_commands_count": invalid_commands_count,
+            "average_reference_time": average_reference_time,
+            "config": extraction_result.config,
+            "initial_prompts": extraction_result.initial_prompts,
+            "dates": list(set(extraction_result.dates)),  # unique dates
+            "performance_plot": performance_plot,
+            "action_plot": action_plot,
+            "final_test_score": final_test_score,
+            "total_budget": total_budget,
+            "budget_from_filename": extract_budget_from_filename(os.path.basename(filepath)),
             # New collapsible sections
-            'initial_system_prompt': extraction_result.initial_system_prompt,
-            'task_description': extraction_result.task_description,
-            'reference_implementation': extraction_result.reference_implementation,
-            'best_code': extraction_result.best_code,
+            "initial_system_prompt": extraction_result.initial_system_prompt,
+            "task_description": extraction_result.task_description,
+            "reference_implementation": extraction_result.reference_implementation,
+            "best_code": extraction_result.best_code,
         }
-        
+
     except Exception as e:
         if logging.getLogger().isEnabledFor(logging.ERROR):
             logging.error(f"Error processing {filepath}: {e}")
@@ -1911,12 +2075,12 @@ def generate_single_log_html(data, all_data=None):
     """Generate HTML content for a single log file with sidebar navigation."""
     # Format final test score
     final_test_score_display = "Fail"
-    if data['final_test_score'] is not None:
+    if data["final_test_score"] is not None:
         final_test_score_display = f"{data['final_test_score']:.3f}x"
-    
+
     # Format budget info
-    budget_display = f"${data['total_budget']:.2f}" if data['total_budget'] else "N/A"
-    
+    budget_display = f"${data['total_budget']:.2f}" if data["total_budget"] else "N/A"
+
     # Generate sidebar HTML - filter to show only current task trajectories
     sidebar_html = ""
     if all_data:
@@ -1925,111 +2089,110 @@ def generate_single_log_html(data, all_data=None):
             log_data
             for log_data in all_data
             if log_data
-            and log_data['task_name'] == data['task_name']
-            and 'dummy' not in log_data['model_name'].lower()
+            and log_data["task_name"] == data["task_name"]
+            and "dummy" not in log_data["model_name"].lower()
         ]
-        
+
         # NEW: Deduplicate by (task, model) keeping only the newest trajectory
         deduped_logs: dict[str, dict] = {}
         for log in current_task_logs:
             # Normalize model key to lower-case for grouping
-            model_key = log.get('model_name', '').lower()
+            model_key = log.get("model_name", "").lower()
             try:
-                mtime = os.path.getmtime(log.get('filepath', ''))
+                mtime = os.path.getmtime(log.get("filepath", ""))
             except Exception:
                 mtime = 0
             # Keep the log if we haven't seen this model yet, or if it is newer
-            if model_key not in deduped_logs or mtime > deduped_logs[model_key]['_mtime']:
+            if model_key not in deduped_logs or mtime > deduped_logs[model_key]["_mtime"]:
                 # Store a shallow copy with mtime for comparison
                 temp = log.copy()
-                temp['_mtime'] = mtime
+                temp["_mtime"] = mtime
                 deduped_logs[model_key] = temp
         # Replace current_task_logs with the newest-only versions (drop helper key)
         current_task_logs = [
-            {k: v for k, v in log.items() if k != '_mtime'}
-            for log in deduped_logs.values()
+            {k: v for k, v in log.items() if k != "_mtime"} for log in deduped_logs.values()
         ]
-        
+
         if current_task_logs:
             # Sort by score (highest first)
-            valid_logs = [log for log in current_task_logs if log['final_test_score'] is not None]
-            valid_logs.sort(key=lambda x: x['final_test_score'], reverse=True)
-            
+            valid_logs = [log for log in current_task_logs if log["final_test_score"] is not None]
+            valid_logs.sort(key=lambda x: x["final_test_score"], reverse=True)
+
             # Add remaining logs without scores
-            invalid_logs = [log for log in current_task_logs if log['final_test_score'] is None]
+            invalid_logs = [log for log in current_task_logs if log["final_test_score"] is None]
             all_task_logs = valid_logs + invalid_logs
-            
+
             runs_html = ""
             for log in all_task_logs:
                 clean_filename = f"{log['task_name']}_{log['model_name'].replace('/', '_').replace(' ', '_')}.html"
-                
+
                 # Determine display score with lower bound 1x for color and text
-                if log['final_test_score'] is not None:
-                    score_color = get_speedup_color(log['final_test_score'])
-                    clean_model = clean_model_name(log['model_name'])
+                if log["final_test_score"] is not None:
+                    score_color = get_speedup_color(log["final_test_score"])
+                    clean_model = clean_model_name(log["model_name"])
                     display_text = f"{clean_model} ({log['final_test_score']:.2f}x)"
                 else:
                     score_color = get_speedup_color(None)
-                    clean_model = clean_model_name(log['model_name'])
+                    clean_model = clean_model_name(log["model_name"])
                     display_text = f"{clean_model} (Fail)"
-                
+
                 # Check if this is the current trajectory being viewed
-                current_class = " current" if log['filename'] == data['filename'] else ""
-                
-                runs_html += f'''
+                current_class = " current" if log["filename"] == data["filename"] else ""
+
+                runs_html += f"""
                 <div class="sidebar-run{current_class}">
                     <a href="{clean_filename}">
                         <div class="run-score" style="background-color: {score_color}; color: #ffffff; padding: 12px 16px; font-size: 0.95rem; border-radius: 8px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); letter-spacing: 0.025em; min-height: 24px; width: 100%; box-sizing: border-box;">{display_text}</div>
                     </a>
-                </div>'''
-            
-            sidebar_items = f'''
+                </div>"""
+
+            sidebar_items = f"""
             <div class="sidebar-task">
                 <div class="task-runs">
                     {runs_html}
                 </div>
-            </div>'''
+            </div>"""
         else:
-            sidebar_items = f'''
+            sidebar_items = """
             <div class="sidebar-task">
                 <div class="task-runs">
                     <div class="no-runs">No other runs found for this task</div>
                 </div>
-            </div>'''
-        
-        sidebar_html = f'''
+            </div>"""
+
+        sidebar_html = f"""
         <div class="sidebar">
             <div class="sidebar-header">
                 <a href="index.html" class="back-link">← Back to Speedup Table</a>
             </div>
             <div class="sidebar-content">
-                <h3 style="color: black;">{data['task_name']}</h3>
+                <h3 style="color: black;">{data["task_name"]}</h3>
                 {sidebar_items}
             </div>
-        </div>'''
-    
+        </div>"""
+
     # Generate conversation HTML
     conversation_html = ""
-    for msg in data['conversation']:
-        role_class = msg['role']
-        
+    for msg in data["conversation"]:
+        role_class = msg["role"]
+
         # Update role display names
-        if msg['role'] == 'system':
-            role_display = 'System'
-        elif msg['role'] == 'assistant':
-            role_display = 'Language Model'
+        if msg["role"] == "system":
+            role_display = "System"
+        elif msg["role"] == "assistant":
+            role_display = "Language Model"
         else:
-            role_display = msg['role'].title()
-        
+            role_display = msg["role"].title()
+
         command_badge = ""
-        if msg['role'] == 'assistant' and 'command' in msg:
-            command = msg['command']
+        if msg["role"] == "assistant" and "command" in msg:
+            command = msg["command"]
             command_badge = f'<span class="command-badge {command}">{ICON_MAPPING.get(command, "")} {CMD_DISPLAY.get(command, command.title())}</span>'
-        
+
         # msg['text'] is already formatted HTML (thinking blocks removed earlier)
-        cleaned_text = msg['text']
-        
-        conversation_html += f'''
+        cleaned_text = msg["text"]
+
+        conversation_html += f"""
         <div class="message {role_class}">
             <div class="message-header">
                 {role_display} {command_badge}
@@ -2037,10 +2200,10 @@ def generate_single_log_html(data, all_data=None):
             <div class="message-content">
                 {cleaned_text}
             </div>
-        </div>'''
-    
+        </div>"""
+
     # Generate plots HTML - side by side layout
-    plots_html = f'''
+    plots_html = f"""
     <div class="plots-container">
         <div class="plot-section plot-half">
             <h3>Speedup vs Budget</h3>
@@ -2054,57 +2217,59 @@ def generate_single_log_html(data, all_data=None):
                 {f'<img src="{data["action_plot"]}" alt="Action Sequence Plot" />' if data["action_plot"] else '<div class="no-plot">No action sequence data available</div>'}
             </div>
         </div>
-    </div>'''
-    
+    </div>"""
+
     # Prepare "Best Code" HTML – handle single or multiple files
     # Filter best_code to keep only solver.py and actual dependencies
-    if isinstance(data.get('best_code'), dict):
-        filtered_code_dict = _filter_best_code(data['best_code'])
+    if isinstance(data.get("best_code"), dict):
+        filtered_code_dict = _filter_best_code(data["best_code"])
     else:
-        filtered_code_dict = data.get('best_code')
+        filtered_code_dict = data.get("best_code")
 
     best_code_html = ""
     if isinstance(filtered_code_dict, dict):
         if filtered_code_dict:
             blocks = []
             # Put solver.py first, then the rest alphabetically
-            filenames = sorted(filtered_code_dict, key=lambda n: (0 if n == 'solver.py' else 1, n.lower()))
+            filenames = sorted(
+                filtered_code_dict, key=lambda n: (0 if n == "solver.py" else 1, n.lower())
+            )
             for fname in filenames:
                 code = filtered_code_dict[fname]
                 blocks.append(
                     f'<div class="best-file">'
                     f'<div class="file-name" style="font-weight:600; margin-bottom:0.25rem;">{html.escape(fname)}</div>'
                     f'<pre class="best-code"><code class="language-python">{html.escape(code)}</code></pre>'
-                    f'</div>'
+                    f"</div>"
                 )
             best_code_html = "\n".join(blocks)
         else:
-            best_code_html = 'N/A'
+            best_code_html = "N/A"
     else:
         best_code_str = filtered_code_dict if isinstance(filtered_code_dict, str) else ""
         best_code_html = f'<pre class="best-code"><code class="language-python">{html.escape(best_code_str) if best_code_str.strip() else "N/A"}</code></pre>'
-    
+
     # Generate collapsible sections HTML
-    collapsible_sections_html = f'''
+    collapsible_sections_html = f"""
     <div class="collapsible-sections">
         <details class="collapsible-section">
             <summary>Initial System Prompt</summary>
             <div class="section-content">
-                <pre>{html.escape(data['initial_system_prompt'])}</pre>
+                <pre>{html.escape(data["initial_system_prompt"])}</pre>
             </div>
         </details>
         
         <details class="collapsible-section">
             <summary>AlgoTune Task Description</summary>
             <div class="section-content">
-                <pre>{html.escape(data['task_description'])}</pre>
+                <pre>{html.escape(data["task_description"])}</pre>
             </div>
         </details>
         
         <details class="collapsible-section">
             <summary>Reference Implementation</summary>
             <div class="section-content">
-                <pre class="reference-code"><code class="language-python">{html.escape(_clean_reference_implementation(data['reference_implementation']))}</code></pre>
+                <pre class="reference-code"><code class="language-python">{html.escape(_clean_reference_implementation(data["reference_implementation"]))}</code></pre>
             </div>
         </details>
         
@@ -2121,15 +2286,15 @@ def generate_single_log_html(data, all_data=None):
                 {plots_html}
             </div>
         </details>
-    </div>'''
-    
+    </div>"""
+
     # Generate the complete HTML for individual log file using clean layout
-    html_content = f'''<!DOCTYPE html>
+    html_content = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
-    <title>AlgoTuner Log – {data['task_name']} – {data['model_name']}</title>
+    <title>AlgoTuner Log – {data["task_name"]} – {data["model_name"]}</title>
     <link rel="icon" type="image/png" href="assets/AlgoTunerMascot.png">
     
     <!-- Google tag (gtag.js) -->
@@ -2985,18 +3150,18 @@ def generate_single_log_html(data, all_data=None):
                 </div>
                 <div class="task-info-line" style="text-align: left !important; margin-bottom: 8px; display: block;">
                     <span style="color: #6c757d; font-weight: 400;">AlgoTune Task:</span>
-                    <span class="task-name-display">{data['task_name']}</span>
+                    <span class="task-name-display">{data["task_name"]}</span>
                 </div>
                 <div class="model-info-line" style="text-align: left !important; display: block;">
                     <span style="color: #6c757d; font-weight: 400;">Model:</span>
-                    <span class="model-name-display" style="font-weight: 500;">{clean_model_name(data['model_name'])}</span>
+                    <span class="model-name-display" style="font-weight: 500;">{clean_model_name(data["model_name"])}</span>
                 </div>
             </div>
             
             <div class="info-section">
                 <div class="info-item">
                     <div class="info-label">Speedup</div>
-                    <div class="info-value" style="color: {get_speedup_color(data['final_test_score'])}; font-weight: 600;">{final_test_score_display}</div>
+                    <div class="info-value" style="color: {get_speedup_color(data["final_test_score"])}; font-weight: 600;">{final_test_score_display}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Total Budget</div>
@@ -3004,15 +3169,15 @@ def generate_single_log_html(data, all_data=None):
                 </div>
                 <div class="info-item hide-on-mobile">
                     <div class="info-label">Commands Executed</div>
-                    <div class="info-value">{data['command_sequence_count']}</div>
+                    <div class="info-value">{data["command_sequence_count"]}</div>
                 </div>
                 <div class="info-item hide-on-mobile">
                     <div class="info-label">Invalid Commands</div>
-                    <div class="info-value">{data['invalid_commands_count']}</div>
+                    <div class="info-value">{data["invalid_commands_count"]}</div>
                 </div>
                 <div class="info-item hide-on-mobile">
                     <div class="info-label">Average Reference Time (ms)</div>
-                    <div class="info-value">{data['average_reference_time']}</div>
+                    <div class="info-value">{data["average_reference_time"]}</div>
                 </div>
             </div>
             
@@ -3025,7 +3190,7 @@ def generate_single_log_html(data, all_data=None):
         </div>
     </div>
 </body>
-</html>'''
+</html>"""
     return html_content
 
 
@@ -3033,70 +3198,70 @@ def generate_individual_log_file(data, output_dir, all_data=None):
     """Generate HTML file for a single log entry."""
     if not data:
         return None
-    
+
     # Create filename based on task, model, and original filename
-    task_name = data['task_name']
-    model_name = data['model_name']
-    original_filename = data['filename']
-    
+    task_name = data["task_name"]
+    model_name = data["model_name"]
+    original_filename = data["filename"]
+
     # Extract timestamp from original filename
     # Format: {task}_{model}.html
     clean_filename = f"{task_name}_{model_name.replace('/', '_').replace(' ', '_')}.html"
-    
+
     filepath = os.path.join(output_dir, clean_filename)
-    
+
     # Generate individual log HTML content
     html_content = generate_single_log_html(data, all_data)
-    
+
     # --- Post-processing fixes: remove duplicate university logos ---
     # a) Remove the mobile-only logo strip entirely
     html_content = re.sub(
         r'\s*<div class="mobile-logos mobile-only">[\s\S]*?</div>',
-        '',
+        "",
         html_content,
         flags=re.DOTALL,
     )
 
     # b) Strip the now-unneeded "desktop-only" class from logo <img> tags
-    html_content = html_content.replace(' desktop-only', '')
-    
+    html_content = html_content.replace(" desktop-only", "")
+
     # Write the file
-    with open(filepath, 'w', encoding='utf-8') as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         f.write(html_content)
-    
+
     return clean_filename
 
 
 def _load_task_whitelist():
     """Load task names from generation.json, falling back to whitelist.txt if not found."""
     tasks = set()
-    
+
     # Try to load from generation.json first
     if os.path.exists(GENERATION_FILE):
         try:
-            with open(GENERATION_FILE, 'r', encoding='utf-8') as f:
+            with open(GENERATION_FILE, encoding="utf-8") as f:
                 generation_data = json.load(f)
                 tasks = set(generation_data.keys())
                 logging.info(f"Loaded {len(tasks)} tasks from generation.json")
                 return tasks
-        except (json.JSONDecodeError, IOError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             logging.warning(f"Could not load {GENERATION_FILE}: {e}, falling back to whitelist")
-    
+
     # Fallback to whitelist.txt
     if not os.path.exists(WHITELIST_FILE):
-        logging.warning(f"Neither generation.json nor whitelist file found")
+        logging.warning("Neither generation.json nor whitelist file found")
         return tasks
-    
+
     try:
-        with open(WHITELIST_FILE, 'r', encoding='utf-8') as f:
+        with open(WHITELIST_FILE, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
-                if line and not line.startswith('#'):  # Skip empty lines and comments
+                if line and not line.startswith("#"):  # Skip empty lines and comments
                     tasks.add(line)
         logging.info(f"Loaded {len(tasks)} tasks from whitelist (fallback)")
     except Exception as e:
         logging.error(f"Error reading whitelist file: {e}")
-    
+
     return tasks
 
 
@@ -3109,7 +3274,7 @@ def _load_task_description_from_file(task_name: str) -> str:
             desc_path = os.path.join(entry.path, "description.txt")
             if os.path.exists(desc_path):
                 try:
-                    with open(desc_path, "r", encoding="utf-8") as f:
+                    with open(desc_path, encoding="utf-8") as f:
                         return f.read().strip()
                 except Exception:
                     pass
@@ -3119,23 +3284,24 @@ def _load_task_description_from_file(task_name: str) -> str:
 def _clean_task_description(desc: str) -> str:
     """Clean task description for use in HTML tooltips."""
     import re
+
     # Strip leading '**TASK DESCRIPTION:**' if present
-    desc = re.sub(r'^\*\*?TASK DESCRIPTION:?\*\*?\s*', '', desc.strip(), flags=re.IGNORECASE)
+    desc = re.sub(r"^\*\*?TASK DESCRIPTION:?\*\*?\s*", "", desc.strip(), flags=re.IGNORECASE)
     # Remove duplicate newlines/whitespace and code markers
-    lines = desc.split('\n')
+    lines = desc.split("\n")
     cleaned_lines = []
     for line in lines:
         # Remove code block markers
-        if line.strip() in ['```python', '```', '```plaintext']:
+        if line.strip() in ["```python", "```", "```plaintext"]:
             continue
         # Keep non-empty lines
         if line.strip():
             cleaned_lines.append(line.strip())
-    
+
     # Join with space and truncate if too long
-    result = ' '.join(cleaned_lines)
+    result = " ".join(cleaned_lines)
     if len(result) > 300:
-        result = result[:297] + '...'
+        result = result[:297] + "..."
     return result
 
 
@@ -3143,30 +3309,30 @@ def generate_index_html(log_data_list, output_dir):
     """Generate index.html with overview tables and navigation."""
     # Load whitelist
     whitelist = _load_task_whitelist()
-    
+
     if not whitelist:
         logging.warning("Whitelist is empty - no tasks will be shown!")
-    
+
     # Group data by task for the index, only including whitelisted tasks
     tasks_data = {}
     for data in log_data_list:
         if data:
-            task_name = data['task_name']
+            task_name = data["task_name"]
             # Skip non-whitelisted tasks
             if task_name not in whitelist:
                 continue
             if task_name not in tasks_data:
                 tasks_data[task_name] = []
             tasks_data[task_name].append(data)
-    
+
     # Generate index HTML content
     html_content = generate_index_html_content(tasks_data, log_data_list)
-    
+
     # Write to file
-    index_path = os.path.join(output_dir, 'index.html')
-    with open(index_path, 'w', encoding='utf-8') as f:
+    index_path = os.path.join(output_dir, "index.html")
+    with open(index_path, "w", encoding="utf-8") as f:
         f.write(html_content)
-    
+
     return html_content
 
 
@@ -3175,7 +3341,7 @@ def generate_index_html_content(tasks_data, all_data):
     # Generate summary tables
     model_summary_html = generate_model_summary_table(all_data)
     task_summary_html = generate_task_summary_table(tasks_data)
-    
+
     # Use a plain triple-quoted template so we don't have to escape every {{ }} in code snippets.
     # We will insert the dynamic tables via simple string replacement after constructing the template.
     html_template = '''<!DOCTYPE html>
@@ -3733,14 +3899,12 @@ def generate_index_html_content(tasks_data, all_data):
 
 </body>
 </html>'''
-    
+
     # Inject the dynamically generated tables into the template.
-    html_content = (
-        html_template
-        .replace('{model_summary_html}', model_summary_html)
-        .replace('{task_summary_html}', task_summary_html)
+    html_content = html_template.replace("{model_summary_html}", model_summary_html).replace(
+        "{task_summary_html}", task_summary_html
     )
-    
+
     # The following reordering previously caused duplicate table sections in some builds.
     # Keeping tables in their original position ensures a single, consistent rendering.
 
@@ -3750,57 +3914,58 @@ def generate_index_html_content(tasks_data, all_data):
 def get_model_earliest_dates():
     """Extract the earliest log date for each model from log files."""
     model_dates = {}
-    
+
     # Process all log files
     if os.path.exists(LOGS_DIR):
         for file in os.listdir(LOGS_DIR):
-            if file.endswith('.log'):
+            if file.endswith(".log"):
                 # Extract model and date from filename
                 # Pattern: task_model_YYYYMMDD_HHMMSS.log
                 basename = file[:-4]  # Remove .log extension
-                
+
                 # Find the date part (8 digits followed by 6 digits at the end)
-                match = re.search(r'^(.+?)_(\d{8})_(\d{6})$', basename)
+                match = re.search(r"^(.+?)_(\d{8})_(\d{6})$", basename)
                 if match:
                     prefix = match.group(1)  # Everything before the date
                     date_str = match.group(2)
-                    
+
                     # Now we need to extract the model name from the prefix
                     # The prefix is in format: task_name_model_name
                     # We need to figure out where the task name ends and model name begins
-                    
+
                     # Load task names to help identify them
                     task_name = None
                     if os.path.exists(TASKS_DIR):
                         for task_dir in os.listdir(TASKS_DIR):
-                            if prefix.startswith(task_dir + '_'):
+                            if prefix.startswith(task_dir + "_"):
                                 task_name = task_dir
                                 break
-                    
+
                     if task_name:
                         # Extract model name by removing task prefix
-                        model_name = prefix[len(task_name) + 1:]  # +1 for underscore
+                        model_name = prefix[len(task_name) + 1 :]  # +1 for underscore
                     else:
                         # Fallback: assume everything after first underscore-delimited segment is model
-                        parts = prefix.split('_', 1)
+                        parts = prefix.split("_", 1)
                         if len(parts) > 1:
                             model_name = parts[1]
                         else:
                             continue
-                    
+
                     if model_name:
                         # Convert to datetime for comparison
                         try:
-                            log_date = datetime.strptime(date_str, '%Y%m%d')
-                            
+                            log_date = datetime.strptime(date_str, "%Y%m%d")
+
                             # Update earliest date for this model
                             if model_name not in model_dates or log_date < model_dates[model_name]:
                                 model_dates[model_name] = log_date
                         except ValueError:
                             continue
-    
+
     # Convert dates to string format
-    return {model: date.strftime('%Y-%m-%d') for model, date in model_dates.items()}
+    return {model: date.strftime("%Y-%m-%d") for model, date in model_dates.items()}
+
 
 def generate_model_summary_table(_all_data_unused=None):
     """Generate the leaderboard table from reports/agent_summary.json.
@@ -3814,9 +3979,9 @@ def generate_model_summary_table(_all_data_unused=None):
         logging.error("agent_summary.json not found – unable to build leaderboard")
         return "<p style='color:red;'>agent_summary.json missing</p>"
 
-    with open(summary_path, "r", encoding="utf-8") as f:
+    with open(summary_path, encoding="utf-8") as f:
         summary = json.load(f)
-    
+
     # Get earliest dates for each model
     model_dates = get_model_earliest_dates()
 
@@ -3829,7 +3994,7 @@ def generate_model_summary_table(_all_data_unused=None):
 
     # First pass: collect any speedups that are actually present
     # task_map[task][model] = speed
-    task_map: Dict[str, Dict[str, float]] = {}
+    task_map: dict[str, dict[str, float]] = {}
 
     for task_name, model_dict in summary.items():
         if task_name not in whitelist:
@@ -3857,9 +4022,9 @@ def generate_model_summary_table(_all_data_unused=None):
 
     total_tasks = len(whitelist)
 
-    model_harmonics: Dict[str, float] = {}
+    model_harmonics: dict[str, float] = {}
     for model in sorted(all_models):
-        vals: List[float] = []
+        vals: list[float] = []
         for task in whitelist:
             vals.append(task_map.get(task, {}).get(model, 1.0))
 
@@ -3874,16 +4039,18 @@ def generate_model_summary_table(_all_data_unused=None):
     for raw_name, harmonic in sorted_models:
         display_name = clean_model_name(raw_name)
         logo_filename = get_model_logo(display_name)
-        
+
         if logo_filename:
-            logo_html = f'<img src="assets/{logo_filename}" alt="{display_name} logo" class="model-logo"> '
+            logo_html = (
+                f'<img src="assets/{logo_filename}" alt="{display_name} logo" class="model-logo"> '
+            )
         else:
-            logo_html = ''
-        
+            logo_html = ""
+
         # Get the earliest date for this model (if available)
-        earliest_date = model_dates.get(raw_name, '')
-        date_attr = f'data-earliest-date="{earliest_date}"' if earliest_date else ''
-            
+        earliest_date = model_dates.get(raw_name, "")
+        date_attr = f'data-earliest-date="{earliest_date}"' if earliest_date else ""
+
         rows_html += f"""
         <tr {date_attr}>
           <td>{logo_html}{display_name}</td>
@@ -3905,42 +4072,44 @@ def generate_model_summary_table(_all_data_unused=None):
 
 def generate_task_summary_table(tasks_data):
     """Generate task vs model performance table with sorting options."""
-    
+
     # Prepare task data with top speedup for sorting
     task_data_with_speedup = []
     for task_name, task_logs in tasks_data.items():
         # Remove any runs produced by a dummy model
-        task_logs = [log for log in task_logs if 'dummy' not in log['model_name'].lower()]
+        task_logs = [log for log in task_logs if "dummy" not in log["model_name"].lower()]
 
         # Deduplicate by (task, model): keep only the newest trajectory per model
         deduped_logs: dict[str, dict] = {}
         for log in task_logs:
-            model_key = log.get('model_name', '').lower()
+            model_key = log.get("model_name", "").lower()
             try:
-                mtime = os.path.getmtime(log.get('filepath', ''))
+                mtime = os.path.getmtime(log.get("filepath", ""))
             except Exception:
                 mtime = 0
-            if model_key not in deduped_logs or mtime > deduped_logs[model_key]['_mtime']:
+            if model_key not in deduped_logs or mtime > deduped_logs[model_key]["_mtime"]:
                 tmp = log.copy()
-                tmp['_mtime'] = mtime
+                tmp["_mtime"] = mtime
                 deduped_logs[model_key] = tmp
-        task_logs = [{k: v for k, v in log.items() if k != '_mtime'} for log in deduped_logs.values()]
+        task_logs = [
+            {k: v for k, v in log.items() if k != "_mtime"} for log in deduped_logs.values()
+        ]
 
         # Successful runs only
-        valid_logs = [log for log in task_logs if log['final_test_score'] is not None]
+        valid_logs = [log for log in task_logs if log["final_test_score"] is not None]
 
         # Sort by actual speedup descending
-        valid_logs.sort(key=lambda x: x['final_test_score'], reverse=True)
+        valid_logs.sort(key=lambda x: x["final_test_score"], reverse=True)
 
-        top_speedup = valid_logs[0]['final_test_score'] if valid_logs else 0
+        top_speedup = valid_logs[0]["final_test_score"] if valid_logs else 0
 
         task_data_with_speedup.append((task_name, task_logs, valid_logs, top_speedup))
-    
+
     # Sort alphabetically by task name by default (case-insensitive)
     task_data_with_speedup.sort(key=lambda x: x[0].lower())
-    
+
     # Generate sorting controls
-    sorting_controls = '''
+    sorting_controls = """
     <div class="sorting-controls">
         <label style="font-weight: 600; margin-right: 1rem;">Sort by:</label>
         <div class="sort-buttons-container">
@@ -3948,70 +4117,70 @@ def generate_task_summary_table(tasks_data):
             <button onclick="sortTable('speedup-desc')" id="sort-speedup-desc" class="sort-btn">Top Speedup ↓</button>
             <button onclick="sortTable('speedup-asc')" id="sort-speedup-asc" class="sort-btn">Top Speedup ↑</button>
         </div>
-    </div>'''
-    
+    </div>"""
+
     rows_html = ""
-    
+
     for task_name, task_logs, valid_logs, top_speedup in task_data_with_speedup:
         # Get task description from the first available log
         task_description = ""
         if task_logs:
             # Try to get task description from any log that has it
             for log in task_logs:
-                if log.get('task_description'):
-                    task_description = log['task_description']
+                if log.get("task_description"):
+                    task_description = log["task_description"]
                     break
-        
+
         # If not found in logs, fallback to tasks/ description file
         if not task_description:
             task_description = _load_task_description_from_file(task_name)
-        
+
         # Clean the task description for tooltip
         cleaned_description = _clean_task_description(task_description)
-        
-        rows_html += f'''
+
+        rows_html += f"""
         <tr data-task-name="{task_name}" data-top-speedup="{top_speedup}">
-          <td data-tooltip="{html.escape(cleaned_description)}" class="task-name-cell">{task_name}</td>'''
-        
+          <td data-tooltip="{html.escape(cleaned_description)}" class="task-name-cell">{task_name}</td>"""
+
         # Show top 4 performers (successful runs first, then failed runs)
         all_logs_sorted = valid_logs.copy()  # Start with successful runs
-        failed_logs = [log for log in task_logs if log['final_test_score'] is None]
+        failed_logs = [log for log in task_logs if log["final_test_score"] is None]
         all_logs_sorted.extend(failed_logs)  # Add failed runs after successful ones
-        
+
         for i in range(4):
             if i < len(all_logs_sorted):
                 log = all_logs_sorted[i]
                 clean_filename = f"{log['task_name']}_{log['model_name'].replace('/', '_').replace(' ', '_')}.html"
-                
+
                 # Determine display text and color
-                if log['final_test_score'] is not None:
-                    score_color = get_speedup_color(log['final_test_score'])
+                if log["final_test_score"] is not None:
+                    score_color = get_speedup_color(log["final_test_score"])
                     # Use clean model name for display
-                    clean_model = clean_model_name(log['model_name'])
+                    clean_model = clean_model_name(log["model_name"])
                     display_text = f"{clean_model} ({log['final_test_score']:.2f}x)"
                 else:
                     score_color = get_speedup_color(None)
-                    clean_model = clean_model_name(log['model_name'])
+                    clean_model = clean_model_name(log["model_name"])
                     display_text = f"{clean_model} (Fail)"
-                
-                rows_html += f'''
+
+                rows_html += f"""
           <td>
             <a href="{clean_filename}" style="color: #ffffff; text-decoration: none; font-weight: 500; display: block;">
               <span class="score-badge" style="background-color: {score_color}; color: #ffffff;">
                 {display_text}
               </span>
             </a>
-          </td>'''
+          </td>"""
             else:
                 na_color = get_speedup_color(None)
-                rows_html += f'''
+                rows_html += f"""
           <td>
             <span class="score-badge" style="background-color: {na_color}; color: #ffffff;">-</span>
-          </td>'''
-        
-        rows_html += '''
-        </tr>'''
-    
+          </td>"""
+
+        rows_html += """
+        </tr>"""
+
     # Generate Performance Timeline HTML for mobile (Approach #2)
     mobile_timeline_html = ""
     for task_name, task_logs, valid_logs, top_speedup in task_data_with_speedup:
@@ -4019,39 +4188,41 @@ def generate_task_summary_table(tasks_data):
         task_description = ""
         if task_logs:
             for log in task_logs:
-                if log.get('task_description'):
-                    task_description = log['task_description']
+                if log.get("task_description"):
+                    task_description = log["task_description"]
                     break
         if not task_description:
             task_description = _load_task_description_from_file(task_name)
         cleaned_description = _clean_task_description(task_description)
-        
+
         # Prepare speedup items with emoji rankings
         all_logs_sorted = valid_logs.copy()
-        failed_logs = [log for log in task_logs if log['final_test_score'] is None]
+        failed_logs = [log for log in task_logs if log["final_test_score"] is None]
         all_logs_sorted.extend(failed_logs)
-        
+
         # Get best speedup for header summary
         best_speedup_text = f"{top_speedup:.2f}x" if top_speedup > 0 else "No Success"
-        
+
         # Create horizontal performance strips
         performance_strips = []
         # Generate numeric ranks for all entries (not just top 4)
-        numeric_ranks = [str(i+1) for i in range(len(all_logs_sorted))]
-        
+        numeric_ranks = [str(i + 1) for i in range(len(all_logs_sorted))]
+
         for i in range(len(all_logs_sorted)):
             log = all_logs_sorted[i]
-            clean_filename = f"{log['task_name']}_{log['model_name'].replace('/', '_').replace(' ', '_')}.html"
-            score_color = get_speedup_color(log['final_test_score'])
-            
-            clean_model = clean_model_name(log['model_name'])
-                
-            if log['final_test_score'] is not None:
+            clean_filename = (
+                f"{log['task_name']}_{log['model_name'].replace('/', '_').replace(' ', '_')}.html"
+            )
+            score_color = get_speedup_color(log["final_test_score"])
+
+            clean_model = clean_model_name(log["model_name"])
+
+            if log["final_test_score"] is not None:
                 display_text = f"{clean_model} - {log['final_test_score']:.2f}x"
             else:
                 display_text = f"{clean_model} - Failed"
-            
-            performance_strips.append(f'''
+
+            performance_strips.append(f"""
             <div class="performance-strip">
               <div class="performance-rank">{numeric_ranks[i]}</div>
               <div class="performance-info">
@@ -4061,11 +4232,11 @@ def generate_task_summary_table(tasks_data):
                   </div>
                 </a>
               </div>
-            </div>''')
-        
+            </div>""")
+
         # On mobile, show all available trajectories (no need to fill empty slots)
-        
-        mobile_timeline_html += f'''
+
+        mobile_timeline_html += f"""
         <div class="timeline-item" data-task-name="{task_name}" data-top-speedup="{top_speedup}">
           <div class="timeline-header" onclick="toggleTimelineItem(this)">
             <div class="timeline-marker"></div>
@@ -4083,13 +4254,15 @@ def generate_task_summary_table(tasks_data):
           </div>
           <div class="timeline-content">
             <div class="performance-strips-container">
-              {''.join(performance_strips)}
+              {"".join(performance_strips)}
             </div>
           </div>
-        </div>'''
+        </div>"""
 
     # Split into parts to avoid f-string parsing issues with complex JavaScript
-    table_html = sorting_controls + '''
+    table_html = (
+        sorting_controls
+        + """
     <div id="speedup-section" class="table-container task-table-container" style="position: relative;">
       <!-- Mobile hint -->
       <div class="mobile-hint">
@@ -4098,7 +4271,9 @@ def generate_task_summary_table(tasks_data):
       
       <!-- Mobile Performance Timeline layout (hidden on desktop) -->
       <div class="mobile-performance-timeline">
-        ''' + mobile_timeline_html + '''
+        """
+        + mobile_timeline_html
+        + """
       </div>
       
       <!-- Desktop table layout (hidden on mobile) -->
@@ -4114,7 +4289,9 @@ def generate_task_summary_table(tasks_data):
             </tr>
           </thead>
           <tbody id="task-table-body">
-            ''' + rows_html + '''
+            """
+        + rows_html
+        + """
           </tbody>
         </table>
       </div>
@@ -4126,10 +4303,11 @@ def generate_task_summary_table(tasks_data):
       </div>
     </div>
     
-    '''
-    
+    """
+    )
+
     # Add CSS and JavaScript as separate strings to avoid f-string parsing issues
-    table_html += '''
+    table_html += """
     <style>
     /* Wider container specifically for the big task table */
     .table-container { overflow-x: auto; }
@@ -5173,13 +5351,13 @@ def generate_task_summary_table(tasks_data):
             }
         });
     });
-    </script>'''
-    
+    </script>"""
+
     # Fix doubled curly braces that were added to avoid interfering with earlier f-string formatting. Since
     # the final HTML string `table_html` is returned without additional string interpolation, we can safely
     # convert all instances of `{{` / `}}` back to single curly braces so that the CSS and JavaScript blocks
     # are syntactically correct.
-    table_html = table_html.replace('{{', '{').replace('}}', '}')
+    table_html = table_html.replace("{{", "{").replace("}}", "}")
 
     return table_html
 
@@ -5194,19 +5372,20 @@ def process_single_log_wrapper(log_file):
             logging.info(f"Skipping BAD-marked log: {base}")
             return None
         data = process_log_file_data(log_file)
-        
+
         # Skip if we got no data
         if not data:
             return None
-        
+
         # Exclude logs generated by dummy models
-        if 'dummy' in data.get('model_name', '').lower():
+        if "dummy" in data.get("model_name", "").lower():
             return None
-            
+
         return data
     except Exception as e:
         logging.error(f"Error processing {log_file}: {e}")
         return None
+
 
 def generate_single_html_wrapper(args):
     """Wrapper function for parallel HTML generation."""
@@ -5218,28 +5397,29 @@ def generate_single_html_wrapper(args):
         logging.error(f"Error generating HTML for {data.get('task_name', 'unknown')}: {e}")
         return None
 
+
 def main():
     """Main function to process logs and generate HTML visualization."""
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     logging.info("Starting trajectory visualization generation...")
-    
+
     # Check if logs directory exists
     if not os.path.exists(LOGS_DIR):
         logging.error(f"Logs directory '{LOGS_DIR}' not found!")
         return
-    
+
     # Find all log files
     log_files = []
     for file in os.listdir(LOGS_DIR):
-        if file.endswith('.log'):
+        if file.endswith(".log"):
             log_files.append(os.path.join(LOGS_DIR, file))
-    
+
     if not log_files:
         logging.error(f"No .log files found in '{LOGS_DIR}'!")
         return
-    
+
     logging.info(f"Found {len(log_files)} log files to process")
-    
+
     # Determine number of processes to use (use available CPUs but cap at 16)
     override = os.getenv("HTML_GEN_PROCESSES")
     if override:
@@ -5250,91 +5430,99 @@ def main():
     else:
         n_processes = min(cpu_count(), 16, len(log_files))
     logging.info(f"Using {n_processes} processes for parallel log processing")
-    
+
     # Process log files (optionally in parallel)
     if n_processes == 1:
         log_data_list = [process_single_log_wrapper(p) for p in sorted(log_files)]
     else:
         with Pool(processes=n_processes) as pool:
             log_data_list = pool.map(process_single_log_wrapper, sorted(log_files))
-    
+
     # Filter out None entries (failed processing)
     valid_data = [data for data in log_data_list if data is not None]
     logging.info(f"Successfully processed {len(valid_data)} out of {len(log_files)} log files")
-    
+
     if not valid_data:
         logging.error("No log files were successfully processed!")
         return
-    
+
     # Generate multi-file HTML structure
     print("\nGenerating multi-file HTML structure...")
-    
+
     # Ensure output directory exists
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    
+
     # Ensure assets directory exists and copy mascot
-    assets_dir = os.path.join(OUTPUT_DIR, 'assets')
+    assets_dir = os.path.join(OUTPUT_DIR, "assets")
     os.makedirs(assets_dir, exist_ok=True)
-    
+
     # Copy all assets from assets directory
     import shutil
-    
+
     # Copy from main assets directory
     if os.path.exists("./assets"):
         for asset_file in os.listdir("./assets"):
             source_path = os.path.join("./assets", asset_file)
             dest_path = os.path.join(assets_dir, asset_file)
-            
+
             if os.path.isfile(source_path):
                 try:
                     shutil.copy2(source_path, dest_path)
                     logging.info(f"Copied asset: {asset_file}")
                 except Exception as e:
                     logging.warning(f"Failed to copy {asset_file}: {e}")
-    
+
     # Also copy company logos from static_site/site/assets directory
     static_assets_dir = "./static_site/site/assets"
     if os.path.exists(static_assets_dir):
-        logo_files = ["claude_logo.png", "deepseek_logo.png", "gemini_logo.png", 
-                     "openai_logo.png", "qwen_logo.png", "z_logo.png"]
+        logo_files = [
+            "claude_logo.png",
+            "deepseek_logo.png",
+            "gemini_logo.png",
+            "openai_logo.png",
+            "qwen_logo.png",
+            "z_logo.png",
+        ]
         for logo_file in logo_files:
             source_path = os.path.join(static_assets_dir, logo_file)
             dest_path = os.path.join(assets_dir, logo_file)
-            
+
             # Skip if source and destination are the same file
             if os.path.abspath(source_path) == os.path.abspath(dest_path):
                 logging.info(f"Skipping {logo_file} - already in destination")
                 continue
-                
+
             if os.path.isfile(source_path):
                 try:
                     shutil.copy2(source_path, dest_path)
                     logging.info(f"Copied company logo: {logo_file}")
                 except Exception as e:
                     logging.warning(f"Failed to copy {logo_file}: {e}")
-    
+
     # Generate individual log files (optionally in parallel)
-    logging.info(f"Generating {len(valid_data)} individual HTML files using {n_processes} processes")
+    logging.info(
+        f"Generating {len(valid_data)} individual HTML files using {n_processes} processes"
+    )
     html_gen_args = [(data, OUTPUT_DIR, valid_data) for data in valid_data]
-    
+
     if n_processes == 1:
         individual_files = [generate_single_html_wrapper(args) for args in html_gen_args]
     else:
         with Pool(processes=n_processes) as pool:
             individual_files = pool.map(generate_single_html_wrapper, html_gen_args)
-    
+
     # Filter out None entries
     individual_files = [filename for filename in individual_files if filename is not None]
     logging.info(f"Generated {len(individual_files)} individual HTML files")
-    
+
     # Generate index page (if you have this function)
     try:
         generate_index_html(valid_data, OUTPUT_DIR)
         logging.info("Generated index.html")
     except NameError:
         logging.warning("generate_index_html function not found - skipping index generation")
-    
-    print(f"\nHTML visualization generated successfully!")
+
+    print("\nHTML visualization generated successfully!")
     print(f"Output directory: {OUTPUT_DIR}")
     print(f"Individual files: {len(individual_files)}")
 

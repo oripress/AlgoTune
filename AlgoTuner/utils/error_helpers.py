@@ -1,10 +1,11 @@
-import traceback
 import logging
 import os
 import re
 
+
 _error_messages_cache = {}
 _error_message_path = os.path.join("AlgoTuner", "messages", "error_message.txt")
+
 
 def get_error_messages_cached():
     """Load error messages from file, caching the result."""
@@ -16,7 +17,10 @@ def get_error_messages_cached():
         # Find the project root (directory containing AlgoTuner/)
         script_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = script_dir
-        while not os.path.isdir(os.path.join(project_root, "AlgoTuner")) and os.path.dirname(project_root) != project_root:
+        while (
+            not os.path.isdir(os.path.join(project_root, "AlgoTuner"))
+            and os.path.dirname(project_root) != project_root
+        ):
             project_root = os.path.dirname(project_root)
         full_path = os.path.join(project_root, _error_message_path)
 
@@ -26,7 +30,7 @@ def get_error_messages_cached():
             _error_messages_cache[_error_message_path] = default_msg
             return default_msg
         else:
-            with open(full_path, 'r') as f:
+            with open(full_path) as f:
                 content = f.read()
                 _error_messages_cache[_error_message_path] = content
                 return content
@@ -35,6 +39,7 @@ def get_error_messages_cached():
         default_msg = "Error: Invalid command format. Failed to load detailed instructions."
         _error_messages_cache[_error_message_path] = default_msg
         return default_msg
+
 
 def get_bad_response_error_message():
     """Alias for get_error_messages_cached for consistent bad response errors."""
@@ -48,41 +53,41 @@ def extract_error_context(tb_str, error_msg):
     context = {}
     # Try parsing traceback first (more reliable)
     try:
-        lines = tb_str.strip().split('\n')
+        lines = tb_str.strip().split("\n")
         # Look for the last "File ... line ..." entry
         for i in range(len(lines) - 1, -1, -1):
             line = lines[i].strip()
-            if line.startswith('File'):
+            if line.startswith("File"):
                 match = re.search(r'File "(.*?)", line (\d+)', line)
                 if match:
-                    context['file_path'] = match.group(1)
-                    context['line_number'] = int(match.group(2))
+                    context["file_path"] = match.group(1)
+                    context["line_number"] = int(match.group(2))
                     # Maybe extract the line content below it?
                     if i + 1 < len(lines):
-                        context['error_line_content'] = lines[i+1].strip()
-                    break # Found the most recent file context
-        
+                        context["error_line_content"] = lines[i + 1].strip()
+                    break  # Found the most recent file context
+
         # Refine error message if possible (e.g., remove traceback prefix if present)
         if error_msg and tb_str in error_msg:
-             context['error'] = error_msg.split(tb_str)[-1].strip()
+            context["error"] = error_msg.split(tb_str)[-1].strip()
         elif error_msg:
-             context['error'] = error_msg # Keep original if no traceback found within
-             
+            context["error"] = error_msg  # Keep original if no traceback found within
+
     except Exception as e:
         logging.warning(f"Failed to parse traceback for context: {e}")
-        context['error'] = error_msg # Fallback to original error message
+        context["error"] = error_msg  # Fallback to original error message
 
     # If traceback parsing failed, try simple regex on error message itself
-    if 'file_path' not in context:
+    if "file_path" not in context:
         # Example: Look for patterns like "file.py:10: error: ..."
-        match = re.search(r'^([\./\w-]+):(\d+):\s*(.*)', error_msg)
+        match = re.search(r"^([\./\w-]+):(\d+):\s*(.*)", error_msg)
         if match:
-            context['file_path'] = match.group(1)
-            context['line_number'] = int(match.group(2))
-            context['error'] = match.group(3).strip()
-            
-    # --- Ensure 'error' key exists --- 
-    if 'error' not in context:
-        context['error'] = error_msg # Ensure the original message is always there
+            context["file_path"] = match.group(1)
+            context["line_number"] = int(match.group(2))
+            context["error"] = match.group(3).strip()
 
-    return context 
+    # --- Ensure 'error' key exists ---
+    if "error" not in context:
+        context["error"] = error_msg  # Ensure the original message is always there
+
+    return context

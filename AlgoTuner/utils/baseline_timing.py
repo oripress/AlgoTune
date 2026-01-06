@@ -6,18 +6,23 @@ No memory monitoring, no complex context managers, no threads.
 Designed to avoid deadlocks and timeouts that occur in the main timing system.
 """
 
-import time
-import statistics
 import logging
-import traceback
-import gc
-from typing import Any, Callable, Dict, Optional
+import time
+from collections.abc import Callable
+from typing import Any
+
 
 logger = logging.getLogger(__name__)
 
 # NEW: standardise BLAS thread usage for baseline timing
 try:
-    from AlgoTuner.utils.blas_utils import set_blas_threads, log_current_blas_threads, log_cpu_affinity, log_thread_env
+    from AlgoTuner.utils.blas_utils import (
+        log_cpu_affinity,
+        log_current_blas_threads,
+        log_thread_env,
+        set_blas_threads,
+    )
+
     n_thr = set_blas_threads()  # uses env or cpu_count()
     log_current_blas_threads("[baseline_timing] ")
     log_cpu_affinity("[baseline_timing] ")
@@ -28,14 +33,15 @@ except Exception as _blas_e:
 
 MEMORY_MONITORING = False  # disable per-run psutil checks for speed
 
+
 def time_baseline_function(
     func: Callable[..., Any],
     args: tuple = (),
-    kwargs: Optional[Dict[str, Any]] = None,
+    kwargs: dict[str, Any] | None = None,
     num_runs: int = 10,
     warmup_runs: int = 3,
-    solver_module = None,
-) -> Dict[str, Any]:
+    solver_module=None,
+) -> dict[str, Any]:
     """
     Baseline timing wrapper that now simply delegates to
     `AlgoTuner.utils.precise_timing.time_execution_ns` so that all timing
@@ -83,15 +89,15 @@ def time_baseline_function(
 def time_baseline_with_timeout(
     func: Callable[..., Any],
     args: tuple = (),
-    kwargs: Optional[Dict[str, Any]] = None,
+    kwargs: dict[str, Any] | None = None,
     num_runs: int = 5,
     warmup_runs: int = 3,
-    timeout_seconds: float = 30.0
-) -> Dict[str, Any]:
+    timeout_seconds: float = 30.0,
+) -> dict[str, Any]:
     """
     Time baseline function with a simple timeout mechanism.
     Uses signal-based timeout on Unix systems.
-    
+
     Args:
         func: The function to time
         args: Positional arguments for the function
@@ -99,32 +105,36 @@ def time_baseline_with_timeout(
         num_runs: Number of measurement runs
         warmup_runs: Number of warmup runs
         timeout_seconds: Maximum time allowed for entire timing process
-        
+
     Returns:
         Same as time_baseline_function, with timeout_occurred flag
     """
-    import signal
-    import platform
-    
+
     if kwargs is None:
         kwargs = {}
-    
-    func_name = getattr(func, '__name__', 'anonymous')
-    logger.info(f"baseline_timing: Starting timing with {timeout_seconds}s timeout for '{func_name}'")
-    
-    logger.warning(f"baseline_timing: Signal timeout disabled in multiprocessing context, relying on pool timeout")
-    
+
+    func_name = getattr(func, "__name__", "anonymous")
+    logger.info(
+        f"baseline_timing: Starting timing with {timeout_seconds}s timeout for '{func_name}'"
+    )
+
+    logger.warning(
+        "baseline_timing: Signal timeout disabled in multiprocessing context, relying on pool timeout"
+    )
+
     # Add start time for progress tracking
     start_time = time.time()
     logger.info(f"baseline_timing: Starting time_baseline_function at {start_time}")
-    
+
     try:
         result = time_baseline_function(func, args, kwargs, num_runs, warmup_runs)
         elapsed = time.time() - start_time
-        logger.info(f"baseline_timing: time_baseline_function completed successfully in {elapsed:.2f}s")
+        logger.info(
+            f"baseline_timing: time_baseline_function completed successfully in {elapsed:.2f}s"
+        )
         return result
     except Exception as e:
-        elapsed = time.time() - start_time  
+        elapsed = time.time() - start_time
         logger.error(f"baseline_timing: time_baseline_function failed after {elapsed:.2f}s: {e}")
         return {
             "success": False,
@@ -135,5 +145,5 @@ def time_baseline_with_timeout(
             "num_runs_executed": 0,
             "result": None,
             "error": str(e),
-            "timeout_occurred": False
+            "timeout_occurred": False,
         }

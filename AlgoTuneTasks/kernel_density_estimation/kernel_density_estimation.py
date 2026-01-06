@@ -2,13 +2,13 @@
 # https://github.com/oripress/AlgoTune
 import logging
 import random
+from numbers import Real
 from typing import Any
 
 import numpy as np
 from scipy.stats import multivariate_normal
 from sklearn.exceptions import NotFittedError
 from sklearn.neighbors import KernelDensity
-from numbers import Real
 
 from AlgoTuneTasks.base import register_task, Task
 
@@ -373,6 +373,9 @@ class KernelDensityEstimation(Task):
 
         # 4) Shape robustness: squeeze → enforce 1-D of correct length
         log_density_sol = np.squeeze(log_density_sol)
+        # Handle edge case: squeeze can turn (1,) into () for single query point
+        if log_density_sol.ndim == 0:
+            log_density_sol = np.expand_dims(log_density_sol, 0)
         if log_density_sol.ndim != 1 or log_density_sol.shape[0] != num_query_points:
             logging.error(
                 f"Solution 'log_density' has incorrect shape. "
@@ -395,6 +398,9 @@ class KernelDensityEstimation(Task):
             return False
 
         log_density_ref = np.squeeze(log_density_ref)
+        # Handle edge case: squeeze can turn (1,) into () for single query point
+        if log_density_ref.ndim == 0:
+            log_density_ref = np.expand_dims(log_density_ref, 0)
         if log_density_ref.ndim != 1 or log_density_ref.shape[0] != num_query_points:
             logging.error(
                 f"Reference 'log_density' has unexpected shape {log_density_ref.shape}; "

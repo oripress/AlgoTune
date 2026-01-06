@@ -3,6 +3,7 @@
 Analyze local AlgoTune log files to determine success/failure.
 Heuristic: if a log does not consume its full budget, mark as failed.
 """
+
 import argparse
 import re
 from pathlib import Path
@@ -78,19 +79,13 @@ def main():
         description="Analyze local logs and classify success/failure based on budget usage."
     )
     parser.add_argument(
-        "--log-dir",
-        default="logs",
-        help="Directory containing .log files (default: logs/)"
+        "--log-dir", default="logs", help="Directory containing .log files (default: logs/)"
     )
     parser.add_argument(
-        "--model",
-        default=None,
-        help="Filter by model display name (e.g., gemini-3-flash)"
+        "--model", default=None, help="Filter by model display name (e.g., gemini-3-flash)"
     )
     parser.add_argument(
-        "--tasks-file",
-        default=None,
-        help="Optional file listing tasks to include (one per line)"
+        "--tasks-file", default=None, help="Optional file listing tasks to include (one per line)"
     )
 
     args = parser.parse_args()
@@ -102,7 +97,9 @@ def main():
     tasks_filter = None
     if args.tasks_file:
         tasks_path = Path(args.tasks_file)
-        tasks_filter = {line.strip() for line in tasks_path.read_text().splitlines() if line.strip()}
+        tasks_filter = {
+            line.strip() for line in tasks_path.read_text().splitlines() if line.strip()
+        }
 
     results = []
     for log_path in sorted(log_dir.glob("*.log")):
@@ -131,15 +128,17 @@ def main():
         if errors:
             reason_parts.append("errors: " + ", ".join(sorted(set(errors))))
 
-        results.append({
-            "task": task,
-            "model": model,
-            "status": status,
-            "reason": "; ".join(reason_parts) if reason_parts else "",
-            "log_path": str(log_path),
-            "budget_total": budget_total,
-            "budget_used": budget_used,
-        })
+        results.append(
+            {
+                "task": task,
+                "model": model,
+                "status": status,
+                "reason": "; ".join(reason_parts) if reason_parts else "",
+                "log_path": str(log_path),
+                "budget_total": budget_total,
+                "budget_used": budget_used,
+            }
+        )
 
     if not results:
         print("No matching logs found.")

@@ -10,20 +10,14 @@ import json
 import logging
 import types
 import typing
-from dataclasses import is_dataclass, fields
+from collections.abc import Sequence
+from dataclasses import fields, is_dataclass
 from enum import Enum
 from typing import (
     Any,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Type,
-    Union,
     get_args,
     get_origin,
+    Union,
 )
 
 import numpy as np
@@ -47,24 +41,26 @@ def _truncate_repr(val: Any, max_list_items: int = 5, max_str_len: int = 250) ->
 
     if isinstance(val, (list, tuple)):
         num_items = len(val)
-        if num_items == 0: # Empty list/tuple but long repr (e.g. a custom class)
-             return r[:max_str_len -3] + "..."
+        if num_items == 0:  # Empty list/tuple but long repr (e.g. a custom class)
+            return r[: max_str_len - 3] + "..."
 
         # Try to show head and tail for lists/tuples
         # Only truncate if the list is substantially larger than what we'd show
-        if num_items > max_list_items * 2 + 1: 
+        if num_items > max_list_items * 2 + 1:
             head_reprs = []
             current_len = 0
             # Max length for combined head and tail strings, plus ellipsis and count
             # Reserve space for "[..., ...] (total N items)"
-            reserved_space = len("[, ..., ] ()") + len(str(num_items)) + len("total  items") + 20 # Generous buffer
-            
+            reserved_space = (
+                len("[, ..., ] ()") + len(str(num_items)) + len("total  items") + 20
+            )  # Generous buffer
+
             for i in range(max_list_items):
                 item_r = repr(val[i])
                 if current_len + len(item_r) + len(", ") > (max_str_len - reserved_space) / 2:
                     break
                 head_reprs.append(item_r)
-                current_len += len(item_r) + (len(", ") if i < max_list_items -1 else 0)
+                current_len += len(item_r) + (len(", ") if i < max_list_items - 1 else 0)
 
             tail_reprs = []
             current_len = 0
@@ -73,20 +69,19 @@ def _truncate_repr(val: Any, max_list_items: int = 5, max_str_len: int = 250) ->
                 if current_len + len(item_r) + len(", ") > (max_str_len - reserved_space) / 2:
                     break
                 tail_reprs.append(item_r)
-                current_len += len(item_r) + (len(", ") if i < max_list_items -1 else 0)
-            
+                current_len += len(item_r) + (len(", ") if i < max_list_items - 1 else 0)
+
             if head_reprs and tail_reprs:
                 return f"[{', '.join(head_reprs)}, ..., {', '.join(tail_reprs)}] (total {num_items} items)"
-            elif head_reprs: # Only head fits within reasonable limits
-                 return f"[{', '.join(head_reprs)}, ...] (total {num_items} items)"
+            elif head_reprs:  # Only head fits within reasonable limits
+                return f"[{', '.join(head_reprs)}, ...] (total {num_items} items)"
             # Fallback if smart truncation still too complex or doesn't save much
-            return r[:max_str_len - 3] + "..."
-        else: # List is not long enough for "head...tail" display but its repr is too long
-             return r[:max_str_len - 3] + "..."
+            return r[: max_str_len - 3] + "..."
+        else:  # List is not long enough for "head...tail" display but its repr is too long
+            return r[: max_str_len - 3] + "..."
 
     # For non-list/tuple types if their repr is too long, or list truncation fallback
-    return r[:max_str_len - 3] + "..."
-
+    return r[: max_str_len - 3] + "..."
 
 
 def parse_string(text: str) -> Any:
@@ -110,11 +105,7 @@ def parse_string(text: str) -> Any:
 
 def _is_union(tp: Any) -> bool:
     origin = get_origin(tp)
-    return (
-        origin is Union
-        or origin is types.UnionType
-        or isinstance(tp, types.UnionType)
-    )
+    return origin is Union or origin is types.UnionType or isinstance(tp, types.UnionType)
 
 
 def _safe_numpy(values: Any, dtype: Any | None = None) -> np.ndarray:
@@ -136,7 +127,7 @@ def _safe_numpy(values: Any, dtype: Any | None = None) -> np.ndarray:
         raise TypeError(f"Cannot convert {_truncate_repr(values)} to ndarray ({dtype})") from e
 
 
-def _dtype_from_args(args: Tuple[Any, ...]) -> Any | None:
+def _dtype_from_args(args: tuple[Any, ...]) -> Any | None:
     for arg in args:
         try:
             return np.dtype(arg)
@@ -145,12 +136,8 @@ def _dtype_from_args(args: Tuple[Any, ...]) -> Any | None:
     return None
 
 
-def _shape_list_to_tuple(val: Any) -> Tuple[int, int] | Any:
-    if (
-        isinstance(val, list)
-        and len(val) == 2
-        and all(isinstance(i, int) for i in val)
-    ):
+def _shape_list_to_tuple(val: Any) -> tuple[int, int] | Any:
+    if isinstance(val, list) and len(val) == 2 and all(isinstance(i, int) for i in val):
         return tuple(val)
     return val
 
@@ -159,7 +146,8 @@ def _shape_list_to_tuple(val: Any) -> Tuple[int, int] | Any:
 # Primitive casting
 ###############################################################################
 
-def _cast_primitive(val: Any, target: Type) -> Any:
+
+def _cast_primitive(val: Any, target: type) -> Any:
     if target is typing.Any:
         return val
 
@@ -225,6 +213,7 @@ def _cast_primitive(val: Any, target: Type) -> Any:
 # Core recursive dispatcher
 ###############################################################################
 
+
 def cast_nested_value(value: Any, hint: Any) -> Any:  # noqa: C901
     logging.debug(
         "cast_nested_value: val=%s (%s)  hint=%s",
@@ -241,9 +230,7 @@ def cast_nested_value(value: Any, hint: Any) -> Any:  # noqa: C901
                 return cast_nested_value(value, sub)
             except (TypeError, ValueError) as e:
                 last = e
-        raise TypeError(
-            f"{_truncate_repr(value)} cannot be cast to any option in {hint}"
-        ) from last
+        raise TypeError(f"{_truncate_repr(value)} cannot be cast to any option in {hint}") from last
 
     # 2. Any
     if hint is typing.Any:
@@ -302,27 +289,27 @@ def cast_nested_value(value: Any, hint: Any) -> Any:  # noqa: C901
         return _cast_primitive(value, hint)
 
     # 6. Sequence / List
-    if origin in (list, List, Sequence):
+    if origin in (list, list, Sequence):
         elem_type = args[0] if args else Any
         if not isinstance(value, (list, tuple, np.ndarray)):
             # If target is a sequence but value is not, raise error immediately
-            raise TypeError(f"Cannot cast non-sequence type {type(value).__name__} to sequence type {hint}")
+            raise TypeError(
+                f"Cannot cast non-sequence type {type(value).__name__} to sequence type {hint}"
+            )
         # Value is a sequence, proceed with casting elements
         return [cast_nested_value(v, elem_type) for v in value]
 
     # 7. Set / FrozenSet
-    if origin in (set, Set, frozenset, typing.FrozenSet):
+    if origin in (set, set, frozenset, frozenset):
         elem_type = args[0] if args else Any
         iterable = (
-            value
-            if isinstance(value, (list, tuple, set, frozenset, np.ndarray))
-            else list(value)
+            value if isinstance(value, (list, tuple, set, frozenset, np.ndarray)) else list(value)
         )
         casted = {cast_nested_value(v, elem_type) for v in iterable}
-        return casted if origin in (set, Set) else frozenset(casted)
+        return casted if origin in (set, set) else frozenset(casted)
 
     # 8. Tuple
-    if origin in (tuple, Tuple):
+    if origin in (tuple, tuple):
         if not isinstance(value, tuple):
             value = tuple(value)
         if not args:
@@ -336,7 +323,7 @@ def cast_nested_value(value: Any, hint: Any) -> Any:  # noqa: C901
         return tuple(cast_nested_value(v, t) for v, t in zip(value, args))
 
     # 9. Dict / Mapping
-    if origin in (dict, Dict, typing.Mapping):
+    if origin in (dict, dict, typing.Mapping):
         if not isinstance(value, dict):
             value = dict(value)
         key_t, val_t = args if len(args) == 2 else (Any, Any)
@@ -365,7 +352,8 @@ def cast_nested_value(value: Any, hint: Any) -> Any:  # noqa: C901
 # Public API
 ###############################################################################
 
-def cast_input(raw: Any, task, ctx: Dict[str, Any] | None = None) -> Any:
+
+def cast_input(raw: Any, task, ctx: dict[str, Any] | None = None) -> Any:
     logging.info(f"cast_input called with raw: {raw}, type: {type(raw)}")
     if isinstance(raw, str):
         raw = parse_string(raw)
@@ -374,7 +362,9 @@ def cast_input(raw: Any, task, ctx: Dict[str, Any] | None = None) -> Any:
     try:
         sig = inspect.signature(task.solve)
         prm = sig.parameters.get("problem")
-        logging.info(f"Found parameter 'problem' with annotation: {prm.annotation if prm else 'No problem parameter'}")
+        logging.info(
+            f"Found parameter 'problem' with annotation: {prm.annotation if prm else 'No problem parameter'}"
+        )
         if prm and prm.annotation is not inspect.Parameter.empty:
             result = cast_nested_value(raw, prm.annotation)
             logging.info(f"cast_nested_value returned: {result}, type: {type(result)}")
@@ -394,10 +384,7 @@ def cast_result(res: Any, task) -> Any:
     if not hint and hasattr(task, "is_solution"):
         try:
             for p in inspect.signature(task.is_solution).parameters.values():
-                if (
-                    p.name == "solution"
-                    and p.annotation is not inspect.Parameter.empty
-                ):
+                if p.name == "solution" and p.annotation is not inspect.Parameter.empty:
                     hint = p.annotation
                     break
         except (ValueError, TypeError):

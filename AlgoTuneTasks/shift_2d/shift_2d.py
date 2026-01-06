@@ -124,10 +124,7 @@ class Shift2D(Task):
                 logging.info("Reference solver also failed. Accepting empty solution.")
                 return True
 
-        if not isinstance(proposed_list, list):
-            logging.error("'shifted_image' is not a list.")
-            return False
-
+        # Accept both lists and numpy arrays
         try:
             proposed_array = np.array(proposed_list, dtype=float)
         except ValueError:

@@ -10,10 +10,10 @@ import json
 import logging
 from pathlib import Path
 
-from AlgoTuneTasks.factory import TaskFactory
-from AlgoTuneTasks.base import load_dataset_streaming
 from AlgoTuner.config.loader import load_config
 from AlgoTuner.utils.evaluator.runner import run_oracle_evaluation
+from AlgoTuneTasks.base import load_dataset_streaming
+from AlgoTuneTasks.factory import TaskFactory
 
 
 def run_single_phase(task_name: str, data_dir: str, num_runs: int, warmup_runs: int):
@@ -21,16 +21,13 @@ def run_single_phase(task_name: str, data_dir: str, num_runs: int, warmup_runs: 
     cfg = load_config()
     ds_cfg = cfg.get("dataset", {})
     train_size = ds_cfg.get("train_size", 100)
-    test_size  = ds_cfg.get("test_size", 100)
-    seed       = ds_cfg.get("random_seed", 42)
+    test_size = ds_cfg.get("test_size", 100)
+    seed = ds_cfg.get("random_seed", 42)
 
     # Initialize task and generate dataset
     task = TaskFactory(task_name, oracle_time_limit=None)
     task.load_dataset(
-        train_size=train_size,
-        test_size=test_size,
-        random_seed=seed,
-        data_dir=data_dir
+        train_size=train_size, test_size=test_size, random_seed=seed, data_dir=data_dir
     )
     dataset_dir = Path(data_dir) / task_name
 
@@ -45,7 +42,7 @@ def run_single_phase(task_name: str, data_dir: str, num_runs: int, warmup_runs: 
                     capture_output=False,
                     needs_casting=True,
                     num_runs=num_runs,
-                    warmup_runs=warmup_runs
+                    warmup_runs=warmup_runs,
                 )
                 annotation_times.append(res.get("elapsed_ms", 0))
     annotation_avg = sum(annotation_times) / len(annotation_times) if annotation_times else 0.0
@@ -61,29 +58,37 @@ def run_single_phase(task_name: str, data_dir: str, num_runs: int, warmup_runs: 
                     capture_output=False,
                     needs_casting=True,
                     num_runs=num_runs,
-                    warmup_runs=warmup_runs
+                    warmup_runs=warmup_runs,
                 )
                 reannotation_times.append(res.get("elapsed_ms", 0))
-    reannotation_avg = sum(reannotation_times) / len(reannotation_times) if reannotation_times else 0.0
+    reannotation_avg = (
+        sum(reannotation_times) / len(reannotation_times) if reannotation_times else 0.0
+    )
 
     return annotation_avg, reannotation_avg
 
 
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-    parser = argparse.ArgumentParser(description="Benchmark two identical dataset annotation phases.")
+    parser = argparse.ArgumentParser(
+        description="Benchmark two identical dataset annotation phases."
+    )
     parser.add_argument("task_name", help="Name of the task to benchmark")
     parser.add_argument("--data-dir", required=True, help="Directory where datasets are stored")
-    parser.add_argument("--num-runs",    type=int, default=5, help="Number of runs per instance for timing")
-    parser.add_argument("--warmup-runs", type=int, default=3, help="Number of warmup runs per instance")
+    parser.add_argument(
+        "--num-runs", type=int, default=5, help="Number of runs per instance for timing"
+    )
+    parser.add_argument(
+        "--warmup-runs", type=int, default=3, help="Number of warmup runs per instance"
+    )
     args = parser.parse_args()
 
     # Set up file logging to tests/logs
     log_dir = Path("tests") / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     python_log = log_dir / f"{args.task_name}_benchmark_python.log"
-    file_handler = logging.FileHandler(python_log, mode='a')
-    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    file_handler = logging.FileHandler(python_log, mode="a")
+    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
     logging.getLogger().addHandler(file_handler)
     logging.info(f"Detailed logs will be written to {python_log}")
 
@@ -107,7 +112,7 @@ def main():
         "phase0_reannotation_avg_ms": reann0,
         "phase1_annotation_avg_ms": ann1,
         "phase1_reannotation_avg_ms": reann1,
-        "avg_diff_ms": avg_diff
+        "avg_diff_ms": avg_diff,
     }
 
     # Write summary JSON
@@ -120,4 +125,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()

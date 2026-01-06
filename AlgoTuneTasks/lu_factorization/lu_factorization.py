@@ -62,9 +62,7 @@ class LUFactorization(Task):
         return solution
 
     def is_solution(
-        self,
-        problem: dict[str, np.ndarray],
-        solution: dict[str, dict[str, list[list[float]]]]
+        self, problem: dict[str, np.ndarray], solution: dict[str, dict[str, list[list[float]]]]
     ) -> bool:
         """
         Validate an LU factorization A = P L U.
@@ -119,7 +117,7 @@ class LUFactorization(Task):
         # Tolerances
         atol = 1e-8
         rtol = 1e-6
-        I = np.eye(n)
+        identity = np.eye(n)
 
         # P is a permutation matrix:
         #   - entries are 0 or 1 (within atol)
@@ -130,10 +128,16 @@ class LUFactorization(Task):
             return False
         row_sums = P.sum(axis=1)
         col_sums = P.sum(axis=0)
-        if not (np.all(np.isclose(row_sums, 1.0, atol=atol)) and np.all(np.isclose(col_sums, 1.0, atol=atol))):
+        if not (
+            np.all(np.isclose(row_sums, 1.0, atol=atol))
+            and np.all(np.isclose(col_sums, 1.0, atol=atol))
+        ):
             logging.error("P rows/columns do not each sum to 1 (not a valid permutation).")
             return False
-        if not (np.allclose(P @ P.T, I, rtol=rtol, atol=atol) and np.allclose(P.T @ P, I, rtol=rtol, atol=atol)):
+        if not (
+            np.allclose(P @ P.T, identity, rtol=rtol, atol=atol)
+            and np.allclose(P.T @ P, identity, rtol=rtol, atol=atol)
+        ):
             logging.error("P is not orthogonal (P P^T != I).")
             return False
 

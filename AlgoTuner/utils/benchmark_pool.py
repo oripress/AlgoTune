@@ -1,30 +1,39 @@
-import multiprocessing
-from multiprocessing import Pool, cpu_count
-from AlgoTuner.utils.precise_timing import _initialize_timing_system, time_execution_ns
 import atexit
-import os  # needed for setting threading environment variables
 import logging
-import time
-import pickle
+import multiprocessing
+import os  # needed for setting threading environment variables
 import statistics
+from multiprocessing import cpu_count
+
 from AlgoTuner.utils.discover_and_list_tasks import discover_and_import_tasks
+from AlgoTuner.utils.precise_timing import _initialize_timing_system, time_execution_ns
+
 
 # Storage for pool-based timing calibration
 _pickle_overhead_ns = None
+
 
 # Initialize each worker process with enforced single-threaded BLAS and timing calibration
 def _worker_initializer():
     # Disable GC entirely in worker for consistent timing
     import gc as _gc
+
     if _gc.isenabled():
         _gc.disable()
     # Pre-import heavy modules to warm code caches (NumPy, tasks, evaluator, benchmark)
     import importlib
+
     modules_to_preload = [
-        'numpy', 'json', 'config.loader', 'tasks.base',
-        'utils.serialization', 'utils.casting',
-        'utils.evaluator.main', 'utils.benchmark',
-        'utils.k_search', 'tasks.registry'
+        "numpy",
+        "json",
+        "config.loader",
+        "tasks.base",
+        "utils.serialization",
+        "utils.casting",
+        "utils.evaluator.main",
+        "utils.benchmark",
+        "utils.k_search",
+        "tasks.registry",
     ]
     for m in modules_to_preload:
         try:
@@ -43,10 +52,13 @@ def _worker_initializer():
     _pickle_overhead_ns = 0
     # Pin each worker to a distinct physical core to avoid contention
     try:
-        import multiprocessing as _mp, psutil
+        import multiprocessing as _mp
+
+        import psutil
+
         proc = _mp.current_process()
         # Identity is a tuple like (i,), so extract worker index
-        worker_id = proc._identity[0] if hasattr(proc, '_identity') and proc._identity else 1
+        worker_id = proc._identity[0] if hasattr(proc, "_identity") and proc._identity else 1
         # Determine number of physical cores
         num_phys = psutil.cpu_count(logical=False) or psutil.cpu_count(logical=True)
         core_id = (worker_id - 1) % num_phys
@@ -54,6 +66,7 @@ def _worker_initializer():
         logging.debug(f"BenchmarkPool worker {worker_id} pinned to physical core {core_id}")
     except Exception as e:
         logging.debug(f"Could not set per-worker CPU affinity: {e}")
+
 
 # Task wrapper for Pool
 def _run_task(task_args):
@@ -73,28 +86,34 @@ def _run_task(task_args):
         try:
             result["mean_ns"] = statistics.mean(vals) if vals else result.get("mean_ns")
             result["median_ns"] = statistics.median(vals) if vals else result.get("median_ns")
-            result["stddev_ns"] = statistics.stdev(vals) if len(vals) > 1 else result.get("stddev_ns")
+            result["stddev_ns"] = (
+                statistics.stdev(vals) if len(vals) > 1 else result.get("stddev_ns")
+            )
             result["min_ns"] = min(vals) if vals else result.get("min_ns")
             result["max_ns"] = max(vals) if vals else result.get("max_ns")
         except Exception:
             pass
     return result
 
+
 class BenchmarkPool:
     """
     A singleton-style pool of worker processes to perform timing tasks repeatedly.
-    
+
     DEPRECATED: This class is deprecated in favor of ProcessPoolManager.
     Use ProcessPoolManager.get_pool() for new code.
     """
+
     _pool = None
 
     @classmethod
     def start(cls, processes=None):
         if cls._pool is None:
-            logging.warning("BenchmarkPool is deprecated. Consider using ProcessPoolManager instead.")
+            logging.warning(
+                "BenchmarkPool is deprecated. Consider using ProcessPoolManager instead."
+            )
             # Use forkserver context for better isolation
-            ctx = multiprocessing.get_context('forkserver')
+            ctx = multiprocessing.get_context("forkserver")
             # Start pool without initializer to avoid long startup
             cls._pool = ctx.Pool(processes=processes or cpu_count())
 
@@ -112,5 +131,6 @@ class BenchmarkPool:
         task = (func, args, kwargs or {}, num_runs, warmup_runs)
         return cls._pool.apply(_run_task, (task,))
 
+
 # Ensure the pool is stopped at program exit to clean up worker processes
-atexit.register(BenchmarkPool.stop) 
+atexit.register(BenchmarkPool.stop)

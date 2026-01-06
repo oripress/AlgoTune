@@ -84,10 +84,7 @@ class MatrixExponential(Task):
             return False
 
         expA_sol_list = solution["exponential"]
-        if not isinstance(expA_sol_list, list):
-            logging.error("Solution 'exponential' is not a list.")
-            return False
-
+        # Accept both lists and numpy arrays
         try:
             expA_sol = np.asarray(expA_sol_list)
         except Exception as e:

@@ -2,22 +2,15 @@
 Module reloading and task loading for the evaluator.
 """
 
+import importlib
+import logging
 import os
 import sys
-import logging
-import importlib
-import networkx as nx
-import pkgutil
-import time
-from typing import Any, Dict, List, Optional, Tuple
-from concurrent.futures import ProcessPoolExecutor, TimeoutError as FuturesTimeoutError
-from multiprocessing import Manager
-from functools import partial
-import traceback
-from AlgoTuneTasks.base import TASK_REGISTRY
 
 # --- Import and run task discovery ---
 from AlgoTuner.utils.discover_and_list_tasks import discover_and_import_tasks
+
+
 try:
     discover_and_import_tasks()
     logging.info("utils.evaluator.loader: Successfully discovered and imported tasks.")
@@ -34,12 +27,13 @@ if CODE_DIR not in sys.path:
     sys.path.insert(0, CODE_DIR)
 
 
-def load_task(task_name, data_dir: Optional[str] = None):
+def load_task(task_name, data_dir: str | None = None):
     """
     Load a task instance dynamically using TaskFactory.
     This will import and register the task if needed.
     """
     from AlgoTuneTasks.factory import TaskFactory
+
     try:
         # TaskFactory handles import, registration, and instantiation
         instance = TaskFactory(task_name, data_dir=data_dir)
@@ -51,12 +45,12 @@ def load_task(task_name, data_dir: Optional[str] = None):
 
 def reload_all_llm_src(code_dir: str) -> None:
     """Reloads all modules in the llm_src directory and the solver module.
-    
+
     Args:
         code_dir: The path to the code directory containing solver.py.
     """
     logging.info("Attempting to reload all LLM source modules...")
-    
+
     try:
         # Temporarily add code_dir to sys.path so imports resolve
         sys.path.insert(0, code_dir)
@@ -75,11 +69,11 @@ def reload_all_llm_src(code_dir: str) -> None:
         logging.info(f"Reloaded {reloaded_count} modules from CODE_DIR '{code_dir_path}'")
         # Finally import or reload the solver entrypoint itself
         try:
-            if 'solver' in sys.modules:
-                importlib.reload(sys.modules['solver'])
+            if "solver" in sys.modules:
+                importlib.reload(sys.modules["solver"])
                 logging.info("Reloaded solver module 'solver'")
             else:
-                importlib.import_module('solver')
+                importlib.import_module("solver")
                 logging.info("Imported solver module 'solver'")
         except Exception as e:
             logging.warning(f"Failed to import/reload solver module: {e}")
@@ -91,4 +85,5 @@ def reload_all_llm_src(code_dir: str) -> None:
 
 class EvaluationTimeoutError(Exception):
     """Custom exception for evaluation timeouts."""
-    pass 
+
+    pass

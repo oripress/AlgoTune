@@ -329,7 +329,7 @@ class VectorQuantization(Task):
 
         if mse_of_current_solution > allowed_upper_bound_for_solution_mse:
             logging.error(
-                f"Solution's actual MSE ({mse_of_current_solution:.4f}) is more than {relative_epsilon_threshold*100:.1f}% "
+                f"Solution's actual MSE ({mse_of_current_solution:.4f}) is more than {relative_epsilon_threshold * 100:.1f}% "
                 f"greater than the internal Faiss solver's MSE ({faiss_q_error:.4f}). "
                 f"Allowed upper bound for solution's MSE: {allowed_upper_bound_for_solution_mse:.4f}."
             )

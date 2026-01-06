@@ -15,7 +15,10 @@ def validation_already_done(res: Any) -> bool:
     """
     # If it's a ResultMetadata instance we also know validation already happened
     try:
-        from AlgoTuner.utils.smart_result_handler import ResultMetadata  # local import to avoid cycle
+        from AlgoTuner.utils.smart_result_handler import (
+            ResultMetadata,
+        )  # local import to avoid cycle
+
         if isinstance(res, ResultMetadata):
             return True
     except ImportError:
@@ -25,8 +28,8 @@ def validation_already_done(res: Any) -> bool:
         return False
 
     known_flags = (
-        "validation_completed",     # set explicitly when worker validated
+        "validation_completed",  # set explicitly when worker validated
         "stripped_after_validation",  # worker replaced big array after validation
-        "stripped_in_timing",       # timing phase replacement
+        "stripped_in_timing",  # timing phase replacement
     )
-    return any(res.get(flag) for flag in known_flags) 
+    return any(res.get(flag) for flag in known_flags)

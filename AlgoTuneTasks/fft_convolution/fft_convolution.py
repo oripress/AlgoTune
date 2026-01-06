@@ -284,10 +284,7 @@ class FFTConvolution(Task):
 
         student_result = solution["convolution"]
 
-        if not isinstance(student_result, list):
-            logging.error("Convolution result must be a list.")
-            return False
-
+        # Accept both lists and numpy arrays
         try:
             student_result_np = np.array(student_result, dtype=float)
             if not np.all(np.isfinite(student_result_np)):

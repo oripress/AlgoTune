@@ -1,22 +1,21 @@
-import logging
-import ast
-from typing import Optional, List, Dict, Any, Tuple
-from dataclasses import dataclass, field
-from pydantic import SecretStr
 import inspect
-import re
+import logging
 import os
-import sys
+import re
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-from AlgoTuner.config.model_config import GlobalConfig, GenericAPIModelConfig
-from AlgoTuner.utils.file_helpers import load_file_content
-from AlgoTuner.editor.editor_functions import Editor, EditorState, reload_all_llm_src
-from AlgoTuner.utils.message_writer import MessageWriter
-from AlgoTuner.utils.error_helpers import get_error_messages_cached
-from AlgoTuneTasks.base import Task
-from AlgoTuner.utils.type_inspection import describe_type
+from pydantic import SecretStr
+
+from AlgoTuner.config.model_config import GenericAPIModelConfig, GlobalConfig
+from AlgoTuner.editor.editor_functions import Editor, EditorState
 from AlgoTuner.utils.clean_up_self import remove_self_parameter
+from AlgoTuner.utils.error_helpers import get_error_messages_cached
+from AlgoTuner.utils.file_helpers import load_file_content
+from AlgoTuner.utils.message_writer import MessageWriter
+from AlgoTuneTasks.base import Task
+
 
 @dataclass
 class InterfaceState:
@@ -24,9 +23,9 @@ class InterfaceState:
 
     spend: float = 0.0
     messages_sent: int = 0
-    messages: List[Dict[str, str]] = None
-    _state_dict: Dict[str, Any] = None
-    editor_state: Optional[EditorState] = None
+    messages: list[dict[str, str]] = None
+    _state_dict: dict[str, Any] = None
+    editor_state: EditorState | None = None
 
     def __post_init__(self):
         if self.messages is None:
@@ -36,11 +35,11 @@ class InterfaceState:
 
     def get(self, key: str, default=None) -> Any:
         """Get a value from the state dictionary.
-        
+
         Args:
             key: The key to get the value for
             default: The default value to return if the key is not found
-            
+
         Returns:
             The value for the key, or the default if not found
         """
@@ -48,25 +47,29 @@ class InterfaceState:
 
     def set(self, key: str, value: Any) -> None:
         """Set a value in the state dictionary.
-        
+
         Args:
             key: The key to set the value for
             value: The value to set
         """
         self._state_dict[key] = value
 
-    def get_best_speedup(self) -> Optional[float]:
+    def get_best_speedup(self) -> float | None:
         """Get the best speedup achieved so far."""
         if self.editor_state:
             return self.editor_state.get_best_speedup()
-        logging.warning("Attempted to get best speedup, but editor_state is not set in InterfaceState.")
+        logging.warning(
+            "Attempted to get best speedup, but editor_state is not set in InterfaceState."
+        )
         return None
 
-    def update_best_speedup(self, new_speedup: Optional[float]) -> bool:
+    def update_best_speedup(self, new_speedup: float | None) -> bool:
         """Update the best speedup if the new one is better."""
         if self.editor_state:
             return self.editor_state.update_best_speedup(new_speedup)
-        logging.warning("Attempted to update best speedup, but editor_state is not set in InterfaceState.")
+        logging.warning(
+            "Attempted to update best speedup, but editor_state is not set in InterfaceState."
+        )
         return False
 
 
@@ -101,9 +104,7 @@ class BaseLLMInterface:
         try:
             self.editor_state = EditorState()
             self.editor = Editor(self.editor_state)
-            logging.info(
-                self.message_writer.format_system_message("Editor initialized")
-            )
+            logging.info(self.message_writer.format_system_message("Editor initialized"))
         except Exception as e:
             error_msg = self.message_writer.format_error(str(e), "initializing editor")
             logging.error(error_msg)
@@ -116,9 +117,7 @@ class BaseLLMInterface:
         try:
             self.error_message_template = get_error_messages_cached()
         except Exception as e:
-            error_msg = self.message_writer.format_error(
-                str(e), "loading error messages template"
-            )
+            error_msg = self.message_writer.format_error(str(e), "loading error messages template")
             logging.error(error_msg)
             raise RuntimeError(error_msg)
 
@@ -153,10 +152,7 @@ class BaseLLMInterface:
             "max_tokens": self.model_config.max_tokens,
         }
 
-        if (
-            hasattr(self.model_config, "temperature")
-            and self.model_config.temperature is not None
-        ):
+        if hasattr(self.model_config, "temperature") and self.model_config.temperature is not None:
             self.model_params["temperature"] = self.model_config.temperature
 
         logging.info("_initialize_model finished.")
@@ -170,91 +166,129 @@ class BaseLLMInterface:
         # Load initial template
         initial_content = load_file_content(initial_message_path)
         description_content = load_file_content(description_path)
-        
+
         # Dynamically update the package list from pyproject.toml
         try:
             # Read project dependencies from pyproject.toml
             import tomllib as toml_lib
         except ImportError:
             import toml as toml_lib
-            _using_tomllib = False # Flag that we are using the older toml library
+
+            _using_tomllib = False  # Flag that we are using the older toml library
         else:
-            _using_tomllib = True # Flag that we are using the standard tomllib
-            
+            _using_tomllib = True  # Flag that we are using the standard tomllib
+
         try:
             pyproject_path = "pyproject.toml"
             if not os.path.exists(pyproject_path):
-                logging.warning(f"{pyproject_path} not found. Skipping dynamic package list update.")
+                logging.warning(
+                    f"{pyproject_path} not found. Skipping dynamic package list update."
+                )
             else:
                 # Open in the correct mode based on the library
-                file_mode = 'rb' if _using_tomllib else 'r'
+                file_mode = "rb" if _using_tomllib else "r"
                 try:
                     with open(pyproject_path, file_mode) as fp:
                         proj = toml_lib.load(fp)
                 except Exception as e_load:
-                    logging.error(f"Failed to load {pyproject_path} using mode '{file_mode}': {e_load}", exc_info=True)
+                    logging.error(
+                        f"Failed to load {pyproject_path} using mode '{file_mode}': {e_load}",
+                        exc_info=True,
+                    )
                     # Optional: Attempt fallback mode?
-                    raise # Re-raise the loading error for now
-                
+                    raise  # Re-raise the loading error for now
+
                 # Try PEP 621 `project.dependencies` first
-                deps = proj.get('project', {}).get('dependencies')
+                deps = proj.get("project", {}).get("dependencies")
                 if deps is None:
                     # Fallback to Poetry's `tool.poetry.dependencies`
-                    deps = proj.get('tool', {}).get('poetry', {}).get('dependencies', [])
+                    deps = proj.get("tool", {}).get("poetry", {}).get("dependencies", [])
                     logging.info("Using dependencies from [tool.poetry.dependencies]")
                 else:
-                     logging.info("Using dependencies from [project.dependencies]")
+                    logging.info("Using dependencies from [project.dependencies]")
 
-                if not isinstance(deps, (list, dict)): # Poetry uses a dict, PEP 621 uses list
-                    logging.warning(f"Unexpected type for dependencies: {type(deps)}. Skipping dynamic package list update.")
+                if not isinstance(deps, (list, dict)):  # Poetry uses a dict, PEP 621 uses list
+                    logging.warning(
+                        f"Unexpected type for dependencies: {type(deps)}. Skipping dynamic package list update."
+                    )
                     deps = []
 
                 logging.debug(f"Raw dependencies found: {deps}")
 
                 # Exclude dev/tooling packages AND python itself
-                exclude = {'litellm', 'google-generativeai', 'pylint', 'line_profiler', 'pytest', 'toml', 'python', 'orjson', 'pyaml', 'pillow'}
-                
+                exclude = {
+                    "litellm",
+                    "google-generativeai",
+                    "pylint",
+                    "line_profiler",
+                    "pytest",
+                    "toml",
+                    "python",
+                    "orjson",
+                    "pyaml",
+                    "pillow",
+                }
+
                 # Normalize dependency strings/keys (strip extras, version specifiers)
                 pkg_names = []
-                
-                if isinstance(deps, list): # PEP 621 list of strings
+
+                if isinstance(deps, list):  # PEP 621 list of strings
                     dep_iterable = deps
-                elif isinstance(deps, dict): # Poetry dict {name: version/spec}
+                elif isinstance(deps, dict):  # Poetry dict {name: version/spec}
                     dep_iterable = deps.keys()
                 else:
-                    dep_iterable = [] # Should not happen based on earlier check
+                    dep_iterable = []  # Should not happen based on earlier check
 
                 for dep in dep_iterable:
                     # Extract package name before any bracket or comparison
-                    name = dep.split('[')[0].split(' ')[0].split('=')[0].split('>')[0].split('<')[0].strip().strip('"').strip("'")
-                    if name: # Avoid empty strings
+                    name = (
+                        dep.split("[")[0]
+                        .split(" ")[0]
+                        .split("=")[0]
+                        .split(">")[0]
+                        .split("<")[0]
+                        .strip()
+                        .strip('"')
+                        .strip("'")
+                    )
+                    if name:  # Avoid empty strings
                         pkg_names.append(name)
-                        
+
                 logging.debug(f"Normalized package names: {pkg_names}")
-                
+
                 extras = sorted([p for p in pkg_names if p not in exclude])
                 logging.debug(f"Filtered packages (extras): {extras}")
-                
+
                 if not extras:
-                     logging.warning("No extra packages found after filtering. Placeholder might remain.")
-                     
+                    logging.warning(
+                        "No extra packages found after filtering. Placeholder might remain."
+                    )
+
                 # Build new bullet list with actual newlines
-                bullets = ''.join(f" - {p}\n" for p in extras) if extras else " - (None specified or all filtered)\n"
+                bullets = (
+                    "".join(f" - {p}\n" for p in extras)
+                    if extras
+                    else " - (None specified or all filtered)\n"
+                )
                 logging.debug(f"Generated bullets string:\n{bullets}")
-                
+
                 # Regex to find the line 'additional packages:' and subsequent bullet points
                 # It captures the prefix up to and including 'additional packages:\n'
-                # It then matches (and discards) one or more lines starting with optional space/tab and '-' 
+                # It then matches (and discards) one or more lines starting with optional space/tab and '-'
                 pattern = re.compile(
                     r"(?P<prefix>^.*?additional packages:\s*\r?\n)(?:^[ \t]*-[^\r\n]*\r?\n?)+",
-                    re.IGNORECASE | re.MULTILINE
+                    re.IGNORECASE | re.MULTILINE,
                 )
-                
-                original_content = initial_content # Keep a copy for comparison
-                initial_content = pattern.sub(lambda m: m.group('prefix') + bullets, initial_content, count=1)
-                
+
+                original_content = initial_content  # Keep a copy for comparison
+                initial_content = pattern.sub(
+                    lambda m: m.group("prefix") + bullets, initial_content, count=1
+                )
+
                 if initial_content == original_content:
-                    logging.warning("Regex pattern did not match or substitute in initial_system_message.txt. Placeholder may remain.")
+                    logging.warning(
+                        "Regex pattern did not match or substitute in initial_system_message.txt. Placeholder may remain."
+                    )
                 else:
                     logging.info("Successfully substituted placeholder with dynamic package list.")
 
@@ -262,19 +296,23 @@ class BaseLLMInterface:
             # Fallback to original content on failure
             logging.error(f"Error during dynamic package list update: {e}", exc_info=True)
             # Ensure initial_content retains its original value if loaded before error
-            initial_content = load_file_content(initial_message_path) # Reload original on error
+            initial_content = load_file_content(initial_message_path)  # Reload original on error
             logging.warning("Fell back to original system message content due to error.")
-        
+
         # Log loaded file contents
-        logging.info(f"Loaded initial_content (type: {type(initial_content)}, len: {len(initial_content)}). Starts with:\n-------\n{str(initial_content)[:200]}\n-------")
-        logging.info(f"Loaded description_content (type: {type(description_content)}, len: {len(description_content)}). Starts with:\n-------\n{str(description_content)[:200]}\n-------")
+        logging.info(
+            f"Loaded initial_content (type: {type(initial_content)}, len: {len(initial_content)}). Starts with:\n-------\n{str(initial_content)[:200]}\n-------"
+        )
+        logging.info(
+            f"Loaded description_content (type: {type(description_content)}, len: {len(description_content)}). Starts with:\n-------\n{str(description_content)[:200]}\n-------"
+        )
 
         # Get the solve function implementation using inspect
         solve_function_source = inspect.getsource(self.task_instance.solve)
-        
+
         # Get the module containing the task class
         task_module = inspect.getmodule(self.task_instance)
-        
+
         # --- ADDED BACK --- Define all_methods and all_module_functions
         all_methods = inspect.getmembers(self.task_instance.__class__, predicate=inspect.isfunction)
         all_module_functions = inspect.getmembers(task_module, predicate=inspect.isfunction)
@@ -285,52 +323,58 @@ class BaseLLMInterface:
         source_error = None
         try:
             module_source = inspect.getsource(task_module)
-            logging.info(f"Successfully retrieved task module source (length: {len(module_source)}).")
+            logging.info(
+                f"Successfully retrieved task module source (length: {len(module_source)})."
+            )
             # Log first few lines for verification
             logging.info(f"Module source starts with:\n-------\n{module_source[:200]}\n-------")
         except Exception as e:
             source_error = str(e)
             logging.error(f"Failed to retrieve task module source: {e}")
-            module_source = "" # Ensure it's empty on error
-            
+            module_source = ""  # Ensure it's empty on error
+
         import_lines = []
         if not source_error:
-            for line in module_source.split('\n'):
+            for line in module_source.split("\n"):
                 line = line.strip()
                 # Skip any line containing logging, even in comments
-                if 'logging' in line:
+                if "logging" in line:
                     continue
                 # --- ADDED --- Skip tasks.base imports
-                if 'tasks.base' in line.lower():
+                if "tasks.base" in line.lower():
                     continue
                 # --- END ADDED ---
                 # Capture import statements
-                if line.startswith('import ') or line.startswith('from '):
+                if line.startswith("import ") or line.startswith("from "):
                     import_lines.append(line)
             logging.info(f"Collected {len(import_lines)} import lines. Content: {import_lines}")
         else:
-            logging.warning(f"Skipping import line collection due to source retrieval error: {source_error}")
+            logging.warning(
+                f"Skipping import line collection due to source retrieval error: {source_error}"
+            )
 
         # Extract just the function definition by finding the first def
-        lines = solve_function_source.split('\n')
+        lines = solve_function_source.split("\n")
         start_idx = 0
         for i, line in enumerate(lines):
-            if line.strip().startswith('def solve'):
+            if line.strip().startswith("def solve"):
                 start_idx = i
                 break
         lines = lines[start_idx:]
-        
+
         # Find the actual indentation of the function definition
         indent = len(lines[0]) - len(lines[0].lstrip())
         # Remove the indentation from all lines
         unindented_source = "\n".join(line[indent:] for line in lines)
-        
+
         # Clean up logging but keep solve as a class method (don't remove self references)
         # NOTE: We intentionally do NOT remove self. references from the solve function
         # as it should remain a proper class method
         # Remove any logging lines from solve function
-        unindented_source = '\n'.join(line for line in unindented_source.split('\n') if 'logging.' not in line)
-        
+        unindented_source = "\n".join(
+            line for line in unindented_source.split("\n") if "logging." not in line
+        )
+
         # Add a validation function notice inside the solve function docstring
         if '"""' in unindented_source:
             docstring_end = unindented_source.find('"""', unindented_source.find('"""') + 3)
@@ -343,13 +387,13 @@ class BaseLLMInterface:
                     "\n    "
                 )
                 unindented_source = (
-                    unindented_source[:docstring_end] + 
-                    validation_note + 
-                    unindented_source[docstring_end:]
+                    unindented_source[:docstring_end]
+                    + validation_note
+                    + unindented_source[docstring_end:]
                 )
         logging.info("Added validation requirement notes inside the solve function docstring")
         logging.info("Successfully cleaned solve function source.")
-        
+
         # Get the validation function directly using the same approach as the solve function
         validation_source = ""
         try:
@@ -357,163 +401,212 @@ class BaseLLMInterface:
             logging.info("Attempting to fetch validation function source code")
             validation_function = self.task_instance.is_solution
             validation_source = inspect.getsource(validation_function)
-            logging.info(f"Successfully retrieved validation function from task instance: {len(validation_source)} characters")
+            logging.info(
+                f"Successfully retrieved validation function from task instance: {len(validation_source)} characters"
+            )
         except (AttributeError, TypeError) as e:
             # If that fails, get it from the base Task class
             try:
                 logging.info(f"Failed to get task's validation function: {e}. Trying base class...")
                 validation_function = Task.is_solution
                 validation_source = inspect.getsource(validation_function)
-                logging.info(f"Successfully retrieved validation function from base Task: {len(validation_source)} characters")
+                logging.info(
+                    f"Successfully retrieved validation function from base Task: {len(validation_source)} characters"
+                )
             except Exception as e2:
                 logging.error(f"Failed to get validation function source: {e2}")
                 validation_source = "def is_solution():\n    pass"
-        
+
         # Clean up the validation source similar to other functions
-        lines = validation_source.split('\n')
+        lines = validation_source.split("\n")
         start_idx = 0
         for i, line in enumerate(lines):
-            if line.strip().startswith('def is_solution'):
+            if line.strip().startswith("def is_solution"):
                 start_idx = i
                 break
         lines = lines[start_idx:]
-        
+
         # Find and remove indentation
         indent = len(lines[0]) - len(lines[0].lstrip())
         validation_source = "\n".join(line[indent:] for line in lines)
-        
+
         # Clean up self references
         validation_source = remove_self_parameter(validation_source, "is_solution")
         # Remove lines that start with a logging call
-        validation_source = '\n'.join(line for line in validation_source.split('\n') if not line.strip().startswith('logging.'))
+        validation_source = "\n".join(
+            line
+            for line in validation_source.split("\n")
+            if not line.strip().startswith("logging.")
+        )
         # If the resulting validation_source is too short, use a fallback message
-        if len([line for line in validation_source.split('\n') if line.strip()]) < 3:
+        if len([line for line in validation_source.split("\n") if line.strip()]) < 3:
             validation_source = "[Validation function source not available (possibly removed due to logging cleanup)]"
 
         # Add needed config imports if the task did not override is_solution
-        if self.task_instance.__class__.__dict__.get('is_solution', None) is None:
+        if self.task_instance.__class__.__dict__.get("is_solution", None) is None:
             config_import = "from config.model_config import GlobalConfig, GenericAPIModelConfig"
             validation_source = config_import + "\n\n" + validation_source
         logging.info("Successfully retrieved and cleaned validation function source.")
 
         # Find helper functions used in solve and their dependencies
         helper_functions = set()  # Use a set to avoid duplicates
-        
+
         def process_function_source(source_code):
             """Extract function names used in the source code"""
             used_functions = set()
-            lines = source_code.split('\n')
-            
+            lines = source_code.split("\n")
+
             # Pattern to detect function calls: function_name(
-            function_call_pattern = r'\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\('
-            
+            function_call_pattern = r"\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\("
+
             for line in lines:
                 # Skip comments and empty lines
-                if line.strip().startswith('#') or not line.strip():
+                if line.strip().startswith("#") or not line.strip():
                     continue
-                
+
                 # Find all function calls in the line
                 matches = re.findall(function_call_pattern, line)
                 for match in matches:
                     func_name = match
-                    
+
                     # Skip built-in functions and common library functions
                     builtin_functions = {
-                        'len', 'max', 'min', 'sum', 'abs', 'round', 'float', 'int', 'str', 'bool',
-                        'list', 'dict', 'set', 'tuple', 'range', 'enumerate', 'zip', 'map', 'filter',
-                        'print', 'isinstance', 'hasattr', 'getattr', 'setattr', 'type', 'vars',
-                        'super', 'property', 'staticmethod', 'classmethod', 'sorted', 'reversed',
-                        'all', 'any', 'open', 'iter', 'next', 'format'
+                        "len",
+                        "max",
+                        "min",
+                        "sum",
+                        "abs",
+                        "round",
+                        "float",
+                        "int",
+                        "str",
+                        "bool",
+                        "list",
+                        "dict",
+                        "set",
+                        "tuple",
+                        "range",
+                        "enumerate",
+                        "zip",
+                        "map",
+                        "filter",
+                        "print",
+                        "isinstance",
+                        "hasattr",
+                        "getattr",
+                        "setattr",
+                        "type",
+                        "vars",
+                        "super",
+                        "property",
+                        "staticmethod",
+                        "classmethod",
+                        "sorted",
+                        "reversed",
+                        "all",
+                        "any",
+                        "open",
+                        "iter",
+                        "next",
+                        "format",
                     }
-                    
+
                     # Skip numpy, scipy, and other library functions
-                    if '.' in line and func_name in line.split('.'):
+                    if "." in line and func_name in line.split("."):
                         continue
-                    
+
                     # Skip built-in functions
                     if func_name in builtin_functions:
                         continue
-                    
+
                     # Skip if it's a method call on an object (contains dot before function name)
-                    func_pos = line.find(func_name + '(')
-                    if func_pos > 0 and line[func_pos-1] == '.':
+                    func_pos = line.find(func_name + "(")
+                    if func_pos > 0 and line[func_pos - 1] == ".":
                         continue
-                    
+
                     # Add to used functions if it's not already excluded
                     used_functions.add(func_name)
-                
+
                 # Also look for self.function_name patterns specifically
-                self_method_pattern = r'self\.([a-zA-Z_][a-zA-Z0-9_]*)\s*\('
+                self_method_pattern = r"self\.([a-zA-Z_][a-zA-Z0-9_]*)\s*\("
                 self_matches = re.findall(self_method_pattern, line)
                 for match in self_matches:
                     used_functions.add(match)
-            
+
             return used_functions
-        
+
         # First get all available helper functions
         available_helpers = {}
-        
+
         # Get class methods (excluding special methods and public interface methods)
         for name, func in all_methods:
             # Include all methods except special methods (__init__, __str__, etc.) and main interface methods
-            if (name != '__init__' and 
-                not name.startswith('__') and 
-                name not in ['solve', 'generate_problem', 'is_solution'] and 
-                func.__module__ == task_module.__name__):
+            if (
+                name != "__init__"
+                and not name.startswith("__")
+                and name not in ["solve", "generate_problem", "is_solution"]
+                and func.__module__ == task_module.__name__
+            ):
                 try:
                     helper_source = inspect.getsource(func)
                     available_helpers[name] = helper_source
                 except OSError:
                     # Some functions might not have source available (built-ins, etc.)
                     logging.debug(f"Could not get source for method {name}")
-        
+
         # Get module-level functions
         for name, func in all_module_functions:
-            if name != 'solve' and func.__module__ == task_module.__name__:
+            if name != "solve" and func.__module__ == task_module.__name__:
                 try:
                     helper_source = inspect.getsource(func)
                     available_helpers[name] = helper_source
                 except OSError:
                     # Some functions might not have source available (built-ins, etc.)
                     logging.debug(f"Could not get source for function {name}")
-        logging.info(f"Found {len(available_helpers)} potential helper functions defined in the task module.")
-        
+        logging.info(
+            f"Found {len(available_helpers)} potential helper functions defined in the task module."
+        )
+
         # Start with functions directly used in solve
         functions_to_process = process_function_source(solve_function_source)
         processed_functions = set()
-        
+
         # Keep processing until we've found all dependencies
         while functions_to_process:
             func_name = functions_to_process.pop()
             if func_name in processed_functions:
                 continue
-                
+
             if func_name in available_helpers:
                 # Get and clean up the helper function
                 helper_source = available_helpers[func_name]
-                helper_lines = helper_source.split('\n')
+                helper_lines = helper_source.split("\n")
                 helper_indent = len(helper_lines[0]) - len(helper_lines[0].lstrip())
                 helper_unindented = "\n".join(line[helper_indent:] for line in helper_lines)
-                
+
                 # Clean up self references
                 helper_unindented = remove_self_parameter(helper_unindented, func_name)
-                
+
                 # Remove any logging lines
-                helper_unindented = '\n'.join(line for line in helper_unindented.split('\n') if 'logging.' not in line)
-                
+                helper_unindented = "\n".join(
+                    line for line in helper_unindented.split("\n") if "logging." not in line
+                )
+
                 helper_functions.add(helper_unindented)
                 processed_functions.add(func_name)
-                
+
                 # Extract imports from this helper function
                 helper_imports = self._extract_imports_from_source(helper_source)
                 for imp in helper_imports:
                     if imp not in import_lines:
                         import_lines.append(imp)
-                
+
                 # Find any new functions this helper uses
                 new_functions = process_function_source(helper_source)
                 functions_to_process.update(new_functions - processed_functions)
-        logging.info(f"Finished processing helper function dependencies. Found {len(helper_functions)} relevant helper functions.")
+        logging.info(
+            f"Finished processing helper function dependencies. Found {len(helper_functions)} relevant helper functions."
+        )
 
         # --- Revert: Remove import filtering logic ---
         # Use all collected non-logging imports directly
@@ -526,9 +619,11 @@ class BaseLLMInterface:
         main_code_str = "\n\n".join(main_code_parts)
 
         # Add line numbers to the main code block, starting from 1
-        main_code_lines = main_code_str.split('\n')
+        main_code_lines = main_code_str.split("\n")
         width = len(str(len(main_code_lines)))
-        solve_numbered_source = "\n".join(f"| {str(i).zfill(width)}: {line}" for i, line in enumerate(main_code_lines, 1))
+        solve_numbered_source = "\n".join(
+            f"| {str(i).zfill(width)}: {line}" for i, line in enumerate(main_code_lines, 1)
+        )
 
         # Prepend imports to the numbered solve source
         solve_with_imports = imports_str + "\n\n" + solve_numbered_source
@@ -540,31 +635,31 @@ class BaseLLMInterface:
             logging.info("Getting validation function for initial message")
             validation_function = self.task_instance.is_solution
             validation_source = inspect.getsource(validation_function)
-        except (AttributeError, TypeError) as e:
+        except (AttributeError, TypeError):
             # If that fails, get it from the base Task class
             try:
-                logging.info(f"Getting validation function from base Task class instead")
+                logging.info("Getting validation function from base Task class instead")
                 validation_function = Task.is_solution
                 validation_source = inspect.getsource(validation_function)
             except Exception as e2:
                 logging.error(f"Failed to get validation function source: {e2}")
                 validation_source = "def is_solution():\n    pass"
-        
+
         # Clean up the validation source
-        lines = validation_source.split('\n')
+        lines = validation_source.split("\n")
         start_idx = 0
         for i, line in enumerate(lines):
-            if line.strip().startswith('def is_solution'):
+            if line.strip().startswith("def is_solution"):
                 start_idx = i
                 break
         lines = lines[start_idx:]
-        
+
         # Find and remove indentation
         indent = len(lines[0]) - len(lines[0].lstrip())
         validation_source = "\n".join(line[indent:] for line in lines)
-        
+
         # Clean up self references
-        validation_source = remove_self_parameter(validation_source, 'is_solution')
+        validation_source = remove_self_parameter(validation_source, "is_solution")
         # -------------------------------------------------------------
         # NEW: Include helper functions used by is_solution()
         # -------------------------------------------------------------
@@ -581,7 +676,7 @@ class BaseLLMInterface:
 
             if func_name in available_helpers:
                 helper_source = available_helpers[func_name]
-                helper_lines = helper_source.split('\n')
+                helper_lines = helper_source.split("\n")
                 helper_indent = len(helper_lines[0]) - len(helper_lines[0].lstrip())
                 helper_unindented = "\n".join(line[helper_indent:] for line in helper_lines)
 
@@ -589,7 +684,9 @@ class BaseLLMInterface:
                 helper_unindented = remove_self_parameter(helper_unindented, func_name)
 
                 # Remove logging lines inside helper
-                helper_unindented = '\n'.join(line for line in helper_unindented.split('\n') if 'logging.' not in line)
+                helper_unindented = "\n".join(
+                    line for line in helper_unindented.split("\n") if "logging." not in line
+                )
 
                 validation_helper_functions.add(helper_unindented)
                 processed_functions.add(func_name)
@@ -604,52 +701,61 @@ class BaseLLMInterface:
                 new_funcs = process_function_source(helper_source)
                 validation_functions_to_process.update(new_funcs - processed_functions)
 
-        logging.info(f"Added {len(validation_helper_functions)} helper functions for is_solution().")
+        logging.info(
+            f"Added {len(validation_helper_functions)} helper functions for is_solution()."
+        )
 
         # Combine helper functions and validation function
         validation_code_parts = list(validation_helper_functions) + [validation_source]
         validation_code_str = "\n\n".join(validation_code_parts)
 
         # Number lines for combined validation code
-        validation_lines = validation_code_str.split('\n')
+        validation_lines = validation_code_str.split("\n")
         validation_width = len(str(len(validation_lines)))
         validation_numbered_source = "\n".join(
-            f"| {str(i).zfill(validation_width)}: {line}" for i, line in enumerate(validation_lines, 1)
+            f"| {str(i).zfill(validation_width)}: {line}"
+            for i, line in enumerate(validation_lines, 1)
         )
 
         # Prepend imports to the numbered validation source
         validation_with_imports = imports_str + "\n\n" + validation_numbered_source
-        
+
         # Initialize validation_function_description
         validation_function_description = ""
 
         # Log the imports string just before combining
-        logging.info(f"--- Imports string before combining ---\n{imports_str}\n-------------------------------------")
+        logging.info(
+            f"--- Imports string before combining ---\n{imports_str}\n-------------------------------------"
+        )
 
         # Combine all content with the structured code blocks
         combined_content = (
             initial_content
             + description_content
             + "\n\nBelow is the reference implementation. Your function should run much quicker.\n\n"
-            + solve_with_imports # Contains imports + numbered solve
+            + solve_with_imports  # Contains imports + numbered solve
             + "\n\nThis function will be used to check if your solution is valid for a given problem. If it returns False, it means the solution is invalid:\n\n"
-            + validation_with_imports # Contains imports + numbered validation
+            + validation_with_imports  # Contains imports + numbered validation
         )
 
         combined_content += validation_function_description
 
         # --- ADDED --- Log the full message content
-        logging.info(f"--- Full Initial System Message Content ---\n{combined_content}\n----------------------------------------")
+        logging.info(
+            f"--- Full Initial System Message Content ---\n{combined_content}\n----------------------------------------"
+        )
         # --- END ADDED ---
 
         logging.info(f"Validation source length: {len(validation_source)}")
         logging.info("Added validation function to combined content")
         logging.info(f"Final combined content length: {len(combined_content)}")
-        
+
         # Check if the validation function is actually included in the message
-        contains_validation = "VALIDATION FUNCTION" in combined_content and len(validation_source) > 0
+        contains_validation = (
+            "VALIDATION FUNCTION" in combined_content and len(validation_source) > 0
+        )
         logging.info(f"Message contains validation function: {contains_validation}")
-        
+
         if not contains_validation:
             logging.error("Validation function failed to be included in the message")
 
@@ -664,33 +770,35 @@ class BaseLLMInterface:
     def _extract_imports_from_source(self, source_code: str) -> list[str]:
         """Extract import statements from source code, excluding AlgoTuner and logging imports."""
         import_lines = []
-        lines = source_code.split('\n')
-        
+        lines = source_code.split("\n")
+
         for line in lines:
             stripped = line.strip()
             # Check if it's an import line
-            if stripped.startswith('import ') or stripped.startswith('from '):
+            if stripped.startswith("import ") or stripped.startswith("from "):
                 # Skip AlgoTuner-related imports
-                if 'AlgoTuner' in stripped or 'algotune' in stripped.lower():
+                if "AlgoTuner" in stripped or "algotune" in stripped.lower():
                     continue
                 # Skip logging imports
-                if stripped.startswith('import logging') or stripped.startswith('from logging'):
+                if stripped.startswith("import logging") or stripped.startswith("from logging"):
                     continue
                 # Skip relative imports (they won't work in standalone solver)
-                if stripped.startswith('from .') or stripped.startswith('from ..'):
+                if stripped.startswith("from .") or stripped.startswith("from .."):
                     continue
-                
+
                 import_lines.append(stripped)
-        
+
         return import_lines
 
     @staticmethod
     def _format_numbered_code(code_str: str, start_line: int = 1) -> str:
         """Format code with line numbers and preserve indentation."""
-        lines = code_str.split('\n')
+        lines = code_str.split("\n")
         if not lines:
             return ""
 
         width = len(str(len(lines) + start_line - 1))
-        numbered_lines = [f"| {str(i).zfill(width)}: {line}" for i, line in enumerate(lines, start=start_line)]
+        numbered_lines = [
+            f"| {str(i).zfill(width)}: {line}" for i, line in enumerate(lines, start=start_line)
+        ]
         return "\n".join(numbered_lines)

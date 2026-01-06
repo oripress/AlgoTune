@@ -6,20 +6,17 @@ This component is responsible ONLY for execution, not validation.
 import logging
 import os
 import time
-from typing import Any, Dict, Optional, Tuple
 from contextlib import contextmanager
-from pathlib import Path
+from typing import Any
 
 from AlgoTuner.utils.evaluator.evaluation_types import (
-    ExecutionResult, 
-    TimingMetrics, 
     ErrorType,
-    RunnerConfig
+    ExecutionResult,
+    RunnerConfig,
+    TimingMetrics,
 )
-from AlgoTuner.utils.evaluator.runner import (
-    run_solver_evaluation,
-    _calculate_timeout_seconds
-)
+
+
 # categorize_error is not available, will implement inline
 
 
@@ -39,50 +36,55 @@ def with_working_dir(target_dir):
 
 class SolverExecutor:
     """Executes solver code in isolation without validation."""
-    
+
     def __init__(self, config: RunnerConfig):
         """
         Initialize the solver executor.
-        
+
         Args:
             config: Configuration for execution behavior
         """
         self.config = config
         self.logger = logging.getLogger(__name__)
-    
+
     def execute(
         self,
         solver_func: Any,
         problem: Any,
-        baseline_time_ms: Optional[float] = None,
-        problem_metadata: Optional[Dict[str, Any]] = None,
-        warmup_problem: Optional[Any] = None
+        baseline_time_ms: float | None = None,
+        problem_metadata: dict[str, Any] | None = None,
+        warmup_problem: Any | None = None,
     ) -> ExecutionResult:
         """
         Execute solver on a single problem.
-        
+
         Args:
             solver_func: The solver function/method to execute
             problem: The problem instance to solve
             baseline_time_ms: Baseline time for timeout calculation
             problem_metadata: Optional metadata about the problem
             warmup_problem: Optional different problem for warmup runs (if None, uses same as problem)
-            
+
         Returns:
             ExecutionResult with output, timing, and error info
         """
         start_time = time.perf_counter()
-        
+
         try:
             # Use isolated execution when not in daemon process
             import multiprocessing as mp
+
             is_daemon = mp.current_process().daemon
-            self.logger.info(f"SolverExecutor.execute: is_daemon={is_daemon}, use_isolated={self.config.use_isolated_execution}")
-            
+            self.logger.info(
+                f"SolverExecutor.execute: is_daemon={is_daemon}, use_isolated={self.config.use_isolated_execution}"
+            )
+
             # warmup_problem must be provided - no fallbacks allowed
             if warmup_problem is None:
-                raise ValueError("warmup_problem is required - all callers must provide proper warmup problem context")
-            
+                raise ValueError(
+                    "warmup_problem is required - all callers must provide proper warmup problem context"
+                )
+
             if not is_daemon and self.config.use_isolated_execution:
                 # Check if we should use process pool (efficient) or fresh spawning (full isolation)
                 use_fresh_spawn = os.environ.get("ISOLATED_EVAL", "0") == "1"
@@ -102,13 +104,17 @@ class SolverExecutor:
                 result = self._execute_in_process(
                     solver_func, problem, baseline_time_ms, warmup_problem
                 )
-            
+
             elapsed_s = time.perf_counter() - start_time
-            self.logger.info(f"Solver execution completed in {elapsed_s:.2f}s, success={result.success}, has_timing={result.timing is not None}")
-            
+            self.logger.info(
+                f"Solver execution completed in {elapsed_s:.2f}s, success={result.success}, has_timing={result.timing is not None}"
+            )
+
             # If no timing info, add elapsed time
             if result.success and not result.timing:
-                self.logger.warning(f"No timing info from execution, adding elapsed time: {elapsed_s*1000:.2f}ms")
+                self.logger.warning(
+                    f"No timing info from execution, adding elapsed time: {elapsed_s * 1000:.2f}ms"
+                )
                 result = result._replace(
                     timing=TimingMetrics(
                         mean_ms=elapsed_s * 1000,
@@ -117,58 +123,64 @@ class SolverExecutor:
                         stddev_ms=0.0,
                         values_ms=[elapsed_s * 1000],
                         warmup_ms=0.0,
-                        num_runs=1
+                        num_runs=1,
                     )
                 )
-            
+
             return result
-            
+
         except Exception as e:
             self.logger.error(f"Unexpected error in solver execution: {e}")
             return self._create_error_result(e, time.perf_counter() - start_time)
-    
+
     def _execute_isolated(
         self,
         solver_func: Any,
         problem: Any,
-        baseline_time_ms: Optional[float],
-        problem_metadata: Optional[Dict[str, Any]],
-        warmup_problem: Any
+        baseline_time_ms: float | None,
+        problem_metadata: dict[str, Any] | None,
+        warmup_problem: Any,
     ) -> ExecutionResult:
         """Execute solver in isolated subprocess."""
-        
+
         # Check if we're in AGENT_MODE - isolated execution only works with solver loaded from disk
         agent_mode = os.environ.get("AGENT_MODE", "0")
-        self.logger.info(f"SolverExecutor: AGENT_MODE={agent_mode}, use_isolated={self.config.use_isolated_execution}")
+        self.logger.info(
+            f"SolverExecutor: AGENT_MODE={agent_mode}, use_isolated={self.config.use_isolated_execution}"
+        )
         if agent_mode == "0":
             # In baseline mode, we can't use isolated execution since solver is a method
             self.logger.info("Baseline mode detected, using in-process execution")
             return self._execute_in_process(solver_func, problem, baseline_time_ms, warmup_problem)
-        
+
         from AlgoTuner.utils.isolated_benchmark import run_isolated_benchmark
-        
+
         # Get task name from metadata or environment
         task_name = "unknown_task"
         if problem_metadata and "task_name" in problem_metadata:
             task_name = problem_metadata["task_name"]
         elif os.environ.get("CURRENT_TASK_NAME"):
             task_name = os.environ["CURRENT_TASK_NAME"]
-        
+
         # Get code directory
         code_dir = os.environ.get("CODE_DIR", "llm_src")
-        
+
         # Calculate timeout
         timeout_seconds = 60.0  # Default
         if baseline_time_ms:
             per_run_s = baseline_time_ms / 1000.0
-            timeout_seconds = (1 + self.config.warmup_runs) * per_run_s * 10.0  # warmup + timed + buffer
+            timeout_seconds = (
+                (1 + self.config.warmup_runs) * per_run_s * 10.0
+            )  # warmup + timed + buffer
             timeout_seconds = min(timeout_seconds, 300.0)  # Cap at 5 minutes
             # Ensure we never set an unrealistically low timeout (e.g. sub-second) which can
             # be hit simply by solver startup costs or validation overhead.  Use a sensible
             # lower bound so that very fast baseline times do not convert into premature
             # time-outs that hide the real error.
-            timeout_seconds = max(timeout_seconds, 5.0)  # At least 5 seconds to account for import overhead
-        
+            timeout_seconds = max(
+                timeout_seconds, 5.0
+            )  # At least 5 seconds to account for import overhead
+
         try:
             # Use isolated benchmark with forkserver
             benchmark_result = run_isolated_benchmark(
@@ -179,65 +191,77 @@ class SolverExecutor:
                 num_runs=self.config.num_runs,
                 timeout_seconds=timeout_seconds,
             )
-            
+
             # Log benchmark result for debugging
             self.logger.info(f"Isolated benchmark result keys: {list(benchmark_result.keys())}")
             if benchmark_result.get("success"):
                 timing_fields = ["mean", "min", "max", "mean_ms", "min_ms", "max_ms", "elapsed_ms"]
-                timing_info = {k: benchmark_result.get(k) for k in timing_fields if k in benchmark_result}
+                timing_info = {
+                    k: benchmark_result.get(k) for k in timing_fields if k in benchmark_result
+                }
                 self.logger.info(f"Timing fields in result: {timing_info}")
-            
+
             # Check if we already have the result from the benchmark
             if benchmark_result.get("success") and benchmark_result.get("result") is None:
                 # This should not happen with the updated isolated benchmark
-                self.logger.warning("Benchmark succeeded but no result was returned - validation will be skipped")
-            
+                self.logger.warning(
+                    "Benchmark succeeded but no result was returned - validation will be skipped"
+                )
+
             return self._convert_benchmark_result(benchmark_result)
-            
+
         except Exception as e:
             self.logger.error(f"Error in isolated execution: {e}")
             # Fall back to in-process execution
             return self._execute_in_process(solver_func, problem, baseline_time_ms, warmup_problem)
-    
+
     def _execute_pooled(
         self,
         solver_func: Any,
         problem: Any,
-        baseline_time_ms: Optional[float],
-        problem_metadata: Optional[Dict[str, Any]],
-        warmup_problem: Any
+        baseline_time_ms: float | None,
+        problem_metadata: dict[str, Any] | None,
+        warmup_problem: Any,
     ) -> ExecutionResult:
         """Execute solver using process pool with reuse."""
 
         # Baseline mode (AGENT_MODE=0) can't use isolated execution because solver isn't on disk
         agent_mode = os.environ.get("AGENT_MODE", "0")
-        self.logger.info(f"SolverExecutor (pooled): AGENT_MODE={agent_mode}, use_isolated={self.config.use_isolated_execution}")
+        self.logger.info(
+            f"SolverExecutor (pooled): AGENT_MODE={agent_mode}, use_isolated={self.config.use_isolated_execution}"
+        )
         if agent_mode == "0":
-            self.logger.info("Baseline mode detected, using in-process execution instead of pooled isolated execution")
+            self.logger.info(
+                "Baseline mode detected, using in-process execution instead of pooled isolated execution"
+            )
             return self._execute_in_process(solver_func, problem, baseline_time_ms, warmup_problem)
-        
+
         # Get task name from metadata or environment
         task_name = "unknown_task"
         if problem_metadata and "task_name" in problem_metadata:
             task_name = problem_metadata["task_name"]
         elif os.environ.get("CURRENT_TASK_NAME"):
             task_name = os.environ["CURRENT_TASK_NAME"]
-        
+
         # Get code directory
         code_dir = os.environ.get("CODE_DIR", "llm_src")
-        
+
         # Calculate timeout
         timeout_seconds = 60.0  # Default
         if baseline_time_ms:
             per_run_s = baseline_time_ms / 1000.0
-            timeout_seconds = (1 + self.config.warmup_runs) * per_run_s * 10.0  # warmup + timed + buffer
+            timeout_seconds = (
+                (1 + self.config.warmup_runs) * per_run_s * 10.0
+            )  # warmup + timed + buffer
             timeout_seconds = min(timeout_seconds, 300.0)  # Cap at 5 minutes
-            timeout_seconds = max(timeout_seconds, 10.0)  # At least 10 seconds to account for import overhead in SLURM
-        
+            timeout_seconds = max(
+                timeout_seconds, 10.0
+            )  # At least 10 seconds to account for import overhead in SLURM
+
         try:
             # Use isolated benchmark function directly
             from AlgoTuner.utils.isolated_benchmark import run_isolated_benchmark
-            
+
             # Run isolated benchmark
             benchmark_result = run_isolated_benchmark(
                 task_name=task_name,
@@ -247,42 +271,45 @@ class SolverExecutor:
                 num_runs=self.config.num_runs,
                 timeout_seconds=timeout_seconds,
             )
-            
+
             # Log benchmark result for debugging
             self.logger.info(f"Pooled benchmark result keys: {list(benchmark_result.keys())}")
             if benchmark_result.get("success"):
                 timing_fields = ["mean", "min", "max", "mean_ms", "min_ms", "max_ms", "elapsed_ms"]
-                timing_info = {k: benchmark_result.get(k) for k in timing_fields if k in benchmark_result}
+                timing_info = {
+                    k: benchmark_result.get(k) for k in timing_fields if k in benchmark_result
+                }
                 self.logger.info(f"Timing fields in result: {timing_info}")
-            
+
             return self._convert_benchmark_result(benchmark_result)
-            
+
         except Exception as e:
             self.logger.error(f"Error in pooled execution: {e}")
             # Fall back to in-process execution
             return self._execute_in_process(solver_func, problem, baseline_time_ms, warmup_problem)
-    
+
     def _execute_in_process(
-        self,
-        solver_func: Any,
-        problem: Any,
-        baseline_time_ms: Optional[float],
-        warmup_problem: Any
+        self, solver_func: Any, problem: Any, baseline_time_ms: float | None, warmup_problem: Any
     ) -> ExecutionResult:
         """Execute solver in current process (for testing/debugging)."""
         import time
+
         import numpy as np
-        
+
         # Get code directory for working directory context
         code_dir = os.environ.get("CODE_DIR")
         if not code_dir:
-            self.logger.warning("CODE_DIR not set, using current directory for in-process execution")
+            self.logger.warning(
+                "CODE_DIR not set, using current directory for in-process execution"
+            )
             code_dir = os.getcwd()
-        
+
         # Log current working directory before changing
         original_cwd = os.getcwd()
-        self.logger.debug(f"In-process execution: Current working directory is {original_cwd}, will change to {code_dir}")
-        
+        self.logger.debug(
+            f"In-process execution: Current working directory is {original_cwd}, will change to {code_dir}"
+        )
+
         try:
             # Ensure we're in the correct directory when executing solver code
             # This prevents file leaks when LLM code creates files with relative paths
@@ -290,22 +317,22 @@ class SolverExecutor:
                 # Warmup runs on different problem
                 for _ in range(self.config.warmup_runs):
                     _ = solver_func(warmup_problem)
-                
+
                 # Timed runs on actual problem
                 times_ms = []
                 outputs = []
-                
+
                 for _ in range(self.config.num_runs):
                     start_ns = time.perf_counter_ns()
                     output = solver_func(problem)
                     elapsed_ns = time.perf_counter_ns() - start_ns
-                    
+
                     times_ms.append(elapsed_ns / 1e6)
                     outputs.append(output)
-            
+
             # Use the last output
             final_output = outputs[-1]
-            
+
             # Calculate timing metrics
             timing = TimingMetrics(
                 mean_ms=float(np.mean(times_ms)),
@@ -314,9 +341,9 @@ class SolverExecutor:
                 stddev_ms=float(np.std(times_ms)),
                 values_ms=times_ms,
                 warmup_ms=0.0,  # Not tracked in simple mode
-                num_runs=self.config.num_runs
+                num_runs=self.config.num_runs,
             )
-            
+
             return ExecutionResult(
                 success=True,
                 output=final_output,
@@ -326,14 +353,15 @@ class SolverExecutor:
                 error=None,
                 error_type=ErrorType.NONE,
                 traceback=None,
-                timeout_occurred=False
+                timeout_occurred=False,
             )
-            
+
         except Exception as e:
             import traceback
+
             tb_str = traceback.format_exc()
             error_type = self._categorize_error(e, tb_str)
-            
+
             return ExecutionResult(
                 success=False,
                 output=None,
@@ -343,38 +371,44 @@ class SolverExecutor:
                 error=str(e),
                 error_type=error_type,
                 traceback=tb_str,
-                timeout_occurred=False
+                timeout_occurred=False,
             )
-    
-    def _convert_benchmark_result(self, benchmark_result: Dict[str, Any]) -> ExecutionResult:
+
+    def _convert_benchmark_result(self, benchmark_result: dict[str, Any]) -> ExecutionResult:
         """Convert legacy benchmark result to ExecutionResult."""
         success = benchmark_result.get("success", False)
-        
+
         # Extract timing if successful
         timing = None
         if success:
             # Try both seconds and milliseconds fields
             if "mean" in benchmark_result or "mean_ms" in benchmark_result:
                 # Handle both seconds and milliseconds fields
-                mean_ms = benchmark_result.get("mean_ms") or (benchmark_result.get("mean", 0.0) * 1000)
+                mean_ms = benchmark_result.get("mean_ms") or (
+                    benchmark_result.get("mean", 0.0) * 1000
+                )
                 min_ms = benchmark_result.get("min_ms") or (benchmark_result.get("min", 0.0) * 1000)
                 max_ms = benchmark_result.get("max_ms") or (benchmark_result.get("max", 0.0) * 1000)
-                stddev_ms = benchmark_result.get("stddev_ms") or (benchmark_result.get("stddev", 0.0) * 1000)
-                
+                stddev_ms = benchmark_result.get("stddev_ms") or (
+                    benchmark_result.get("stddev", 0.0) * 1000
+                )
+
                 # Get values in milliseconds
                 values_ms = benchmark_result.get("values_ms", [])
                 if not values_ms and "values" in benchmark_result:
                     # Convert seconds to milliseconds
                     values_ms = [v * 1000 for v in benchmark_result.get("values", [])]
-                
+
                 timing = TimingMetrics(
                     mean_ms=mean_ms,
                     min_ms=min_ms,
                     max_ms=max_ms,
                     stddev_ms=stddev_ms,
                     values_ms=values_ms,
-                    warmup_ms=benchmark_result.get("first_warmup_result", {}).get("elapsed_ms", 0.0),
-                    num_runs=benchmark_result.get("num_runs_executed", self.config.num_runs)
+                    warmup_ms=benchmark_result.get("first_warmup_result", {}).get(
+                        "elapsed_ms", 0.0
+                    ),
+                    num_runs=benchmark_result.get("num_runs_executed", self.config.num_runs),
                 )
             elif "elapsed_ms" in benchmark_result:
                 # Single run result
@@ -386,9 +420,9 @@ class SolverExecutor:
                     stddev_ms=0.0,
                     values_ms=[elapsed_ms],
                     warmup_ms=0.0,
-                    num_runs=1
+                    num_runs=1,
                 )
-        
+
         # Determine error type
         error_type = ErrorType.NONE
         if not success:
@@ -406,7 +440,7 @@ class SolverExecutor:
                 error_type = ErrorType.OOM_KILL
             else:
                 error_type = ErrorType.EXECUTION_ERROR
-        
+
         return ExecutionResult(
             success=success,
             output=benchmark_result.get("result"),
@@ -416,14 +450,15 @@ class SolverExecutor:
             error=benchmark_result.get("error"),
             error_type=error_type,
             traceback=benchmark_result.get("traceback"),
-            timeout_occurred=benchmark_result.get("timeout_occurred", False)
+            timeout_occurred=benchmark_result.get("timeout_occurred", False),
         )
-    
+
     def _create_error_result(self, exception: Exception, elapsed_s: float) -> ExecutionResult:
         """Create an ExecutionResult for an unexpected error."""
         import traceback
+
         tb_str = traceback.format_exc()
-        
+
         return ExecutionResult(
             success=False,
             output=None,
@@ -433,9 +468,9 @@ class SolverExecutor:
             error=str(exception),
             error_type=self._categorize_error(exception, tb_str),
             traceback=tb_str,
-            timeout_occurred=False
+            timeout_occurred=False,
         )
-    
+
     def _categorize_error(self, exception: Exception, traceback_str: str) -> ErrorType:
         """Categorize an exception into an ErrorType."""
         # Simple error categorization based on exception type

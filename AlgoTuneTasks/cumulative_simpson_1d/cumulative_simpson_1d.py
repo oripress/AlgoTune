@@ -22,12 +22,11 @@ class CumulativeSimpson1D(Task):
         rng = np.random.default_rng(random_seed)
         x, dx = np.linspace(0, 5, n, retstep=True)
 
-        ks     = rng.integers(1, k_max + 1, size=k_max)      # frequencies
-        amps   = rng.uniform(0.3, 1.0,   size=k_max)         # amplitudes
-        phases = rng.uniform(0, 2 * np.pi, size=k_max)       # phases
+        ks = rng.integers(1, k_max + 1, size=k_max)  # frequencies
+        amps = rng.uniform(0.3, 1.0, size=k_max)  # amplitudes
+        phases = rng.uniform(0, 2 * np.pi, size=k_max)  # phases
 
-        y = sum(A * np.sin(2 * np.pi * k * x + φ)
-                for A, k, φ in zip(amps, ks, phases))
+        y = sum(A * np.sin(2 * np.pi * k * x + φ) for A, k, φ in zip(amps, ks, phases))
         return {"y": y, "dx": dx}
 
     def solve(self, problem: dict) -> NDArray:

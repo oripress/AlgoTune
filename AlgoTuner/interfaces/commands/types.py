@@ -1,7 +1,9 @@
-from dataclasses import dataclass
-from typing import Dict, Any, Optional, List, Pattern
 import re
+from dataclasses import dataclass
 from enum import Enum, unique
+from re import Pattern
+from typing import Any
+
 from AlgoTuner.interfaces.error_message import GENERIC_ERROR_MESSAGE
 
 
@@ -21,9 +23,9 @@ class ParsedCommand:
     """Represents a parsed command with its arguments."""
 
     command: str
-    args: Dict[str, Any]
-    total_blocks: Optional[int] = None
-    raw_text: Optional[str] = None
+    args: dict[str, Any]
+    total_blocks: int | None = None
+    raw_text: str | None = None
 
 
 @dataclass
@@ -127,7 +129,9 @@ revert
     ),
     "edit": CommandFormat(
         name="edit",
-        pattern=re.compile(r"^\s*edit\s+file:\s+(.+?)\s+lines:\s+(\d+\s*-\s*\d+)\s+---\s*([\s\S]+?)(?:\s+---)?\s*$"),
+        pattern=re.compile(
+            r"^\s*edit\s+file:\s+(.+?)\s+lines:\s+(\d+\s*-\s*\d+)\s+---\s*([\s\S]+?)(?:\s+---)?\s*$"
+        ),
         description="Edit a file between specified line numbers",
         example="""
 ```
@@ -153,7 +157,7 @@ file: solver.py
 lines: 5-10
 ```
 """,
-        error_message=f"Invalid delete format.",
+        error_message="Invalid delete format.",
     ),
     "profile": CommandFormat(
         name="profile",
@@ -168,7 +172,10 @@ profile solver.py
     ),
     "profile_lines": CommandFormat(
         name="profile_lines",
-        pattern=re.compile(r"^profile_lines\s+(\S+\.py)\s+((?:\d+(?:-\d+)?)(?:\s*,\s*\d+(?:-\d+)?)*?)\s+(.+)$", re.DOTALL),
+        pattern=re.compile(
+            r"^profile_lines\s+(\S+\.py)\s+((?:\d+(?:-\d+)?)(?:\s*,\s*\d+(?:-\d+)?)*?)\s+(.+)$",
+            re.DOTALL,
+        ),
         description="Profile specific lines in the current solution",
         example="""
 ```
@@ -218,8 +225,7 @@ COMMAND_PATTERNS = {name: cmd.pattern.pattern for name, cmd in COMMAND_FORMATS.i
 
 # Command descriptions for help text
 COMMAND_DESCRIPTIONS = {
-    name: f"{cmd.description}\nUsage: {cmd.example}"
-    for name, cmd in COMMAND_FORMATS.items()
+    name: f"{cmd.description}\nUsage: {cmd.example}" for name, cmd in COMMAND_FORMATS.items()
 }
 COMMAND_DESCRIPTIONS["edit"] = (
     f"Edit a file between specified line numbers\nUsage:\n{EditCommandFormat.EXAMPLE}"
@@ -264,17 +270,22 @@ class CommandResult:
     def __init__(
         self,
         success: bool,
-        message: Optional[str] = None,
-        error: Optional[str] = None,
-        data: Optional[Dict[str, Any]] = None,
-        stdout: Optional[str] = None,  # Output from command execution
-        stderr: Optional[str] = None,  # Error output from command execution
-        edit_status: Optional[str] = None,  # Can be EditStatus.SUCCESS.value or EditStatus.FAILURE.value
-        snapshot_status: Optional[str] = None,  # Can be SnapshotStatus.SUCCESS.value or SnapshotStatus.FAILURE.value
-        eval_status: Optional[str] = None,  # Can be EvalStatus.SUCCESS.value, EvalStatus.FAILURE.value, or EvalStatus.TIMEOUT.value
-        file_status: Optional[str] = None,  # Can be FileStatus.SUCCESS.value or FileStatus.FAILURE.value
-        profile_status: Optional[str] = None,  # Can be ProfileStatus.SUCCESS.value or ProfileStatus.FAILURE.value
-        **kwargs: Any
+        message: str | None = None,
+        error: str | None = None,
+        data: dict[str, Any] | None = None,
+        stdout: str | None = None,  # Output from command execution
+        stderr: str | None = None,  # Error output from command execution
+        edit_status: str
+        | None = None,  # Can be EditStatus.SUCCESS.value or EditStatus.FAILURE.value
+        snapshot_status: str
+        | None = None,  # Can be SnapshotStatus.SUCCESS.value or SnapshotStatus.FAILURE.value
+        eval_status: str
+        | None = None,  # Can be EvalStatus.SUCCESS.value, EvalStatus.FAILURE.value, or EvalStatus.TIMEOUT.value
+        file_status: str
+        | None = None,  # Can be FileStatus.SUCCESS.value or FileStatus.FAILURE.value
+        profile_status: str
+        | None = None,  # Can be ProfileStatus.SUCCESS.value or ProfileStatus.FAILURE.value
+        **kwargs: Any,
     ):
         """Initialize CommandResult with required and optional attributes."""
         self.success = success
@@ -288,29 +299,27 @@ class CommandResult:
         self.eval_status = eval_status
         self.file_status = file_status
         self.profile_status = profile_status
-        
+
         # Add any additional keyword arguments as attributes
         for key, value in kwargs.items():
             setattr(self, key, value)
-            
+
     def __str__(self) -> str:
         """String representation showing success and message/error."""
         if self.success:
             return f"Command succeeded: {self.message[:100]}..."
         else:
             return f"Command failed: {self.error or 'Unknown error'}"
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert the CommandResult to a dictionary for API responses."""
-        result = {
-            "success": self.success
-        }
-        
+        result = {"success": self.success}
+
         # Add all non-None attributes to the dictionary
         for attr in dir(self):
-            if not attr.startswith('_') and not callable(getattr(self, attr)):
+            if not attr.startswith("_") and not callable(getattr(self, attr)):
                 value = getattr(self, attr)
-                if value is not None and attr != 'success':  # Already added success
+                if value is not None and attr != "success":  # Already added success
                     result[attr] = value
-                    
+
         return result

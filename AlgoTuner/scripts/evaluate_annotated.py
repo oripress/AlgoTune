@@ -6,26 +6,43 @@ Usage:
 """
 
 import argparse
+import itertools
 import json
 from pathlib import Path
-import itertools
-from AlgoTuneTasks.factory import TaskFactory
-from AlgoTuneTasks.base import load_dataset_streaming
-from AlgoTuner.utils.evaluator.main import evaluate_problems
+
 from AlgoTuner.config.loader import load_config  # for default test runs/warmups
+from AlgoTuner.utils.evaluator.main import evaluate_problems
+from AlgoTuneTasks.base import load_dataset_streaming
+from AlgoTuneTasks.factory import TaskFactory
 
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate annotated dataset for a task.")
     parser.add_argument("task_name", help="Name of the registered task to evaluate")
-    parser.add_argument("--data-dir", required=True, help="Directory where dataset JSONL files are stored")
-    parser.add_argument("--run-id", type=int, required=True, help="Identifier for this evaluation run")
-    parser.add_argument("--subset", choices=["train", "test"], default="train",
-                        help="Dataset subset to evaluate (train or test)")
-    parser.add_argument("--num-runs", type=int, default=None,
-                        help="Number of runs per instance (defaults from config)")
-    parser.add_argument("--warmup-runs", type=int, default=None,
-                        help="Number of warmup runs per instance (defaults from config)")
+    parser.add_argument(
+        "--data-dir", required=True, help="Directory where dataset JSONL files are stored"
+    )
+    parser.add_argument(
+        "--run-id", type=int, required=True, help="Identifier for this evaluation run"
+    )
+    parser.add_argument(
+        "--subset",
+        choices=["train", "test"],
+        default="train",
+        help="Dataset subset to evaluate (train or test)",
+    )
+    parser.add_argument(
+        "--num-runs",
+        type=int,
+        default=None,
+        help="Number of runs per instance (defaults from config)",
+    )
+    parser.add_argument(
+        "--warmup-runs",
+        type=int,
+        default=None,
+        help="Number of warmup runs per instance (defaults from config)",
+    )
     args = parser.parse_args()
 
     task = TaskFactory(args.task_name)
@@ -35,18 +52,22 @@ def main():
     for jpath in sorted(dataset_dir.glob(pattern)):
         generators.append(load_dataset_streaming(str(jpath)))
     if not generators:
-        print(json.dumps({
-            "task_name": args.task_name,
-            "run_id": args.run_id,
-            "status": "NO_DATA",
-        }))
+        print(
+            json.dumps(
+                {
+                    "task_name": args.task_name,
+                    "run_id": args.run_id,
+                    "status": "NO_DATA",
+                }
+            )
+        )
         return
 
     # Load benchmark defaults from config
     cfg = load_config()
-    bench_cfg = cfg.get('benchmark', {})
-    default_runs = bench_cfg.get('test_runs', 5)
-    default_warmups = bench_cfg.get('test_warmups', 3)
+    bench_cfg = cfg.get("benchmark", {})
+    default_runs = bench_cfg.get("test_runs", 5)
+    default_warmups = bench_cfg.get("test_warmups", 3)
 
     # Determine runs/warmups (CLI or config defaults)
     num_runs = args.num_runs if args.num_runs is not None else default_runs
@@ -57,10 +78,7 @@ def main():
 
     # Run the shared solve-loop, passing the iterable and unpacking the count
     per_problem, aggregate, timing_report, num_evaluated = evaluate_problems(
-        task,
-        all_records_iterable,
-        num_runs,
-        warmup_runs
+        task, all_records_iterable, num_runs, warmup_runs
     )
 
     report = {
@@ -73,5 +91,6 @@ def main():
     }
     print(json.dumps(report))
 
+
 if __name__ == "__main__":
-    main() 
+    main()

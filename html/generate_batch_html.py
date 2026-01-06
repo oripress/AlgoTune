@@ -3,15 +3,17 @@
 Generate HTML visualizations for AWS Batch job results.
 Fetches logs from S3 and generates static HTML site like algotune.io.
 """
-import os
-import sys
-import json
-import boto3
+
 import argparse
-import tempfile
+import os
 import shutil
+import sys
+import tempfile
 from pathlib import Path
+
+import boto3
 from dotenv import load_dotenv
+
 
 # Load environment from both .env files
 # 1. Load API keys from root .env
@@ -24,6 +26,7 @@ if root_dotenv.exists():
 aws_dotenv = repo_root / "aws" / ".env"
 if aws_dotenv.exists():
     load_dotenv(aws_dotenv)
+
 
 def fetch_logs_from_s3(s3_client, bucket, job_ids, temp_logs_dir):
     """
@@ -38,24 +41,24 @@ def fetch_logs_from_s3(s3_client, bucket, job_ids, temp_logs_dir):
         # Download log files
         prefix = f"jobs/{job_id}/logs/"
         try:
-            paginator = s3_client.get_paginator('list_objects_v2')
+            paginator = s3_client.get_paginator("list_objects_v2")
             pages = paginator.paginate(Bucket=bucket, Prefix=prefix)
 
             for page in pages:
-                if 'Contents' not in page:
+                if "Contents" not in page:
                     continue
 
-                for obj in page['Contents']:
-                    key = obj['Key']
-                    if key.endswith('.log'):
+                for obj in page["Contents"]:
+                    key = obj["Key"]
+                    if key.endswith(".log"):
                         # Download to temp logs directory
                         filename = Path(key).name
                         local_path = temp_logs_dir / filename
 
                         response = s3_client.get_object(Bucket=bucket, Key=key)
-                        log_content = response['Body'].read().decode('utf-8')
+                        log_content = response["Body"].read().decode("utf-8")
 
-                        with open(local_path, 'w') as f:
+                        with open(local_path, "w") as f:
                             f.write(log_content)
 
                         print(f"    Downloaded: {filename}")
@@ -68,36 +71,31 @@ def fetch_logs_from_s3(s3_client, bucket, job_ids, temp_logs_dir):
         try:
             summary_key = f"jobs/{job_id}/summary.json"
             response = s3_client.get_object(Bucket=bucket, Key=summary_key)
-            summary_content = response['Body'].read().decode('utf-8')
+            summary_content = response["Body"].read().decode("utf-8")
 
             summary_path = temp_logs_dir / f"{job_id}_summary.json"
-            with open(summary_path, 'w') as f:
+            with open(summary_path, "w") as f:
                 f.write(summary_content)
 
-            print(f"    Downloaded: summary.json")
-        except Exception as e:
+            print("    Downloaded: summary.json")
+        except Exception:
             print(f"    Warning: No summary.json for {job_id}")
 
     print()
+
 
 def main():
     parser = argparse.ArgumentParser(
         description="Generate HTML visualization for AWS Batch job results"
     )
     parser.add_argument(
-        "--job-ids-file",
-        required=True,
-        help="File containing job IDs (one per line)"
+        "--job-ids-file", required=True, help="File containing job IDs (one per line)"
     )
-    parser.add_argument(
-        "--out-dir",
-        required=True,
-        help="Output directory for HTML files"
-    )
+    parser.add_argument("--out-dir", required=True, help="Output directory for HTML files")
     parser.add_argument(
         "--s3-bucket",
         default=os.getenv("S3_RESULTS_BUCKET"),
-        help="S3 bucket name (default: from .env)"
+        help="S3 bucket name (default: from .env)",
     )
 
     args = parser.parse_args()
@@ -123,7 +121,7 @@ def main():
     print()
 
     # Initialize S3 client
-    s3 = boto3.client('s3', region_name=os.getenv('AWS_REGION', 'us-east-1'))
+    s3 = boto3.client("s3", region_name=os.getenv("AWS_REGION", "us-east-1"))
 
     # Create temporary directory for logs
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -174,6 +172,7 @@ def main():
         except Exception as e:
             print(f"ERROR during HTML generation: {e}")
             import traceback
+
             traceback.print_exc()
             sys.exit(1)
 
@@ -183,6 +182,7 @@ def main():
     print(f"Output directory: {args.out_dir}")
     print(f"Open in browser: {args.out_dir}/index.html")
     print("=" * 50)
+
 
 if __name__ == "__main__":
     main()

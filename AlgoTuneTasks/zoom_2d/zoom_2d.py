@@ -124,14 +124,11 @@ class Zoom2D(Task):
                 logging.info("Reference solver also failed. Accepting empty solution.")
                 return True
 
-        if not isinstance(proposed_list, list):
-            logging.error("'zoomed_image' is not a list.")
-            return False
-
+        # Accept both lists and numpy arrays
         try:
             proposed_array = np.asarray(proposed_list, dtype=float)
-        except ValueError:
-            logging.error("Could not convert 'zoomed_image' list to numpy float array.")
+        except (ValueError, TypeError):
+            logging.error("Could not convert 'zoomed_image' to numpy array.")
             return False
 
         # Re-compute reference solution to get expected shape and values
