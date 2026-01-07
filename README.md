@@ -177,6 +177,22 @@ AlgoTuner streams datasets from Hugging Face. For offline runs, generate them lo
 ./algotune.sh --standalone generate --target-time-ms 250
 ```
 
+### Adding New Tasks
+If you want to add a new task in the style of AlgoTune, you can sanity check it using the same suite GitHub runs on PRs:
+```bash
+python -m pip install --upgrade pip uv pre-commit
+uv pip compile pyproject.toml -o requirements.txt --universal --all-extras
+python -m pip install -r requirements.txt
+pre-commit run --all-files
+python -u .github/scripts/test_task_names.py
+python -u .github/scripts/test_task_file_structure.py
+python -u .github/scripts/test_no_main_blocks.py
+find AlgoTuneTasks -type d -not -path '*/__pycache__*' -exec touch {}/__init__.py \;
+python -W ignore -u .github/scripts/test_tasks.py
+python -u .github/scripts/test_is_solution_return_type.py
+python -W ignore -u .github/scripts/test_timing_and_consistency.py
+```
+
 ## Citation
 
 If you found this work helpful, please consider citing it using the following:
