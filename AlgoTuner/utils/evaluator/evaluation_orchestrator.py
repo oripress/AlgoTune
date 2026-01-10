@@ -4,6 +4,7 @@ This is the single entry point for the clean architecture.
 """
 
 import logging
+import os
 import time
 from collections.abc import Callable
 from typing import Any
@@ -94,6 +95,10 @@ class EvaluationOrchestrator:
             self.logger.info(f"DEBUG_BASELINE: sample keys: {sample_keys}")
 
         results = []
+
+        # Track consecutive failures for early abort
+        consecutive_failures = 0
+        MAX_CONSECUTIVE_FAILURES = int(os.getenv("MAX_CONSECUTIVE_FAILURES", "5"))
 
         for i, problem_data in enumerate(dataset):
             # Extract problem and metadata
@@ -215,6 +220,41 @@ class EvaluationOrchestrator:
                     early_exit_error=error_context,
                     evaluation_time_s=time.perf_counter() - start_time,
                 )
+
+            # Check for consecutive failures (timeouts or execution errors)
+            is_failure = result.execution.timeout_occurred or not result.execution.success
+
+            if is_failure:
+                consecutive_failures += 1
+                if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                    # Build helpful error message based on failure pattern
+                    error_msg, error_type = self._build_consecutive_failure_message(
+                        results, consecutive_failures
+                    )
+
+                    error_context = ErrorContext(
+                        error_type=error_type,
+                        error_message=error_msg,
+                        code_context=None,
+                        traceback=None,
+                        problem_id=None,
+                    )
+
+                    self.logger.error(
+                        f"Aborting evaluation after {consecutive_failures} consecutive failures"
+                    )
+
+                    return DatasetResults(
+                        task_name=task_name,
+                        results=results,
+                        metrics=self.aggregator._compute_metrics(results),
+                        invalid_contexts=[],
+                        early_exit_error=error_context,
+                        evaluation_time_s=time.perf_counter() - start_time,
+                    )
+            else:
+                # Reset counter on success
+                consecutive_failures = 0
 
             # Progress callback
             if progress_callback:
@@ -400,3 +440,50 @@ class EvaluationOrchestrator:
             code_snippet=ctx.code_snippet,
             surrounding_lines=ctx.full_context,
         )
+
+    def _build_consecutive_failure_message(
+        self, results: list, consecutive_count: int
+    ) -> tuple[str, ErrorType]:
+        """Build helpful error message based on failure pattern.
+
+        Analyzes the recent failures to determine if they are primarily timeouts,
+        execution errors, or a mix, and returns an appropriate error message and type.
+
+        Args:
+            results: List of all problem results evaluated so far
+            consecutive_count: Number of consecutive failures
+
+        Returns:
+            Tuple of (error_message, error_type)
+        """
+        recent = results[-consecutive_count:]
+
+        num_timeouts = sum(1 for r in recent if r.execution.timeout_occurred)
+        num_errors = consecutive_count - num_timeouts
+
+        if num_timeouts == consecutive_count:
+            # All timeouts
+            msg = (
+                f"Evaluation aborted after {consecutive_count} consecutive timeouts. "
+                "Code is likely too slow or has deadlocks. "
+                "Common causes: nested multiprocessing, blocking operations, inefficient algorithms."
+            )
+            return (msg, ErrorType.TIMEOUT)
+        elif num_errors == consecutive_count:
+            # All errors
+            last_error = recent[-1].execution.error or "unknown error"
+            msg = (
+                f"Evaluation aborted after {consecutive_count} consecutive errors. "
+                f"Last error: {last_error[:200]}"
+            )
+            return (msg, ErrorType.EXECUTION_ERROR)
+        else:
+            # Mix of timeouts and errors
+            msg = (
+                f"Evaluation aborted after {consecutive_count} consecutive failures "
+                f"({num_timeouts} timeouts, {num_errors} errors). "
+                "Code has systematic issues."
+            )
+            # Use timeout if majority are timeouts, otherwise execution error
+            error_type = ErrorType.TIMEOUT if num_timeouts > num_errors else ErrorType.EXECUTION_ERROR
+            return (msg, error_type)
