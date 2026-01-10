@@ -459,6 +459,27 @@ class LLMInterface(base_interface.BaseLLMInterface):
                         response = self.model.query(relevant_messages)
                         break
                     except (RateLimitError, APIError) as e:
+                        # Check for non-retryable payment/quota errors
+                        error_str = str(e).lower()
+                        non_retryable_patterns = [
+                            "402",  # Payment Required
+                            "insufficient credits",
+                            "requires more credits",
+                            "insufficient balance",
+                            "insufficient funds",
+                            "not enough credits",
+                            "credit limit",
+                            "quota exceeded",
+                            "cannot afford",
+                        ]
+
+                        if any(pattern in error_str for pattern in non_retryable_patterns):
+                            logging.error(
+                                f"Non-retryable payment/quota error detected: {e}"
+                            )
+                            logging.error("Exiting immediately - please add more credits")
+                            raise
+
                         if attempt < max_retries - 1:
                             delay = base_delay * (2**attempt) + random.uniform(0, 1)
                             logging.warning(

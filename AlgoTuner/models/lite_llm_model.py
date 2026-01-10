@@ -206,6 +206,23 @@ class LiteLLMModel:
         """Determine if an error is retryable (overloaded, server errors, etc.)"""
         error_str = str(error).lower()
 
+        # Check for non-retryable payment/credit errors first
+        non_retryable_patterns = [
+            "402",  # Payment Required
+            "insufficient credits",
+            "requires more credits",
+            "insufficient balance",
+            "insufficient funds",
+            "not enough credits",
+            "credit limit",
+            "quota exceeded",
+            "cannot afford",
+        ]
+
+        if any(pattern in error_str for pattern in non_retryable_patterns):
+            logging.error(f"Non-retryable payment/quota error detected: {error}")
+            return False
+
         # Check for specific overloaded error patterns
         retryable_patterns = [
             "overloaded",
