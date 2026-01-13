@@ -64,6 +64,16 @@ cat reports/agent_summary.json
 ### Running on AWS
 Running AlgoTune on AWS is simple and requires only a minimal setup.
 
+<p align="center">
+  <a href="https://algotune.io/">
+    <img
+      src="https://github.com/oripress/AlgoTune/blob/main/assets/algotune_on_aws.gif?raw=true"
+      alt="AlgoTune demo"
+    />
+  </a>
+</p>
+
+
 #### Prerequisites & Permissions
 
 **AWS CLI** - Install if not already available:
