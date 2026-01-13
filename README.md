@@ -61,7 +61,7 @@ When `sbatch` is available the launcher auto-detects SLURM.
 cat reports/agent_summary.json
 ```
 
-### Running on AWS Batch
+### Running on AWS
 Running AlgoTune on AWS is simple and requires only a minimal setup.
 
 #### Prerequisites & Permissions
