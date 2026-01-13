@@ -6,6 +6,9 @@ set -euo pipefail
 # One script to launch optimization jobs on AWS Batch
 #######################################################
 
+# Avoid interactive AWS CLI pager hangs during cleanup.
+export AWS_PAGER=""
+
 echo "╔════════════════════════════════════════╗"
 echo "║  AlgoTune AWS Batch Launcher           ║"
 echo "╚════════════════════════════════════════╝"
@@ -741,6 +744,13 @@ cleanup_downloader() {
 trap cleanup_downloader EXIT
 
 handle_interrupt() {
+  if [ "${CLEANUP_IN_PROGRESS:-}" = "yes" ]; then
+    echo ""
+    echo "⚠️  Cleanup already in progress; exiting now."
+    exit 130
+  fi
+  CLEANUP_IN_PROGRESS="yes"
+  trap 'echo ""; echo "⚠️  Second interrupt received; exiting immediately."; exit 130' INT
   if [ "$DEADMAN_SWITCH" = "yes" ]; then
     cancel_submitted_jobs
   else
