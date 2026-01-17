@@ -239,6 +239,7 @@ def main():
     # Check for max_completion_tokens first (for models like gpt-5, gpt-5-mini)
     configured_max_completion_tokens = model_info.get("max_completion_tokens", None)
     configured_max_tokens = model_info.get("max_tokens", None)
+    configured_context_length = model_info.get("context_length", None)
 
     config_params = {
         "name": llm_model_name,
@@ -247,7 +248,19 @@ def main():
         "api_key_env": api_key_env,
     }
 
-    # Add the appropriate token limit parameter
+    # Use context_length for history truncation if available.
+    if configured_context_length:
+        config_params["context_length"] = configured_context_length
+        logger.info(
+            f"Using context_length from config for model '{desired_model_name}': {configured_context_length}."
+        )
+    elif isinstance(max_input_tokens, int) and max_input_tokens > 0:
+        config_params["context_length"] = max_input_tokens
+        logger.info(
+            f"Using context_length from provider defaults for model '{desired_model_name}': {max_input_tokens}."
+        )
+
+    # Add the appropriate token limit parameter (output cap)
     if configured_max_completion_tokens:
         config_params["max_completion_tokens"] = configured_max_completion_tokens
         logger.info(
@@ -259,9 +272,8 @@ def main():
             f"Using max_tokens from config for model '{desired_model_name}': {configured_max_tokens}."
         )
     else:
-        config_params["max_tokens"] = max_output_tokens
         logger.info(
-            f"Using default max_output_tokens for model '{desired_model_name}': {max_output_tokens}."
+            f"No max_tokens override for model '{desired_model_name}'; using provider default."
         )
 
     # Only set temperature if explicitly provided in config

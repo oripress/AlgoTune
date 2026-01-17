@@ -6,7 +6,9 @@ class GenericAPIModelConfig(BaseModel):
     api_key: SecretStr  # Use SecretStr for sensitive data
     temperature: float | None = None
     top_p: float | None = None
-    max_tokens: int = 4096
+    max_tokens: int | None = None
+    max_completion_tokens: int | None = None
+    context_length: int | None = None
     spend_limit: float = 0.0
     api_key_env: str  # Environment variable name for the API key
 
