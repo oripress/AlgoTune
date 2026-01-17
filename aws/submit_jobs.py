@@ -3,6 +3,7 @@ import argparse
 import glob
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime
@@ -99,6 +100,48 @@ def discover_all_tasks():
             tasks.append(task_dir.name)
 
     return tasks
+
+
+ACTIVE_JOB_STATUSES = ("SUBMITTED", "PENDING", "RUNNABLE", "STARTING", "RUNNING")
+
+
+def _sanitize_job_part(value: str) -> str:
+    safe = re.sub(r"[^A-Za-z0-9]+", "-", value).strip("-")
+    return safe or "unknown"
+
+
+def build_job_name(task_name: str, model_name: str) -> str:
+    safe_task = _sanitize_job_part(task_name)
+    safe_model = _sanitize_job_part(model_name)
+    return f"algotune-{safe_task}--{safe_model}"
+
+
+def get_active_job_names(batch_client, job_queues: list[str]) -> set[str]:
+    active_names: set[str] = set()
+    for queue in job_queues:
+        if not queue:
+            continue
+        for status in ACTIVE_JOB_STATUSES:
+            next_token = None
+            while True:
+                try:
+                    response = batch_client.list_jobs(
+                        jobQueue=queue, jobStatus=status, nextToken=next_token
+                    )
+                except Exception as exc:
+                    print(
+                        f"WARNING: Failed to list jobs for queue {queue} ({status}): {exc}",
+                        file=sys.stderr,
+                    )
+                    break
+                for job in response.get("jobSummaryList", []):
+                    job_name = job.get("jobName")
+                    if job_name:
+                        active_names.add(job_name)
+                next_token = response.get("nextToken")
+                if not next_token:
+                    break
+    return active_names
 
 
 def parse_args():
@@ -239,11 +282,32 @@ def main():
     # Extract model display name (strip provider prefix like "openrouter/")
     model_display = args.model.split("/")[-1] if "/" in args.model else args.model
 
+    # Track active jobs to prevent duplicate model/task submissions
+    queues_to_check = {job_queue}
+    for env_key in [
+        "BATCH_JOB_QUEUE_NAME",
+        "BATCH_JOB_QUEUE_NAME_SPOT",
+        "BATCH_JOB_QUEUE_NAME_ONDEMAND",
+    ]:
+        env_value = os.getenv(env_key)
+        if env_value:
+            queues_to_check.add(env_value)
+    active_job_names = get_active_job_names(batch, sorted(queues_to_check))
+
     # Submit a job for each selected task
     submitted_count = 0
     failed_count = 0
+    skipped_count = 0
 
     for task_name in selected_tasks:
+        job_name = build_job_name(task_name, args.model)
+        if job_name in active_job_names:
+            print(
+                f"↷ Skipping {task_name} (model: {args.model}) - job already active: {job_name}",
+                file=sys.stderr,
+            )
+            skipped_count += 1
+            continue
         # Clean up local logs for this task+model before submitting
         # (start fresh, like SLURM does)
         logs_dir = Path(__file__).parent.parent / "logs"
@@ -622,9 +686,8 @@ exit $EXIT_CODE;
         try:
             # Submit job to AWS Batch
             # Note: Job definition has no entrypoint, so we must provide bash wrapper
-            safe_model = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in args.model)
             response = batch.submit_job(
-                jobName=f"algotune-{task_name}-{safe_model}",
+                jobName=job_name,
                 jobQueue=job_queue,
                 jobDefinition=job_def,
                 containerOverrides={
@@ -639,6 +702,7 @@ exit $EXIT_CODE;
             )
             print(job_id)  # Output just the job ID to stdout for capture
             submitted_count += 1
+            active_job_names.add(job_name)
 
         except Exception as e:
             print(f"✗ Failed to submit {task_name}: {e}", file=sys.stderr)
@@ -647,6 +711,7 @@ exit $EXIT_CODE;
     print("", file=sys.stderr)
     print("════════════════════════════════════════", file=sys.stderr)
     print(f"Submitted: {submitted_count} jobs", file=sys.stderr)
+    print(f"Skipped (already running): {skipped_count} jobs", file=sys.stderr)
     if failed_count > 0:
         print(f"Failed: {failed_count} jobs", file=sys.stderr)
     print("════════════════════════════════════════", file=sys.stderr)
