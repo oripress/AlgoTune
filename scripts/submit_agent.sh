@@ -185,6 +185,42 @@ log_exists_for_task_model() {
     fi
 }
 
+# Helper function to sanitize job name parts (task/model)
+sanitize_job_part() {
+    local value="$1"
+    value=$(echo "$value" | tr '[:upper:]' '[:lower:]')
+    value=$(echo "$value" | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')
+    if [ -z "$value" ]; then
+        value="unknown"
+    fi
+    echo "$value"
+}
+
+build_job_name() {
+    local task_name="$1"
+    local model_name="$2"
+    local safe_task
+    local safe_model
+    safe_task=$(sanitize_job_part "$task_name")
+    safe_model=$(sanitize_job_part "$model_name")
+    echo "algotune-${safe_task}--${safe_model}"
+}
+
+job_is_running() {
+    local job_name="$1"
+    if ! command -v squeue >/dev/null 2>&1; then
+        return 1
+    fi
+    local user_name="${USER:-$(whoami 2>/dev/null || echo "")}"
+    if [ -z "$user_name" ]; then
+        return 1
+    fi
+    if squeue -u "$user_name" --noheader --format "%j" 2>/dev/null | grep -Fxq "$job_name"; then
+        return 0
+    fi
+    return 1
+}
+
 # Helper function to clean up orphaned summary entry
 cleanup_orphaned_summary_entry() {
     local task_name="$1"
@@ -475,6 +511,13 @@ for i in "${TASK_INDICES_TO_RUN[@]}"; do
     fi
     # --- End Check ---
 
+    JOB_NAME=$(build_job_name "$TASK_NAME" "$MODEL_NAME")
+    if job_is_running "$JOB_NAME"; then
+        echo " ---> Job already running for ${TASK_NAME}/${MODEL_NAME} (${JOB_NAME}). Skipping."
+        SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+        continue
+    fi
+
     # --- Delete existing logs for this combo before submitting ---
     # Construct log file prefix pattern
     MODEL_NAME_FOR_LOG=${MODEL_NAME##*/}
@@ -484,12 +527,6 @@ for i in "${TASK_INDICES_TO_RUN[@]}"; do
     find "${PROJECT_ROOT}/slurm/outputs/" -maxdepth 1 -name "${LOG_PREFIX}*.out" -print -delete 2>/dev/null || echo " ---> No previous .out files found to delete."
     find "${PROJECT_ROOT}/slurm/errors/" -maxdepth 1 -name "${LOG_PREFIX}*.err" -print -delete 2>/dev/null || echo " ---> No previous .err files found to delete."
     # --- End Log Cleanup ---
-
-    # Construct job name
-    TASK_NAME_SHORT=${TASK_NAME:0:5}
-    MODEL_NAME_SHORT=${MODEL_NAME%%/*} # Get part before / if present
-    MODEL_NAME_SHORT=${MODEL_NAME_SHORT:0:5}
-    JOB_NAME="${TASK_NAME_SHORT}_${MODEL_NAME_SHORT}"
 
     echo "Submitting job for Task: $TASK_NAME, Model: $MODEL_NAME (Job name: $JOB_NAME, Index: $i)"
     echo "Params: n=${TASK_N}, dataset_size=${TASK_DATASET_SIZE}, target_time_ms=${TASK_TARGET_TIME_MS}, Data: ${RESOLVED_DATASET_PATH}"
@@ -518,6 +555,6 @@ done
 echo "-----------------------------------"
 echo "Total tasks considered: $NUM_TASKS"
 echo "Jobs Submitted: $SUBMITTED_COUNT"
-echo "Jobs Skipped (result found in agent summary): $SKIPPED_COUNT" # Clarified skip reason
+echo "Jobs Skipped: $SKIPPED_COUNT"
 echo "Job IDs Submitted: ${JOB_IDS[*]}"
 echo "-----------------------------------"

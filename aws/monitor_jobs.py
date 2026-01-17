@@ -32,7 +32,11 @@ def clear_screen():
 
 
 def extract_task_from_job_name(job_name):
-    """Extract task name from job name (format: algotune-{task}-{timestamp})."""
+    """Extract task name from job name (format: algotune-{task}--{model})."""
+    if job_name.startswith("algotune-") and "--" in job_name:
+        task_part = job_name[len("algotune-") :].split("--", 1)[0]
+        if task_part:
+            return task_part
     match = re.match(r"algotune-(.+?)-\d+", job_name)
     if match:
         return match.group(1)
