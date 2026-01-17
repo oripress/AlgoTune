@@ -296,16 +296,57 @@ echo ""
 SPOT_QUEUE_NAME="${BATCH_JOB_QUEUE_NAME_SPOT:-$BATCH_JOB_QUEUE_NAME}"
 ONDEMAND_QUEUE_NAME="${BATCH_JOB_QUEUE_NAME_ONDEMAND:-$BATCH_JOB_QUEUE_NAME}"
 
+# Instance types for pricing display
+ONDEMAND_INSTANCE_TYPES="${BATCH_INSTANCE_TYPES_ONDEMAND:-${BATCH_INSTANCE_TYPES:-}}"
+SPOT_INSTANCE_TYPES="${BATCH_INSTANCE_TYPES_SPOT:-${BATCH_INSTANCE_TYPES:-}}"
+ONDEMAND_INSTANCE_TYPE="$(echo "$ONDEMAND_INSTANCE_TYPES" | cut -d',' -f1 | xargs)"
+SPOT_INSTANCE_TYPE="$(echo "$SPOT_INSTANCE_TYPES" | cut -d',' -f1 | xargs)"
+
+fetch_price() {
+  local instance_type="$1"
+  local capacity_type="$2"
+  if [ -z "$instance_type" ]; then
+    echo ""
+    return
+  fi
+  python3 "$SCRIPT_DIR/get_instance_pricing.py" \
+    --instance-type "$instance_type" \
+    --region "$AWS_REGION" \
+    --capacity-type "$capacity_type" 2>/dev/null || true
+}
+
+format_price_line() {
+  local instance_type="$1"
+  local price="$2"
+  if [ -n "$instance_type" ] && [ -n "$price" ]; then
+    printf "%s @ $%.4f/hr" "$instance_type" "$price"
+  elif [ -n "$instance_type" ]; then
+    printf "%s @ N/A" "$instance_type"
+  else
+    printf "N/A"
+  fi
+}
+
+ONDEMAND_PRICE_PER_HOUR="$(fetch_price "$ONDEMAND_INSTANCE_TYPE" "on-demand")"
+SPOT_PRICE_PER_HOUR="$(fetch_price "$SPOT_INSTANCE_TYPE" "spot")"
+
 # Choose capacity type
 echo "Which capacity type do you want to use?"
-echo "  1) On-Demand (default)"
-echo "  2) Spot (cheaper, may interrupt; auto-retry on On-Demand)"
+echo "  1) On-Demand (default) - $(format_price_line "$ONDEMAND_INSTANCE_TYPE" "$ONDEMAND_PRICE_PER_HOUR")"
+if [ -n "${BATCH_JOB_QUEUE_NAME_SPOT:-}" ]; then
+  echo "  2) Spot (cheaper, may interrupt; auto-retry on On-Demand) - $(format_price_line "$SPOT_INSTANCE_TYPE" "$SPOT_PRICE_PER_HOUR")"
+else
+  echo "  2) Spot (cheaper, may interrupt; auto-retry on On-Demand) - (spot queue not configured)"
+fi
 echo ""
 read -p "Choice [1/2]: " CAPACITY_CHOICE
 
 CAPACITY_TYPE="on-demand"
 CAPACITY_LABEL="On-Demand"
 JOB_QUEUE_NAME="$ONDEMAND_QUEUE_NAME"
+INSTANCE_TYPES="$ONDEMAND_INSTANCE_TYPES"
+INSTANCE_TYPE="$ONDEMAND_INSTANCE_TYPE"
+PRICE_PER_HOUR="$ONDEMAND_PRICE_PER_HOUR"
 
 case "$CAPACITY_CHOICE" in
   2)
@@ -313,6 +354,9 @@ case "$CAPACITY_CHOICE" in
       CAPACITY_TYPE="spot"
       CAPACITY_LABEL="Spot"
       JOB_QUEUE_NAME="$SPOT_QUEUE_NAME"
+      INSTANCE_TYPES="$SPOT_INSTANCE_TYPES"
+      INSTANCE_TYPE="$SPOT_INSTANCE_TYPE"
+      PRICE_PER_HOUR="$SPOT_PRICE_PER_HOUR"
     else
       echo "⚠️  Spot queue not configured; using On-Demand."
     fi
@@ -329,23 +373,6 @@ echo ""
 
 # Count how many tasks will be submitted
 TASK_COUNT=$(echo "$TASK_LIST" | wc -l)
-
-# Price lookup (AWS Pricing API / EC2 spot history)
-INSTANCE_TYPES=""
-if [ "$CAPACITY_TYPE" = "spot" ]; then
-  INSTANCE_TYPES="${BATCH_INSTANCE_TYPES_SPOT:-${BATCH_INSTANCE_TYPES:-}}"
-else
-  INSTANCE_TYPES="${BATCH_INSTANCE_TYPES_ONDEMAND:-${BATCH_INSTANCE_TYPES:-}}"
-fi
-INSTANCE_TYPE="$(echo "$INSTANCE_TYPES" | cut -d',' -f1 | xargs)"
-
-PRICE_PER_HOUR=""
-if [ -n "$INSTANCE_TYPE" ]; then
-  PRICE_PER_HOUR=$(python3 "$SCRIPT_DIR/get_instance_pricing.py" \
-    --instance-type "$INSTANCE_TYPE" \
-    --region "$AWS_REGION" \
-    --capacity-type "$CAPACITY_TYPE" 2>/dev/null || true)
-fi
 
 format_cost_display() {
   local instances="$1"
