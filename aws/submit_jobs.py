@@ -173,6 +173,12 @@ def main():
     job_queue = args.job_queue
     job_def = os.getenv("BATCH_JOB_DEF_NAME", "AlgoTuneJobDef")
     s3_bucket = args.s3_bucket
+    if not s3_bucket:
+        print(
+            "ERROR: S3_RESULTS_BUCKET is required for AWS runs so config sync is enforced.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     # Wait for job queue to be VALID before submission (helps right after updates).
     wait_secs = int(os.getenv("BATCH_QUEUE_WAIT_SECONDS", "180"))
@@ -205,28 +211,30 @@ def main():
 
     # Load config to inject into container so model definitions stay in sync
     config_path = Path(__file__).resolve().parents[1] / "AlgoTuner" / "config" / "config.yaml"
-    config_text = ""
     try:
         config_text = config_path.read_text(encoding="utf-8")
     except Exception as e:
-        print(f"WARNING: Failed to read config.yaml for injection: {e}", file=sys.stderr)
+        print(f"ERROR: Failed to read config.yaml for injection: {e}", file=sys.stderr)
+        sys.exit(1)
+    if not config_text.strip():
+        print(f"ERROR: config.yaml is empty: {config_path}", file=sys.stderr)
+        sys.exit(1)
 
-    config_s3_uri = ""
-    if s3_bucket and config_text:
-        # Ensure DATA_DIR is defined for AWS runs so dataset discovery works.
-        config_text = config_text.rstrip() + "\nDATA_DIR: /app/AlgoTuner/data\n"
-        config_key = f"config/config_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.yaml"
-        try:
-            s3_client = boto3.client("s3", region_name=os.getenv("AWS_REGION"))
-            s3_client.put_object(Bucket=s3_bucket, Key=config_key, Body=config_text.encode("utf-8"))
-            config_s3_uri = f"s3://{s3_bucket}/{config_key}"
-            print(f"Uploaded config to {config_s3_uri}", file=sys.stderr)
+    # Ensure DATA_DIR is defined for AWS runs so dataset discovery works.
+    config_text = config_text.rstrip() + "\nDATA_DIR: /app/AlgoTuner/data\n"
+    config_key = f"config/config_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.yaml"
+    try:
+        s3_client = boto3.client("s3", region_name=os.getenv("AWS_REGION"))
+        s3_client.put_object(Bucket=s3_bucket, Key=config_key, Body=config_text.encode("utf-8"))
+        config_s3_uri = f"s3://{s3_bucket}/{config_key}"
+        print(f"Uploaded config to {config_s3_uri}", file=sys.stderr)
 
-            # Setup S3 lifecycle policy for dataset auto-cleanup
-            dataset_retention_days = int(os.getenv("DATASET_RETENTION_DAYS", "21"))
-            setup_s3_lifecycle_policy(s3_client, s3_bucket, dataset_retention_days)
-        except Exception as e:
-            print(f"WARNING: Failed to upload config.yaml to S3: {e}", file=sys.stderr)
+        # Setup S3 lifecycle policy for dataset auto-cleanup
+        dataset_retention_days = int(os.getenv("DATASET_RETENTION_DAYS", "21"))
+        setup_s3_lifecycle_policy(s3_client, s3_bucket, dataset_retention_days)
+    except Exception as e:
+        print(f"ERROR: Failed to upload config.yaml to S3: {e}", file=sys.stderr)
+        sys.exit(1)
 
     # Extract model display name (strip provider prefix like "openrouter/")
     model_display = args.model.split("/")[-1] if "/" in args.model else args.model
@@ -266,11 +274,13 @@ def main():
         # Build the combined command to run both steps
         # Note: rely on the image ENTRYPOINT for shell execution
         # Redirect stdout/stderr to files consistent with SLURM pattern
-        config_block = ""
-        if config_s3_uri:
-            config_block = f"""\
+        config_block = f"""\
 echo '=== SYNC config.yaml ===';
-aws s3 cp "{config_s3_uri}" /app/AlgoTuner/config/config.yaml || echo 'ERROR: Failed to sync config.yaml';
+aws s3 cp "{config_s3_uri}" /app/AlgoTuner/config/config.yaml;
+if [ ! -s /app/AlgoTuner/config/config.yaml ]; then
+  echo 'ERROR: config.yaml missing after sync';
+  exit 1;
+fi;
 export ALGOTUNE_CONFIG_PATH=/app/AlgoTuner/config/config.yaml;
 """
 
