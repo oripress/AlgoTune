@@ -104,9 +104,11 @@ pip install awscli
         "ec2:CreateVpcEndpoint",
         "ec2:ModifyVpcEndpoint",
         "ec2:DescribeInstances",
+        "ec2:DescribeSpotPriceHistory",
         "ec2:RunInstances",
         "ec2:TerminateInstances",
         "ec2:CreateTags",
+        "pricing:GetProducts",
         "s3:CreateBucket",
         "s3:PutObject",
         "s3:GetObject",
@@ -132,6 +134,10 @@ pip install awscli
 4. Click **Create policy**
 5. Go to **IAM → Users → [your user] → Permissions → Add permissions → Attach policies directly**
 6. Search for `AlgoTuneBatchPolicy` and attach it
+
+Note: the AWS launcher uses the Pricing API and Spot price history to show cost
+estimates. If `pricing:GetProducts` or `ec2:DescribeSpotPriceHistory` are missing,
+the prices will show as N/A.
 
 **If you have restricted permissions**, manually create:
 - **S3 bucket**: `algotune-results-{your-account-id}` in your region
