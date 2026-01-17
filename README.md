@@ -138,6 +138,13 @@ pip install awscli
 ./aws/launch-batch.sh     # Interactive: select model and tasks
 ```
 
+By default, the launcher submits jobs to the Spot queue first and automatically
+retries Spot-interrupted tasks on the On-Demand queue using the same instance
+type. Configure the queue names and Spot settings in `aws/.env` (for example:
+`BATCH_JOB_QUEUE_NAME_SPOT`, `BATCH_JOB_QUEUE_NAME_ONDEMAND`,
+`BATCH_COMPUTE_ENV_NAME_SPOT`, `BATCH_COMPUTE_ENV_NAME_ONDEMAND`,
+`BATCH_SPOT_IAM_FLEET_ROLE`).
+
 ---
 
 ## Viewing Results

@@ -276,22 +276,36 @@ echo ""
 
 # Use existing values or defaults
 BATCH_JOB_QUEUE_NAME=${BATCH_JOB_QUEUE_NAME:-AlgoTuneQueue}
+BATCH_JOB_QUEUE_NAME_SPOT=${BATCH_JOB_QUEUE_NAME_SPOT:-AlgoTuneQueue-spot}
+BATCH_JOB_QUEUE_NAME_ONDEMAND=${BATCH_JOB_QUEUE_NAME_ONDEMAND:-AlgoTuneQueue-ondemand}
 BATCH_JOB_DEF_NAME=${BATCH_JOB_DEF_NAME:-AlgoTuneJobDef}
 BATCH_COMPUTE_ENV_NAME=${BATCH_COMPUTE_ENV_NAME:-AlgoTuneCE-r6a-fixed}
+BATCH_COMPUTE_ENV_NAME_SPOT=${BATCH_COMPUTE_ENV_NAME_SPOT:-AlgoTuneCE-spot}
+BATCH_COMPUTE_ENV_NAME_ONDEMAND=${BATCH_COMPUTE_ENV_NAME_ONDEMAND:-AlgoTuneCE-ondemand}
 BATCH_INSTANCE_TYPES=${BATCH_INSTANCE_TYPES:-r6a.large}
 BATCH_MAX_VCPUS=${BATCH_MAX_VCPUS:-8}
 BATCH_MIN_VCPUS=${BATCH_MIN_VCPUS:-2}
 BATCH_JOB_VCPUS=${BATCH_JOB_VCPUS:-2}
 BATCH_JOB_MEMORY_MB=${BATCH_JOB_MEMORY_MB:-15000}
+BATCH_SPOT_IAM_FLEET_ROLE=${BATCH_SPOT_IAM_FLEET_ROLE:-arn:aws:iam::${ACCOUNT_ID}:role/aws-ec2-spot-fleet-tagging-role}
+BATCH_SPOT_ALLOCATION_STRATEGY=${BATCH_SPOT_ALLOCATION_STRATEGY:-SPOT_CAPACITY_OPTIMIZED}
+BATCH_SPOT_BID_PERCENTAGE=${BATCH_SPOT_BID_PERCENTAGE:-100}
 
 echo "Using Batch configuration:"
 echo "  Queue: $BATCH_JOB_QUEUE_NAME"
+echo "  Spot Queue: $BATCH_JOB_QUEUE_NAME_SPOT"
+echo "  On-Demand Queue: $BATCH_JOB_QUEUE_NAME_ONDEMAND"
 echo "  Job Definition: $BATCH_JOB_DEF_NAME"
 echo "  Compute Environment: $BATCH_COMPUTE_ENV_NAME"
+echo "  Spot Compute Environment: $BATCH_COMPUTE_ENV_NAME_SPOT"
+echo "  On-Demand Compute Environment: $BATCH_COMPUTE_ENV_NAME_ONDEMAND"
 echo "  Instance Type: $BATCH_INSTANCE_TYPES"
 echo "  vCPUs: $BATCH_JOB_VCPUS"
 echo "  Memory: ${BATCH_JOB_MEMORY_MB}MB"
 echo "  Min vCPUs: $BATCH_MIN_VCPUS"
+echo "  Spot Fleet Role: $BATCH_SPOT_IAM_FLEET_ROLE"
+echo "  Spot Allocation: $BATCH_SPOT_ALLOCATION_STRATEGY"
+echo "  Spot Bid %: $BATCH_SPOT_BID_PERCENTAGE"
 echo "  Note: Defaults target one job per instance with SLURM-like memory (16GB)."
 echo ""
 
@@ -322,13 +336,20 @@ DOCKER_IMAGE=$DOCKER_IMAGE
 
 # AWS Batch Configuration
 BATCH_JOB_QUEUE_NAME=$BATCH_JOB_QUEUE_NAME
+BATCH_JOB_QUEUE_NAME_SPOT=$BATCH_JOB_QUEUE_NAME_SPOT
+BATCH_JOB_QUEUE_NAME_ONDEMAND=$BATCH_JOB_QUEUE_NAME_ONDEMAND
 BATCH_JOB_DEF_NAME=$BATCH_JOB_DEF_NAME
 BATCH_COMPUTE_ENV_NAME=$BATCH_COMPUTE_ENV_NAME
+BATCH_COMPUTE_ENV_NAME_SPOT=$BATCH_COMPUTE_ENV_NAME_SPOT
+BATCH_COMPUTE_ENV_NAME_ONDEMAND=$BATCH_COMPUTE_ENV_NAME_ONDEMAND
 BATCH_INSTANCE_TYPES=$BATCH_INSTANCE_TYPES
 BATCH_MAX_VCPUS=$BATCH_MAX_VCPUS
 BATCH_MIN_VCPUS=$BATCH_MIN_VCPUS
 BATCH_JOB_VCPUS=$BATCH_JOB_VCPUS
 BATCH_JOB_MEMORY_MB=$BATCH_JOB_MEMORY_MB
+BATCH_SPOT_IAM_FLEET_ROLE=$BATCH_SPOT_IAM_FLEET_ROLE
+BATCH_SPOT_ALLOCATION_STRATEGY=$BATCH_SPOT_ALLOCATION_STRATEGY
+BATCH_SPOT_BID_PERCENTAGE=$BATCH_SPOT_BID_PERCENTAGE
 EOF
 
 echo "✓ AWS configuration written to aws/.env"
@@ -347,11 +368,17 @@ echo "════════════════════════�
 echo ""
 echo "Next steps:"
 echo ""
-echo "1. Build and push Docker image to DockerHub:"
-echo "   ./aws/build-image.sh"
-echo "   docker tag algotune:latest $DOCKER_IMAGE"
-echo "   docker push $DOCKER_IMAGE"
-echo ""
-echo "2. Launch batch jobs:"
-echo "   ./aws/launch-batch.sh"
-echo ""
+if [[ "$DOCKER_IMAGE" == ghcr.io/oripress/algotune* ]]; then
+  echo "1. Launch batch jobs:"
+  echo "   ./aws/launch-batch.sh"
+  echo ""
+else
+  echo "1. Build and push Docker image to DockerHub:"
+  echo "   ./aws/build-image.sh"
+  echo "   docker tag algotune:latest $DOCKER_IMAGE"
+  echo "   docker push $DOCKER_IMAGE"
+  echo ""
+  echo "2. Launch batch jobs:"
+  echo "   ./aws/launch-batch.sh"
+  echo ""
+fi

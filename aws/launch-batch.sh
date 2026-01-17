@@ -292,6 +292,10 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 echo "  ✓ Authenticated as account: $ACCOUNT_ID"
 echo ""
 
+# Job queues (Spot first, On-Demand fallback)
+SPOT_QUEUE_NAME="${BATCH_JOB_QUEUE_NAME_SPOT:-$BATCH_JOB_QUEUE_NAME}"
+ONDEMAND_QUEUE_NAME="${BATCH_JOB_QUEUE_NAME_ONDEMAND:-$BATCH_JOB_QUEUE_NAME}"
+
 # Count how many tasks will be submitted
 TASK_COUNT=$(echo "$TASK_LIST" | wc -l)
 
@@ -436,7 +440,8 @@ echo ""
 # Submit jobs
 echo "→ Submitting jobs to AWS Batch..."
 JOB_IDS_FILE="$(mktemp /tmp/algotune_job_ids_XXXXXX)"
-if python3 "$SCRIPT_DIR/submit_jobs.py" --model "$MODEL" $TASK_ARGS --s3-bucket "$S3_RESULTS_BUCKET" > "$JOB_IDS_FILE"; then
+SPOT_JOB_IDS_FILE="$JOB_IDS_FILE"
+if python3 "$SCRIPT_DIR/submit_jobs.py" --model "$MODEL" $TASK_ARGS --s3-bucket "$S3_RESULTS_BUCKET" --job-queue "$SPOT_QUEUE_NAME" > "$JOB_IDS_FILE"; then
   JOB_COUNT=$(wc -l < "$JOB_IDS_FILE" || echo "0")
   if [ "$JOB_COUNT" -gt 0 ]; then
     echo "  ✓ Submitted $JOB_COUNT job(s)"
@@ -737,9 +742,11 @@ cleanup_downloader() {
     echo ""
     echo "✓ Stopped log downloader"
   fi
-  if [ -n "${JOB_IDS_FILE:-}" ] && [ -f "$JOB_IDS_FILE" ]; then
-    rm -f "$JOB_IDS_FILE"
-  fi
+  for ids_file in "${JOB_IDS_FILE:-}" "${SPOT_JOB_IDS_FILE:-}" "${ONDEMAND_JOB_IDS_FILE:-}"; do
+    if [ -n "$ids_file" ] && [ -f "$ids_file" ]; then
+      rm -f "$ids_file"
+    fi
+  done
 }
 trap cleanup_downloader EXIT
 
@@ -790,6 +797,55 @@ if [ $MONITOR_EXIT_CODE -eq 130 ]; then
     cancel_submitted_jobs
   fi
   exit 130
+fi
+
+# Retry Spot interruptions on On-Demand (only if spot/on-demand queues are configured)
+if [ -n "${BATCH_JOB_QUEUE_NAME_SPOT:-}" ] && [ -n "${BATCH_JOB_QUEUE_NAME_ONDEMAND:-}" ]; then
+  SPOT_RETRY_TASKS_FILE="$(mktemp /tmp/algotune_spot_retry_tasks_XXXXXX)"
+  python3 "$SCRIPT_DIR/retry_spot.py" \
+    --job-ids-file "$SPOT_JOB_IDS_FILE" \
+    --out "$SPOT_RETRY_TASKS_FILE" \
+    --model "$MODEL" \
+    --model-display "$MODEL_DISPLAY" \
+    --s3-bucket "$S3_RESULTS_BUCKET" \
+    --output-dir "$ROOT_DIR" || true
+
+  if [ -s "$SPOT_RETRY_TASKS_FILE" ]; then
+    RETRY_COUNT=$(wc -l < "$SPOT_RETRY_TASKS_FILE" || echo "0")
+    echo ""
+    echo "→ Retrying $RETRY_COUNT Spot-interrupted task(s) on On-Demand..."
+    TASKS_INPUT=$(tr '\n' ',' < "$SPOT_RETRY_TASKS_FILE" | sed 's/,$//')
+    ONDEMAND_JOB_IDS_FILE="$(mktemp /tmp/algotune_job_ids_ondemand_XXXXXX)"
+    if python3 "$SCRIPT_DIR/submit_jobs.py" --model "$MODEL" --tasks "$TASKS_INPUT" --s3-bucket "$S3_RESULTS_BUCKET" --job-queue "$ONDEMAND_QUEUE_NAME" > "$ONDEMAND_JOB_IDS_FILE"; then
+      JOB_IDS_FILE="$ONDEMAND_JOB_IDS_FILE"
+      echo "  ✓ Submitted On-Demand retries"
+      echo ""
+      echo "→ Monitoring On-Demand retries..."
+      python3 "$SCRIPT_DIR/monitor_jobs.py" \
+        --job-ids-file "$ONDEMAND_JOB_IDS_FILE" \
+        --interval 30 \
+        --sync-logs \
+        --s3-bucket "$S3_RESULTS_BUCKET" \
+        --output-dir "$ROOT_DIR" \
+        --cleanup-failed
+
+      MONITOR_EXIT_CODE=$?
+      if [ $MONITOR_EXIT_CODE -eq 130 ]; then
+        if [ "$DEADMAN_SWITCH" = "yes" ]; then
+          echo ""
+          cancel_submitted_jobs
+        fi
+        exit 130
+      fi
+    else
+      echo "❌ ERROR: Failed to submit On-Demand retries"
+    fi
+  else
+    echo "→ No Spot interruptions detected."
+  fi
+  rm -f "$SPOT_RETRY_TASKS_FILE"
+else
+  echo "→ Spot retry disabled (Spot/On-Demand queues not configured)."
 fi
 
 echo ""
