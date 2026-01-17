@@ -26,7 +26,7 @@ How good are language models at coming up with new algorithms? To try to answer 
 
 ---
 
-### ✨ **New:** AlgoTune can now be easily run on AWS with just an OpenRouter API key and AWS credentials. [Try it out!](#running-on-aws-batch-cloud)
+### ✨ **New:** AlgoTune can now be easily run on AWS with just an OpenRouter API key and AWS credentials. [Try it out!](#running-on-aws)
 
 ## 🚀 Quick Start
 
@@ -61,8 +61,18 @@ When `sbatch` is available the launcher auto-detects SLURM.
 cat reports/agent_summary.json
 ```
 
-### Running on AWS Batch
+### Running on AWS
 Running AlgoTune on AWS is simple and requires only a minimal setup.
+
+<p align="center">
+  <a href="https://algotune.io/">
+    <img
+      src="https://github.com/oripress/AlgoTune/blob/main/assets/algotune_on_aws.gif?raw=true"
+      alt="AlgoTune demo"
+    />
+  </a>
+</p>
+
 
 #### Prerequisites & Permissions
 
