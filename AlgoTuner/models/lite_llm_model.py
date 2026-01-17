@@ -1,9 +1,10 @@
 import logging
+import os
 import random
 import time
 
 import litellm
-from litellm.exceptions import APIError, InternalServerError, RateLimitError
+from litellm.exceptions import APIError, InternalServerError, RateLimitError, Timeout
 
 from AlgoTuner.utils.error_helpers import get_error_messages_cached
 from AlgoTuner.utils.message_writer import MessageWriter
@@ -15,6 +16,9 @@ class LiteLLMModel:
         self.api_key = api_key
         self.drop_call_params = drop_call_params  # Store the flag
         self.message_writer = MessageWriter()
+
+        self.timeout_seconds = kwargs.pop("timeout", None)
+        self.timeout_retries = kwargs.pop("timeout_retries", None)
 
         # Store max_tokens/max_completion_tokens separately to handle later
         self.max_tokens = kwargs.pop("max_tokens", None)
@@ -44,10 +48,26 @@ class LiteLLMModel:
         # Retry configuration
         max_retries = 5
         base_delay = 2.0
+        timeout_max_attempts = max_retries
+        if self.timeout_retries is not None:
+            try:
+                timeout_max_attempts = max(1, int(self.timeout_retries))
+            except (TypeError, ValueError):
+                timeout_max_attempts = max_retries
 
         for attempt in range(max_retries):
             try:
                 return self._execute_query(messages)
+            except Timeout as e:
+                if attempt < timeout_max_attempts - 1:
+                    delay = base_delay * (2**attempt) + random.uniform(0, 1)
+                    logging.warning(
+                        f"LiteLLM timeout: {e}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{timeout_max_attempts})"
+                    )
+                    time.sleep(delay)
+                    continue
+                logging.error(f"LiteLLM timeout after {timeout_max_attempts} attempt(s): {e}")
+                raise e
             except RateLimitError as e:
                 # Handle 429 rate-limit responses separately so they are always considered retryable
                 retry_after = getattr(e, "retry_after", None)
@@ -239,6 +259,20 @@ class LiteLLMModel:
 
         return any(pattern in error_str for pattern in retryable_patterns)
 
+    def _get_timeout_seconds(self) -> int:
+        if self.timeout_seconds is not None:
+            try:
+                return int(self.timeout_seconds)
+            except (TypeError, ValueError):
+                pass
+        env_value = os.environ.get("LLM_TIMEOUT_SECONDS")
+        if env_value:
+            try:
+                return int(env_value)
+            except (TypeError, ValueError):
+                pass
+        return 600
+
     def _execute_query(self, messages: list[dict[str, str]]) -> dict:
         try:
             # Debug logging of context
@@ -331,7 +365,7 @@ class LiteLLMModel:
                 "model": self.model_name,
                 "messages": completion_messages,  # Use potentially modified message list
                 "api_key": self.api_key,
-                "timeout": 1800,  # 30 minutes for deep thinking models
+                "timeout": self._get_timeout_seconds(),
             }
 
             # Add max_tokens or max_completion_tokens if available
