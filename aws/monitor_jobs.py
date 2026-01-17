@@ -7,7 +7,9 @@ Displays job status, cost metrics, and progress.
 import argparse
 import os
 import re
+import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
@@ -290,7 +292,13 @@ def format_duration(seconds):
 
 
 def display_metrics(
-    stats, refresh_count, last_updated, interval_seconds, start_time=None, metrics=None
+    stats,
+    refresh_count,
+    last_updated,
+    interval_seconds,
+    start_time=None,
+    metrics=None,
+    retry_counters=None,
 ):
     """Display metrics in a nice format."""
     clear_screen()
@@ -320,6 +328,13 @@ def display_metrics(
     print(f"  Succeeded:      {stats['succeeded']}")
     print(f"  Failed:         {stats['failed']}")
     print(f"  Pending:        {stats['pending']}")
+    if retry_counters is not None:
+        retry_tasks = retry_counters.get("tasks", 0)
+        retry_jobs = retry_counters.get("jobs", retry_tasks)
+        if retry_tasks == retry_jobs:
+            print(f"  Spot restarts:  {retry_jobs}")
+        else:
+            print(f"  Spot restarts:  {retry_tasks} tasks / {retry_jobs} jobs")
     print()
 
     # Show HF download status for running jobs
@@ -361,6 +376,95 @@ def display_metrics(
     print()
 
 
+def _read_tasks_file(path: Path) -> list[str]:
+    try:
+        return [line.strip() for line in path.read_text().splitlines() if line.strip()]
+    except Exception:
+        return []
+
+
+def _append_job_ids(path: Path, job_ids: list[str]) -> None:
+    if not job_ids:
+        return
+    try:
+        with open(path, "a") as f:
+            for job_id in job_ids:
+                f.write(f"{job_id}\n")
+    except Exception as exc:
+        print(f"WARNING: Failed to append job IDs to {path}: {exc}", file=sys.stderr)
+
+
+def _run_spot_retry(
+    spot_job_ids_file: Path,
+    model: str,
+    model_display: str,
+    s3_bucket: str,
+    output_dir: str,
+) -> list[str]:
+    script_path = Path(__file__).resolve().parent / "retry_spot.py"
+    with tempfile.NamedTemporaryFile(prefix="algotune_spot_retry_", delete=False) as tmp:
+        out_path = Path(tmp.name)
+    cmd = [
+        sys.executable,
+        str(script_path),
+        "--job-ids-file",
+        str(spot_job_ids_file),
+        "--out",
+        str(out_path),
+        "--model",
+        model,
+        "--s3-bucket",
+        s3_bucket,
+        "--output-dir",
+        output_dir,
+    ]
+    if model_display:
+        cmd.extend(["--model-display", model_display])
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(
+            f"WARNING: retry_spot.py failed: {result.stderr.strip() or result.stdout.strip()}",
+            file=sys.stderr,
+        )
+        out_path.unlink(missing_ok=True)
+        return []
+    tasks = _read_tasks_file(out_path)
+    out_path.unlink(missing_ok=True)
+    return tasks
+
+
+def _submit_on_demand(
+    model: str,
+    tasks: list[str],
+    s3_bucket: str,
+    job_queue: str,
+) -> list[str]:
+    if not tasks:
+        return []
+    script_path = Path(__file__).resolve().parent / "submit_jobs.py"
+    task_arg = ",".join(tasks)
+    cmd = [
+        sys.executable,
+        str(script_path),
+        "--model",
+        model,
+        "--tasks",
+        task_arg,
+        "--s3-bucket",
+        s3_bucket,
+        "--job-queue",
+        job_queue,
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(
+            f"WARNING: Failed to submit on-demand retries: {result.stderr.strip() or result.stdout.strip()}",
+            file=sys.stderr,
+        )
+        return []
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
 def monitor_jobs(
     job_ids_file,
     interval=30,
@@ -369,6 +473,11 @@ def monitor_jobs(
     output_dir=".",
     cleanup_failed=False,
     summary_file="",
+    retry_spot=False,
+    spot_job_ids_file="",
+    ondemand_queue="",
+    model="",
+    model_display="",
 ):
     """
     Monitor jobs in real-time.
@@ -391,6 +500,7 @@ def monitor_jobs(
         return ids
 
     job_ids = load_job_ids()
+    retried_tasks: set[str] = set()
 
     # Initialize AWS clients
     region = os.getenv("AWS_REGION", "us-east-1")
@@ -410,6 +520,17 @@ def monitor_jobs(
 
     refresh_count = 0
     start_time = datetime.now()
+
+    if retry_spot:
+        if not model or not ondemand_queue or not s3_bucket:
+            print(
+                "WARNING: Spot retry requested but missing model, on-demand queue, or S3 bucket.",
+                file=sys.stderr,
+            )
+            retry_spot = False
+        if not spot_job_ids_file:
+            spot_job_ids_file = job_ids_file
+    retry_counters = {"tasks": 0, "jobs": 0} if retry_spot else None
 
     try:
         while True:
@@ -431,10 +552,41 @@ def monitor_jobs(
                 cleanup_failed_logs(Path(output_dir), Path(summary_file))
 
             # Display
-            display_metrics(stats, refresh_count, datetime.now(), interval, start_time, metrics)
+            display_metrics(
+                stats,
+                refresh_count,
+                datetime.now(),
+                interval,
+                start_time,
+                metrics,
+                retry_counters=retry_counters,
+            )
+
+            added_retries = False
+            if retry_spot:
+                retry_tasks = _run_spot_retry(
+                    Path(spot_job_ids_file), model, model_display, s3_bucket, output_dir
+                )
+                retry_tasks = [task for task in retry_tasks if task not in retried_tasks]
+                if retry_tasks:
+                    print(
+                        f"↻ Retrying {len(retry_tasks)} Spot-interrupted task(s) on On-Demand...",
+                        file=sys.stderr,
+                    )
+                    new_job_ids = _submit_on_demand(model, retry_tasks, s3_bucket, ondemand_queue)
+                    if new_job_ids:
+                        _append_job_ids(Path(job_ids_file), new_job_ids)
+                        retried_tasks.update(retry_tasks)
+                        if retry_counters is not None:
+                            retry_counters["tasks"] += len(retry_tasks)
+                            retry_counters["jobs"] += len(new_job_ids)
+                        added_retries = True
 
             # Check if all jobs are done
             if stats["running"] == 0 and stats["pending"] == 0:
+                if added_retries:
+                    time.sleep(interval)
+                    continue
                 print("═══════════════════════════════════════════════════════════")
                 print("✅ All jobs completed!")
                 print("═══════════════════════════════════════════════════════════")
@@ -485,6 +637,31 @@ def main():
         default=str(Path(__file__).resolve().parents[1] / "reports" / "agent_summary.json"),
         help="Summary file for cleanup (default: reports/agent_summary.json)",
     )
+    parser.add_argument(
+        "--retry-spot",
+        action="store_true",
+        help="Retry Spot interruptions during monitoring by resubmitting on On-Demand.",
+    )
+    parser.add_argument(
+        "--spot-job-ids-file",
+        default="",
+        help="File containing Spot job IDs (default: --job-ids-file)",
+    )
+    parser.add_argument(
+        "--ondemand-queue",
+        default=os.getenv("BATCH_JOB_QUEUE_NAME_ONDEMAND", ""),
+        help="On-Demand queue name for Spot retries (default: from aws/.env)",
+    )
+    parser.add_argument(
+        "--model",
+        default="",
+        help="Full model name (required for Spot retries)",
+    )
+    parser.add_argument(
+        "--model-display",
+        default="",
+        help="Model display name used in logs (optional for Spot retries)",
+    )
 
     args = parser.parse_args()
 
@@ -496,6 +673,11 @@ def main():
         output_dir=args.output_dir,
         cleanup_failed=args.cleanup_failed,
         summary_file=args.summary_file,
+        retry_spot=args.retry_spot,
+        spot_job_ids_file=args.spot_job_ids_file,
+        ondemand_queue=args.ondemand_queue,
+        model=args.model,
+        model_display=args.model_display,
     )
 
 

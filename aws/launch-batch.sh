@@ -779,6 +779,18 @@ else
   echo "  (Press Ctrl+C to stop monitoring - jobs will continue running)"
 fi
 echo ""
+LIVE_SPOT_RETRY=false
+MONITOR_RETRY_ARGS=()
+if [ -n "${BATCH_JOB_QUEUE_NAME_SPOT:-}" ] && [ -n "${BATCH_JOB_QUEUE_NAME_ONDEMAND:-}" ]; then
+  LIVE_SPOT_RETRY=true
+  MONITOR_RETRY_ARGS=(
+    --retry-spot
+    --spot-job-ids-file "$SPOT_JOB_IDS_FILE"
+    --ondemand-queue "$ONDEMAND_QUEUE_NAME"
+    --model "$MODEL"
+    --model-display "$MODEL_DISPLAY"
+  )
+fi
 
 python3 "$SCRIPT_DIR/monitor_jobs.py" \
   --job-ids-file "$JOB_IDS_FILE" \
@@ -786,7 +798,8 @@ python3 "$SCRIPT_DIR/monitor_jobs.py" \
   --sync-logs \
   --s3-bucket "$S3_RESULTS_BUCKET" \
   --output-dir "$ROOT_DIR" \
-  --cleanup-failed
+  --cleanup-failed \
+  "${MONITOR_RETRY_ARGS[@]}"
 
 MONITOR_EXIT_CODE=$?
 
@@ -800,7 +813,9 @@ if [ $MONITOR_EXIT_CODE -eq 130 ]; then
 fi
 
 # Retry Spot interruptions on On-Demand (only if spot/on-demand queues are configured)
-if [ -n "${BATCH_JOB_QUEUE_NAME_SPOT:-}" ] && [ -n "${BATCH_JOB_QUEUE_NAME_ONDEMAND:-}" ]; then
+if [ "$LIVE_SPOT_RETRY" = "true" ]; then
+  echo "→ Spot retry handled during monitoring."
+elif [ -n "${BATCH_JOB_QUEUE_NAME_SPOT:-}" ] && [ -n "${BATCH_JOB_QUEUE_NAME_ONDEMAND:-}" ]; then
   SPOT_RETRY_TASKS_FILE="$(mktemp /tmp/algotune_spot_retry_tasks_XXXXXX)"
   python3 "$SCRIPT_DIR/retry_spot.py" \
     --job-ids-file "$SPOT_JOB_IDS_FILE" \
