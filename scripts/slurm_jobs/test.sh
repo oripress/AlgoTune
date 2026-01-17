@@ -149,8 +149,9 @@ singularity exec \
     --env WORKSPACE="/" \
     --env CODE_DIR="${CONTAINER_CODE_DIR}" \
     --env AGENT_MODE="${AGENT_MODE}" \
+    --env ALGOTUNE_CONFIG_PATH="/app/AlgoTuner/config/config.yaml" \
     "${SINGULARITY_IMAGE}" \
-    python3 /app/AlgoTuner/tests/run_tests.py --model "${MODEL}" --task "${TASK_NAME}"
+    /bin/bash -lc "if [ ! -s /app/AlgoTuner/config/config.yaml ]; then echo '[INSIDE] ERROR: config.yaml missing at /app/AlgoTuner/config/config.yaml'; exit 1; fi; python3 /app/AlgoTuner/tests/run_tests.py --model \"${MODEL}\" --task \"${TASK_NAME}\""
 
 # Update final message
 echo "Task ${TASK_NAME} (Job ID: ${SLURM_JOB_ID}) completed."

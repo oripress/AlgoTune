@@ -245,9 +245,9 @@ PY_OUTPUT=$(
     --env PYTHONPATH="/app:/app/AlgoTune:${PYTHONPATH:-}" \
     --env TEMP_DIR_STORAGE="${TEMP_DIR_STORAGE}" \
     --env CODE_DIR="/app" \
+    --env ALGOTUNE_CONFIG_PATH="/app/AlgoTuner/config/config.yaml" \
     "${SINGULARITY_IMAGE}" \
-    python3 "$TEMP_PYTHON_SCRIPT_CONTAINER" \
-       "$TASK_NAME" "$PREGENERATED_DATA_DIR" "$RUN_ID" "$TARGET_TIME_MS" 2>&1
+    /bin/bash -lc "if [ ! -s /app/AlgoTuner/config/config.yaml ]; then echo 'ERROR: config.yaml missing at /app/AlgoTuner/config/config.yaml'; exit 1; fi; python3 \"${TEMP_PYTHON_SCRIPT_CONTAINER}\" \"${TASK_NAME}\" \"${PREGENERATED_DATA_DIR}\" \"${RUN_ID}\" \"${TARGET_TIME_MS}\"" 2>&1
 )
 SING_EXIT=$?
 
