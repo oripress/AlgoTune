@@ -292,22 +292,93 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 echo "  ✓ Authenticated as account: $ACCOUNT_ID"
 echo ""
 
-# Job queues (Spot first, On-Demand fallback)
+# Job queues
 SPOT_QUEUE_NAME="${BATCH_JOB_QUEUE_NAME_SPOT:-$BATCH_JOB_QUEUE_NAME}"
 ONDEMAND_QUEUE_NAME="${BATCH_JOB_QUEUE_NAME_ONDEMAND:-$BATCH_JOB_QUEUE_NAME}"
 
+# Choose capacity type
+echo "Which capacity type do you want to use?"
+echo "  1) On-Demand (default)"
+echo "  2) Spot (cheaper, may interrupt; auto-retry on On-Demand)"
+echo ""
+read -p "Choice [1/2]: " CAPACITY_CHOICE
+
+CAPACITY_TYPE="on-demand"
+CAPACITY_LABEL="On-Demand"
+JOB_QUEUE_NAME="$ONDEMAND_QUEUE_NAME"
+
+case "$CAPACITY_CHOICE" in
+  2)
+    if [ -n "${BATCH_JOB_QUEUE_NAME_SPOT:-}" ]; then
+      CAPACITY_TYPE="spot"
+      CAPACITY_LABEL="Spot"
+      JOB_QUEUE_NAME="$SPOT_QUEUE_NAME"
+    else
+      echo "⚠️  Spot queue not configured; using On-Demand."
+    fi
+    ;;
+  ""|1)
+    ;;
+  *)
+    echo "⚠️  Invalid choice; using On-Demand."
+    ;;
+esac
+
+echo "  → Using $CAPACITY_LABEL queue: $JOB_QUEUE_NAME"
+echo ""
+
 # Count how many tasks will be submitted
 TASK_COUNT=$(echo "$TASK_LIST" | wc -l)
+
+# Price lookup (AWS Pricing API / EC2 spot history)
+INSTANCE_TYPES=""
+if [ "$CAPACITY_TYPE" = "spot" ]; then
+  INSTANCE_TYPES="${BATCH_INSTANCE_TYPES_SPOT:-${BATCH_INSTANCE_TYPES:-}}"
+else
+  INSTANCE_TYPES="${BATCH_INSTANCE_TYPES_ONDEMAND:-${BATCH_INSTANCE_TYPES:-}}"
+fi
+INSTANCE_TYPE="$(echo "$INSTANCE_TYPES" | cut -d',' -f1 | xargs)"
+
+PRICE_PER_HOUR=""
+if [ -n "$INSTANCE_TYPE" ]; then
+  PRICE_PER_HOUR=$(python3 "$SCRIPT_DIR/get_instance_pricing.py" \
+    --instance-type "$INSTANCE_TYPE" \
+    --region "$AWS_REGION" \
+    --capacity-type "$CAPACITY_TYPE" 2>/dev/null || true)
+fi
+
+format_cost_display() {
+  local instances="$1"
+  if [ -z "$PRICE_PER_HOUR" ]; then
+    echo "N/A"
+    return
+  fi
+  local raw
+  raw=$(echo "scale=4; $PRICE_PER_HOUR * $instances" | bc -l)
+  if [ -z "$raw" ]; then
+    echo "N/A"
+    return
+  fi
+  printf "\$%.2f/hr" "$raw"
+}
+
+if [ -n "$PRICE_PER_HOUR" ]; then
+  printf "  Pricing: %s @ $%.4f/hr (%s, %s)\n" "$INSTANCE_TYPE" "$PRICE_PER_HOUR" "$CAPACITY_LABEL" "$AWS_REGION"
+else
+  echo "  Pricing: unavailable (AWS Pricing API/spot history)"
+fi
+echo ""
 
 echo "→ Configuring parallelism for $TASK_COUNT task(s)..."
 echo ""
 echo "How many jobs should run in parallel?"
 echo "  (Each job gets: 1 vCPU, 16 GB RAM - matching SLURM)"
 echo ""
-echo "  1) Low parallelism   (~16 jobs)   [~4 instances,  ~\$1.36/hr]"
-echo "  2) Medium parallelism (~32 jobs)  [~8 instances,  ~\$2.72/hr]"
-echo "  3) High parallelism  (~64 jobs)   [~16 instances, ~\$5.44/hr]"
-echo "  4) Maximum throughput (all $TASK_COUNT jobs) [~$((($TASK_COUNT + 3) / 4)) instances, ~\$$(echo "scale=2; ($TASK_COUNT + 3) / 4 * 0.34" | bc)/hr]"
+MAX_INSTANCES=$(( ($TASK_COUNT + 3) / 4 ))
+echo "  1) Low parallelism   (~16 jobs)   [~4 instances,  $(format_cost_display 4)]"
+echo "  2) Medium parallelism (~32 jobs)  [~8 instances,  $(format_cost_display 8)]"
+echo "  3) High parallelism  (~64 jobs)   [~16 instances, $(format_cost_display 16)]"
+echo "  4) Maximum throughput (all $TASK_COUNT jobs) [~$MAX_INSTANCES instances, $(format_cost_display "$MAX_INSTANCES")]"
 echo "  5) Custom (specify vCPUs)"
 echo ""
 read -p "Choice [1/2/3/4/5]: " PARALLEL_CHOICE
@@ -350,7 +421,13 @@ case "$PARALLEL_CHOICE" in
 esac
 
 echo ""
-echo "  Instance type: r6a.2xlarge (8 vCPU, 64 GB)"
+if [ -n "$INSTANCE_TYPE" ]; then
+  echo "  Instance type: $INSTANCE_TYPE (8 vCPU, 64 GB)"
+elif [ -n "$INSTANCE_TYPES" ]; then
+  echo "  Instance type: $INSTANCE_TYPES (8 vCPU, 64 GB)"
+else
+  echo "  Instance type: unknown"
+fi
 echo "  Per job: 1 vCPU, 16 GB (matches SLURM)"
 echo "  Max parallel: ~$PARALLEL_JOBS jobs"
 echo "  Max vCPUs: $BATCH_MAX_VCPUS"
@@ -440,8 +517,11 @@ echo ""
 # Submit jobs
 echo "→ Submitting jobs to AWS Batch..."
 JOB_IDS_FILE="$(mktemp /tmp/algotune_job_ids_XXXXXX)"
-SPOT_JOB_IDS_FILE="$JOB_IDS_FILE"
-if python3 "$SCRIPT_DIR/submit_jobs.py" --model "$MODEL" $TASK_ARGS --s3-bucket "$S3_RESULTS_BUCKET" --job-queue "$SPOT_QUEUE_NAME" > "$JOB_IDS_FILE"; then
+SPOT_JOB_IDS_FILE=""
+if [ "$CAPACITY_TYPE" = "spot" ]; then
+  SPOT_JOB_IDS_FILE="$JOB_IDS_FILE"
+fi
+if python3 "$SCRIPT_DIR/submit_jobs.py" --model "$MODEL" $TASK_ARGS --s3-bucket "$S3_RESULTS_BUCKET" --job-queue "$JOB_QUEUE_NAME" > "$JOB_IDS_FILE"; then
   JOB_COUNT=$(wc -l < "$JOB_IDS_FILE" || echo "0")
   if [ "$JOB_COUNT" -gt 0 ]; then
     echo "  ✓ Submitted $JOB_COUNT job(s)"
@@ -781,7 +861,9 @@ fi
 echo ""
 LIVE_SPOT_RETRY=false
 MONITOR_RETRY_ARGS=()
-if [ -n "${BATCH_JOB_QUEUE_NAME_SPOT:-}" ] && [ -n "${BATCH_JOB_QUEUE_NAME_ONDEMAND:-}" ]; then
+if [ "$CAPACITY_TYPE" = "spot" ] \
+  && [ -n "${BATCH_JOB_QUEUE_NAME_SPOT:-}" ] \
+  && [ -n "${BATCH_JOB_QUEUE_NAME_ONDEMAND:-}" ]; then
   LIVE_SPOT_RETRY=true
   MONITOR_RETRY_ARGS=(
     --retry-spot
@@ -815,7 +897,9 @@ fi
 # Retry Spot interruptions on On-Demand (only if spot/on-demand queues are configured)
 if [ "$LIVE_SPOT_RETRY" = "true" ]; then
   echo "→ Spot retry handled during monitoring."
-elif [ -n "${BATCH_JOB_QUEUE_NAME_SPOT:-}" ] && [ -n "${BATCH_JOB_QUEUE_NAME_ONDEMAND:-}" ]; then
+elif [ "$CAPACITY_TYPE" = "spot" ] \
+  && [ -n "${BATCH_JOB_QUEUE_NAME_SPOT:-}" ] \
+  && [ -n "${BATCH_JOB_QUEUE_NAME_ONDEMAND:-}" ]; then
   SPOT_RETRY_TASKS_FILE="$(mktemp /tmp/algotune_spot_retry_tasks_XXXXXX)"
   python3 "$SCRIPT_DIR/retry_spot.py" \
     --job-ids-file "$SPOT_JOB_IDS_FILE" \
