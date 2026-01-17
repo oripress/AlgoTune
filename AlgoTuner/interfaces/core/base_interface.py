@@ -148,9 +148,19 @@ class BaseLLMInterface:
         self.model_params = {
             "model_name": self.model_config.name,
             "api_key": api_key,
-            "top_p": self.model_config.top_p,
-            "max_tokens": self.model_config.max_tokens,
         }
+
+        if self.model_config.top_p is not None:
+            self.model_params["top_p"] = self.model_config.top_p
+        if self.model_config.max_tokens is not None:
+            self.model_params["max_tokens"] = self.model_config.max_tokens
+        if (
+            hasattr(self.model_config, "max_completion_tokens")
+            and self.model_config.max_completion_tokens is not None
+        ):
+            self.model_params["max_completion_tokens"] = (
+                self.model_config.max_completion_tokens
+            )
 
         if hasattr(self.model_config, "temperature") and self.model_config.temperature is not None:
             self.model_params["temperature"] = self.model_config.temperature
