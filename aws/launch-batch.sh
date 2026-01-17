@@ -565,52 +565,125 @@ echo ""
 # Ctrl+C kill switch for submitted jobs (optional)
 cancel_submitted_jobs() {
   set +e
-  if [ ! -f "$JOB_IDS_FILE" ]; then
-    return
-  fi
 
-  mapfile -t job_ids < "$JOB_IDS_FILE"
-  if [ "${#job_ids[@]}" -eq 0 ]; then
-    return
-  fi
+  local job_ids=()
+  local -A seen_job_ids=()
+  local queues=()
+  local -A seen_queues=()
 
-  local total="${#job_ids[@]}"
+  local job_name_prefix="algotune-"
+  local model_suffix="--$(echo "$MODEL" | tr '/:.' '_')"
+
+  add_job_id() {
+    local job_id="$1"
+    if [ -z "$job_id" ]; then
+      return
+    fi
+    if [ -z "${seen_job_ids[$job_id]+x}" ]; then
+      seen_job_ids["$job_id"]=1
+      job_ids+=("$job_id")
+    fi
+  }
+
+  add_queue() {
+    local queue="$1"
+    if [ -z "$queue" ]; then
+      return
+    fi
+    if [ -z "${seen_queues[$queue]+x}" ]; then
+      seen_queues["$queue"]=1
+      queues+=("$queue")
+    fi
+  }
+
+  add_job_ids_from_file() {
+    local file="$1"
+    if [ -z "$file" ] || [ ! -f "$file" ]; then
+      return
+    fi
+    while IFS= read -r line; do
+      line=$(echo "$line" | xargs)
+      [ -z "$line" ] && continue
+      add_job_id "$line"
+    done < "$file"
+  }
+
   echo ""
   echo "⚠️  Interrupt received. Canceling queued jobs and terminating running jobs..."
-  echo "  → Processing $total jobs from $JOB_IDS_FILE"
+  echo "  → Collecting jobs from files and AWS Batch queues..."
 
-  local chunk_size=100
-  local i=0
-  local cancel_count=0
-  local terminate_count=0
-  local completed_count=0
+  add_job_ids_from_file "${JOB_IDS_FILE:-}"
+  add_job_ids_from_file "${SPOT_JOB_IDS_FILE:-}"
+  add_job_ids_from_file "${ONDEMAND_JOB_IDS_FILE:-}"
 
-  while [ $i -lt $total ]; do
-    local chunk=("${job_ids[@]:i:chunk_size}")
-    local job_lines
+  add_queue "${JOB_QUEUE_NAME:-}"
+  add_queue "${SPOT_QUEUE_NAME:-}"
+  add_queue "${ONDEMAND_QUEUE_NAME:-}"
 
-    job_json=$(aws batch describe-jobs \
-      --jobs "${chunk[@]}" \
-      --region "$AWS_REGION" \
-      --output json 2>/dev/null)
-    if [ $? -ne 0 ] || [ -z "$job_json" ]; then
-      echo "⚠️  Warning: Failed to fetch job statuses. Attempting cancel/terminate for all in chunk."
-      for job_id in "${chunk[@]}"; do
-        aws batch cancel-job \
-          --job-id "$job_id" \
-          --reason "Ctrl+C kill switch" \
-          --region "$AWS_REGION" 2>&1 | grep -v "ClientException" || true
-        aws batch terminate-job \
-          --job-id "$job_id" \
-          --reason "Ctrl+C kill switch" \
-          --region "$AWS_REGION" 2>&1 | grep -v "ClientException" || true
-        cancel_count=$((cancel_count + 1))
+  if [ "${#queues[@]}" -gt 0 ]; then
+    for queue in "${queues[@]}"; do
+      for status in SUBMITTED PENDING RUNNABLE STARTING RUNNING; do
+        listed_pairs=$(aws batch list-jobs \
+          --job-queue "$queue" \
+          --job-status "$status" \
+          --region "$AWS_REGION" \
+          --query 'jobSummaryList[*].[jobId,jobName]' \
+          --output text 2>/dev/null || echo "")
+        if [ -z "$listed_pairs" ]; then
+          continue
+        fi
+        while read -r job_id job_name; do
+          [ -z "$job_id" ] && continue
+          if [[ "$job_name" != ${job_name_prefix}* ]]; then
+            continue
+          fi
+          if [ -n "$model_suffix" ] && [[ "$job_name" != *"$model_suffix" ]]; then
+            continue
+          fi
+          add_job_id "$job_id"
+        done <<< "$listed_pairs"
       done
-      i=$((i + chunk_size))
-      continue
-    fi
+    done
+  fi
 
-    job_lines=$(printf "%s" "$job_json" | python3 - <<'PY'
+  if [ "${#job_ids[@]}" -eq 0 ]; then
+    echo "  ⚠️  No matching jobs found to cancel/terminate."
+  else
+    local total="${#job_ids[@]}"
+    echo "  → Processing $total job(s)"
+
+    local chunk_size=100
+    local i=0
+    local cancel_count=0
+    local terminate_count=0
+    local completed_count=0
+
+    while [ $i -lt $total ]; do
+      local chunk=("${job_ids[@]:i:chunk_size}")
+      local job_lines
+
+      job_json=$(aws batch describe-jobs \
+        --jobs "${chunk[@]}" \
+        --region "$AWS_REGION" \
+        --output json 2>/dev/null)
+      if [ $? -ne 0 ] || [ -z "$job_json" ]; then
+        echo "⚠️  Warning: Failed to fetch job statuses. Attempting cancel/terminate for all in chunk."
+        for job_id in "${chunk[@]}"; do
+          aws batch cancel-job \
+            --job-id "$job_id" \
+            --reason "Ctrl+C kill switch" \
+            --region "$AWS_REGION" 2>&1 | grep -v "ClientException" || true
+          aws batch terminate-job \
+            --job-id "$job_id" \
+            --reason "Ctrl+C kill switch" \
+            --region "$AWS_REGION" 2>&1 | grep -v "ClientException" || true
+          cancel_count=$((cancel_count + 1))
+        done
+        i=$((i + chunk_size))
+        continue
+      fi
+
+      job_lines=$(printf "%s" "$job_json" | python3 - <<'PY'
 import json
 import sys
 
@@ -626,69 +699,69 @@ for job in payload.get("jobs", []):
 PY
 )
 
-    while read -r job_id status; do
-      [ -z "$job_id" ] && continue  # Skip empty lines
-      case "$status" in
-        SUBMITTED|PENDING|RUNNABLE)
-          echo "  → Canceling job $job_id (status: $status)"
-          if aws batch cancel-job \
-            --job-id "$job_id" \
-            --reason "Ctrl+C kill switch" \
-            --region "$AWS_REGION" 2>&1 | grep -v "ClientException"; then
-            cancel_count=$((cancel_count + 1))
-          fi
-          ;;
-        STARTING|RUNNING)
-          echo "  → Terminating job $job_id (status: $status)"
-          if aws batch terminate-job \
-            --job-id "$job_id" \
-            --reason "Ctrl+C kill switch" \
-            --region "$AWS_REGION" 2>&1 | grep -v "ClientException"; then
-            terminate_count=$((terminate_count + 1))
-          fi
-          ;;
-        SUCCEEDED|FAILED)
-          completed_count=$((completed_count + 1))
-          ;;
-        *)
-          echo "  → Job $job_id in state $status (no action)"
-          ;;
-      esac
-    done <<< "$job_lines"
+      while read -r job_id status; do
+        [ -z "$job_id" ] && continue  # Skip empty lines
+        case "$status" in
+          SUBMITTED|PENDING|RUNNABLE)
+            echo "  → Canceling job $job_id (status: $status)"
+            if aws batch cancel-job \
+              --job-id "$job_id" \
+              --reason "Ctrl+C kill switch" \
+              --region "$AWS_REGION" 2>&1 | grep -v "ClientException"; then
+              cancel_count=$((cancel_count + 1))
+            fi
+            ;;
+          STARTING|RUNNING)
+            echo "  → Terminating job $job_id (status: $status)"
+            if aws batch terminate-job \
+              --job-id "$job_id" \
+              --reason "Ctrl+C kill switch" \
+              --region "$AWS_REGION" 2>&1 | grep -v "ClientException"; then
+              terminate_count=$((terminate_count + 1))
+            fi
+            ;;
+          SUCCEEDED|FAILED)
+            completed_count=$((completed_count + 1))
+            ;;
+          *)
+            echo "  → Job $job_id in state $status (no action)"
+            ;;
+        esac
+      done <<< "$job_lines"
 
-    i=$((i + chunk_size))
-  done
+      i=$((i + chunk_size))
+    done
 
-  echo "✓ Cancellation/termination requests sent"
-  echo "  → Canceled: $cancel_count, Terminated: $terminate_count, Already completed: $completed_count"
+    echo "✓ Cancellation/termination requests sent"
+    echo "  → Canceled: $cancel_count, Terminated: $terminate_count, Already completed: $completed_count"
 
-  # Wait for jobs to actually be canceled/terminated
-  echo "→ Waiting for jobs to transition to terminal states (max 30s)..."
-  local max_wait=30  # Wait up to 30 seconds
-  local wait_count=0
-  local jobs_still_active=1
-  local last_active_count=0
+    # Wait for jobs to actually be canceled/terminated
+    echo "→ Waiting for jobs to transition to terminal states (max 120s)..."
+    local max_wait=120  # Wait up to 2 minutes
+    local wait_count=0
+    local jobs_still_active=1
+    local last_active_count=0
 
-  while [ $wait_count -lt $max_wait ] && [ $jobs_still_active -eq 1 ]; do
-    sleep 1
-    wait_count=$((wait_count + 1))
+    while [ $wait_count -lt $max_wait ] && [ $jobs_still_active -eq 1 ]; do
+      sleep 1
+      wait_count=$((wait_count + 1))
 
-    # Check if any jobs are still in non-terminal states
-    jobs_still_active=0
-    local check_chunk_size=100
-    local check_i=0
-    local total_active=0
+      # Check if any jobs are still in non-terminal states
+      jobs_still_active=0
+      local check_chunk_size=100
+      local check_i=0
+      local total_active=0
 
-    while [ $check_i -lt $total ]; do
-      local check_chunk=("${job_ids[@]:check_i:check_chunk_size}")
+      while [ $check_i -lt $total ]; do
+        local check_chunk=("${job_ids[@]:check_i:check_chunk_size}")
 
-      local check_json=$(aws batch describe-jobs \
-        --jobs "${check_chunk[@]}" \
-        --region "$AWS_REGION" \
-        --output json 2>/dev/null || echo "")
+        local check_json=$(aws batch describe-jobs \
+          --jobs "${check_chunk[@]}" \
+          --region "$AWS_REGION" \
+          --output json 2>/dev/null || echo "")
 
-      if [ -n "$check_json" ]; then
-        local active_count=$(printf "%s" "$check_json" | python3 - <<'PY'
+        if [ -n "$check_json" ]; then
+          local active_count=$(printf "%s" "$check_json" | python3 - <<'PY'
 import json
 import sys
 
@@ -707,62 +780,79 @@ for job in payload.get("jobs", []):
 print(active)
 PY
 )
-        if [ "$active_count" -gt 0 ]; then
-          jobs_still_active=1
-          total_active=$((total_active + active_count))
+          if [ "$active_count" -gt 0 ]; then
+            jobs_still_active=1
+            total_active=$((total_active + active_count))
+          fi
+        fi
+
+        check_i=$((check_i + check_chunk_size))
+      done
+
+      if [ $jobs_still_active -eq 1 ]; then
+        if [ $total_active -ne $last_active_count ] || [ $((wait_count % 5)) -eq 0 ]; then
+          echo "  → Still $total_active jobs active after ${wait_count}s..."
+          last_active_count=$total_active
         fi
       fi
-
-      check_i=$((check_i + check_chunk_size))
     done
 
-    if [ $jobs_still_active -eq 1 ]; then
-      if [ $total_active -ne $last_active_count ] || [ $((wait_count % 5)) -eq 0 ]; then
-        echo "  → Still $total_active jobs active after ${wait_count}s..."
-        last_active_count=$total_active
-      fi
+    if [ $jobs_still_active -eq 0 ]; then
+      echo "✓ All jobs transitioned to terminal states"
+    else
+      echo "⚠️  Timeout: $total_active jobs still active after ${wait_count}s"
+      echo "  → Proceeding with compute environment shutdown anyway"
     fi
-  done
-
-  if [ $jobs_still_active -eq 0 ]; then
-    echo "✓ All jobs transitioned to terminal states"
-  else
-    echo "⚠️  Timeout: $total_active jobs still active after ${wait_count}s"
-    echo "  → Proceeding with compute environment shutdown anyway"
   fi
 
-  # Scale down ALL compute environments to stop EC2 instances
-  echo "→ Scaling down ALL compute environments..."
+  # Scale down AlgoTune compute environments to stop EC2 instances
+  echo "→ Scaling down AlgoTune compute environments..."
 
-  # Get all compute environments
-  ALL_CE_NAMES=$(aws batch describe-compute-environments \
-    --region "$AWS_REGION" \
-    --query 'computeEnvironments[*].computeEnvironmentName' \
-    --output text 2>/dev/null || echo "")
+  local ce_names=()
+  local -A seen_ce=()
 
-  if [ -z "$ALL_CE_NAMES" ]; then
+  add_ce() {
+    local name="$1"
+    if [ -z "$name" ]; then
+      return
+    fi
+    if [ -z "${seen_ce[$name]+x}" ]; then
+      seen_ce["$name"]=1
+      ce_names+=("$name")
+    fi
+  }
+
+  add_ce "${BATCH_COMPUTE_ENV_NAME:-}"
+  add_ce "${BATCH_COMPUTE_ENV_NAME_SPOT:-}"
+  add_ce "${BATCH_COMPUTE_ENV_NAME_ONDEMAND:-}"
+
+  if [ "${#ce_names[@]}" -eq 0 ]; then
+    # Fallback: scale down all compute environments
+    all_ce_names=$(aws batch describe-compute-environments \
+      --region "$AWS_REGION" \
+      --query 'computeEnvironments[*].computeEnvironmentName' \
+      --output text 2>/dev/null || echo "")
+    if [ -n "$all_ce_names" ]; then
+      for ce_name in $all_ce_names; do
+        add_ce "$ce_name"
+      done
+    fi
+  fi
+
+  if [ "${#ce_names[@]}" -eq 0 ]; then
     echo "  → No compute environments found"
   else
-    echo "  → Found compute environments: $ALL_CE_NAMES"
-
-    for CE_NAME in $ALL_CE_NAMES; do
+    echo "  → Found compute environments: ${ce_names[*]}"
+    for CE_NAME in "${ce_names[@]}"; do
       echo "  → Processing: $CE_NAME"
-
-      # Get current state
-      CURRENT_STATE=$(aws batch describe-compute-environments \
-        --compute-environments "$CE_NAME" \
-        --region "$AWS_REGION" \
-        --query 'computeEnvironments[0].state' \
-        --output text 2>/dev/null || echo "UNKNOWN")
-
-      if [ "$CURRENT_STATE" = "DISABLED" ]; then
-        echo "    Already disabled, skipping scale down..."
+      if aws batch update-compute-environment \
+        --compute-environment "$CE_NAME" \
+        --state DISABLED \
+        --compute-resources '{"minvCpus":0,"desiredvCpus":0}' \
+        --region "$AWS_REGION" >/dev/null 2>&1; then
+        echo "    ✓ Scaled down and disabled"
       else
-        # Try to scale down (may fail for managed scaling)
-        aws batch update-compute-environment \
-          --compute-environment "$CE_NAME" \
-          --compute-resources '{"minvCpus":0,"desiredvCpus":0}' \
-          --region "$AWS_REGION" >/dev/null 2>&1 || true
+        echo "    ⚠️  Warning: Failed to update compute environment"
       fi
     done
   fi
