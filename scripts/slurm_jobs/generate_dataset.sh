@@ -77,9 +77,14 @@ singularity exec \
     --env CODE_DIR="/app" \
     --env TEMP_DIR_STORAGE="${TEMP_DIR_STORAGE}" \
     --env TARGET_TIME_MS="${TARGET_TIME_MS}" \
+    --env ALGOTUNE_CONFIG_PATH="/app/AlgoTuner/config/config.yaml" \
     "${SINGULARITY_IMAGE}" \
     bash -c "\
       set -e; \
+      if [ ! -s /app/AlgoTuner/config/config.yaml ]; then \
+        echo 'ERROR: config.yaml missing at /app/AlgoTuner/config/config.yaml'; \
+        exit 1; \
+      fi; \
       if [ -n \"${OVERRIDE_K:-}\" ]; then \
         python3 AlgoTuner/scripts/generate_and_annotate.py \"$TASK_NAME\" --data-dir \"$TASK_DATASET_DIR\" --k \"${OVERRIDE_K:-}\"; \
       else \

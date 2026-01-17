@@ -175,6 +175,10 @@ singularity exec \
     echo "[INSIDE] ALGOTUNE_CONFIG_PATH=${ALGOTUNE_CONFIG_PATH}"; \
     echo "[INSIDE] pwd=$(pwd)"; \
     echo "[INSIDE] ls -la /app/AlgoTuner/config/ | head -5:"; ls -la /app/AlgoTuner/config/ | head -5; \
+    if [ ! -s /app/AlgoTuner/config/config.yaml ]; then \
+      echo "[INSIDE] ERROR: config.yaml missing at /app/AlgoTuner/config/config.yaml"; \
+      exit 1; \
+    fi; \
     export PYTHONPATH="/app:${PYTHONPATH}"; \
     python3 /app/AlgoTuner/main.py --task "$TASK_NAME" --model "$MODEL"'
 

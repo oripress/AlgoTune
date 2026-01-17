@@ -163,6 +163,10 @@ singularity exec \
     echo "[INSIDE] DATA_DIR=${DATA_DIR}"; \
     echo "[INSIDE] ALGOTUNE_CONFIG_PATH=${ALGOTUNE_CONFIG_PATH}"; \
     echo "[INSIDE] pwd=$(pwd)"; \
+    if [ ! -s /app/AlgoTuner/config/config.yaml ]; then \
+      echo "[INSIDE] ERROR: config.yaml missing at /app/AlgoTuner/config/config.yaml"; \
+      exit 1; \
+    fi; \
     export PYTHONPATH="/app:${PYTHONPATH}"; \
     python3 /app/scripts/evaluate_results.py \
         --models "$EVAL_MODEL_NAME" \
