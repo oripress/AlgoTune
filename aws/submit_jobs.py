@@ -123,6 +123,13 @@ def parse_args():
         help="S3 bucket for results (default: from .env S3_RESULTS_BUCKET)",
     )
 
+    # Job queue override
+    parser.add_argument(
+        "--job-queue",
+        default=os.getenv("BATCH_JOB_QUEUE_NAME", "AlgoTuneQueue"),
+        help="AWS Batch job queue name (default: from .env BATCH_JOB_QUEUE_NAME)",
+    )
+
     return parser.parse_args()
 
 
@@ -163,7 +170,7 @@ def main():
     # Initialize Batch client
     batch = boto3.client("batch", region_name=os.getenv("AWS_REGION"))
 
-    job_queue = os.getenv("BATCH_JOB_QUEUE_NAME", "AlgoTuneQueue")
+    job_queue = args.job_queue
     job_def = os.getenv("BATCH_JOB_DEF_NAME", "AlgoTuneJobDef")
     s3_bucket = args.s3_bucket
 
