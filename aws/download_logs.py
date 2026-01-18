@@ -27,6 +27,27 @@ TASK_RE = re.compile(r"task_name to raw '([^']+)'")
 LOG_NAME_RE = re.compile(r"^(?P<task>.+)_(?P<model>.+)_(?P<stamp>\\d{8}_\\d{6})\\.log$")
 
 
+def normalize_model_name(model_name: str) -> str:
+    if not model_name:
+        return model_name
+    if "/" in model_name:
+        return model_name.rsplit("/", 1)[-1]
+    return model_name
+
+
+def normalize_summary(summary: dict) -> dict:
+    normalized = {}
+    for task, models in summary.items():
+        if not isinstance(models, dict):
+            continue
+        task_entry = normalized.setdefault(task, {})
+        for model, metrics in models.items():
+            if not isinstance(metrics, dict):
+                continue
+            task_entry[normalize_model_name(model)] = metrics
+    return normalized
+
+
 def load_agent_summary(summary_path: Path) -> dict:
     if not summary_path.exists():
         return {}
@@ -67,7 +88,7 @@ def extract_task_model_from_log(log_path: Path):
         if match:
             task = match.group("task")
             model = match.group("model")
-    return task, model
+    return task, normalize_model_name(model)
 
 
 def parse_log_name(log_filename: str):
@@ -91,7 +112,7 @@ def extract_task_model_from_text_path(text_path: Path):
                 if task_match or model_match:
                     task = task_match.group(1) if task_match else None
                     model = model_match.group(1) if model_match else None
-                    return task, model
+                    return task, normalize_model_name(model)
     except Exception:
         return None, None
     return None, None
@@ -333,8 +354,8 @@ def cleanup_failed_logs(project_root: Path, summary_path: Path) -> int:
 
 
 def merge_agent_summary(local_summary_path: Path, new_summary_path: Path) -> None:
-    local_summary = load_agent_summary(local_summary_path)
-    new_summary = load_agent_summary(new_summary_path)
+    local_summary = normalize_summary(load_agent_summary(local_summary_path))
+    new_summary = normalize_summary(load_agent_summary(new_summary_path))
     if not new_summary:
         return
     for task, models in new_summary.items():

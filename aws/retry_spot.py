@@ -23,6 +23,14 @@ aws_dotenv = Path(__file__).parent / ".env"
 load_dotenv(aws_dotenv)
 
 
+def normalize_model_name(model_name: str) -> str:
+    if not model_name:
+        return model_name
+    if "/" in model_name:
+        return model_name.rsplit("/", 1)[-1]
+    return model_name
+
+
 def load_json(path: Path) -> dict:
     if not path.exists():
         return {}
@@ -118,6 +126,10 @@ def cleanup_local(
     errors_dir = project_root / "aws" / "errors"
     job_map_path = project_root / "reports" / "job_map.json"
     summary_path = project_root / "reports" / "agent_summary.json"
+    normalized_model = normalize_model_name(model_full)
+    model_keys = [model_full]
+    if normalized_model != model_full:
+        model_keys.append(normalized_model)
 
     # Remove logs for these tasks/model
     if logs_dir.exists():
@@ -163,12 +175,18 @@ def cleanup_local(
             models = summary.get(task)
             if not isinstance(models, dict):
                 continue
-            metrics = models.get(model_full)
-            if not isinstance(metrics, dict):
+            metrics = None
+            for key in model_keys:
+                candidate = models.get(key)
+                if isinstance(candidate, dict):
+                    metrics = candidate
+                    break
+            if not metrics:
                 continue
             speedup = metrics.get("final_speedup")
             if speedup is None or speedup == "N/A":
-                models.pop(model_full, None)
+                for key in model_keys:
+                    models.pop(key, None)
                 changed = True
                 if not models:
                     summary.pop(task, None)
