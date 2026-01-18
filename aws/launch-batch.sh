@@ -606,6 +606,79 @@ enable_queue_compute_envs() {
 
 enable_queue_compute_envs "$JOB_QUEUE_NAME"
 
+# Match job name sanitization in aws/submit_jobs.py
+sanitize_job_part() {
+  local value="$1"
+  local safe
+  safe=$(printf "%s" "$value" | sed -E 's/[^A-Za-z0-9]+/-/g; s/^-+//; s/-+$//')
+  if [ -z "$safe" ]; then
+    safe="unknown"
+  fi
+  printf "%s" "$safe"
+}
+
+# Purge queued jobs for this model from the selected queue before submission.
+purge_queue_jobs() {
+  local queue="$1"
+  if [ -z "$queue" ]; then
+    return 0
+  fi
+
+  local job_name_prefix="algotune-"
+  local model_suffix="--$(sanitize_job_part "$MODEL")"
+  local cancel_count=0
+  local terminate_count=0
+  local statuses=("SUBMITTED" "PENDING" "RUNNABLE")
+
+  echo "→ Purging queued jobs for model $MODEL in queue $queue..."
+  for status in "${statuses[@]}"; do
+    job_ids=$(aws batch list-jobs \
+      --job-queue "$queue" \
+      --job-status "$status" \
+      --region "$AWS_REGION" \
+      --query "jobSummaryList[?starts_with(jobName, '${job_name_prefix}') && contains(jobName, '${model_suffix}')].jobId" \
+      --output text 2>/dev/null || echo "")
+
+    if [ -z "$job_ids" ] || [ "$job_ids" = "None" ]; then
+      continue
+    fi
+
+    for job_id in $job_ids; do
+      aws batch cancel-job \
+        --job-id "$job_id" \
+        --reason "purge before submit" \
+        --region "$AWS_REGION" >/dev/null 2>&1 && cancel_count=$((cancel_count + 1))
+    done
+  done
+
+  if [ "${ALGOTUNE_PURGE_RUNNING:-no}" = "yes" ]; then
+    for status in STARTING RUNNING; do
+      job_ids=$(aws batch list-jobs \
+        --job-queue "$queue" \
+        --job-status "$status" \
+        --region "$AWS_REGION" \
+        --query "jobSummaryList[?starts_with(jobName, '${job_name_prefix}') && contains(jobName, '${model_suffix}')].jobId" \
+        --output text 2>/dev/null || echo "")
+
+      if [ -z "$job_ids" ] || [ "$job_ids" = "None" ]; then
+        continue
+      fi
+
+      for job_id in $job_ids; do
+        aws batch terminate-job \
+          --job-id "$job_id" \
+          --reason "purge before submit" \
+          --region "$AWS_REGION" >/dev/null 2>&1 && terminate_count=$((terminate_count + 1))
+      done
+    done
+  fi
+
+  echo "  ✓ Purged queued jobs: $cancel_count (terminated running: $terminate_count)"
+  echo ""
+}
+
+purge_queue_jobs "$JOB_QUEUE_NAME"
+
 # Submit jobs
 echo "→ Submitting jobs to AWS Batch..."
 JOB_IDS_FILE="$(mktemp /tmp/algotune_job_ids_XXXXXX)"
@@ -764,7 +837,7 @@ cancel_submitted_jobs() {
   local -A seen_queues=()
 
   local job_name_prefix="algotune-"
-  local model_suffix="--$(echo "$MODEL" | tr '/:.' '_')"
+  local model_suffix="--$(sanitize_job_part "$MODEL")"
 
   add_job_id() {
     local job_id="$1"
