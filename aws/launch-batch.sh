@@ -1038,11 +1038,10 @@ cleanup_downloader() {
 cleanup_on_exit() {
   local exit_code=$?
   if [ "${DEADMAN_SWITCH:-no}" = "yes" ]; then
-    if [ $exit_code -ne 0 ] && [ -n "${JOB_IDS_FILE:-}" ]; then
+    if [ -n "${JOB_IDS_FILE:-}" ]; then
       cancel_submitted_jobs
-    else
-      shutdown_compute_resources
     fi
+    shutdown_compute_resources
   fi
   cleanup_downloader
   return $exit_code
