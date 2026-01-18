@@ -115,17 +115,34 @@ def filter_tasks(
             print(f"  - {task}", file=sys.stderr)
         print("", file=sys.stderr)
 
-        # Ask user
-        while True:
-            response = input("Re-run these N/A tasks? [y/N]: ").strip().lower()
-            if response in ["y", "yes"]:
-                include_na = False
-                break
-            elif response in ["n", "no", ""]:
-                include_na = True
-                break
-            else:
+        def prompt_yes_no(prompt: str, default_yes: bool = False) -> bool:
+            default_label = "yes" if default_yes else "no"
+            while True:
+                try:
+                    if sys.stdin.isatty():
+                        response = input(prompt)
+                    else:
+                        with open("/dev/tty", "r") as tty:
+                            sys.stderr.write(prompt)
+                            sys.stderr.flush()
+                            response = tty.readline()
+                except (OSError, EOFError):
+                    print(
+                        f"⚠️  No TTY available for prompt; defaulting to '{default_label}'.",
+                        file=sys.stderr,
+                    )
+                    return default_yes
+
+                response = (response or "").strip().lower()
+                if response in ["y", "yes"]:
+                    return True
+                if response in ["n", "no", ""]:
+                    return False
                 print("Please answer 'y' or 'n'", file=sys.stderr)
+
+        # Ask user via TTY when stdin is piped
+        if prompt_yes_no("Re-run these N/A tasks? [y/N]: ", default_yes=False):
+            include_na = False
 
     # Rebuild completed set based on user choice
     if not include_na:

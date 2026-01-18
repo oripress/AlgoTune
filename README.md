@@ -191,7 +191,7 @@ cat reports/evaluate_summary.json
 ```
 
 ### Generating Datasets for Offline Runs
-AlgoTuner streams datasets from Hugging Face. For offline runs, generate them locally first:
+AlgoTuner streams datasets from HuggingFace. For offline runs, generate them locally first:
 ```bash
 # Example: generate datasets for two tasks with a 100 ms target
 ./algotune.sh --standalone generate --target-time-ms 100 --tasks svm
