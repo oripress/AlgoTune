@@ -25,6 +25,14 @@ def save_json(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, indent=2, sort_keys=True))
 
 
+def normalize_model_name(model_name: str) -> str:
+    if not model_name:
+        return model_name
+    if "/" in model_name:
+        return model_name.rsplit("/", 1)[-1]
+    return model_name
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Prepare retry for N/A tasks.")
     parser.add_argument("--model", required=True, help="Full model name in summary.json")
@@ -40,12 +48,21 @@ def main() -> int:
     summary_path = Path(args.summary_file)
     summary = load_json(summary_path)
     tasks_to_retry = []
+    normalized_model = normalize_model_name(args.model)
+    model_keys = [args.model]
+    if normalized_model != args.model:
+        model_keys.append(normalized_model)
 
     for task_name, models in summary.items():
         if not isinstance(models, dict):
             continue
-        metrics = models.get(args.model)
-        if not isinstance(metrics, dict):
+        metrics = None
+        for key in model_keys:
+            candidate = models.get(key)
+            if isinstance(candidate, dict):
+                metrics = candidate
+                break
+        if not metrics:
             continue
         speedup = metrics.get("final_speedup")
         if speedup is None or speedup == "N/A":
@@ -97,8 +114,10 @@ def main() -> int:
     # Remove model entries from summary for retry tasks
     for task in tasks_to_retry:
         models = summary.get(task)
-        if isinstance(models, dict) and args.model in models:
-            del models[args.model]
+        if isinstance(models, dict):
+            for key in model_keys:
+                if key in models:
+                    del models[key]
             if not models:
                 summary.pop(task, None)
 

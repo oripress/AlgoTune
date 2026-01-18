@@ -69,6 +69,14 @@ def release_lock(lock_file_path):
         logging.error(f"Error releasing lock {lock_file_path}: {e}")
 
 
+def normalize_summary_model_name(model_name: str) -> str:
+    if not model_name:
+        return model_name
+    if "/" in model_name:
+        return model_name.rsplit("/", 1)[-1]
+    return model_name
+
+
 def update_summary_json(
     summary_file_path_str: str, task_name: str, model_name: str, speedup: float | None
 ):
@@ -106,10 +114,11 @@ def update_summary_json(
         else:
             speedup_str = f"{speedup:.4f}"
 
+        normalized_model = normalize_summary_model_name(model_name)
         task_entry = summary_data.setdefault(task_name, {})
-        task_entry[model_name] = {"final_speedup": speedup_str}
+        task_entry[normalized_model] = {"final_speedup": speedup_str}
         logging.info(
-            f"Updating summary for Task: {task_name}, Model: {model_name} with Speedup: {speedup_str}"
+            f"Updating summary for Task: {task_name}, Model: {normalized_model} with Speedup: {speedup_str}"
         )
 
         try:

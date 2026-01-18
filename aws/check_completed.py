@@ -10,6 +10,14 @@ import sys
 from pathlib import Path
 
 
+def normalize_model_name(model_name: str) -> str:
+    if not model_name:
+        return model_name
+    if "/" in model_name:
+        return model_name.rsplit("/", 1)[-1]
+    return model_name
+
+
 def get_completed_tasks(model_name, summary_file="reports/agent_summary.json", include_na=True):
     """
     Check summary file for completed tasks for a given model.
@@ -40,23 +48,31 @@ def get_completed_tasks(model_name, summary_file="reports/agent_summary.json", i
     if not isinstance(summary_data, dict):
         return completed, na_tasks
 
+    normalized_model = normalize_model_name(model_name)
+    model_keys = [model_name]
+    if normalized_model != model_name:
+        model_keys.append(normalized_model)
+
     # Iterate through tasks in summary
     for task_name, models_data in summary_data.items():
         if not isinstance(models_data, dict):
             continue
 
         # Check if this model has a completed entry for this task
-        if model_name in models_data:
-            task_result = models_data[model_name]
-            if isinstance(task_result, dict):
-                speedup = task_result.get("final_speedup")
-                if speedup is not None:
-                    if speedup == "N/A":
-                        na_tasks.add(task_name)
-                        if include_na:
-                            completed.add(task_name)
-                    else:
+        task_result = None
+        for key in model_keys:
+            if key in models_data:
+                task_result = models_data[key]
+                break
+        if isinstance(task_result, dict):
+            speedup = task_result.get("final_speedup")
+            if speedup is not None:
+                if speedup == "N/A":
+                    na_tasks.add(task_name)
+                    if include_na:
                         completed.add(task_name)
+                else:
+                    completed.add(task_name)
 
     return completed, na_tasks
 
