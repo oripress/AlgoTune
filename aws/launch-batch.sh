@@ -546,6 +546,66 @@ else
 fi
 echo ""
 
+# Ensure compute environments for the selected queue are enabled.
+enable_queue_compute_envs() {
+  local queue_name="$1"
+  local compute_envs=""
+  local fallback=""
+
+  if [ -n "$queue_name" ]; then
+    compute_envs=$(aws batch describe-job-queues \
+      --job-queues "$queue_name" \
+      --region "$AWS_REGION" \
+      --query 'jobQueues[0].computeEnvironmentOrder[*].computeEnvironment' \
+      --output text 2>/dev/null || true)
+  fi
+
+  if [ -z "$compute_envs" ]; then
+    case "$CAPACITY_TYPE" in
+      spot)
+        fallback="${BATCH_COMPUTE_ENV_NAME_SPOT:-}"
+        ;;
+      on-demand)
+        fallback="${BATCH_COMPUTE_ENV_NAME_ONDEMAND:-}"
+        ;;
+      *)
+        fallback="${BATCH_COMPUTE_ENV_NAME:-}"
+        ;;
+    esac
+    compute_envs="$fallback"
+  fi
+
+  if [ -z "$compute_envs" ]; then
+    echo "⚠️  Could not determine compute environment for queue: $queue_name"
+    return 0
+  fi
+
+  echo "→ Ensuring compute environment(s) for $queue_name are ENABLED..."
+  for ce in $compute_envs; do
+    state=$(aws batch describe-compute-environments \
+      --compute-environments "$ce" \
+      --region "$AWS_REGION" \
+      --query 'computeEnvironments[0].state' \
+      --output text 2>/dev/null || echo "unknown")
+    if [ "$state" != "ENABLED" ]; then
+      echo "  → Enabling $ce (current state: $state)"
+      if aws batch update-compute-environment \
+        --compute-environment "$ce" \
+        --state ENABLED \
+        --region "$AWS_REGION" >/dev/null 2>&1; then
+        echo "  ✓ Enabled $ce"
+      else
+        echo "  ⚠️  Warning: Failed to enable $ce"
+      fi
+    else
+      echo "  ✓ $ce already ENABLED"
+    fi
+  done
+  echo ""
+}
+
+enable_queue_compute_envs "$JOB_QUEUE_NAME"
+
 # Submit jobs
 echo "→ Submitting jobs to AWS Batch..."
 JOB_IDS_FILE="$(mktemp /tmp/algotune_job_ids_XXXXXX)"
