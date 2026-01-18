@@ -469,6 +469,7 @@ echo ""
 
 # Ctrl+C kill switch is always enabled
 DEADMAN_SWITCH="yes"
+COMPUTE_CLEANUP_DONE=""
 echo "  ✓ Ctrl+C kill switch enabled (will cancel jobs and stop EC2 instances)"
 echo ""
 
@@ -565,6 +566,133 @@ else
 fi
 echo ""
 
+# Shutdown Batch compute environments and instances (safe to call multiple times)
+shutdown_compute_resources() {
+  set +e
+
+  if [ -n "${COMPUTE_CLEANUP_DONE:-}" ]; then
+    return 0
+  fi
+  COMPUTE_CLEANUP_DONE="yes"
+
+  echo ""
+  echo "→ Shutting down AWS Batch compute resources..."
+
+  local ce_names=()
+  local -A seen_ce=()
+
+  add_ce() {
+    local name="$1"
+    if [ -z "$name" ]; then
+      return
+    fi
+    if [ -z "${seen_ce[$name]+x}" ]; then
+      seen_ce["$name"]=1
+      ce_names+=("$name")
+    fi
+  }
+
+  add_ce "${BATCH_COMPUTE_ENV_NAME:-}"
+  add_ce "${BATCH_COMPUTE_ENV_NAME_SPOT:-}"
+  add_ce "${BATCH_COMPUTE_ENV_NAME_ONDEMAND:-}"
+
+  if [ "${#ce_names[@]}" -eq 0 ]; then
+    # Fallback: scale down all compute environments
+    all_ce_names=$(aws batch describe-compute-environments \
+      --region "$AWS_REGION" \
+      --query 'computeEnvironments[*].computeEnvironmentName' \
+      --output text 2>/dev/null || echo "")
+    if [ -n "$all_ce_names" ]; then
+      for ce_name in $all_ce_names; do
+        add_ce "$ce_name"
+      done
+    fi
+  fi
+
+  if [ "${#ce_names[@]}" -eq 0 ]; then
+    echo "  → No compute environments found"
+  else
+    echo "  → Found compute environments: ${ce_names[*]}"
+    for CE_NAME in "${ce_names[@]}"; do
+      echo "  → Processing: $CE_NAME"
+      if aws batch update-compute-environment \
+        --compute-environment "$CE_NAME" \
+        --state DISABLED \
+        --compute-resources '{"minvCpus":0}' \
+        --region "$AWS_REGION" >/dev/null 2>&1; then
+        echo "    ✓ Disabled and set minvCpus=0"
+      else
+        echo "    ⚠️  Warning: Failed to update compute environment"
+      fi
+    done
+  fi
+
+  # Directly terminate any running EC2 instances managed by Batch
+  echo "  → Searching for EC2 instances to terminate..."
+
+  # Get current instance ID to avoid terminating ourselves
+  CURRENT_INSTANCE=$(curl -s http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || echo "")
+  if [ -n "$CURRENT_INSTANCE" ]; then
+    echo "  → Protecting current instance: $CURRENT_INSTANCE"
+  else
+    echo "  → Not running on EC2 (no instance to protect)"
+  fi
+
+  INSTANCE_IDS=""
+  if [ "${#ce_names[@]}" -gt 0 ]; then
+    ce_filter_values=$(IFS=,; echo "${ce_names[*]}")
+    INSTANCE_IDS=$(aws ec2 describe-instances \
+      --filters "Name=tag:aws:batch:compute-environment,Values=$ce_filter_values" \
+                "Name=instance-state-name,Values=running,pending" \
+      --query 'Reservations[*].Instances[*].InstanceId' \
+      --output text \
+      --region "$AWS_REGION" 2>/dev/null || echo "")
+  fi
+
+  if [ -z "$INSTANCE_IDS" ]; then
+    INSTANCE_IDS=$(aws ec2 describe-instances \
+      --filters "Name=tag:AWSBatchServiceTag,Values=batch" \
+                "Name=instance-state-name,Values=running,pending" \
+      --query 'Reservations[*].Instances[*].InstanceId' \
+      --output text \
+      --region "$AWS_REGION" 2>/dev/null || echo "")
+  fi
+
+  if [ -n "$INSTANCE_IDS" ]; then
+    echo "  → Found instances: $INSTANCE_IDS"
+  else
+    echo "  → No Batch instances found"
+  fi
+
+  # Filter out current instance if we're running on EC2
+  FILTERED_INSTANCE_IDS=""
+  if [ -n "$INSTANCE_IDS" ]; then
+    for instance in $INSTANCE_IDS; do
+      if [ "$instance" != "$CURRENT_INSTANCE" ]; then
+        FILTERED_INSTANCE_IDS="$FILTERED_INSTANCE_IDS $instance"
+      else
+        echo "  → Skipping current instance: $instance"
+      fi
+    done
+    FILTERED_INSTANCE_IDS=$(echo "$FILTERED_INSTANCE_IDS" | xargs)  # Trim whitespace
+  fi
+
+  if [ -n "$FILTERED_INSTANCE_IDS" ]; then
+    echo "  → Terminating instances: $FILTERED_INSTANCE_IDS"
+    if aws ec2 terminate-instances \
+      --instance-ids $FILTERED_INSTANCE_IDS \
+      --region "$AWS_REGION" 2>&1; then
+      echo "  ✓ EC2 instances terminated successfully"
+    else
+      echo "  ⚠️  Warning: Failed to terminate some instances"
+    fi
+  else
+    echo "  ✓ No Batch EC2 instances to terminate (excluding current instance)"
+  fi
+
+  echo "✓ Compute shutdown complete"
+}
+
 # Ctrl+C kill switch for submitted jobs (optional)
 cancel_submitted_jobs() {
   set +e
@@ -612,7 +740,7 @@ cancel_submitted_jobs() {
   }
 
   echo ""
-  echo "⚠️  Interrupt received. Canceling queued jobs and terminating running jobs..."
+  echo "→ Canceling queued jobs and terminating running jobs..."
   echo "  → Collecting jobs from files and AWS Batch queues..."
 
   add_job_ids_from_file "${JOB_IDS_FILE:-}"
@@ -808,110 +936,7 @@ PY
     fi
   fi
 
-  # Scale down AlgoTune compute environments to stop EC2 instances
-  echo "→ Scaling down AlgoTune compute environments..."
-
-  local ce_names=()
-  local -A seen_ce=()
-
-  add_ce() {
-    local name="$1"
-    if [ -z "$name" ]; then
-      return
-    fi
-    if [ -z "${seen_ce[$name]+x}" ]; then
-      seen_ce["$name"]=1
-      ce_names+=("$name")
-    fi
-  }
-
-  add_ce "${BATCH_COMPUTE_ENV_NAME:-}"
-  add_ce "${BATCH_COMPUTE_ENV_NAME_SPOT:-}"
-  add_ce "${BATCH_COMPUTE_ENV_NAME_ONDEMAND:-}"
-
-  if [ "${#ce_names[@]}" -eq 0 ]; then
-    # Fallback: scale down all compute environments
-    all_ce_names=$(aws batch describe-compute-environments \
-      --region "$AWS_REGION" \
-      --query 'computeEnvironments[*].computeEnvironmentName' \
-      --output text 2>/dev/null || echo "")
-    if [ -n "$all_ce_names" ]; then
-      for ce_name in $all_ce_names; do
-        add_ce "$ce_name"
-      done
-    fi
-  fi
-
-  if [ "${#ce_names[@]}" -eq 0 ]; then
-    echo "  → No compute environments found"
-  else
-    echo "  → Found compute environments: ${ce_names[*]}"
-    for CE_NAME in "${ce_names[@]}"; do
-      echo "  → Processing: $CE_NAME"
-      if aws batch update-compute-environment \
-        --compute-environment "$CE_NAME" \
-        --state DISABLED \
-        --compute-resources '{"minvCpus":0,"desiredvCpus":0}' \
-        --region "$AWS_REGION" >/dev/null 2>&1; then
-        echo "    ✓ Scaled down and disabled"
-      else
-        echo "    ⚠️  Warning: Failed to update compute environment"
-      fi
-    done
-  fi
-
-  # Directly terminate any running EC2 instances managed by Batch
-  echo "  → Searching for EC2 instances to terminate..."
-
-  # Get current instance ID to avoid terminating ourselves
-  CURRENT_INSTANCE=$(curl -s http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || echo "")
-  if [ -n "$CURRENT_INSTANCE" ]; then
-    echo "  → Protecting current instance: $CURRENT_INSTANCE"
-  else
-    echo "  → Not running on EC2 (no instance to protect)"
-  fi
-
-  # Find all Batch compute environment instances (search across ALL CEs, not just one)
-  echo "  → Looking for all AWS Batch managed instances..."
-  ALL_INSTANCE_IDS=$(aws ec2 describe-instances \
-    --filters "Name=tag:AWSBatchServiceTag,Values=batch" \
-              "Name=instance-state-name,Values=running,pending" \
-    --query 'Reservations[*].Instances[*].InstanceId' \
-    --output text \
-    --region "$AWS_REGION" 2>/dev/null || echo "")
-
-  if [ -n "$ALL_INSTANCE_IDS" ]; then
-    echo "  → Found instances: $ALL_INSTANCE_IDS"
-  else
-    echo "  → No Batch instances found"
-  fi
-
-  # Filter out current instance if we're running on EC2
-  INSTANCE_IDS=""
-  if [ -n "$ALL_INSTANCE_IDS" ]; then
-    for instance in $ALL_INSTANCE_IDS; do
-      if [ "$instance" != "$CURRENT_INSTANCE" ]; then
-        INSTANCE_IDS="$INSTANCE_IDS $instance"
-      else
-        echo "  → Skipping current instance: $instance"
-      fi
-    done
-    INSTANCE_IDS=$(echo "$INSTANCE_IDS" | xargs)  # Trim whitespace
-  fi
-
-  if [ -n "$INSTANCE_IDS" ]; then
-    echo "  → Terminating instances: $INSTANCE_IDS"
-    if aws ec2 terminate-instances \
-      --instance-ids $INSTANCE_IDS \
-      --region "$AWS_REGION" 2>&1; then
-      echo "  ✓ EC2 instances terminated successfully"
-    else
-      echo "  ⚠️  Warning: Failed to terminate some instances"
-    fi
-  else
-    echo "  ✓ No Batch EC2 instances to terminate (excluding current instance)"
-  fi
-
+  shutdown_compute_resources
   echo ""
   echo "✓ All cleanup actions completed"
 }
@@ -948,7 +973,20 @@ cleanup_downloader() {
     fi
   done
 }
-trap cleanup_downloader EXIT
+
+cleanup_on_exit() {
+  local exit_code=$?
+  if [ "${DEADMAN_SWITCH:-no}" = "yes" ]; then
+    if [ $exit_code -ne 0 ] && [ -n "${JOB_IDS_FILE:-}" ]; then
+      cancel_submitted_jobs
+    else
+      shutdown_compute_resources
+    fi
+  fi
+  cleanup_downloader
+  return $exit_code
+}
+trap cleanup_on_exit EXIT
 
 handle_interrupt() {
   if [ "${CLEANUP_IN_PROGRESS:-}" = "yes" ]; then
