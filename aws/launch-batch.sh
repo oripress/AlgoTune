@@ -216,6 +216,7 @@ if [ "$ALREADY_DONE" -gt 0 ]; then
 
     # Filter the task list with interactive prompt for N/A tasks
     FILTERED_TASKS=$(echo "$ALL_TASKS_LIST" | python3 "$SCRIPT_DIR/check_completed.py" --model "$MODEL" --interactive)
+    NA_PROMPT_HANDLED="yes"
     TASKS_INPUT=$(echo "$FILTERED_TASKS" | tr '\n' ',' | sed 's/,$//')
     TASK_ARGS="--tasks $TASKS_INPUT"
     TASK_LIST="$FILTERED_TASKS"
@@ -239,7 +240,7 @@ fi
 
 echo ""
 
-if [ "${NO_COMPLETED_TASKS:-}" != "yes" ]; then
+if [ "${NO_COMPLETED_TASKS:-}" != "yes" ] && [ "${NA_PROMPT_HANDLED:-}" != "yes" ]; then
   read -p "Retry N/A runs? [y/N]: " RETRY_NA
   if [[ "$RETRY_NA" =~ ^[Yy]$ ]]; then
     echo "→ Preparing retry for N/A tasks..."
