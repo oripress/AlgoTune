@@ -24,7 +24,12 @@ aws_dotenv = Path(__file__).parent / ".env"
 load_dotenv(aws_dotenv)
 
 
-def setup_s3_lifecycle_policy(s3_client, bucket: str, dataset_retention_days: int = 21):
+def setup_s3_lifecycle_policy(
+    s3_client,
+    bucket: str,
+    dataset_retention_days: int = 21,
+    job_retention_days: int = 90,
+):
     """
     Setup S3 lifecycle policy to auto-delete old datasets.
 
@@ -32,28 +37,53 @@ def setup_s3_lifecycle_policy(s3_client, bucket: str, dataset_retention_days: in
         s3_client: Boto3 S3 client
         bucket: S3 bucket name
         dataset_retention_days: Number of days to retain datasets (default: 21)
+        job_retention_days: Number of days to retain job logs/results (default: 90)
 
     Returns:
         bool: True if successful, False otherwise
     """
     try:
-        lifecycle_config = {
-            "Rules": [
-                {
-                    "Id": "DeleteOldDatasets",
-                    "Status": "Enabled",
-                    "Filter": {"Prefix": "datasets/"},
-                    "Expiration": {"Days": dataset_retention_days},
-                }
-            ]
+        existing_rules = []
+        try:
+            existing = s3_client.get_bucket_lifecycle_configuration(Bucket=bucket)
+            existing_rules = existing.get("Rules", [])
+        except Exception:
+            existing_rules = []
+
+        rules_by_id = {
+            rule.get("Id"): rule
+            for rule in existing_rules
+            if isinstance(rule, dict) and rule.get("Id")
         }
+        untagged_rules = [
+            rule
+            for rule in existing_rules
+            if not isinstance(rule, dict) or not rule.get("Id")
+        ]
+
+        rules_by_id["DeleteOldDatasets"] = {
+            "Id": "DeleteOldDatasets",
+            "Status": "Enabled",
+            "Filter": {"Prefix": "datasets/"},
+            "Expiration": {"Days": dataset_retention_days},
+        }
+        rules_by_id["DeleteOldJobs"] = {
+            "Id": "DeleteOldJobs",
+            "Status": "Enabled",
+            "Filter": {"Prefix": "jobs/"},
+            "Expiration": {"Days": job_retention_days},
+        }
+
+        lifecycle_config = {"Rules": list(rules_by_id.values()) + untagged_rules}
 
         s3_client.put_bucket_lifecycle_configuration(
             Bucket=bucket, LifecycleConfiguration=lifecycle_config
         )
 
         print(
-            f"✓ S3 lifecycle policy set: datasets/ prefix will expire after {dataset_retention_days} days",
+            "✓ S3 lifecycle policy set: "
+            f"datasets/ expires after {dataset_retention_days} days; "
+            f"jobs/ expires after {job_retention_days} days",
             file=sys.stderr,
         )
         return True
@@ -274,7 +304,13 @@ def main():
 
         # Setup S3 lifecycle policy for dataset auto-cleanup
         dataset_retention_days = int(os.getenv("DATASET_RETENTION_DAYS", "21"))
-        setup_s3_lifecycle_policy(s3_client, s3_bucket, dataset_retention_days)
+        job_retention_days = int(os.getenv("JOB_RETENTION_DAYS", "90"))
+        setup_s3_lifecycle_policy(
+            s3_client,
+            s3_bucket,
+            dataset_retention_days,
+            job_retention_days,
+        )
     except Exception as e:
         print(f"ERROR: Failed to upload config.yaml to S3: {e}", file=sys.stderr)
         sys.exit(1)
