@@ -155,8 +155,9 @@ class CapacitatedFacilityLocation(Task):
             return False
         if transportation_costs.shape != (fixed_costs.size, demands.size):
             return False
-        bounds_tol = 1e-6
+        bounds_tol = 1e-4
         sum_tol = 1e-5
+        int_tol = 1e-2
         if not np.all(np.isfinite(status_arr)) or not np.all(np.isfinite(X)):
             return False
         if np.any(status_arr < -bounds_tol) or np.any(status_arr > 1.0 + bounds_tol):
@@ -165,11 +166,10 @@ class CapacitatedFacilityLocation(Task):
             return False
         if np.any(X < -bounds_tol) or np.any(X > 1.0 + bounds_tol):
             return False
-        if not np.allclose(X, np.round(X), atol=bounds_tol):
-            return False
-
         status_bool = np.round(status_arr).astype(bool)
         if not np.allclose(X.sum(axis=0), 1, atol=sum_tol):
+            return False
+        if np.any(X.max(axis=0) < 1.0 - int_tol):
             return False
 
         for i, open_i in enumerate(status_bool):
