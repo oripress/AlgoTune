@@ -159,20 +159,33 @@ class CapacitatedFacilityLocation(Task):
         if not np.all(np.isfinite(X)):
             return False
 
+        # Check if values are reasonably close to binary (allowing solver tolerance)
+        if np.any(X < -0.01) or np.any(X > 1.01):
+            logging.error(f"Assignment values outside [0,1]: min={X.min()}, max={X.max()}")
+            return False
+
+        # Round to nearest integer for validation (HIGHS boolean vars may have small numerical errors)
+        X_rounded = np.clip(np.round(X), 0, 1)
         status_bool = np.asarray(status, dtype=bool)
-        if not np.allclose(X.sum(axis=0), 1, atol=1e-5):
+
+        if not np.allclose(X_rounded.sum(axis=0), 1, atol=1e-5):
+            logging.error(f"Customer assignment sums: {X_rounded.sum(axis=0)}")
             return False
 
         for i, open_i in enumerate(status_bool):
-            load = float(demands @ X[i])
+            load = float(demands @ X_rounded[i])
             if open_i:
                 if load > capacities[i] + 1e-6:
+                    logging.error(
+                        f"Facility {i} capacity violated: load={load}, capacity={capacities[i]}"
+                    )
                     return False
             else:
                 if load > 1e-6:
+                    logging.error(f"Closed facility {i} has load {load}")
                     return False
 
-        computed_obj = float(fixed_costs @ status_bool + np.sum(transportation_costs * X))
+        computed_obj = float(fixed_costs @ status_bool + np.sum(transportation_costs * X_rounded))
 
         ref = self.solve(problem)
         if ref["objective_value"] == float("inf"):
