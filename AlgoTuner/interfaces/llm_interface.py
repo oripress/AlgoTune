@@ -1097,10 +1097,16 @@ class LLMInterface(base_interface.BaseLLMInterface):
                 for filename in os.listdir(code_dir):
                     file_path = os.path.join(code_dir, filename)
                     if os.path.isfile(file_path):
+                        # Skip binary files (compiled extensions, etc.)
+                        if filename.endswith(('.so', '.pyc', '.pyo', '.pyd', '.dll')):
+                            logging.debug(f"Skipping binary file {filename}")
+                            continue
                         try:
-                            with open(file_path) as f:
+                            with open(file_path, encoding='utf-8') as f:
                                 content = f.read()
                                 logging.info(f"FILE IN CODE DIR {filename}:\n{content}")
+                        except UnicodeDecodeError:
+                            logging.debug(f"Skipping non-text file {filename} (decode error)")
                         except Exception as e:
                             logging.error(f"Error reading file {filename}: {e}")
             else:
