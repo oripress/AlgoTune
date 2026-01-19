@@ -345,6 +345,11 @@ class ConvexHullTask(Task):
             logging.error("Convex hull must have at least 3 vertices in 2D.")
             return False
 
+        # Check that hull vertices are unique (no duplicates)
+        if len(hull_vertices) != len(np.unique(hull_vertices)):
+            logging.error("Hull vertices contain duplicate indices.")
+            return False
+
         # Check convexity by ensuring all internal angles are less than 180 degrees
         n = len(hull_vertices)
         for i in range(n):
