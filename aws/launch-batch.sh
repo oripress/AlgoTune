@@ -285,6 +285,15 @@ source "$SCRIPT_DIR/.env"
 
 set +a
 
+# Require OpenRouter key when using OpenRouter-backed models.
+if [[ "$MODEL" == openrouter/* ]]; then
+  if [ -z "${OPENROUTER_API_KEY:-}" ]; then
+    echo "❌ ERROR: OPENROUTER_API_KEY is required for model: $MODEL"
+    echo "   Add it to $ROOT_DIR/.env or export it before running the launcher."
+    exit 1
+  fi
+fi
+
 # Verify AWS credentials work
 echo "→ Verifying AWS credentials..."
 if ! aws sts get-caller-identity &>/dev/null; then
