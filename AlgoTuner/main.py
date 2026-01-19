@@ -78,9 +78,13 @@ def normalize_summary_model_name(model_name: str) -> str:
 
 
 def update_summary_json(
-    summary_file_path_str: str, task_name: str, model_name: str, speedup: float | None
+    summary_file_path_str: str,
+    task_name: str,
+    model_name: str,
+    speedup: float | None,
+    error: str | None = None,
 ):
-    """Atomically updates the summary JSON file with the final speedup."""
+    """Atomically updates the summary JSON file with the final speedup or error status."""
     summary_file_path = Path(summary_file_path_str)
     lock_file_path = summary_file_path.with_suffix(".json.lock")
     logging.info(f"Attempting to update summary file: {summary_file_path}")
@@ -109,7 +113,10 @@ def update_summary_json(
                 )
                 summary_data = {}
 
-        if speedup is None or not math.isfinite(speedup):
+        # Determine the speedup string based on error status
+        if error is not None:
+            speedup_str = "Error"
+        elif speedup is None or not math.isfinite(speedup):
             speedup_str = "N/A"
         else:
             speedup_str = f"{speedup:.4f}"
@@ -401,6 +408,28 @@ def main():
         sys.exit(137)  # Standard exit code for OOM
     except Exception as e:
         logger.exception(f"An error occurred during LLMInterface run: {e}")
+
+        # Try to save error information if summary file was specified
+        if summary_file_env:
+            try:
+                error_type = type(e).__name__
+                error_msg = str(e)
+
+                # Categorize the error for better reporting
+                if "payment" in error_msg.lower() or "credit" in error_msg.lower() or "402" in error_msg:
+                    error_info = "Payment/Credit Error"
+                elif "APIError" in error_type or "RateLimitError" in error_type:
+                    error_info = f"API Error ({error_type})"
+                else:
+                    error_info = f"Error ({error_type})"
+
+                update_summary_json(
+                    summary_file_env, task_name, desired_model_name, None, error=error_info
+                )
+                logger.info(f"Saved error status to summary file: {error_info}")
+            except Exception as save_error:
+                logger.error(f"Could not save error to summary: {save_error}")
+
         sys.exit(1)
     finally:
         pass
