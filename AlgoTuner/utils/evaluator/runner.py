@@ -54,6 +54,7 @@ from AlgoTuner.utils.solver_loader import (
 
 # Import utils that are safe (don't create circular dependencies)
 from AlgoTuner.utils.utils import format_object_shape
+from AlgoTuner.utils.evaluator.solution_checks import find_nonconcrete_solution
 
 
 # Directory where LLM-generated code is stored
@@ -932,6 +933,17 @@ def _validate_solution(task_instance: Any, problem: Any, solution: Any) -> dict[
 
         if hasattr(solution, "shape"):
             logging.debug(f"[VALIDATION_DEBUG] Solution shape: {solution.shape}")
+
+        nonconcrete_reason = find_nonconcrete_solution(solution)
+        if nonconcrete_reason:
+            logging.warning(
+                f"[VALIDATION_DEBUG] Non-concrete solution rejected: {nonconcrete_reason}"
+            )
+            return {
+                "success": False,
+                "error_type": "invalid_solution",
+                "error": nonconcrete_reason,
+            }
 
         # Try to get first few elements/keys to understand structure
         try:

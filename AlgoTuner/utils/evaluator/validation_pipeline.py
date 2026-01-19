@@ -4,11 +4,8 @@ This ensures validation happens exactly once and context is properly captured.
 """
 
 import logging
-import numbers
 import time
 from typing import Any
-
-import numpy as np
 
 from AlgoTuner.utils.evaluator.evaluation_types import (
     ErrorType,
@@ -16,6 +13,7 @@ from AlgoTuner.utils.evaluator.evaluation_types import (
     ValidationResult,
 )
 from AlgoTuner.utils.evaluator.failure_analyzer import trace_is_solution_failure
+from AlgoTuner.utils.evaluator.solution_checks import find_nonconcrete_solution
 
 
 class ValidationPipeline:
@@ -73,7 +71,7 @@ class ValidationPipeline:
                     validation_time_ms=(time.perf_counter() - start_time) * 1000,
                 )
 
-            nonconcrete_reason = self._find_nonconcrete(solution)
+            nonconcrete_reason = find_nonconcrete_solution(solution)
             if nonconcrete_reason:
                 self.logger.warning(f"Non-concrete solution rejected: {nonconcrete_reason}")
                 return ValidationResult(
@@ -173,60 +171,6 @@ class ValidationPipeline:
                 context=context,
                 validation_time_ms=validation_time_ms,
             )
-
-    def _find_nonconcrete(self, solution: Any) -> str | None:
-        stack = [("solution", solution)]
-        seen: set[int] = set()
-        nodes_seen = 0
-        max_nodes = 1_000_000
-
-        while stack:
-            path, value = stack.pop()
-            nodes_seen += 1
-            if nodes_seen > max_nodes:
-                return "Solution too large to validate safely"
-
-            if value is None:
-                continue
-            if isinstance(value, (str, bytes, bool, numbers.Number, np.generic)):
-                continue
-            if isinstance(value, np.ndarray):
-                if value.dtype == object:
-                    obj_id = id(value)
-                    if obj_id in seen:
-                        continue
-                    seen.add(obj_id)
-                    for idx, elem in enumerate(value.flat):
-                        stack.append((f"{path}[{idx}]", elem))
-                continue
-            if isinstance(value, (list, tuple)):
-                obj_id = id(value)
-                if obj_id in seen:
-                    continue
-                seen.add(obj_id)
-                for idx, elem in enumerate(value):
-                    stack.append((f"{path}[{idx}]", elem))
-                continue
-            if isinstance(value, dict):
-                obj_id = id(value)
-                if obj_id in seen:
-                    continue
-                seen.add(obj_id)
-                for key, elem in value.items():
-                    if not isinstance(key, (str, bytes, bool, numbers.Number, np.generic)):
-                        return (
-                            f"Solution has non-primitive dict key at {path}: "
-                            f"{type(key).__name__}"
-                        )
-                    stack.append((f"{path}[{key!r}]", elem))
-                continue
-            if hasattr(value, "__array__"):
-                return f"Solution contains array-like proxy at {path}: {type(value).__name__}"
-            if hasattr(value, "__iter__"):
-                return f"Solution contains non-list iterable at {path}: {type(value).__name__}"
-            return f"Solution contains unsupported type at {path}: {type(value).__name__}"
-
-        return None
 
     def _is_stripped_solution(self, solution: Any) -> bool:
         """Check if a solution has been stripped."""
