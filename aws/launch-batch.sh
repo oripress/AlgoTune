@@ -375,8 +375,111 @@ esac
 echo "  → Using $CAPACITY_LABEL queue: $JOB_QUEUE_NAME"
 echo ""
 
+# Match job name sanitization in aws/submit_jobs.py
+sanitize_job_part() {
+  local value="$1"
+  local safe
+  safe=$(printf "%s" "$value" | sed -E 's/[^A-Za-z0-9]+/-/g; s/^-+//; s/-+$//')
+  if [ -z "$safe" ]; then
+    safe="unknown"
+  fi
+  printf "%s" "$safe"
+}
+
+build_job_name() {
+  local task_name="$1"
+  local model_name="$2"
+  printf "algotune-%s--%s" "$(sanitize_job_part "$task_name")" "$(sanitize_job_part "$model_name")"
+}
+
+get_active_job_names() {
+  local statuses=("SUBMITTED" "PENDING" "RUNNABLE" "STARTING" "RUNNING")
+  local -A seen=()
+  local names=()
+  local queue
+
+  for queue in "$@"; do
+    if [ -z "$queue" ]; then
+      continue
+    fi
+    for status in "${statuses[@]}"; do
+      local job_names
+      job_names=$(aws batch list-jobs \
+        --job-queue "$queue" \
+        --job-status "$status" \
+        --region "$AWS_REGION" \
+        --query 'jobSummaryList[*].jobName' \
+        --output text 2>/dev/null || true)
+      if [ -z "$job_names" ] || [ "$job_names" = "None" ]; then
+        continue
+      fi
+      for job_name in $job_names; do
+        if [ -z "${seen[$job_name]+x}" ]; then
+          seen["$job_name"]=1
+          names+=("$job_name")
+        fi
+      done
+    done
+  done
+
+  printf "%s\n" "${names[@]}"
+}
+
 # Count how many tasks will be submitted
 TASK_COUNT=$(echo "$TASK_LIST" | wc -l)
+
+echo "→ Checking for already-active jobs..."
+queues_to_check=()
+declare -A seen_queues=()
+add_queue() {
+  local queue="$1"
+  if [ -z "$queue" ]; then
+    return
+  fi
+  if [ -z "${seen_queues[$queue]+x}" ]; then
+    seen_queues["$queue"]=1
+    queues_to_check+=("$queue")
+  fi
+}
+add_queue "$JOB_QUEUE_NAME"
+add_queue "${BATCH_JOB_QUEUE_NAME:-}"
+add_queue "${BATCH_JOB_QUEUE_NAME_SPOT:-}"
+add_queue "${BATCH_JOB_QUEUE_NAME_ONDEMAND:-}"
+
+ACTIVE_JOBS_COUNT=0
+TO_SUBMIT_COUNT="$TASK_COUNT"
+if [ "${#queues_to_check[@]}" -gt 0 ]; then
+  mapfile -t active_job_names < <(get_active_job_names "${queues_to_check[@]}")
+  declare -A active_job_name_set=()
+  for name in "${active_job_names[@]}"; do
+    active_job_name_set["$name"]=1
+  done
+
+  active_job_count=0
+  to_submit_count=0
+  while IFS= read -r task_name; do
+    [ -z "$task_name" ] && continue
+    job_name=$(build_job_name "$task_name" "$MODEL")
+    if [ -n "${active_job_name_set[$job_name]+x}" ]; then
+      active_job_count=$((active_job_count + 1))
+    else
+      to_submit_count=$((to_submit_count + 1))
+    fi
+  done <<< "$TASK_LIST"
+  ACTIVE_JOBS_COUNT=$active_job_count
+  TO_SUBMIT_COUNT=$to_submit_count
+fi
+
+if [ "$ACTIVE_JOBS_COUNT" -gt 0 ]; then
+  echo "  → Already active for model $MODEL: $ACTIVE_JOBS_COUNT"
+else
+  echo "  → No active jobs found for model $MODEL"
+fi
+echo "  → Expected new submissions: $TO_SUBMIT_COUNT"
+echo ""
+
+# Use new submissions for parallelism prompts to avoid confusion with active jobs.
+PARALLEL_TASK_COUNT="$TO_SUBMIT_COUNT"
 
 format_cost_display() {
   local instances="$1"
@@ -400,16 +503,16 @@ else
 fi
 echo ""
 
-echo "→ Configuring parallelism for $TASK_COUNT task(s)..."
+echo "→ Configuring parallelism for $PARALLEL_TASK_COUNT task(s)..."
 echo ""
 echo "How many jobs should run in parallel?"
 echo "  (Each job gets: 1 vCPU, 16 GB RAM - matching SLURM)"
 echo ""
-MAX_INSTANCES=$(( ($TASK_COUNT + 3) / 4 ))
+MAX_INSTANCES=$(( ($PARALLEL_TASK_COUNT + 3) / 4 ))
 echo "  1) Low parallelism   (~16 jobs)   [~4 instances,  $(format_cost_display 4)]"
 echo "  2) Medium parallelism (~32 jobs)  [~8 instances,  $(format_cost_display 8)]"
 echo "  3) High parallelism  (~64 jobs)   [~16 instances, $(format_cost_display 16)]"
-echo "  4) Maximum throughput (all $TASK_COUNT jobs) [~$MAX_INSTANCES instances, $(format_cost_display "$MAX_INSTANCES")]"
+echo "  4) Maximum throughput (all $PARALLEL_TASK_COUNT jobs) [~$MAX_INSTANCES instances, $(format_cost_display "$MAX_INSTANCES")]"
 echo "  5) Custom (specify vCPUs)"
 echo ""
 read -p "Choice [1/2/3/4/5]: " PARALLEL_CHOICE
@@ -434,10 +537,10 @@ case "$PARALLEL_CHOICE" in
     # Calculate vCPUs needed for all tasks
     # r6a.2xlarge has 8 vCPU and 64 GB, can run 4 jobs (RAM limited)
     # So need (tasks / 4) instances, each with 8 vCPUs
-    INSTANCES_NEEDED=$(( ($TASK_COUNT + 3) / 4 ))  # Round up
+    INSTANCES_NEEDED=$(( ($PARALLEL_TASK_COUNT + 3) / 4 ))  # Round up
     BATCH_MAX_VCPUS=$(( $INSTANCES_NEEDED * 8 ))
-    PARALLEL_JOBS=$TASK_COUNT
-    echo "  → Configured for all $TASK_COUNT jobs in parallel"
+    PARALLEL_JOBS=$PARALLEL_TASK_COUNT
+    echo "  → Configured for all $PARALLEL_TASK_COUNT jobs in parallel"
     ;;
   5)
     read -p "Enter max vCPUs (must be multiple of 8): " BATCH_MAX_VCPUS
@@ -605,17 +708,6 @@ enable_queue_compute_envs() {
 }
 
 enable_queue_compute_envs "$JOB_QUEUE_NAME"
-
-# Match job name sanitization in aws/submit_jobs.py
-sanitize_job_part() {
-  local value="$1"
-  local safe
-  safe=$(printf "%s" "$value" | sed -E 's/[^A-Za-z0-9]+/-/g; s/^-+//; s/-+$//')
-  if [ -z "$safe" ]; then
-    safe="unknown"
-  fi
-  printf "%s" "$safe"
-}
 
 # Purge queued jobs for this model from the selected queue before submission.
 purge_queue_jobs() {
