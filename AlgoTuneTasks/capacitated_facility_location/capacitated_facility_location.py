@@ -134,27 +134,46 @@ class CapacitatedFacilityLocation(Task):
             logging.error("Solution missing keys.")
             return False
 
-        ref = self.solve(problem)
-        if ref["objective_value"] == float("inf"):
+        status = solution["facility_status"]
+        assignments = solution["assignments"]
+        if not isinstance(status, (list, tuple, np.ndarray)):
+            return False
+        if not isinstance(assignments, (list, tuple, np.ndarray)):
             return False
 
-        obj = solution["objective_value"]
-        status = solution["facility_status"]
-        X = np.array(solution["assignments"])
         fixed_costs = np.array(problem["fixed_costs"])
         capacities = np.array(problem["capacities"])
         demands = np.array(problem["demands"])
+        transportation_costs = np.array(problem["transportation_costs"])
 
-        if len(status) != fixed_costs.size or X.shape != (fixed_costs.size, demands.size):
+        status_arr = np.asarray(status, dtype=np.float64)
+        X = np.asarray(assignments, dtype=np.float64)
+
+        if status_arr.ndim != 1 or status_arr.size != fixed_costs.size:
+            return False
+        if X.ndim != 2 or X.shape != (fixed_costs.size, demands.size):
+            return False
+        if transportation_costs.shape != (fixed_costs.size, demands.size):
+            return False
+        if not np.all(np.isfinite(status_arr)) or not np.all(np.isfinite(X)):
+            return False
+        if np.any(status_arr < -1e-6) or np.any(status_arr > 1.0 + 1e-6):
+            return False
+        if not np.allclose(status_arr, np.round(status_arr), atol=1e-6):
+            return False
+        if np.any(X < -1e-6) or np.any(X > 1.0 + 1e-6):
+            return False
+        if not np.allclose(X, np.round(X), atol=1e-6):
             return False
 
-        # each customer served
-        if not np.allclose(X.sum(axis=0), 1, atol=1e-5):
+        status_bool = np.round(status_arr).astype(bool)
+        X_int = np.round(X)
+
+        if not np.allclose(X_int.sum(axis=0), 1, atol=1e-5):
             return False
 
-        # capacity and open facility
-        for i, open_i in enumerate(status):
-            load = float(demands @ X[i])
+        for i, open_i in enumerate(status_bool):
+            load = float(demands @ X_int[i])
             if open_i:
                 if load > capacities[i] + 1e-6:
                     return False
@@ -162,5 +181,17 @@ class CapacitatedFacilityLocation(Task):
                 if load > 1e-6:
                     return False
 
-        # check objective within 1%
-        return obj <= ref["objective_value"] * 1.01 + 1e-6
+        computed_obj = float(
+            fixed_costs @ status_bool + np.sum(transportation_costs * X_int)
+        )
+        reported_obj = solution["objective_value"]
+        if not np.isfinite(reported_obj):
+            return False
+        if not np.isclose(reported_obj, computed_obj, atol=1e-4, rtol=1e-6):
+            return False
+
+        ref = self.solve(problem)
+        if ref["objective_value"] == float("inf"):
+            return False
+
+        return computed_obj <= ref["objective_value"] * 1.01 + 1e-6
