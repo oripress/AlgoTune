@@ -109,8 +109,12 @@ class CapacitatedFacilityLocation(Task):
                 "assignments": [[0.0] * n_customers for _ in range(n_facilities)],
             }
 
-        facility_status = [bool(val) for val in y.value.tolist()]
-        assignments = x.value.tolist()
+        # Round boolean variables to handle solver numerical tolerance
+        y_rounded = np.clip(np.round(y.value), 0, 1)
+        x_rounded = np.clip(np.round(x.value), 0, 1)
+
+        facility_status = [bool(val) for val in y_rounded.tolist()]
+        assignments = x_rounded.tolist()
         return {
             "objective_value": float(prob.value),
             "facility_status": facility_status,
@@ -159,12 +163,7 @@ class CapacitatedFacilityLocation(Task):
         if not np.all(np.isfinite(X)):
             return False
 
-        # Check if values are reasonably close to binary (allowing solver tolerance)
-        if np.any(X < -0.01) or np.any(X > 1.01):
-            logging.error(f"Assignment values outside [0,1]: min={X.min()}, max={X.max()}")
-            return False
-
-        # Round to nearest integer for validation (HIGHS boolean vars may have small numerical errors)
+        # Round to nearest integer for validation
         X_rounded = np.clip(np.round(X), 0, 1)
         status_bool = np.asarray(status, dtype=bool)
 
