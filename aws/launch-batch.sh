@@ -461,7 +461,8 @@ if [ "${#queues_to_check[@]}" -gt 0 ]; then
   mapfile -t active_job_names < <(get_active_job_names "${queues_to_check[@]}")
   declare -A active_job_name_set=()
   for name in "${active_job_names[@]}"; do
-    active_job_name_set["$name"]=1
+    # Skip empty strings (happens when no active jobs found)
+    [ -n "$name" ] && active_job_name_set["$name"]=1
   done
 
   active_job_count=0
