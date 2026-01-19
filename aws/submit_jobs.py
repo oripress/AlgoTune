@@ -96,6 +96,42 @@ def setup_s3_lifecycle_policy(
         return False
 
 
+def purge_s3_logs_for_task(s3_client, bucket: str, task_name: str, model_display: str) -> int:
+    if not bucket or not task_name or not model_display:
+        return 0
+    prefix = f"{task_name}_{model_display}_"
+    to_delete: list[str] = []
+    removed = 0
+    try:
+        paginator = s3_client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=bucket, Prefix="jobs/"):
+            for obj in page.get("Contents", []):
+                key = obj.get("Key", "")
+                if "/logs/" not in key:
+                    continue
+                log_name = key.split("/logs/", 1)[1]
+                if not log_name.startswith(prefix):
+                    continue
+                to_delete.append(key)
+                if len(to_delete) >= 1000:
+                    resp = s3_client.delete_objects(
+                        Bucket=bucket, Delete={"Objects": [{"Key": k} for k in to_delete]}
+                    )
+                    removed += len(resp.get("Deleted", []))
+                    to_delete = []
+        if to_delete:
+            resp = s3_client.delete_objects(
+                Bucket=bucket, Delete={"Objects": [{"Key": k} for k in to_delete]}
+            )
+            removed += len(resp.get("Deleted", []))
+    except Exception as exc:
+        print(
+            f"WARNING: Failed to purge S3 logs for {task_name} ({model_display}): {exc}",
+            file=sys.stderr,
+        )
+    return removed
+
+
 def load_generation_config():
     """Load generation.json to get 'n' values for each task."""
     generation_file = Path(__file__).parent.parent / "reports" / "generation.json"
@@ -344,6 +380,14 @@ def main():
             )
             skipped_count += 1
             continue
+        # Clean up old S3 logs for this task+model to avoid duplicates on resync.
+        if s3_bucket:
+            removed = purge_s3_logs_for_task(s3_client, s3_bucket, task_name, model_display)
+            if removed:
+                print(
+                    f"  → Deleted {removed} S3 log(s) for {task_name} ({model_display})",
+                    file=sys.stderr,
+                )
         # Clean up local logs for this task+model before submitting
         # (start fresh, like SLURM does)
         logs_dir = Path(__file__).parent.parent / "logs"
