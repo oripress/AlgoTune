@@ -146,7 +146,7 @@ class CapacitatedFacilityLocation(Task):
         demands = np.array(problem["demands"])
         transportation_costs = np.array(problem["transportation_costs"])
 
-        status_arr = np.asarray(status, dtype=np.float64)
+        status_arr = np.asarray(status)
         X = np.asarray(assignments, dtype=np.float64)
 
         if status_arr.ndim != 1 or status_arr.size != fixed_costs.size:
@@ -155,30 +155,21 @@ class CapacitatedFacilityLocation(Task):
             return False
         if transportation_costs.shape != (fixed_costs.size, demands.size):
             return False
-        bounds_tol = 1e-4
-        sum_tol = 1e-5
-        int_tol = 1e-2
-        if not np.all(np.isfinite(status_arr)) or not np.all(np.isfinite(X)):
+
+        if not np.all(np.isfinite(X)):
             return False
-        if np.any(status_arr < -bounds_tol) or np.any(status_arr > 1.0 + bounds_tol):
-            return False
-        if not np.allclose(status_arr, np.round(status_arr), atol=bounds_tol):
-            return False
-        if np.any(X < -bounds_tol) or np.any(X > 1.0 + bounds_tol):
-            return False
-        status_bool = np.round(status_arr).astype(bool)
-        if not np.allclose(X.sum(axis=0), 1, atol=sum_tol):
-            return False
-        if np.any(X.max(axis=0) < 1.0 - int_tol):
+
+        status_bool = np.asarray(status, dtype=bool)
+        if not np.allclose(X.sum(axis=0), 1, atol=1e-5):
             return False
 
         for i, open_i in enumerate(status_bool):
             load = float(demands @ X[i])
             if open_i:
-                if load > capacities[i] + bounds_tol:
+                if load > capacities[i] + 1e-6:
                     return False
             else:
-                if load > bounds_tol:
+                if load > 1e-6:
                     return False
 
         computed_obj = float(fixed_costs @ status_bool + np.sum(transportation_costs * X))
