@@ -181,9 +181,7 @@ class CapacitatedFacilityLocation(Task):
                 if load > 1e-6:
                     return False
 
-        computed_obj = float(
-            fixed_costs @ status_bool + np.sum(transportation_costs * X_int)
-        )
+        computed_obj = float(fixed_costs @ status_bool + np.sum(transportation_costs * X_int))
         reported_obj = solution["objective_value"]
         if not np.isfinite(reported_obj):
             return False
