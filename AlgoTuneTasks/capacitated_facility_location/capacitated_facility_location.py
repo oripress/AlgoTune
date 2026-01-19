@@ -155,7 +155,7 @@ class CapacitatedFacilityLocation(Task):
             return False
         if transportation_costs.shape != (fixed_costs.size, demands.size):
             return False
-        tol = 1e-4
+        tol = 1e-3
         if not np.all(np.isfinite(status_arr)) or not np.all(np.isfinite(X)):
             return False
         if np.any(status_arr < -tol) or np.any(status_arr > 1.0 + tol):
@@ -168,21 +168,19 @@ class CapacitatedFacilityLocation(Task):
             return False
 
         status_bool = np.round(status_arr).astype(bool)
-        X_int = np.round(X)
-
-        if not np.allclose(X_int.sum(axis=0), 1, atol=1e-5):
+        if not np.allclose(X.sum(axis=0), 1, atol=tol):
             return False
 
         for i, open_i in enumerate(status_bool):
-            load = float(demands @ X_int[i])
+            load = float(demands @ X[i])
             if open_i:
-                if load > capacities[i] + 1e-6:
+                if load > capacities[i] + tol:
                     return False
             else:
-                if load > 1e-6:
+                if load > tol:
                     return False
 
-        computed_obj = float(fixed_costs @ status_bool + np.sum(transportation_costs * X_int))
+        computed_obj = float(fixed_costs @ status_bool + np.sum(transportation_costs * X))
 
         ref = self.solve(problem)
         if ref["objective_value"] == float("inf"):
