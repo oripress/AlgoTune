@@ -228,7 +228,8 @@ class LiteLLMModel:
 
         # Check for non-retryable payment/credit errors first
         non_retryable_patterns = [
-            "402",  # Payment Required
+            "402",  # Payment Required (HTTP status code)
+            "\"code\":402",  # JSON format payment error
             "insufficient credits",
             "requires more credits",
             "insufficient balance",
@@ -237,6 +238,7 @@ class LiteLLMModel:
             "credit limit",
             "quota exceeded",
             "cannot afford",
+            "can only afford",  # OpenRouter weekly limit
         ]
 
         if any(pattern in error_str for pattern in non_retryable_patterns):

@@ -462,7 +462,8 @@ class LLMInterface(base_interface.BaseLLMInterface):
                         # Check for non-retryable payment/quota errors
                         error_str = str(e).lower()
                         non_retryable_patterns = [
-                            "402",  # Payment Required
+                            "402",  # Payment Required (HTTP status code)
+                            "\"code\":402",  # JSON format payment error
                             "insufficient credits",
                             "requires more credits",
                             "insufficient balance",
@@ -471,13 +472,14 @@ class LLMInterface(base_interface.BaseLLMInterface):
                             "credit limit",
                             "quota exceeded",
                             "cannot afford",
+                            "can only afford",  # OpenRouter weekly limit
                         ]
 
                         if any(pattern in error_str for pattern in non_retryable_patterns):
                             logging.error(
                                 f"Non-retryable payment/quota error detected: {e}"
                             )
-                            logging.error("Exiting immediately - please add more credits")
+                            logging.error("Exiting immediately - please add more credits or increase API key limits")
                             raise
 
                         if attempt < max_retries - 1:
