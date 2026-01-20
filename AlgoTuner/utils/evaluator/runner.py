@@ -865,6 +865,17 @@ def _validate_solution(task_instance: Any, problem: Any, solution: Any) -> dict[
                 "error_type": "validation_error",
             }
 
+        nonconcrete_reason = find_nonconcrete_solution(solution)
+        if nonconcrete_reason:
+            logging.warning(
+                f"[VALIDATION_DEBUG] Non-concrete solution rejected: {nonconcrete_reason}"
+            )
+            return {
+                "success": False,
+                "error_type": "invalid_solution",
+                "error": nonconcrete_reason,
+            }
+
         # Call is_solution
         logging.debug(
             f"[VALIDATION_DEBUG] Calling task.is_solution with problem type={type(problem)}, solution type={type(solution)}"
