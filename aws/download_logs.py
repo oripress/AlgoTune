@@ -7,6 +7,7 @@ Can download logs for specific jobs or all jobs, with optional watch mode.
 import argparse
 import json
 import os
+import random
 import re
 import sys
 import time
@@ -25,6 +26,30 @@ DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parents[1]
 MODEL_RE = re.compile(r"model[:=]\\s*([\\w./-]+)")
 TASK_RE = re.compile(r"task_name to raw '([^']+)'")
 LOG_NAME_RE = re.compile(r"^(?P<task>.+)_(?P<model>.+)_(?P<stamp>\\d{8}_\\d{6})\\.log$")
+
+
+def acquire_lock(lock_path: Path, timeout: float = 30.0) -> bool:
+    """Acquire a lock via atomic file creation."""
+    start = time.monotonic()
+    while time.monotonic() - start < timeout:
+        try:
+            fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.close(fd)
+            return True
+        except FileExistsError:
+            time.sleep(0.1 + random.random() * 0.2)
+        except Exception:
+            return False
+    return False
+
+
+def release_lock(lock_path: Path) -> None:
+    try:
+        lock_path.unlink()
+    except FileNotFoundError:
+        return
+    except Exception:
+        return
 
 
 def normalize_model_name(model_name: str) -> str:
@@ -354,22 +379,31 @@ def cleanup_failed_logs(project_root: Path, summary_path: Path) -> int:
 
 
 def merge_agent_summary(local_summary_path: Path, new_summary_path: Path) -> None:
-    local_summary = normalize_summary(load_agent_summary(local_summary_path))
-    new_summary = normalize_summary(load_agent_summary(new_summary_path))
-    if not new_summary:
-        return
-    for task, models in new_summary.items():
-        if not isinstance(models, dict):
-            continue
-        local_task = local_summary.setdefault(task, {})
-        if not isinstance(local_task, dict):
-            local_summary[task] = models
-            continue
-        for model, metrics in models.items():
-            local_task[model] = metrics
     local_summary_path.parent.mkdir(parents=True, exist_ok=True)
-    with local_summary_path.open("w", encoding="utf-8") as handle:
-        json.dump(local_summary, handle, indent=2, sort_keys=True)
+    lock_path = local_summary_path.with_suffix(".json.lock")
+    if not acquire_lock(lock_path):
+        print(f"Warning: Could not acquire summary lock {lock_path}", file=sys.stderr)
+        return
+    try:
+        local_summary = normalize_summary(load_agent_summary(local_summary_path))
+        new_summary = normalize_summary(load_agent_summary(new_summary_path))
+        if not new_summary:
+            return
+        for task, models in new_summary.items():
+            if not isinstance(models, dict):
+                continue
+            local_task = local_summary.setdefault(task, {})
+            if not isinstance(local_task, dict):
+                local_summary[task] = models
+                continue
+            for model, metrics in models.items():
+                local_task[model] = metrics
+        temp_path = local_summary_path.with_suffix(local_summary_path.suffix + ".tmp")
+        with temp_path.open("w", encoding="utf-8") as handle:
+            json.dump(local_summary, handle, indent=2, sort_keys=True)
+        os.replace(temp_path, local_summary_path)
+    finally:
+        release_lock(lock_path)
 
 
 def download_job_logs(s3_client, bucket, job_id, project_root="."):
