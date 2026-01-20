@@ -107,6 +107,7 @@ class RandomizedSVD(Task):
             tol *= 0.8
         tol *= 1 + max(n, m) / 1000 * 0.5
         tol *= 1 + (1 - k / min(n, m)) * 2
+        tol = min(tol, 0.9)  # Cap tolerance to reject trivial solutions
 
         return bool(rel_err <= tol)
 
