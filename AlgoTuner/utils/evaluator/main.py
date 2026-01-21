@@ -996,13 +996,12 @@ def evaluate_code_on_dataset(
                     baseline_time = baseline_times.get(item_id)
 
                     if baseline_time is None and len(baseline_times) > 0:
-                        warning_msg = (
-                            f"WARNING: No baseline time found for {item_id}. "
-                            f"Available baseline keys: {list(baseline_times.keys())[:10]}... "
-                            f"Continuing with baseline_time=None (speedup will be N/A)"
+                        error_msg = (
+                            f"CRITICAL ERROR: No baseline time found for {item_id}. "
+                            f"Available baseline keys: {list(baseline_times.keys())[:10]}..."
                         )
-                        logging.warning(warning_msg)
-                        # Continue with baseline_time=None instead of raising error
+                        logging.error(error_msg)
+                        raise RuntimeError(error_msg)
 
                 problem_data = {
                     "problem": item.get(problem_instance_key, item),
@@ -1025,16 +1024,15 @@ def evaluate_code_on_dataset(
                 baseline_time = baseline_times.get(item_id) if baseline_times else None
 
                 # Check for missing baseline time
-                # Log warning if we have non-empty baseline_times but missing this specific key
+                # Only raise error if we have non-empty baseline_times but missing this specific key
                 if baseline_times and baseline_time is None and len(baseline_times) > 0:
-                    warning_msg = (
-                        f"WARNING: No baseline time found for problem {i + 1} "
+                    error_msg = (
+                        f"CRITICAL ERROR: No baseline time found for problem {i + 1} "
                         f"(item_id='{item_id}'). "
-                        f"Available baseline keys: {list(baseline_times.keys())[:10]}... "
-                        f"Continuing with baseline_time=None (speedup will be N/A)"
+                        f"Available baseline keys: {list(baseline_times.keys())[:10]}..."
                     )
-                    logging.warning(warning_msg)
-                    # Continue with baseline_time=None instead of raising error
+                    logging.error(error_msg)
+                    raise RuntimeError(error_msg)
 
                 problem_data = {"problem": item, "id": item_id, "baseline_time_ms": baseline_time}
 
