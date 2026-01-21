@@ -310,13 +310,36 @@ class BaselineManager:
                                     f"BaselineManager: Problem {problem_id} oracle time: {min_time_ms}ms (isolated)"
                                 )
                         else:
-                            logging.warning(
-                                f"BaselineManager: No valid oracle time for {problem_id} (isolated)"
+                            # No valid oracle time - treat as critical failure
+                            error_msg = (
+                                f"BASELINE GENERATION FAILED: Oracle returned no valid time for problem {problem_id} ({i+1}/{problem_count}). "
+                                f"This should never happen. Successfully generated {len(baseline_times)} baselines before failure."
                             )
+                            logging.error(error_msg)
+                            raise RuntimeError(error_msg)
                     else:
-                        logging.error(
-                            f"BaselineManager: Oracle isolated benchmark failed for {problem_id}: {benchmark_result.get('error')}"
+                        # Check if this is a timeout error (oracle should NEVER timeout)
+                        error = benchmark_result.get('error', '')
+                        is_timeout = (
+                            benchmark_result.get('timeout_occurred', False) or
+                            'timeout' in error.lower() or
+                            'timed out' in error.lower()
                         )
+
+                        if is_timeout:
+                            # Oracle timeout is critical - abort immediately
+                            error_msg = (
+                                f"BASELINE GENERATION FAILED: Oracle timed out for problem {problem_id} ({i+1}/{problem_count}). "
+                                f"Oracle should NEVER timeout - this indicates the task is misconfigured or oracle is too slow. "
+                                f"Error: {error}. Successfully generated {len(baseline_times)} baselines before failure."
+                            )
+                            logging.error(error_msg)
+                            raise RuntimeError(error_msg)
+                        else:
+                            # Non-timeout error - log but continue (might be a flaky problem)
+                            logging.error(
+                                f"BaselineManager: Oracle isolated benchmark failed for {problem_id}: {error}"
+                            )
 
                 else:
                     # Use regular benchmark (may fall back to in-process)
@@ -346,13 +369,36 @@ class BaselineManager:
                                     f"BaselineManager: Problem {problem_id} oracle time: {min_time_ms}ms (regular)"
                                 )
                         else:
-                            logging.warning(
-                                f"BaselineManager: No valid oracle time for {problem_id} (regular)"
+                            # No valid oracle time - treat as critical failure
+                            error_msg = (
+                                f"BASELINE GENERATION FAILED: Oracle returned no valid time for problem {problem_id} ({i+1}/{problem_count}). "
+                                f"This should never happen. Successfully generated {len(baseline_times)} baselines before failure."
                             )
+                            logging.error(error_msg)
+                            raise RuntimeError(error_msg)
                     else:
-                        logging.error(
-                            f"BaselineManager: Oracle benchmark failed for {problem_id}: {benchmark_result.get('error')}"
+                        # Check if this is a timeout error (oracle should NEVER timeout)
+                        error = benchmark_result.get('error', '')
+                        is_timeout = (
+                            benchmark_result.get('timeout_occurred', False) or
+                            'timeout' in error.lower() or
+                            'timed out' in error.lower()
                         )
+
+                        if is_timeout:
+                            # Oracle timeout is critical - abort immediately
+                            error_msg = (
+                                f"BASELINE GENERATION FAILED: Oracle timed out for problem {problem_id} ({i+1}/{problem_count}). "
+                                f"Oracle should NEVER timeout - this indicates the task is misconfigured or oracle is too slow. "
+                                f"Error: {error}. Successfully generated {len(baseline_times)} baselines before failure."
+                            )
+                            logging.error(error_msg)
+                            raise RuntimeError(error_msg)
+                        else:
+                            # Non-timeout error - log but continue (might be a flaky problem)
+                            logging.error(
+                                f"BaselineManager: Oracle benchmark failed for {problem_id}: {error}"
+                            )
 
             except Exception as e:
                 logging.error(f"BaselineManager: Error evaluating problem {problem_id}: {e}")
