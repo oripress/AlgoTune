@@ -70,8 +70,15 @@ class BaselineManager:
                     f"Generating baseline times for subset '{subset}' (attempt {attempt + 1}/{MAX_RETRIES})"
                 )
 
+                # Progressive timeout increase on retries
+                # Attempt 1: 60s, Attempt 2: 90s, Attempt 3: 120s
+                timeout_multiplier = 1.0 + (attempt * 0.5)
+                logging.info(f"Using timeout multiplier {timeout_multiplier:.1f}x for attempt {attempt + 1}")
+
                 # Generate baseline times
-                baseline_times = self._generate_baseline_times(subset, test_mode, max_samples)
+                baseline_times = self._generate_baseline_times(
+                    subset, test_mode, max_samples, timeout_multiplier=timeout_multiplier
+                )
 
                 # Determine expected count (need to load dataset to know size)
                 expected_count = self._get_expected_baseline_count(subset, test_mode, max_samples)
@@ -97,11 +104,18 @@ class BaselineManager:
                         f"Incomplete baseline generation ({actual_count}/{expected_count}, missing {missing_count}). "
                         f"Clearing cache and retrying (attempt {attempt + 2}/{MAX_RETRIES})..."
                     )
-                    self.clear_cache(subset)
-                    # Small delay to allow system resources to settle
+
+                    # Force garbage collection to free memory
+                    import gc
                     import time
 
-                    time.sleep(2)
+                    gc.collect()
+                    logging.info("Forced garbage collection before retry")
+
+                    self.clear_cache(subset)
+
+                    # Longer delay to allow system resources to settle
+                    time.sleep(5)
                 else:
                     # Last attempt failed after 3 retries - this is a FATAL SYSTEM ERROR
                     missing_count = expected_count - actual_count
@@ -163,7 +177,7 @@ class BaselineManager:
         return expected_count
 
     def _generate_baseline_times(
-        self, subset: str, test_mode: bool, max_samples: int | None
+        self, subset: str, test_mode: bool, max_samples: int | None, timeout_multiplier: float = 1.0
     ) -> dict[str, float]:
         """
         Generate baseline times by running the oracle solver.
@@ -172,6 +186,7 @@ class BaselineManager:
             subset: 'train' or 'test'
             test_mode: Whether in test mode
             max_samples: Maximum samples to process
+            timeout_multiplier: Multiplier for timeout (1.0 = 60s, 1.5 = 90s, 2.0 = 120s)
 
         Returns:
             Dictionary mapping problem IDs to baseline times
@@ -290,6 +305,9 @@ class BaselineManager:
                         timeout_seconds = max(
                             60.0, target_time_s * 10.0
                         )  # 10x target time, minimum 60s
+
+                    # Apply timeout multiplier for retries
+                    timeout_seconds *= timeout_multiplier
 
                     benchmark_result = run_isolated_benchmark(
                         task_name=task_name,
