@@ -42,6 +42,8 @@ class BaselineManager:
     ) -> dict[str, float]:
         """
         Get baseline times for a dataset subset, generating if needed.
+        Retries up to MAX_RETRIES times on incomplete results.
+        Requires 100% of baselines to be generated - no tolerance for missing items.
 
         Args:
             subset: 'train' or 'test'
@@ -52,6 +54,8 @@ class BaselineManager:
         Returns:
             Dictionary mapping problem IDs to baseline times in milliseconds
         """
+        MAX_RETRIES = 3
+
         with self._lock:
             # Check cache
             if not force_regenerate and self._cache[subset] is not None:
@@ -60,16 +64,103 @@ class BaselineManager:
                 )
                 return self._cache[subset]
 
-            # Generate baseline times
-            logging.info(f"Generating baseline times for subset '{subset}'")
-            baseline_times = self._generate_baseline_times(subset, test_mode, max_samples)
+            # Retry loop for baseline generation
+            for attempt in range(MAX_RETRIES):
+                logging.info(
+                    f"Generating baseline times for subset '{subset}' (attempt {attempt + 1}/{MAX_RETRIES})"
+                )
 
-            # Cache the results
-            self._cache[subset] = baseline_times
-            logging.info(f"Cached {len(baseline_times)} baseline times for {subset}")
-            logging.info("BaselineManager.get_baseline_times completed, returning to caller")
+                # Generate baseline times
+                baseline_times = self._generate_baseline_times(subset, test_mode, max_samples)
 
-            return baseline_times
+                # Determine expected count (need to load dataset to know size)
+                expected_count = self._get_expected_baseline_count(subset, test_mode, max_samples)
+                actual_count = len(baseline_times)
+
+                logging.info(
+                    f"Baseline generation attempt {attempt + 1}: {actual_count}/{expected_count} items"
+                )
+
+                # Check if results are complete - require 100% match
+                if actual_count == expected_count:
+                    # Success - cache and return
+                    self._cache[subset] = baseline_times
+                    logging.info(f"Successfully generated all {actual_count} baseline times")
+                    logging.info("BaselineManager.get_baseline_times completed, returning to caller")
+                    return baseline_times
+
+                # Incomplete results
+                if attempt < MAX_RETRIES - 1:
+                    # Not the last attempt - clear cache and retry
+                    missing_count = expected_count - actual_count
+                    logging.warning(
+                        f"Incomplete baseline generation ({actual_count}/{expected_count}, missing {missing_count}). "
+                        f"Clearing cache and retrying (attempt {attempt + 2}/{MAX_RETRIES})..."
+                    )
+                    self.clear_cache(subset)
+                    # Small delay to allow system resources to settle
+                    import time
+
+                    time.sleep(2)
+                else:
+                    # Last attempt failed - raise error
+                    missing_count = expected_count - actual_count
+                    error_msg = (
+                        f"BASELINE GENERATION FAILED after {MAX_RETRIES} attempts: "
+                        f"Only {actual_count}/{expected_count} baseline times generated. "
+                        f"Missing {missing_count} items. "
+                        f"This likely indicates oracle solver is too slow or dataset has issues. "
+                        f"Available baseline keys: {list(baseline_times.keys())[:10]}..."
+                    )
+                    logging.error(error_msg)
+                    raise RuntimeError(error_msg)
+
+            # Should never reach here
+            raise RuntimeError("Unexpected exit from retry loop")
+
+    def _get_expected_baseline_count(
+        self, subset: str, test_mode: bool, max_samples: int | None
+    ) -> int:
+        """
+        Determine the expected number of baseline entries based on dataset size.
+
+        Args:
+            subset: 'train' or 'test'
+            test_mode: Whether in test mode
+            max_samples: Maximum samples to process
+
+        Returns:
+            Expected count of baseline times
+        """
+        from AlgoTuner.utils.evaluator.main import stream_jsonl
+        import os
+        import glob
+
+        # Check for JSONL files first (memory efficient)
+        data_dir = self.task_instance.data_dir or self.task_instance.get_task_directory()
+        jsonl_pattern = os.path.join(
+            data_dir, f"{self.task_instance.task_name}_T*ms_n*_size*_{subset}.jsonl"
+        )
+        jsonl_files = glob.glob(jsonl_pattern)
+
+        if jsonl_files:
+            # Count lines in JSONL file
+            jsonl_path = jsonl_files[0]
+            dataset_iter = stream_jsonl(jsonl_path)
+            dataset_list = list(dataset_iter)
+        else:
+            # Load dataset and count
+            train_iter, test_iter = self.task_instance.load_dataset()
+            dataset_iter = train_iter if subset == "train" else test_iter
+            dataset_list = list(dataset_iter)
+
+        expected_count = len(dataset_list)
+
+        # Apply test mode filtering
+        if test_mode and max_samples:
+            expected_count = min(expected_count, max_samples)
+
+        return expected_count
 
     def _generate_baseline_times(
         self, subset: str, test_mode: bool, max_samples: int | None
@@ -294,11 +385,15 @@ class BaselineManager:
         """
         with self._lock:
             if subset:
+                old_count = len(self._cache[subset]) if self._cache[subset] else 0
                 self._cache[subset] = None
-                logging.info(f"Cleared baseline cache for {subset}")
+                logging.info(f"Cleared baseline cache for {subset} (was {old_count} entries)")
             else:
+                old_counts = {k: len(v) if v else 0 for k, v in self._cache.items()}
                 self._cache = {"train": None, "test": None}
-                logging.info("Cleared all baseline caches")
+                logging.info(
+                    f"Cleared all baseline caches (was train={old_counts['train']}, test={old_counts['test']})"
+                )
 
     def get_cache_status(self) -> dict[str, int | None]:
         """
