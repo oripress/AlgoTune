@@ -103,20 +103,20 @@ class BaselineManager:
 
                     time.sleep(2)
                 else:
-                    # Last attempt failed - raise error
+                    # Last attempt failed after 3 retries - this is a FATAL SYSTEM ERROR
                     missing_count = expected_count - actual_count
                     error_msg = (
-                        f"BASELINE GENERATION FAILED after {MAX_RETRIES} attempts: "
-                        f"Only {actual_count}/{expected_count} baseline times generated. "
-                        f"Missing {missing_count} items. "
-                        f"This likely indicates oracle solver is too slow or dataset has issues. "
-                        f"Available baseline keys: {list(baseline_times.keys())[:10]}..."
+                        f"FATAL SYSTEM ERROR: BASELINE GENERATION FAILED after {MAX_RETRIES} attempts. "
+                        f"Only {actual_count}/{expected_count} baseline times generated (missing {missing_count} items). "
+                        f"This indicates oracle solver is too slow or task is misconfigured. "
+                        f"This is a system/infrastructure failure - job cannot continue."
                     )
-                    logging.error(error_msg)
-                    raise RuntimeError(error_msg)
+                    logging.critical(error_msg)
+                    # Exit immediately - this is not recoverable by the agent
+                    raise SystemExit(1)
 
             # Should never reach here
-            raise RuntimeError("Unexpected exit from retry loop")
+            raise SystemExit(1)
 
     def _get_expected_baseline_count(
         self, subset: str, test_mode: bool, max_samples: int | None
@@ -310,7 +310,7 @@ class BaselineManager:
                                     f"BaselineManager: Problem {problem_id} oracle time: {min_time_ms}ms (isolated)"
                                 )
                         else:
-                            # No valid oracle time - treat as critical failure
+                            # No valid oracle time - abort and let retry mechanism handle it
                             error_msg = (
                                 f"BASELINE GENERATION FAILED: Oracle returned no valid time for problem {problem_id} ({i+1}/{problem_count}). "
                                 f"This should never happen. Successfully generated {len(baseline_times)} baselines before failure."
@@ -327,7 +327,7 @@ class BaselineManager:
                         )
 
                         if is_timeout:
-                            # Oracle timeout is critical - abort immediately
+                            # Oracle timeout - abort and let retry mechanism handle it
                             error_msg = (
                                 f"BASELINE GENERATION FAILED: Oracle timed out for problem {problem_id} ({i+1}/{problem_count}). "
                                 f"Oracle should NEVER timeout - this indicates the task is misconfigured or oracle is too slow. "
@@ -369,7 +369,7 @@ class BaselineManager:
                                     f"BaselineManager: Problem {problem_id} oracle time: {min_time_ms}ms (regular)"
                                 )
                         else:
-                            # No valid oracle time - treat as critical failure
+                            # No valid oracle time - abort and let retry mechanism handle it
                             error_msg = (
                                 f"BASELINE GENERATION FAILED: Oracle returned no valid time for problem {problem_id} ({i+1}/{problem_count}). "
                                 f"This should never happen. Successfully generated {len(baseline_times)} baselines before failure."
@@ -386,7 +386,7 @@ class BaselineManager:
                         )
 
                         if is_timeout:
-                            # Oracle timeout is critical - abort immediately
+                            # Oracle timeout - abort and let retry mechanism handle it
                             error_msg = (
                                 f"BASELINE GENERATION FAILED: Oracle timed out for problem {problem_id} ({i+1}/{problem_count}). "
                                 f"Oracle should NEVER timeout - this indicates the task is misconfigured or oracle is too slow. "
