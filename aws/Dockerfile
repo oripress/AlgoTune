@@ -27,7 +27,6 @@ WORKDIR /app
 COPY pyproject.toml /app/pyproject.toml
 COPY algotune.py /app/algotune.py
 COPY algotune.sh /app/algotune.sh
-COPY config.env /opt/config.env
 
 COPY AlgoTuner /app/AlgoTuner
 COPY AlgoTuneTasks /app/AlgoTuneTasks
