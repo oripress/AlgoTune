@@ -31,7 +31,7 @@ class BaselineManager:
         """
         self.task_instance = task_instance
         self._cache = {"train": None, "test": None}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # Re-entrant lock to avoid deadlock
 
     def get_baseline_times(
         self,
@@ -283,146 +283,202 @@ class BaselineManager:
                     f"BaselineManager: Problem {problem_id} using same problem for warmup (first problem)"
                 )
 
-            # Run oracle solver with appropriate execution method
-            try:
-                logging.info(f"BaselineManager: Running oracle benchmark for {problem_id}")
+            # Per-problem retry loop
+            MAX_RETRIES = 3
+            problem_succeeded = False
 
-                if use_isolated:
-                    # Use isolated benchmark with different problems for warmup and timing
-                    logging.debug(f"BaselineManager: Using isolated benchmark for {problem_id}")
-
-                    # Get task directory and name for isolated benchmark
-                    task_name = getattr(self.task_instance, "task_name", "unknown_task")
-                    code_dir = self.task_instance.get_task_directory()
-
-                    # Calculate timeout based on target time if available
-                    timeout_seconds = 60.0  # Default
-                    if (
-                        hasattr(self.task_instance, "target_time_ms")
-                        and self.task_instance.target_time_ms
-                    ):
-                        target_time_s = self.task_instance.target_time_ms / 1000.0
-                        timeout_seconds = max(
-                            60.0, target_time_s * 10.0
-                        )  # 10x target time, minimum 60s
-
-                    # Apply timeout multiplier for retries
-                    timeout_seconds *= timeout_multiplier
-
-                    benchmark_result = run_isolated_benchmark(
-                        task_name=task_name,
-                        code_dir=code_dir,
-                        warmup_problem=warmup_problem_data,
-                        timed_problem=problem_data,
-                        num_runs=num_runs,
-                        timeout_seconds=timeout_seconds,
+            for retry_attempt in range(MAX_RETRIES):
+                if retry_attempt > 0:
+                    logging.warning(
+                        f"Retrying problem {problem_id} (attempt {retry_attempt + 1}/{MAX_RETRIES})"
                     )
 
-                    # Extract timing from isolated benchmark result
-                    if benchmark_result.get("success"):
-                        min_time_ms = benchmark_result.get("min_time_ms", 0)
-                        if min_time_ms > 0:
-                            baseline_times[problem_id] = float(min_time_ms)
-                            if i < 5:  # Log first few
-                                logging.info(
-                                    f"BaselineManager: Problem {problem_id} oracle time: {min_time_ms}ms (isolated)"
-                                )
-                        else:
-                            # No valid oracle time - abort and let retry mechanism handle it
-                            error_msg = (
-                                f"BASELINE GENERATION FAILED: Oracle returned no valid time for problem {problem_id} ({i+1}/{problem_count}). "
-                                f"This should never happen. Successfully generated {len(baseline_times)} baselines before failure."
-                            )
-                            logging.error(error_msg)
-                            raise RuntimeError(error_msg)
-                    else:
-                        # Check if this is a timeout error (oracle should NEVER timeout)
-                        error = benchmark_result.get('error', '')
-                        is_timeout = (
-                            benchmark_result.get('timeout_occurred', False) or
-                            'timeout' in error.lower() or
-                            'timed out' in error.lower()
+                # Run oracle solver with appropriate execution method
+                try:
+                    logging.info(f"BaselineManager: Running oracle benchmark for {problem_id}")
+
+                    if use_isolated:
+                        # Use isolated benchmark with different problems for warmup and timing
+                        logging.debug(f"BaselineManager: Using isolated benchmark for {problem_id}")
+
+                        # Get task directory and name for isolated benchmark
+                        task_name = getattr(self.task_instance, "task_name", "unknown_task")
+                        code_dir = self.task_instance.get_task_directory()
+
+                        # Calculate timeout based on target time if available
+                        timeout_seconds = 60.0  # Default
+                        if (
+                            hasattr(self.task_instance, "target_time_ms")
+                            and self.task_instance.target_time_ms
+                        ):
+                            target_time_s = self.task_instance.target_time_ms / 1000.0
+                            timeout_seconds = max(
+                                60.0, target_time_s * 10.0
+                            )  # 10x target time, minimum 60s
+
+                        benchmark_result = run_isolated_benchmark(
+                            task_name=task_name,
+                            code_dir=code_dir,
+                            warmup_problem=warmup_problem_data,
+                            timed_problem=problem_data,
+                            num_runs=num_runs,
+                            timeout_seconds=timeout_seconds,
                         )
 
-                        if is_timeout:
-                            # Oracle timeout - abort and let retry mechanism handle it
-                            error_msg = (
-                                f"BASELINE GENERATION FAILED: Oracle timed out for problem {problem_id} ({i+1}/{problem_count}). "
-                                f"Oracle should NEVER timeout - this indicates the task is misconfigured or oracle is too slow. "
-                                f"Error: {error}. Successfully generated {len(baseline_times)} baselines before failure."
-                            )
-                            logging.error(error_msg)
-                            raise RuntimeError(error_msg)
-                        else:
-                            # Non-timeout error - log but continue (might be a flaky problem)
-                            logging.error(
-                                f"BaselineManager: Oracle isolated benchmark failed for {problem_id}: {error}"
-                            )
-
-                else:
-                    # Use regular benchmark (may fall back to in-process)
-                    logging.debug(f"BaselineManager: Using regular benchmark for {problem_id}")
-
-                    # Create a wrapper function that binds the problem
-                    def oracle_wrapper():
-                        return oracle_solver(problem_data)
-
-                    # Run the benchmark with auto-decided execution mode
-                    benchmark_result = run_benchmark(
-                        func=oracle_wrapper,
-                        num_runs=num_runs,
-                        num_warmups=1,
-                        capture_output=False,
-                        force_subprocess=None,  # Let it auto-decide based on environment
-                    )
-
-                    # Extract timing from result
-                    if benchmark_result.get("success"):
-                        # Get the minimum time in milliseconds
-                        min_time_ms = benchmark_result.get("min_time_ms", 0)
-                        if min_time_ms > 0:
-                            baseline_times[problem_id] = float(min_time_ms)
-                            if i < 5:  # Log first few
-                                logging.info(
-                                    f"BaselineManager: Problem {problem_id} oracle time: {min_time_ms}ms (regular)"
+                        # Extract timing from isolated benchmark result
+                        if benchmark_result.get("success"):
+                            min_time_ms = benchmark_result.get("min_time_ms", 0)
+                            if min_time_ms > 0:
+                                baseline_times[problem_id] = float(min_time_ms)
+                                if i < 5:  # Log first few
+                                    logging.info(
+                                        f"BaselineManager: Problem {problem_id} oracle time: {min_time_ms}ms (isolated)"
+                                    )
+                                problem_succeeded = True
+                                break  # Exit retry loop, move to next problem
+                            else:
+                                # No valid oracle time - raise error to trigger retry
+                                error_msg = (
+                                    f"BASELINE GENERATION FAILED: Oracle returned no valid time for problem {problem_id} ({i+1}/{problem_count}). "
+                                    f"This should never happen. Successfully generated {len(baseline_times)} baselines before failure."
                                 )
+                                logging.error(error_msg)
+                                raise RuntimeError(error_msg)
                         else:
-                            # No valid oracle time - abort and let retry mechanism handle it
-                            error_msg = (
-                                f"BASELINE GENERATION FAILED: Oracle returned no valid time for problem {problem_id} ({i+1}/{problem_count}). "
-                                f"This should never happen. Successfully generated {len(baseline_times)} baselines before failure."
+                            # Check if this is a timeout error (oracle should NEVER timeout)
+                            error = benchmark_result.get('error', '')
+                            is_timeout = (
+                                benchmark_result.get('timeout_occurred', False) or
+                                'timeout' in error.lower() or
+                                'timed out' in error.lower()
                             )
-                            logging.error(error_msg)
-                            raise RuntimeError(error_msg)
+
+                            if is_timeout:
+                                # Oracle timeout - raise to trigger retry
+                                error_msg = (
+                                    f"BASELINE GENERATION FAILED: Oracle timed out for problem {problem_id} ({i+1}/{problem_count}). "
+                                    f"Oracle should NEVER timeout - this indicates the task is misconfigured or oracle is too slow. "
+                                    f"Error: {error}. Successfully generated {len(baseline_times)} baselines before failure."
+                                )
+                                logging.error(error_msg)
+                                raise RuntimeError(error_msg)
+                            else:
+                                # Non-timeout error - log and skip (don't retry)
+                                logging.error(
+                                    f"BaselineManager: Oracle isolated benchmark failed for {problem_id}: {error}"
+                                )
+                                break  # Exit retry loop, skip this problem
+
                     else:
-                        # Check if this is a timeout error (oracle should NEVER timeout)
-                        error = benchmark_result.get('error', '')
-                        is_timeout = (
-                            benchmark_result.get('timeout_occurred', False) or
-                            'timeout' in error.lower() or
-                            'timed out' in error.lower()
+                        # Use regular benchmark (may fall back to in-process)
+                        logging.debug(f"BaselineManager: Using regular benchmark for {problem_id}")
+
+                        # Create a wrapper function that binds the problem
+                        def oracle_wrapper():
+                            return oracle_solver(problem_data)
+
+                        # Run the benchmark with auto-decided execution mode
+                        benchmark_result = run_benchmark(
+                            func=oracle_wrapper,
+                            num_runs=num_runs,
+                            num_warmups=1,
+                            capture_output=False,
+                            force_subprocess=None,  # Let it auto-decided based on environment
                         )
 
-                        if is_timeout:
-                            # Oracle timeout - abort and let retry mechanism handle it
-                            error_msg = (
-                                f"BASELINE GENERATION FAILED: Oracle timed out for problem {problem_id} ({i+1}/{problem_count}). "
-                                f"Oracle should NEVER timeout - this indicates the task is misconfigured or oracle is too slow. "
-                                f"Error: {error}. Successfully generated {len(baseline_times)} baselines before failure."
-                            )
-                            logging.error(error_msg)
-                            raise RuntimeError(error_msg)
+                        # Extract timing from result
+                        if benchmark_result.get("success"):
+                            # Get the minimum time in milliseconds
+                            min_time_ms = benchmark_result.get("min_time_ms", 0)
+                            if min_time_ms > 0:
+                                baseline_times[problem_id] = float(min_time_ms)
+                                if i < 5:  # Log first few
+                                    logging.info(
+                                        f"BaselineManager: Problem {problem_id} oracle time: {min_time_ms}ms (regular)"
+                                    )
+                                problem_succeeded = True
+                                break  # Exit retry loop, move to next problem
+                            else:
+                                # No valid oracle time - raise to trigger retry
+                                error_msg = (
+                                    f"BASELINE GENERATION FAILED: Oracle returned no valid time for problem {problem_id} ({i+1}/{problem_count}). "
+                                    f"This should never happen. Successfully generated {len(baseline_times)} baselines before failure."
+                                )
+                                logging.error(error_msg)
+                                raise RuntimeError(error_msg)
                         else:
-                            # Non-timeout error - log but continue (might be a flaky problem)
-                            logging.error(
-                                f"BaselineManager: Oracle benchmark failed for {problem_id}: {error}"
+                            # Check if this is a timeout error (oracle should NEVER timeout)
+                            error = benchmark_result.get('error', '')
+                            is_timeout = (
+                                benchmark_result.get('timeout_occurred', False) or
+                                'timeout' in error.lower() or
+                                'timed out' in error.lower()
                             )
 
-            except Exception as e:
-                logging.error(f"BaselineManager: Error evaluating problem {problem_id}: {e}")
-                import traceback
+                            if is_timeout:
+                                # Oracle timeout - raise to trigger retry
+                                error_msg = (
+                                    f"BASELINE GENERATION FAILED: Oracle timed out for problem {problem_id} ({i+1}/{problem_count}). "
+                                    f"Oracle should NEVER timeout - this indicates the task is misconfigured or oracle is too slow. "
+                                    f"Error: {error}. Successfully generated {len(baseline_times)} baselines before failure."
+                                )
+                                logging.error(error_msg)
+                                raise RuntimeError(error_msg)
+                            else:
+                                # Non-timeout error - log and skip (don't retry)
+                                logging.error(
+                                    f"BaselineManager: Oracle benchmark failed for {problem_id}: {error}"
+                                )
+                                break  # Exit retry loop, skip this problem
 
-                logging.error(f"BaselineManager: Traceback: {traceback.format_exc()}")
+                except Exception as e:
+                    logging.error(f"BaselineManager: Error evaluating problem {problem_id} on attempt {retry_attempt + 1}/{MAX_RETRIES}: {e}")
+                    import traceback
+                    logging.error(f"BaselineManager: Traceback: {traceback.format_exc()}")
+
+                    # Check if this is a timeout error
+                    is_timeout = "BASELINE GENERATION FAILED" in str(e) or "timed out" in str(e).lower()
+
+                    if is_timeout:
+                        # Timeout error - check if should retry
+                        if retry_attempt < MAX_RETRIES - 1:
+                            # Not last attempt - kill and restart forkserver, then retry
+                            logging.warning(
+                                f"Problem {problem_id} timed out. Killing and restarting forkserver "
+                                f"before retry (attempt {retry_attempt + 2}/{MAX_RETRIES})"
+                            )
+
+                            # Kill the degraded forkserver
+                            try:
+                                import multiprocessing.forkserver as fs
+                                import time
+
+                                if fs._forkserver._forkserver_pid is not None:
+                                    old_pid = fs._forkserver._forkserver_pid
+                                    logging.info(f"Killing forkserver (PID {old_pid}) to clear degraded state")
+                                    fs._forkserver._stop()
+                                    time.sleep(0.5)  # Allow cleanup
+                                    logging.info(f"Forkserver killed, will restart on next benchmark call")
+                                else:
+                                    logging.info("No forkserver running, will start fresh on next benchmark call")
+                            except Exception as forkserver_error:
+                                logging.warning(f"Error killing forkserver: {forkserver_error}. Continuing with retry anyway.")
+
+                            time.sleep(1)  # Brief pause before retry
+                            continue  # Try again with fresh forkserver
+                        else:
+                            # Last attempt failed - exit
+                            error_msg = (
+                                f"FATAL SYSTEM ERROR: Problem {problem_id} failed after {MAX_RETRIES} retry attempts. "
+                                f"Oracle timeout indicates task is misconfigured or oracle is too slow. "
+                                f"Successfully generated {len(baseline_times)}/{problem_count} baselines before failure."
+                            )
+                            logging.critical(error_msg)
+                            raise SystemExit(1)
+                    else:
+                        # Non-timeout error - log and skip this problem (don't retry)
+                        logging.error(f"Skipping problem {problem_id} due to non-timeout error (will not retry)")
+                        break  # Exit retry loop, move to next problem
 
         logging.info(
             f"BaselineManager: Generated baseline times for {len(baseline_times)} out of {problem_count} problems"
