@@ -139,6 +139,25 @@ def update_summary_json(
         release_lock(str(lock_file_path))
 
 
+def register_custom_pricing(model_name: str, model_info: dict, logger) -> bool:
+    """Register custom pricing for a model if 'pricing' config exists."""
+    pricing = model_info.get("custom_pricing")
+    if not pricing or not isinstance(pricing, dict):
+        return False
+    
+    # Add defaults
+    pricing.setdefault("litellm_provider", model_name.split("/")[0] if "/" in model_name else "openai")
+    pricing.setdefault("mode", "chat")
+    
+    try:
+        litellm.register_model({model_name: pricing})
+        logger.info(f"Registered custom pricing for '{model_name}': {pricing}")
+        return True
+    except Exception as e:
+        logger.warning(f"Failed to register custom pricing for '{model_name}': {e}")
+        return False
+
+
 def main():
     parser = argparse.ArgumentParser(description="LLM Interface Script")
     parser.add_argument(
@@ -239,6 +258,11 @@ def main():
     if not api_key:
         logger.critical(f"API key not found. Set the {api_key_env} environment variable.")
         sys.exit(1)
+
+    # Register custom pricing before getting model info from LiteLLM
+    custom_pricing_registered = register_custom_pricing(llm_model_name, model_info, logger)
+    if custom_pricing_registered:
+        logger.info(f"Custom pricing registered for model '{llm_model_name}'")
 
     litellm.drop_params = True
     try:
