@@ -104,6 +104,7 @@ class OptimalAdvertisingTask(Task):
         tightness_factor = min(tightness_factor, 0.9)  # Cap at 0.9 for feasibility
         c *= tightness_factor * T.sum() / c.sum()
         c = 1000 * np.round(c / 1000)
+        c = np.maximum(c, 1000.0)
 
         # Revenue per click
         R = np.array([rng.lognormal(c.min() / c[i]) for i in range(m)])
