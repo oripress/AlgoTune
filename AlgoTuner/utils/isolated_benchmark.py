@@ -988,6 +988,18 @@ def run_isolated_benchmark(
 
     logger = logging.getLogger(__name__)
 
+    # Force single-threaded BLAS/LAPACK to stabilize timing in isolated benchmarks.
+    os.environ.setdefault("OMP_NUM_THREADS", "1")
+    os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+    os.environ.setdefault("MKL_NUM_THREADS", "1")
+    os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+
+    # Force single-threaded BLAS/LAPACK to stabilize timing in isolated benchmarks.
+    os.environ.setdefault("OMP_NUM_THREADS", "1")
+    os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+    os.environ.setdefault("MKL_NUM_THREADS", "1")
+    os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+
     # Log the timeout value we received
     logger.info(
         f"[TIMEOUT_DEBUG_ISO] run_isolated_benchmark called with timeout_seconds={timeout_seconds:.3f}s"
@@ -1157,6 +1169,9 @@ def run_isolated_benchmark(
             MANAGER_REFRESH_INTERVAL = config.get("benchmark", {}).get(
                 "manager_refresh_interval", 50
             )
+            FORKSERVER_RESTART_INTERVAL = config.get("benchmark", {}).get(
+                "forkserver_restart_interval", 5
+            )
             cleanup_config = config.get("benchmark", {}).get("tempdir_cleanup", {})
             cleanup_retries = cleanup_config.get("retries", 3)
             cleanup_delays = tuple(cleanup_config.get("delays", [0.5, 1.0, 2.0]))
@@ -1168,9 +1183,32 @@ def run_isolated_benchmark(
             )
         except Exception as e:
             MANAGER_REFRESH_INTERVAL = 50
+            FORKSERVER_RESTART_INTERVAL = 5
             cleanup_retries = 3
             cleanup_delays = (0.5, 1.0, 2.0)
             logger.debug(f"[isolated_benchmark] Failed to load config: {e}. Using defaults")
+
+        def _maybe_restart_forkserver(run_idx: int) -> None:
+            if (
+                FORKSERVER_RESTART_INTERVAL > 0
+                and (run_idx + 1) % FORKSERVER_RESTART_INTERVAL == 0
+                and (run_idx + 1) < num_runs
+            ):
+                try:
+                    import multiprocessing.forkserver as fs
+                    import time as _time
+
+                    if fs._forkserver._forkserver_pid is not None:
+                        old_pid = fs._forkserver._forkserver_pid
+                        logger.info(
+                            f"[isolated_benchmark] Restarting forkserver after run {run_idx + 1} (PID {old_pid})"
+                        )
+                        fs._forkserver._stop()
+                        _time.sleep(0.2)
+                except Exception as forkserver_error:
+                    logger.warning(
+                        f"[isolated_benchmark] Forkserver restart failed: {forkserver_error}"
+                    )
 
         # Track Manager usage
         manager_usage = 0
@@ -1259,6 +1297,8 @@ def run_isolated_benchmark(
                                 "early_exit": True,
                             }
 
+                        _maybe_restart_forkserver(idx)
+
                         # Record timeout and continue
                         run_results.append(
                             {
@@ -1290,6 +1330,7 @@ def run_isolated_benchmark(
                                 "error": clean_error,
                             }
                         )
+                        _maybe_restart_forkserver(idx)
                         continue  # try next run
 
                     warmup_ns = ret.get("warmup_ns")
@@ -1306,6 +1347,7 @@ def run_isolated_benchmark(
                                 "error": timing_error,
                             }
                         )
+                        _maybe_restart_forkserver(idx)
                         continue
 
                     # Capture stdout if available
@@ -1334,6 +1376,8 @@ def run_isolated_benchmark(
                     except Exception as e:
                         logger.debug(f"[isolated_benchmark] Error clearing return dict: {e}")
                     del ret
+
+                    _maybe_restart_forkserver(idx)
 
                 # Periodic garbage collection to free memory
                 if (idx + 1) % 5 == 0:
@@ -1558,6 +1602,9 @@ def run_isolated_benchmark_with_fetch(
             MANAGER_REFRESH_INTERVAL = config.get("benchmark", {}).get(
                 "manager_refresh_interval", 50
             )
+            FORKSERVER_RESTART_INTERVAL = config.get("benchmark", {}).get(
+                "forkserver_restart_interval", 5
+            )
             cleanup_config = config.get("benchmark", {}).get("tempdir_cleanup", {})
             cleanup_retries = cleanup_config.get("retries", 3)
             cleanup_delays = tuple(cleanup_config.get("delays", [0.5, 1.0, 2.0]))
@@ -1569,9 +1616,32 @@ def run_isolated_benchmark_with_fetch(
             )
         except Exception as e:
             MANAGER_REFRESH_INTERVAL = 50
+            FORKSERVER_RESTART_INTERVAL = 5
             cleanup_retries = 3
             cleanup_delays = (0.5, 1.0, 2.0)
             logger.debug(f"[isolated_benchmark_fetch] Failed to load config: {e}. Using defaults")
+
+        def _maybe_restart_forkserver(run_idx: int) -> None:
+            if (
+                FORKSERVER_RESTART_INTERVAL > 0
+                and (run_idx + 1) % FORKSERVER_RESTART_INTERVAL == 0
+                and (run_idx + 1) < num_runs
+            ):
+                try:
+                    import multiprocessing.forkserver as fs
+                    import time as _time
+
+                    if fs._forkserver._forkserver_pid is not None:
+                        old_pid = fs._forkserver._forkserver_pid
+                        logger.info(
+                            f"[isolated_benchmark_fetch] Restarting forkserver after run {run_idx + 1} (PID {old_pid})"
+                        )
+                        fs._forkserver._stop()
+                        _time.sleep(0.2)
+                except Exception as forkserver_error:
+                    logger.warning(
+                        f"[isolated_benchmark_fetch] Forkserver restart failed: {forkserver_error}"
+                    )
 
         # Track Manager usage
         manager_usage = 0
@@ -1647,6 +1717,7 @@ def run_isolated_benchmark_with_fetch(
                             logger.warning(
                                 "[isolated_benchmark_fetch] Early exit enabled - treating all runs as timeout"
                             )
+                        _maybe_restart_forkserver(idx)
                         return {
                             "success": False,
                             "error": f"Run {idx + 1} timed out"
@@ -1664,6 +1735,7 @@ def run_isolated_benchmark_with_fetch(
                         logger.warning(
                             f"[isolated_benchmark_fetch] Run {idx + 1}/{num_runs} failed: {clean_error}"
                         )
+                        _maybe_restart_forkserver(idx)
                         return {
                             "success": False,
                             "error": clean_error,
@@ -1680,6 +1752,7 @@ def run_isolated_benchmark_with_fetch(
                         logger.warning(
                             f"[isolated_benchmark_fetch] Run {idx + 1}/{num_runs} no timing info"
                         )
+                        _maybe_restart_forkserver(idx)
                         return {
                             "success": False,
                             "error": timing_error,
@@ -1712,6 +1785,8 @@ def run_isolated_benchmark_with_fetch(
 
                     # Increment manager usage counter
                     manager_usage += 1
+
+                    _maybe_restart_forkserver(idx)
 
                     # Force GC every few runs to prevent memory buildup
                     if (idx + 1) % 3 == 0:
