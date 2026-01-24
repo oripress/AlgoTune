@@ -361,7 +361,7 @@ def _fork_run_worker(
     # ------------------------------------------------------------------
     # Set reasonable CPU limits to prevent memory explosion from multiprocessing
     # This protects against LLMs using os.cpu_count() which could return 192+ cores
-    MAX_WORKER_CPUS = 8  # Maximum CPUs visible to worker process
+    MAX_WORKER_CPUS = 1  # Force single-threaded BLAS to reduce contention/timeouts
 
     # Set environment variables to limit thread counts in common libraries
     os.environ["OMP_NUM_THREADS"] = str(MAX_WORKER_CPUS)
@@ -369,6 +369,11 @@ def _fork_run_worker(
     os.environ["OPENBLAS_NUM_THREADS"] = str(MAX_WORKER_CPUS)
     os.environ["NUMEXPR_NUM_THREADS"] = str(MAX_WORKER_CPUS)
     os.environ["VECLIB_MAXIMUM_THREADS"] = str(MAX_WORKER_CPUS)
+
+    worker_logger.info(
+        "CPU limiting applied: max %d thread(s) (OMP/MKL/OPENBLAS/NUMEXPR/VECLIB)",
+        MAX_WORKER_CPUS,
+    )
 
     # Override os.cpu_count() to return limited value
     # This catches code that directly calls os.cpu_count() or multiprocessing.cpu_count()
