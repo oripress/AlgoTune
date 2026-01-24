@@ -63,6 +63,39 @@ def _is_lazy_mode() -> bool:
     return os.environ.get("ALGOTUNE_HF_LAZY") == "1"
 
 
+def _data_dir_has_task_dataset(data_dir: Path, task_name: str) -> bool:
+    """Return True if data_dir appears to contain a dataset for task_name."""
+    import glob
+
+    pattern = f"{task_name}_T*ms_n*_size*_train.jsonl"
+    for base in (data_dir / task_name, data_dir):
+        if base.is_dir() and glob.glob(str(base / pattern)):
+            return True
+    return False
+
+
+def _maybe_set_data_dir_for_hf(data_dir: Path, task_name: str | None) -> None:
+    """Point DATA_DIR at HF cache when it is the only place with the dataset."""
+    current = os.environ.get("DATA_DIR")
+    if not current:
+        os.environ["DATA_DIR"] = str(data_dir)
+        logging.info("DATA_DIR not set; using HF dataset dir %s", data_dir)
+        return
+
+    if task_name:
+        try:
+            current_path = Path(current)
+        except Exception:
+            current_path = None
+        if current_path is None or not _data_dir_has_task_dataset(current_path, task_name):
+            os.environ["DATA_DIR"] = str(data_dir)
+            logging.info(
+                "DATA_DIR has no dataset for %s; switching to HF dataset dir %s",
+                task_name,
+                data_dir,
+            )
+
+
 def ensure_hf_dataset(task_name: str | None = None) -> Path | None:
     """
     Ensure HF datasets are available locally and return the data directory to use.
@@ -154,6 +187,7 @@ def ensure_hf_dataset(task_name: str | None = None) -> Path | None:
 
     data_dir = Path(snapshot_path) / "data"
     if data_dir.is_dir():
+        _maybe_set_data_dir_for_hf(data_dir, task_name)
         if task_name:
             task_dir = data_dir / task_name
             if task_dir.is_dir():
