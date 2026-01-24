@@ -75,7 +75,7 @@ def normalize_model_name(model_name: str) -> str:
         "DeepSeek-R1": "DeepSeek R1",
         "deepseek-ai/DeepSeek-R1": "DeepSeek R1",
         "claude-opus-4-20250514": "Claude Opus 4",
-        "claude-opus-4.5": "Claude Opus 4.5 (medium)",
+        "claude-opus-4.5": "Claude Opus 4.5",
         "o4-mini": "o4-mini",
         "deepseek/deepseek-reasoner": "DeepSeek R1",
         "deepseek-reasoner": "DeepSeek R1",

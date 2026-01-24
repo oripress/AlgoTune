@@ -124,7 +124,7 @@ def clean_model_name(raw_model_name):
         "claude-opus-4.1": "Claude Opus 4.1",
         "claude-opus-4-1-20250805": "Claude Opus 4.1",
         "anthropic/claude-opus-4-1-20250805": "Claude Opus 4.1",
-        "claude-opus-4.5": "Claude Opus 4.5 (medium)",
+        "claude-opus-4.5": "Claude Opus 4.5",
         "claude-3-5-sonnet-20241022": "Claude 3.5 Sonnet",
         "claude-3-7-sonnet-20250219": "Claude 3.7 Sonnet",
         "claude-sonnet-4-5-20250929": "Claude Sonnet 4.5",
