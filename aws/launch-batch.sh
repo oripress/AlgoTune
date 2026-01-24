@@ -1200,6 +1200,7 @@ echo ""
 cleanup_downloader() {
   if [ -n "$LOG_DOWNLOADER_PID" ]; then
     kill $LOG_DOWNLOADER_PID 2>/dev/null || true
+    wait $LOG_DOWNLOADER_PID 2>/dev/null || true
     echo ""
     echo "✓ Stopped log downloader"
   fi
@@ -1219,6 +1220,10 @@ cleanup_on_exit() {
     shutdown_compute_resources
   fi
   cleanup_downloader
+  if [ -t 0 ]; then
+    # Drain any pending stdin so pasted log lines don't hit the shell prompt.
+    while read -r -t 0.01 _; do :; done
+  fi
   return $exit_code
 }
 trap cleanup_on_exit EXIT

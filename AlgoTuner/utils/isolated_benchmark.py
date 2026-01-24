@@ -100,6 +100,88 @@ def _check_filesystem_health(base_path: str | None = "/pfs/work9/workspace/scrat
             pass
 
 
+def _safe_stop_forkserver(
+    *,
+    logger: logging.Logger,
+    reason: str,
+    timeout_seconds: float = 2.0,
+) -> bool:
+    """Stop the forkserver without blocking indefinitely.
+
+    Returns True if the forkserver was stopped (or was not running), False if it
+    could not be stopped within the timeout.
+    """
+    try:
+        import multiprocessing.forkserver as fs
+    except Exception as e:
+        logger.debug(f"[forkserver] {reason}: forkserver module unavailable: {e}")
+        return False
+
+    pid = fs._forkserver._forkserver_pid
+    if pid is None:
+        return True
+
+    # Close the "alive" fd in this process to ask the server to stop.
+    try:
+        alive_fd = fs._forkserver._forkserver_alive_fd
+        if alive_fd is not None:
+            try:
+                os.close(alive_fd)
+            except OSError:
+                pass
+        fs._forkserver._forkserver_alive_fd = None
+    except Exception as e:
+        logger.debug(f"[forkserver] {reason}: failed closing alive fd: {e}")
+
+    def _wait_pid(wait_pid: int, timeout: float) -> bool:
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            try:
+                done_pid, _ = os.waitpid(wait_pid, os.WNOHANG)
+            except ChildProcessError:
+                return True
+            if done_pid == wait_pid:
+                return True
+            time.sleep(0.05)
+        return False
+
+    stopped = _wait_pid(pid, timeout_seconds)
+    if not stopped:
+        for sig in (signal.SIGTERM, signal.SIGKILL):
+            try:
+                os.kill(pid, sig)
+            except ProcessLookupError:
+                stopped = True
+                break
+            except PermissionError as e:
+                logger.warning(f"[forkserver] {reason}: cannot signal forkserver pid {pid}: {e}")
+                break
+            if _wait_pid(pid, timeout_seconds):
+                stopped = True
+                break
+
+    if not stopped:
+        logger.warning(f"[forkserver] {reason}: forkserver pid {pid} did not stop")
+        return False
+
+    # Clean up forkserver bookkeeping after the process exits.
+    try:
+        fs._forkserver._forkserver_pid = None
+        addr = fs._forkserver._forkserver_address
+        fs._forkserver._forkserver_address = None
+        if addr:
+            is_abstract = isinstance(addr, str) and addr.startswith("\0")
+            if not is_abstract:
+                try:
+                    os.unlink(addr)
+                except FileNotFoundError:
+                    pass
+    except Exception as e:
+        logger.debug(f"[forkserver] {reason}: cleanup error: {e}")
+
+    return True
+
+
 # -----------------------------------------------------------------------------
 # Isolated benchmark utilities
 # -----------------------------------------------------------------------------
@@ -1193,27 +1275,44 @@ def run_isolated_benchmark(
             cleanup_delays = (0.5, 1.0, 2.0)
             logger.debug(f"[isolated_benchmark] Failed to load config: {e}. Using defaults")
 
+        pending_forkserver_restart = False
+
+        def _manager_active() -> bool:
+            if mgr is None:
+                return False
+            try:
+                proc = getattr(mgr, "_process", None)
+                if proc is None:
+                    return False
+                return proc.is_alive()
+            except Exception:
+                # Be conservative: treat unknown state as active.
+                return True
+
+        def _attempt_forkserver_restart() -> None:
+            nonlocal pending_forkserver_restart
+            if not pending_forkserver_restart:
+                return
+            if _manager_active():
+                logger.info(
+                    "[isolated_benchmark] Forkserver restart deferred: Manager still active"
+                )
+                return
+            if _safe_stop_forkserver(
+                logger=logger,
+                reason="isolated_benchmark restart",
+            ):
+                pending_forkserver_restart = False
+
         def _maybe_restart_forkserver(run_idx: int) -> None:
             if (
                 FORKSERVER_RESTART_INTERVAL > 0
                 and (run_idx + 1) % FORKSERVER_RESTART_INTERVAL == 0
                 and (run_idx + 1) < num_runs
             ):
-                try:
-                    import multiprocessing.forkserver as fs
-                    import time as _time
-
-                    if fs._forkserver._forkserver_pid is not None:
-                        old_pid = fs._forkserver._forkserver_pid
-                        logger.info(
-                            f"[isolated_benchmark] Restarting forkserver after run {run_idx + 1} (PID {old_pid})"
-                        )
-                        fs._forkserver._stop()
-                        _time.sleep(0.2)
-                except Exception as forkserver_error:
-                    logger.warning(
-                        f"[isolated_benchmark] Forkserver restart failed: {forkserver_error}"
-                    )
+                nonlocal pending_forkserver_restart
+                pending_forkserver_restart = True
+                _attempt_forkserver_restart()
 
         # Track Manager usage
         manager_usage = 0
@@ -1231,8 +1330,9 @@ def run_isolated_benchmark(
                             mgr.shutdown()
                         except Exception as e:
                             logger.warning(f"[isolated_benchmark] Error shutting down Manager: {e}")
-                        del mgr
+                        mgr = None
                         gc.collect()  # Force cleanup of Manager resources
+                        _attempt_forkserver_restart()
 
                     logger.debug(
                         f"[isolated_benchmark] Creating new Manager for run {idx + 1}/{num_runs}"
@@ -1400,6 +1500,8 @@ def run_isolated_benchmark(
                     logger.warning(
                         f"[isolated_benchmark] Error shutting down Manager during cleanup: {e}"
                     )
+                mgr = None
+                _attempt_forkserver_restart()
 
         return {"run_results": run_results, "last_result": last_result}
 
@@ -1626,27 +1728,43 @@ def run_isolated_benchmark_with_fetch(
             cleanup_delays = (0.5, 1.0, 2.0)
             logger.debug(f"[isolated_benchmark_fetch] Failed to load config: {e}. Using defaults")
 
+        pending_forkserver_restart = False
+
+        def _manager_active() -> bool:
+            if mgr is None:
+                return False
+            try:
+                proc = getattr(mgr, "_process", None)
+                if proc is None:
+                    return False
+                return proc.is_alive()
+            except Exception:
+                return True
+
+        def _attempt_forkserver_restart() -> None:
+            nonlocal pending_forkserver_restart
+            if not pending_forkserver_restart:
+                return
+            if _manager_active():
+                logger.info(
+                    "[isolated_benchmark_fetch] Forkserver restart deferred: Manager still active"
+                )
+                return
+            if _safe_stop_forkserver(
+                logger=logger,
+                reason="isolated_benchmark_fetch restart",
+            ):
+                pending_forkserver_restart = False
+
         def _maybe_restart_forkserver(run_idx: int) -> None:
             if (
                 FORKSERVER_RESTART_INTERVAL > 0
                 and (run_idx + 1) % FORKSERVER_RESTART_INTERVAL == 0
                 and (run_idx + 1) < num_runs
             ):
-                try:
-                    import multiprocessing.forkserver as fs
-                    import time as _time
-
-                    if fs._forkserver._forkserver_pid is not None:
-                        old_pid = fs._forkserver._forkserver_pid
-                        logger.info(
-                            f"[isolated_benchmark_fetch] Restarting forkserver after run {run_idx + 1} (PID {old_pid})"
-                        )
-                        fs._forkserver._stop()
-                        _time.sleep(0.2)
-                except Exception as forkserver_error:
-                    logger.warning(
-                        f"[isolated_benchmark_fetch] Forkserver restart failed: {forkserver_error}"
-                    )
+                nonlocal pending_forkserver_restart
+                pending_forkserver_restart = True
+                _attempt_forkserver_restart()
 
         # Track Manager usage
         manager_usage = 0
@@ -1666,8 +1784,9 @@ def run_isolated_benchmark_with_fetch(
                             logger.warning(
                                 f"[isolated_benchmark_fetch] Error shutting down Manager: {e}"
                             )
-                        del mgr
+                        mgr = None
                         gc.collect()  # Force cleanup of Manager resources
+                        _attempt_forkserver_restart()
 
                     logger.debug(
                         f"[isolated_benchmark_fetch] Creating new Manager for run {idx + 1}/{num_runs}"
@@ -1809,6 +1928,8 @@ def run_isolated_benchmark_with_fetch(
                     logger.warning(
                         f"[isolated_benchmark_fetch] Error shutting down Manager during cleanup: {e}"
                     )
+                mgr = None
+                _attempt_forkserver_restart()
 
         return {"run_results": run_results}
 

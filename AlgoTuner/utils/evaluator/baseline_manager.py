@@ -450,19 +450,25 @@ class BaselineManager:
 
                             # Kill the degraded forkserver
                             try:
-                                import multiprocessing.forkserver as fs
-                                import time
+                                from AlgoTuner.utils.isolated_benchmark import _safe_stop_forkserver
 
-                                if fs._forkserver._forkserver_pid is not None:
-                                    old_pid = fs._forkserver._forkserver_pid
-                                    logging.info(f"Killing forkserver (PID {old_pid}) to clear degraded state")
-                                    fs._forkserver._stop()
-                                    time.sleep(0.5)  # Allow cleanup
-                                    logging.info(f"Forkserver killed, will restart on next benchmark call")
+                                logger = logging.getLogger(__name__)
+                                if _safe_stop_forkserver(
+                                    logger=logger,
+                                    reason="baseline timeout forkserver reset",
+                                    timeout_seconds=2.0,
+                                ):
+                                    logging.info(
+                                        "Forkserver stopped, will restart on next benchmark call"
+                                    )
                                 else:
-                                    logging.info("No forkserver running, will start fresh on next benchmark call")
+                                    logging.warning(
+                                        "Forkserver did not stop cleanly; continuing with retry anyway."
+                                    )
                             except Exception as forkserver_error:
-                                logging.warning(f"Error killing forkserver: {forkserver_error}. Continuing with retry anyway.")
+                                logging.warning(
+                                    f"Error stopping forkserver: {forkserver_error}. Continuing with retry anyway."
+                                )
 
                             time.sleep(1)  # Brief pause before retry
                             continue  # Try again with fresh forkserver
