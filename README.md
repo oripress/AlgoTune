@@ -81,6 +81,11 @@ Running AlgoTune on AWS is simple and requires only a minimal setup.
 pip install awscli
 ```
 
+**Python deps for AWS scripts** - Install required libs:
+```bash
+pip install boto3 python-dotenv
+```
+
 **AWS IAM Policy** - Create and attach this policy to your IAM user:
 
 1. Go to **IAM → Policies → Create policy**
