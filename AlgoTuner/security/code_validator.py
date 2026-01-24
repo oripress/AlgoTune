@@ -7,6 +7,8 @@ of standard library functions before the code is executed.
 
 import ast
 import logging
+import re
+from pathlib import Path
 
 
 logger = logging.getLogger(__name__)
@@ -151,6 +153,19 @@ class TamperingDetector(ast.NodeVisitor):
 
         # Check for module.__dict__ assignments
         elif isinstance(target, ast.Subscript) and isinstance(target.value, ast.Attribute):
+            module_name = self._get_module_name(target.value)
+            if module_name in self.PROTECTED_ATTRIBUTES:
+                if "." in module_name:
+                    base_module, attribute = module_name.split(".", 1)
+                else:
+                    base_module, attribute = module_name, "<unknown>"
+                return {
+                    "line": lineno,
+                    "type": "subscript_assignment",
+                    "module": base_module,
+                    "attribute": attribute,
+                    "code": f"{module_name}[...] = ...",
+                }
             if target.value.attr == "__dict__":
                 module_name = self._get_module_name(target.value.value)
                 if module_name in self.PROTECTED_MODULES:
@@ -257,4 +272,34 @@ def check_code_for_tampering(code: str, filename: str = "solver.py") -> str | No
         code_lines = code.split("\n")
         return format_tampering_error(violations, code_lines)
 
+    return None
+
+
+_VALID_MODULE_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _build_protected_filename_map() -> dict[str, str]:
+    protected = set()
+    for module in TamperingDetector.PROTECTED_MODULES:
+        base = module.split(".", 1)[0]
+        if _VALID_MODULE_NAME.match(base):
+            protected.add(base)
+    protected.update({"sitecustomize", "usercustomize"})
+    return {f"{name}.py": name for name in protected}
+
+
+_PROTECTED_FILENAME_MAP = _build_protected_filename_map()
+_PROTECTED_FILENAME_MAP_LOWER = {
+    name.lower(): module for name, module in _PROTECTED_FILENAME_MAP.items()
+}
+
+
+def check_protected_filename(filename: str) -> str | None:
+    name = Path(filename).name
+    module = _PROTECTED_FILENAME_MAP_LOWER.get(name.lower())
+    if module:
+        return (
+            f"That is not allowed: editing or creating '{name}' would shadow "
+            f"the protected module '{module}'."
+        )
     return None

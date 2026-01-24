@@ -23,7 +23,10 @@ from pylint.lint import Run
 from pylint.reporters import JSONReporter
 
 from AlgoTuner.interfaces.commands.types import SnapshotStatus
-from AlgoTuner.security.code_validator import check_code_for_tampering
+from AlgoTuner.security.code_validator import (
+    check_code_for_tampering,
+    check_protected_filename,
+)
 
 
 def get_code_dir() -> str:
@@ -1591,6 +1594,18 @@ class Editor:
 
             # --- NEW: Resolve path and check existence before reading ---
             abs_path = self.file_manager._make_absolute(file_path)
+            protected_name_error = check_protected_filename(abs_path.name)
+            if protected_name_error:
+                return {
+                    "success": False,
+                    "error": protected_name_error,
+                    "old_content": "",
+                    "current_code": "",
+                    "proposed_code": new_content or "",
+                    "changed_range": None,
+                    "temp_file_content": new_content or "",
+                    "file_path": str(file_path),
+                }
             original_lines = []
             old_content = ""
             trimmed_lines_count = 0  # Initialize trim count
