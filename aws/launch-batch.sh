@@ -214,8 +214,8 @@ if [ "$ALREADY_DONE" -gt 0 ]; then
     SKIP_COMPLETED="yes"
     echo "  ✓ Will skip $ALREADY_DONE completed task(s)"
 
-    # Filter the task list with interactive prompt for N/A tasks
-    FILTERED_TASKS=$(echo "$ALL_TASKS_LIST" | python3 "$SCRIPT_DIR/check_completed.py" --model "$MODEL" --interactive)
+    # Filter the task list, skipping completed (including N/A) tasks
+    FILTERED_TASKS=$(echo "$ALL_TASKS_LIST" | python3 "$SCRIPT_DIR/check_completed.py" --model "$MODEL")
     NA_PROMPT_HANDLED="yes"
     TASKS_INPUT=$(echo "$FILTERED_TASKS" | tr '\n' ',' | sed 's/,$//')
     TASK_ARGS="--tasks $TASKS_INPUT"
