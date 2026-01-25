@@ -241,8 +241,7 @@ fi
 echo ""
 
 if [ "${NO_COMPLETED_TASKS:-}" != "yes" ] && [ "${NA_PROMPT_HANDLED:-}" != "yes" ]; then
-  read -p "Retry N/A runs? [y/N]: " RETRY_NA
-  if [[ "$RETRY_NA" =~ ^[Yy]$ ]]; then
+  if [ "${ALGOTUNE_RETRY_NA:-no}" = "yes" ]; then
     echo "→ Preparing retry for N/A tasks..."
     RETRY_TASKS_FILE="$(mktemp)"
     python3 "$SCRIPT_DIR/retry_na.py" \
