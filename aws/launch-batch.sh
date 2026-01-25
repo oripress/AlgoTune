@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-if [ -z "${BASH_VERSION:-}" ]; then
+if [ -z "${BASH_VERSION:-}" ] || [ -z "${BASH_SOURCE:-}" ]; then
   exec /usr/bin/env bash "$0" "$@"
 fi
 set -euo pipefail
