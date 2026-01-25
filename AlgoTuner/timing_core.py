@@ -27,6 +27,7 @@ from AlgoTuner.config.loader import load_config
 from AlgoTuner.utils.discover_and_list_tasks import discover_and_import_tasks
 from AlgoTuner.utils.evaluator.loader import load_task
 from AlgoTuner.utils.evaluator.main import evaluate_baseline_dataset
+from AlgoTuner.utils.hf_datasets import ensure_hf_dataset
 from AlgoTuner.utils.timing_config import DATASET_WARMUPS, DEV_RUNS, EVAL_RUNS
 from AlgoTuneTasks.base import BadDatasetError
 from AlgoTuneTasks.factory import TaskFactory
@@ -130,9 +131,27 @@ def evaluate_task_timing(
         elif hasattr(task_instance, "set_target_time"):
             task_instance.set_target_time(target_time_ms)
 
-        train_files = glob.glob(
-            str(data_dir / f"{task_name}_T{target_time_ms}ms_n*_size*_train.jsonl")
-        )
+        train_pattern = f"{task_name}_T{target_time_ms}ms_n*_size*_train.jsonl"
+        train_files = glob.glob(str(data_dir / train_pattern))
+        if not train_files:
+            logger.info(
+                "Train JSONL not found in %s for %s; checking HF cache", data_dir, task_name
+            )
+            hf_data_dir = ensure_hf_dataset(task_name)
+            if hf_data_dir:
+                hf_data_dir = Path(hf_data_dir)
+                candidate_dirs = [hf_data_dir]
+                task_subdir = hf_data_dir / task_name
+                if task_subdir.is_dir():
+                    candidate_dirs.insert(0, task_subdir)
+                for candidate in candidate_dirs:
+                    train_files = glob.glob(str(candidate / train_pattern))
+                    if train_files:
+                        logger.info("Using HF cached dataset for %s from %s", task_name, candidate)
+                        data_dir = candidate
+                        if hasattr(task_instance, "data_dir"):
+                            task_instance.data_dir = str(candidate)
+                        break
         if not train_files:
             raise FileNotFoundError(f"No train JSONL file found in {data_dir} for {task_name}")
 
