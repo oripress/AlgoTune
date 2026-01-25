@@ -935,11 +935,6 @@ cancel_submitted_jobs() {
 
   local job_ids=()
   local -A seen_job_ids=()
-  local queues=()
-  local -A seen_queues=()
-
-  local job_name_prefix="algotune-"
-  local model_suffix="--$(sanitize_job_part "$MODEL")"
 
   add_job_id() {
     local job_id="$1"
@@ -982,36 +977,6 @@ cancel_submitted_jobs() {
   add_job_ids_from_file "${JOB_IDS_FILE:-}"
   add_job_ids_from_file "${SPOT_JOB_IDS_FILE:-}"
   add_job_ids_from_file "${ONDEMAND_JOB_IDS_FILE:-}"
-
-  add_queue "${JOB_QUEUE_NAME:-}"
-  add_queue "${SPOT_QUEUE_NAME:-}"
-  add_queue "${ONDEMAND_QUEUE_NAME:-}"
-
-  if [ "${#queues[@]}" -gt 0 ]; then
-    for queue in "${queues[@]}"; do
-      for status in SUBMITTED PENDING RUNNABLE STARTING RUNNING; do
-        listed_pairs=$(aws batch list-jobs \
-          --job-queue "$queue" \
-          --job-status "$status" \
-          --region "$AWS_REGION" \
-          --query 'jobSummaryList[*].[jobId,jobName]' \
-          --output text 2>/dev/null || echo "")
-        if [ -z "$listed_pairs" ]; then
-          continue
-        fi
-        while read -r job_id job_name; do
-          [ -z "$job_id" ] && continue
-          if [[ "$job_name" != ${job_name_prefix}* ]]; then
-            continue
-          fi
-          if [ -n "$model_suffix" ] && [[ "$job_name" != *"$model_suffix" ]]; then
-            continue
-          fi
-          add_job_id "$job_id"
-        done <<< "$listed_pairs"
-      done
-    done
-  fi
 
   if [ "${#job_ids[@]}" -eq 0 ]; then
     echo "  ⚠️  No matching jobs found to cancel/terminate."
@@ -1177,6 +1142,65 @@ PY
   echo "✓ All cleanup actions completed"
 }
 
+other_active_jobs_exist() {
+  set +e
+
+  local -A current_job_ids=()
+  local file=""
+  for file in "${JOB_IDS_FILE:-}" "${SPOT_JOB_IDS_FILE:-}" "${ONDEMAND_JOB_IDS_FILE:-}"; do
+    if [ -n "$file" ] && [ -f "$file" ]; then
+      while IFS= read -r line; do
+        line=$(echo "$line" | xargs)
+        [ -z "$line" ] && continue
+        current_job_ids["$line"]=1
+      done < "$file"
+    fi
+  done
+
+  local queues=()
+  local -A seen_queues=()
+  add_queue() {
+    local queue="$1"
+    if [ -z "$queue" ]; then
+      return
+    fi
+    if [ -z "${seen_queues[$queue]+x}" ]; then
+      seen_queues["$queue"]=1
+      queues+=("$queue")
+    fi
+  }
+
+  add_queue "${JOB_QUEUE_NAME:-}"
+  add_queue "${SPOT_QUEUE_NAME:-}"
+  add_queue "${ONDEMAND_QUEUE_NAME:-}"
+
+  if [ "${#queues[@]}" -eq 0 ]; then
+    set -e
+    return 0
+  fi
+
+  for queue in "${queues[@]}"; do
+    for status in SUBMITTED PENDING RUNNABLE STARTING RUNNING; do
+      job_ids=$(aws batch list-jobs \
+        --job-queue "$queue" \
+        --job-status "$status" \
+        --region "$AWS_REGION" \
+        --query 'jobSummaryList[*].jobId' \
+        --output text 2>/dev/null || echo "")
+      for job_id in $job_ids; do
+        [ -z "$job_id" ] && continue
+        if [ -z "${current_job_ids[$job_id]+x}" ]; then
+          set -e
+          return 0
+        fi
+      done
+    done
+  done
+
+  set -e
+  return 1
+}
+
 # Start automatic log downloader in background
 echo "→ Starting automatic log downloader..."
 echo "  AWS outputs/errors: $ROOT_DIR/aws/outputs and $ROOT_DIR/aws/errors"
@@ -1217,7 +1241,15 @@ cleanup_on_exit() {
     if [ -n "${JOB_IDS_FILE:-}" ]; then
       cancel_submitted_jobs
     fi
-    shutdown_compute_resources
+    if [ "${ALGOTUNE_SCOPE_CLEANUP:-yes}" = "yes" ]; then
+      if other_active_jobs_exist; then
+        echo "  → Other active Batch jobs detected; skipping compute shutdown."
+      else
+        shutdown_compute_resources
+      fi
+    else
+      shutdown_compute_resources
+    fi
   fi
   cleanup_downloader
   if [ -t 0 ]; then
