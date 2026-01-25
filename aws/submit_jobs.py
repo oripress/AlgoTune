@@ -749,6 +749,8 @@ exit $EXIT_CODE;
         # Add HuggingFace configuration
         for key in [
             "HF_TOKEN",
+            "HUGGING_FACE_TOKEN",
+            "HUGGINGFACE_TOKEN",
             "ALGOTUNE_HF_LAZY",
             "ALGOTUNE_HF_DISABLE",
             "ALGOTUNE_HF_DATASET",
@@ -758,6 +760,12 @@ exit $EXIT_CODE;
             value = os.getenv(key, "")
             if value:
                 env_vars.append({"name": key, "value": value})
+
+        # Backfill HF_TOKEN from legacy token names when needed.
+        hf_token = os.getenv("HF_TOKEN") or os.getenv("HUGGING_FACE_TOKEN") or os.getenv("HUGGINGFACE_TOKEN")
+        if hf_token:
+            if not any(v["name"] == "HF_TOKEN" for v in env_vars):
+                env_vars.append({"name": "HF_TOKEN", "value": hf_token})
 
         # Set HF_HOME to control where HuggingFace stores all cache data
         # This prevents using ~/.cache which could fill up the root filesystem
