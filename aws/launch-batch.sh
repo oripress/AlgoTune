@@ -813,6 +813,28 @@ shutdown_compute_resources() {
   echo ""
   echo "→ Shutting down AWS Batch compute resources..."
 
+  local -a job_ids=()
+  local -A seen_job_ids=()
+  add_job_id() {
+    local job_id="$1"
+    if [ -z "$job_id" ]; then
+      return
+    fi
+    if [ -z "${seen_job_ids[$job_id]+x}" ]; then
+      seen_job_ids["$job_id"]=1
+      job_ids+=("$job_id")
+    fi
+  }
+  for file in "${JOB_IDS_FILE:-}" "${SPOT_JOB_IDS_FILE:-}" "${ONDEMAND_JOB_IDS_FILE:-}"; do
+    if [ -n "$file" ] && [ -f "$file" ]; then
+      while IFS= read -r line; do
+        line=$(echo "$line" | xargs)
+        [ -z "$line" ] && continue
+        add_job_id "$line"
+      done < "$file"
+    fi
+  done
+
   local ce_names=()
   local -A seen_ce=()
 
@@ -827,21 +849,56 @@ shutdown_compute_resources() {
     fi
   }
 
-  add_ce "${BATCH_COMPUTE_ENV_NAME:-}"
-  add_ce "${BATCH_COMPUTE_ENV_NAME_SPOT:-}"
-  add_ce "${BATCH_COMPUTE_ENV_NAME_ONDEMAND:-}"
-
-  if [ "${#ce_names[@]}" -eq 0 ]; then
-    # Fallback: scale down all compute environments
-    all_ce_names=$(aws batch describe-compute-environments \
-      --region "$AWS_REGION" \
-      --query 'computeEnvironments[*].computeEnvironmentName' \
-      --output text 2>/dev/null || echo "")
-    if [ -n "$all_ce_names" ]; then
-      for ce_name in $all_ce_names; do
-        add_ce "$ce_name"
+  if [ "${#job_ids[@]}" -gt 0 ]; then
+    local -a chunk=()
+    local queue_arns=""
+    local job_id=""
+    local -A seen_queues=()
+    local queue_arn=""
+    for job_id in "${job_ids[@]}"; do
+      chunk+=("$job_id")
+      if [ "${#chunk[@]}" -ge 100 ]; then
+        queue_arns=$(aws batch describe-jobs \
+          --jobs "${chunk[@]}" \
+          --region "$AWS_REGION" \
+          --query 'jobs[].jobQueue' \
+          --output text 2>/dev/null || echo "")
+        for queue_arn in $queue_arns; do
+          if [ -n "$queue_arn" ] && [ -z "${seen_queues[$queue_arn]+x}" ]; then
+            seen_queues["$queue_arn"]=1
+          fi
+        done
+        chunk=()
+      fi
+    done
+    if [ "${#chunk[@]}" -gt 0 ]; then
+      queue_arns=$(aws batch describe-jobs \
+        --jobs "${chunk[@]}" \
+        --region "$AWS_REGION" \
+        --query 'jobs[].jobQueue' \
+        --output text 2>/dev/null || echo "")
+      for queue_arn in $queue_arns; do
+        if [ -n "$queue_arn" ] && [ -z "${seen_queues[$queue_arn]+x}" ]; then
+          seen_queues["$queue_arn"]=1
+        fi
       done
     fi
+    for queue_arn in "${!seen_queues[@]}"; do
+      ce_list=$(aws batch describe-job-queues \
+        --job-queues "$queue_arn" \
+        --region "$AWS_REGION" \
+        --query 'jobQueues[0].computeEnvironmentOrder[].computeEnvironment' \
+        --output text 2>/dev/null || echo "")
+      for ce_name in $ce_list; do
+        add_ce "$ce_name"
+      done
+    done
+  fi
+
+  if [ "${#ce_names[@]}" -eq 0 ]; then
+    add_ce "${BATCH_COMPUTE_ENV_NAME:-}"
+    add_ce "${BATCH_COMPUTE_ENV_NAME_SPOT:-}"
+    add_ce "${BATCH_COMPUTE_ENV_NAME_ONDEMAND:-}"
   fi
 
   if [ "${#ce_names[@]}" -eq 0 ]; then
@@ -874,29 +931,74 @@ shutdown_compute_resources() {
   fi
 
   INSTANCE_IDS=""
-  if [ "${#ce_names[@]}" -gt 0 ]; then
-    ce_filter_values=$(IFS=,; echo "${ce_names[*]}")
-    INSTANCE_IDS=$(aws ec2 describe-instances \
-      --filters "Name=tag:aws:batch:compute-environment,Values=$ce_filter_values" \
-                "Name=instance-state-name,Values=running,pending" \
-      --query 'Reservations[*].Instances[*].InstanceId' \
-      --output text \
-      --region "$AWS_REGION" 2>/dev/null || echo "")
-  fi
+  # Only terminate instances that are running jobs from this invocation.
 
-  if [ -z "$INSTANCE_IDS" ]; then
-    INSTANCE_IDS=$(aws ec2 describe-instances \
-      --filters "Name=tag:AWSBatchServiceTag,Values=batch" \
-                "Name=instance-state-name,Values=running,pending" \
-      --query 'Reservations[*].Instances[*].InstanceId' \
-      --output text \
-      --region "$AWS_REGION" 2>/dev/null || echo "")
+  if [ "${#job_ids[@]}" -eq 0 ]; then
+    echo "  ⚠️  No job IDs for this run; skipping instance termination to avoid cross-run shutdown."
+  else
+    local -A cluster_to_arns=()
+    local -a chunk=()
+    local arns=""
+    local job_id=""
+    for job_id in "${job_ids[@]}"; do
+      chunk+=("$job_id")
+      if [ "${#chunk[@]}" -ge 100 ]; then
+        arns=$(aws batch describe-jobs \
+          --jobs "${chunk[@]}" \
+          --region "$AWS_REGION" \
+          --query 'jobs[].attempts[].container.containerInstanceArn' \
+          --output text 2>/dev/null || echo "")
+        for arn in $arns; do
+          if [[ "$arn" == arn:aws:ecs:* ]]; then
+            cluster=$(echo "$arn" | awk -F/ '{print $(NF-1)}')
+            cluster_to_arns["$cluster"]+="$arn "
+          fi
+        done
+        chunk=()
+      fi
+    done
+    if [ "${#chunk[@]}" -gt 0 ]; then
+      arns=$(aws batch describe-jobs \
+        --jobs "${chunk[@]}" \
+        --region "$AWS_REGION" \
+        --query 'jobs[].attempts[].container.containerInstanceArn' \
+        --output text 2>/dev/null || echo "")
+      for arn in $arns; do
+        if [[ "$arn" == arn:aws:ecs:* ]]; then
+          cluster=$(echo "$arn" | awk -F/ '{print $(NF-1)}')
+          cluster_to_arns["$cluster"]+="$arn "
+        fi
+      done
+    fi
+
+    local -A seen_instances=()
+    local cluster=""
+    local cluster_arns=""
+    local ids=""
+    for cluster in "${!cluster_to_arns[@]}"; do
+      cluster_arns="${cluster_to_arns[$cluster]}"
+      if [ -n "$cluster_arns" ]; then
+        ids=$(aws ecs describe-container-instances \
+          --cluster "$cluster" \
+          --container-instances $cluster_arns \
+          --region "$AWS_REGION" \
+          --query 'containerInstances[].ec2InstanceId' \
+          --output text 2>/dev/null || echo "")
+        for id in $ids; do
+          if [ -n "$id" ] && [ -z "${seen_instances[$id]+x}" ]; then
+            seen_instances["$id"]=1
+            INSTANCE_IDS="$INSTANCE_IDS $id"
+          fi
+        done
+      fi
+    done
+    INSTANCE_IDS=$(echo "$INSTANCE_IDS" | xargs)
   fi
 
   if [ -n "$INSTANCE_IDS" ]; then
     echo "  → Found instances: $INSTANCE_IDS"
   else
-    echo "  → No Batch instances found"
+    echo "  → No instances found for current job IDs"
   fi
 
   # Filter out current instance if we're running on EC2
@@ -1174,8 +1276,18 @@ other_active_jobs_exist() {
   add_queue "${ONDEMAND_QUEUE_NAME:-}"
 
   if [ "${#queues[@]}" -eq 0 ]; then
-    set -e
-    return 0
+    all_queues=$(aws batch describe-job-queues \
+      --region "$AWS_REGION" \
+      --query 'jobQueues[*].jobQueueName' \
+      --output text 2>/dev/null || echo "")
+    if [ -n "$all_queues" ]; then
+      for queue in $all_queues; do
+        add_queue "$queue"
+      done
+    else
+      set -e
+      return 0
+    fi
   fi
 
   for queue in "${queues[@]}"; do
