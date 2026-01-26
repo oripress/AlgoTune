@@ -1098,7 +1098,14 @@ class LLMInterface(base_interface.BaseLLMInterface):
                     file_path = os.path.join(code_dir, filename)
                     if os.path.isfile(file_path):
                         # Skip binary files (compiled extensions, etc.)
-                        if filename.endswith(('.so', '.pyc', '.pyo', '.pyd', '.dll')):
+                        lower_name = filename.lower()
+                        compiled_suffixes = (".so", ".pyc", ".pyo", ".pyd", ".dll", ".dylib")
+                        name_suffixes = Path(lower_name).suffixes
+                        if (
+                            lower_name.endswith(compiled_suffixes)
+                            or ".so." in lower_name
+                            or any(suffix in compiled_suffixes for suffix in name_suffixes)
+                        ):
                             logging.debug(f"Skipping binary file {filename}")
                             continue
                         try:
