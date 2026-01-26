@@ -19,6 +19,9 @@ NDARRAY_INLINE_THRESHOLD_BYTES = 100 * 1024  # 100 KB
 # Size threshold for storing bytes objects inline vs. externally
 BYTES_INLINE_THRESHOLD_BYTES = 100 * 1024  # 100 KB
 
+# Track HF re-download attempts per task to avoid repeated downloads.
+_HF_NPY_REDOWNLOAD_ATTEMPTED: set[str] = set()
+
 
 def _is_large_ndarray(obj: Any) -> bool:
     """Return *True* if *obj* is a NumPy array larger than the inline threshold."""
@@ -383,7 +386,25 @@ def dataset_decoder(dct: Any, base_dir: str | None = None) -> Any:
         npy_path = os.path.join(base_dir, dct["npy_path"])
         if not os.path.exists(npy_path):
             logging.error("dataset_decoder: npy file not found at %s", npy_path)
-            return dct
+            task_name = Path(base_dir).name if base_dir else None
+            if task_name and task_name not in _HF_NPY_REDOWNLOAD_ATTEMPTED:
+                _HF_NPY_REDOWNLOAD_ATTEMPTED.add(task_name)
+                try:
+                    from AlgoTuner.utils.hf_datasets import download_npy_files, ensure_hf_dataset
+
+                    logging.warning(
+                        "dataset_decoder: missing npy file; attempting HF re-download for task %s",
+                        task_name,
+                    )
+                    ensure_hf_dataset(task_name)
+                    download_npy_files(task_name)
+                except Exception as exc:
+                    logging.warning(
+                        "dataset_decoder: HF re-download failed for %s: %s", task_name, exc
+                    )
+
+            if not os.path.exists(npy_path):
+                return dct
 
         try:
             # Use mmap_mode='r' to load lazily from disk
