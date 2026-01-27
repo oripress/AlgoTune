@@ -55,7 +55,7 @@ class IntegerFactorization(Task):
             f"Generated integer factorization problem with composite={composite} "
             f"(primes of ~{n_bits} bits each)"
         )
-        return {"composite": composite}
+        return {"composite": str(composite)}
 
     def solve(self, problem: dict[str, int]) -> dict[str, int]:
         """
