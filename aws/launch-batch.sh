@@ -1558,6 +1558,12 @@ python3 "$SCRIPT_DIR/download_logs.py" \
   --output-dir "$ROOT_DIR" \
   --summary-file "$ROOT_DIR/reports/agent_summary.json" || true
 
+# Sync agent_summary.json with logs (add missing entries from logs that didn't upload summaries)
+echo "→ Syncing agent_summary.json with local logs..."
+python3 "$ROOT_DIR/scripts/clean_orphaned_agent_summary.py" \
+  --add-missing \
+  --models "$MODEL_DISPLAY" || true
+
 echo "════════════════════════════════════════"
 echo "✅ All done!"
 echo "   AWS Logs: $ROOT_DIR/aws/outputs and $ROOT_DIR/aws/errors"
