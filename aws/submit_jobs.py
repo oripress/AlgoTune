@@ -583,40 +583,51 @@ fi;
 # Priority 2: Check HuggingFace (only if not found in S3)
 if [ $DATASET_FOUND -eq 0 ] && [ "${{ALGOTUNE_HF_DISABLE:-0}}" != "1" ]; then
   echo '=== CHECKING FOR HUGGINGFACE DATASET ===';
-  # Run generate with --check-only to see if HF dataset exists
-  # The generate command will download from HF if available
-  # In lazy mode (ALGOTUNE_HF_LAZY=1), this only downloads .jsonl files
-  echo 'Attempting to load from HuggingFace...';
-  /app/algotune.sh --standalone generate {generation_arg} --tasks {task_name} || GENERATE_EXIT=$?;
-  if [ -d /app/AlgoTuner/data/{task_name} ] && [ -f /app/AlgoTuner/data/{task_name}/{task_name}_T*_train.jsonl ]; then
-    echo '✓ Dataset metadata loaded from HuggingFace';
+  echo 'Attempting to download from HuggingFace (download-only, no baseline)...';
+  # Use direct HF download without running generate (avoids baseline computation)
+  python3 - <<'PYEOF'
+import os
+import shutil
+from pathlib import Path
 
-    # If in lazy mode, download .npy files now
-    if [ "${{ALGOTUNE_HF_LAZY:-0}}" = "1" ]; then
-      echo '=== DOWNLOADING .NPY FILES (LAZY MODE) ===';
-      python3 -c "from AlgoTuner.utils.hf_datasets import download_npy_files; download_npy_files('{task_name}')" || {{
-        echo '❌ Failed to download .npy files from HuggingFace';
-        DATASET_FOUND=0;
-      }};
-      if [ $DATASET_FOUND -eq 1 ]; then
-        echo '✓ Full dataset loaded from HuggingFace (lazy mode)';
-      fi;
-    else
-      echo '✓ Full dataset loaded from HuggingFace';
-    fi;
+task_name = "{task_name}"
+target_dir = Path("/app/AlgoTuner/data") / task_name
+target_dir.mkdir(parents=True, exist_ok=True)
 
+# Download from HuggingFace
+from AlgoTuner.utils.hf_datasets import ensure_hf_dataset
+hf_dir = ensure_hf_dataset(task_name)
+if hf_dir:
+    # Copy files from HF cache to expected location
+    src_dir = hf_dir / "data" / task_name
+    if src_dir.exists():
+        for f in src_dir.glob("*.jsonl"):
+            shutil.copy2(f, target_dir / f.name)
+            print(f"Copied {{f.name}}")
+        for f in src_dir.glob("*.npy"):
+            shutil.copy2(f, target_dir / f.name)
+            print(f"Copied {{f.name}}")
+        print(f"HF dataset copied to {{target_dir}}")
+    else:
+        print(f"No data found in HF cache at {{src_dir}}")
+        exit(1)
+else:
+    print("HF download returned None")
+    exit(1)
+PYEOF
+  HF_EXIT=$?;
+  if [ $HF_EXIT -eq 0 ] && [ -d /app/AlgoTuner/data/{task_name} ] && [ -f /app/AlgoTuner/data/{task_name}/{task_name}_T*_train.jsonl ]; then
+    echo '✓ Dataset downloaded from HuggingFace';
     DATASET_FOUND=1;
     DATASET_SOURCE="hf";
 
     # Upload to S3 for faster future access
-    if [ $DATASET_FOUND -eq 1 ]; then
-      echo '=== UPLOADING HF DATASET TO S3 FOR CACHING ===';
-      aws s3 sync /app/AlgoTuner/data/{task_name}/ s3://{s3_bucket}/$DATASET_S3_PREFIX/ --only-show-errors;
-      if [ $? -eq 0 ]; then
-        echo "✓ Dataset uploaded to S3 cache (s3://{s3_bucket}/$DATASET_S3_PREFIX/)";
-      else
-        echo 'Warning: Failed to upload dataset to S3 cache';
-      fi;
+    echo '=== UPLOADING HF DATASET TO S3 FOR CACHING ===';
+    aws s3 sync /app/AlgoTuner/data/{task_name}/ s3://{s3_bucket}/$DATASET_S3_PREFIX/ --only-show-errors;
+    if [ $? -eq 0 ]; then
+      echo "✓ Dataset uploaded to S3 cache (s3://{s3_bucket}/$DATASET_S3_PREFIX/)";
+    else
+      echo 'Warning: Failed to upload dataset to S3 cache';
     fi;
   else
     echo 'Dataset not available on HuggingFace';
