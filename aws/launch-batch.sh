@@ -1031,8 +1031,15 @@ shutdown_compute_resources() {
 }
 
 # Ctrl+C kill switch for submitted jobs (optional)
+CANCEL_CLEANUP_DONE=""
 cancel_submitted_jobs() {
   set +e
+
+  # Guard against double execution
+  if [ -n "${CANCEL_CLEANUP_DONE:-}" ]; then
+    return 0
+  fi
+  CANCEL_CLEANUP_DONE="yes"
 
   local job_ids=()
   local -A seen_job_ids=()
@@ -1071,13 +1078,61 @@ cancel_submitted_jobs() {
     done < "$file"
   }
 
+  # Also find jobs by name pattern (fallback if files are incomplete)
+  add_job_ids_by_name_pattern() {
+    local queue="$1"
+    if [ -z "$queue" ] || [ -z "${MODEL:-}" ]; then
+      return
+    fi
+    local job_name_prefix="algotune-"
+    local model_suffix="--$(sanitize_job_part "$MODEL")"
+    local statuses=("SUBMITTED" "PENDING" "RUNNABLE" "STARTING" "RUNNING")
+
+    for status in "${statuses[@]}"; do
+      local found_ids
+      found_ids=$(aws batch list-jobs \
+        --job-queue "$queue" \
+        --job-status "$status" \
+        --region "$AWS_REGION" \
+        --query "jobSummaryList[?starts_with(jobName, '${job_name_prefix}') && contains(jobName, '${model_suffix}')].jobId" \
+        --output text 2>/dev/null || echo "")
+
+      if [ -n "$found_ids" ] && [ "$found_ids" != "None" ]; then
+        for job_id in $found_ids; do
+          add_job_id "$job_id"
+        done
+      fi
+    done
+  }
+
   echo ""
   echo "→ Canceling queued jobs and terminating running jobs..."
-  echo "  → Collecting jobs from files and AWS Batch queues..."
+  echo "  → Collecting jobs from files..."
 
   add_job_ids_from_file "${JOB_IDS_FILE:-}"
   add_job_ids_from_file "${SPOT_JOB_IDS_FILE:-}"
   add_job_ids_from_file "${ONDEMAND_JOB_IDS_FILE:-}"
+
+  local file_job_count="${#job_ids[@]}"
+  echo "  → Found $file_job_count job(s) from files"
+
+  # Only use name pattern as fallback if no job IDs from files
+  # This prevents canceling jobs from other concurrent runs of the same model
+  if [ "$file_job_count" -eq 0 ]; then
+    echo "  → No jobs in files, scanning queues by name pattern as fallback..."
+    add_job_ids_by_name_pattern "${JOB_QUEUE_NAME:-}"
+    if [ "${JOB_QUEUE_NAME:-}" != "${SPOT_QUEUE_NAME:-}" ]; then
+      add_job_ids_by_name_pattern "${SPOT_QUEUE_NAME:-}"
+    fi
+    if [ "${JOB_QUEUE_NAME:-}" != "${ONDEMAND_QUEUE_NAME:-}" ] && [ "${SPOT_QUEUE_NAME:-}" != "${ONDEMAND_QUEUE_NAME:-}" ]; then
+      add_job_ids_by_name_pattern "${ONDEMAND_QUEUE_NAME:-}"
+    fi
+
+    local pattern_job_count="${#job_ids[@]}"
+    if [ "$pattern_job_count" -gt 0 ]; then
+      echo "  → Found $pattern_job_count job(s) by name pattern"
+    fi
+  fi
 
   if [ "${#job_ids[@]}" -eq 0 ]; then
     echo "  ⚠️  No matching jobs found to cancel/terminate."
