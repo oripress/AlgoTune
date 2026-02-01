@@ -520,6 +520,7 @@ EXIT_CODE=0;
 DATASET_S3_PREFIX="{dataset_s3_prefix}";
 DATASET_FOUND=0;
 DATASET_SOURCE="";
+DATASET_DIR="";
 
 # Priority 1: Check S3 cache first (fastest - in AWS region)
 echo '=== CHECKING S3 FOR CACHED DATASET ===';
@@ -573,6 +574,7 @@ except Exception:
     echo '✓ Dataset downloaded from S3 cache';
     DATASET_FOUND=1;
     DATASET_SOURCE="s3";
+    DATASET_DIR="/app/AlgoTuner/data/{task_name}";
   else
     echo 'Failed to download dataset from S3';
   fi;
@@ -583,13 +585,35 @@ fi;
 # Priority 2: Check HuggingFace (only if not found in S3)
 if [ $DATASET_FOUND -eq 0 ] && [ "${{ALGOTUNE_HF_DISABLE:-0}}" != "1" ]; then
   echo '=== CHECKING FOR HUGGINGFACE DATASET ===';
-  # Run generate with --check-only to see if HF dataset exists
-  # The generate command will download from HF if available
-  # In lazy mode (ALGOTUNE_HF_LAZY=1), this only downloads .jsonl files
   echo 'Attempting to load from HuggingFace...';
-  /app/algotune.sh --standalone generate {generation_arg} --tasks {task_name} || GENERATE_EXIT=$?;
-  if [ -d /app/AlgoTuner/data/{task_name} ] && [ -f /app/AlgoTuner/data/{task_name}/{task_name}_T*_train.jsonl ]; then
-    echo '✓ Dataset metadata loaded from HuggingFace';
+  HF_TASK_DIR=$(python3 - <<'PY'
+import os
+import sys
+from AlgoTuner.utils.hf_datasets import ensure_hf_dataset
+
+task = "{task_name}"
+path = ensure_hf_dataset(task)
+if not path:
+    sys.exit(1)
+
+path = str(path)
+if os.path.basename(path) != task:
+    candidate = os.path.join(path, task)
+    if os.path.isdir(candidate):
+        path = candidate
+
+if not os.path.isdir(path):
+    sys.exit(1)
+
+print(path)
+PY
+  ) || HF_TASK_DIR="";
+
+  if [ -n "$HF_TASK_DIR" ] && [ -d "$HF_TASK_DIR" ]; then
+    echo "✓ Dataset downloaded from HuggingFace to $HF_TASK_DIR";
+    DATASET_FOUND=1;
+    DATASET_SOURCE="hf";
+    DATASET_DIR="$HF_TASK_DIR";
 
     # If in lazy mode, download .npy files now
     if [ "${{ALGOTUNE_HF_LAZY:-0}}" = "1" ]; then
@@ -605,13 +629,10 @@ if [ $DATASET_FOUND -eq 0 ] && [ "${{ALGOTUNE_HF_DISABLE:-0}}" != "1" ]; then
       echo '✓ Full dataset loaded from HuggingFace';
     fi;
 
-    DATASET_FOUND=1;
-    DATASET_SOURCE="hf";
-
     # Upload to S3 for faster future access
     if [ $DATASET_FOUND -eq 1 ]; then
       echo '=== UPLOADING HF DATASET TO S3 FOR CACHING ===';
-      aws s3 sync /app/AlgoTuner/data/{task_name}/ s3://{s3_bucket}/$DATASET_S3_PREFIX/ --only-show-errors;
+      aws s3 sync "$DATASET_DIR"/ s3://{s3_bucket}/$DATASET_S3_PREFIX/ --only-show-errors;
       if [ $? -eq 0 ]; then
         echo "✓ Dataset uploaded to S3 cache (s3://{s3_bucket}/$DATASET_S3_PREFIX/)";
       else
@@ -635,6 +656,7 @@ if [ $DATASET_FOUND -eq 0 ]; then
       echo "✓ Dataset uploaded to s3://{s3_bucket}/$DATASET_S3_PREFIX/";
       DATASET_FOUND=1;
       DATASET_SOURCE="generated";
+      DATASET_DIR="/app/AlgoTuner/data/{task_name}";
     else
       echo 'Warning: Failed to upload dataset to S3';
     fi;
@@ -642,6 +664,9 @@ if [ $DATASET_FOUND -eq 0 ]; then
 fi;
 
 if [ $DATASET_FOUND -eq 1 ]; then
+  if [ -n "$DATASET_DIR" ]; then
+    export DATA_DIR="$(dirname "$DATASET_DIR")";
+  fi;
   echo "✓ Dataset ready (source: $DATASET_SOURCE)";
 else
   echo "❌ Failed to obtain dataset";
