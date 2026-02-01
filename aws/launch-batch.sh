@@ -20,6 +20,9 @@ echo ""
 # Resolve paths relative to this script so it works from any CWD.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+RUN_ID="$(date +%Y%m%d_%H%M%S)"
+RUN_STATE_DIR="$ROOT_DIR/reports/batch_runs/$RUN_ID"
+RUN_JOB_IDS_FILE="$RUN_STATE_DIR/job_ids.txt"
 
 #######################################################
 # Interactive Configuration
@@ -780,6 +783,19 @@ purge_queue_jobs() {
 
 purge_queue_jobs "$JOB_QUEUE_NAME"
 
+persist_run_job_ids() {
+  mkdir -p "$RUN_STATE_DIR"
+  : > "$RUN_JOB_IDS_FILE"
+  for file in "${JOB_IDS_FILE:-}" "${SPOT_JOB_IDS_FILE:-}" "${ONDEMAND_JOB_IDS_FILE:-}"; do
+    if [ -n "$file" ] && [ -f "$file" ]; then
+      cat "$file" >> "$RUN_JOB_IDS_FILE"
+    fi
+  done
+  if [ -s "$RUN_JOB_IDS_FILE" ]; then
+    sort -u "$RUN_JOB_IDS_FILE" -o "$RUN_JOB_IDS_FILE"
+  fi
+}
+
 # Submit jobs
 echo "→ Submitting jobs to AWS Batch..."
 JOB_IDS_FILE="$(mktemp /tmp/algotune_job_ids_XXXXXX)"
@@ -791,6 +807,9 @@ if python3 "$SCRIPT_DIR/submit_jobs.py" --model "$MODEL" $TASK_ARGS --s3-bucket 
   JOB_COUNT=$(wc -l < "$JOB_IDS_FILE" || echo "0")
   if [ "$JOB_COUNT" -gt 0 ]; then
     echo "  ✓ Submitted $JOB_COUNT job(s)"
+    persist_run_job_ids
+    echo "  ✓ Run ID: $RUN_ID"
+    echo "  ✓ Job IDs saved to: $RUN_JOB_IDS_FILE"
   else
     echo "⚠️  No jobs submitted (check aws/submit_jobs.py configuration)"
     exit 0
@@ -1112,6 +1131,7 @@ cancel_submitted_jobs() {
   add_job_ids_from_file "${JOB_IDS_FILE:-}"
   add_job_ids_from_file "${SPOT_JOB_IDS_FILE:-}"
   add_job_ids_from_file "${ONDEMAND_JOB_IDS_FILE:-}"
+  add_job_ids_from_file "${RUN_JOB_IDS_FILE:-}"
 
   local file_job_count="${#job_ids[@]}"
   echo "  → Found $file_job_count job(s) from files"
@@ -1442,7 +1462,7 @@ handle_interrupt() {
   fi
   exit 130
 }
-trap handle_interrupt INT
+trap handle_interrupt INT TERM HUP
 
 # Automatically monitor and generate HTML
 echo "════════════════════════════════════════"
@@ -1513,6 +1533,7 @@ elif [ "$CAPACITY_TYPE" = "spot" ] \
     ONDEMAND_JOB_IDS_FILE="$(mktemp /tmp/algotune_job_ids_ondemand_XXXXXX)"
     if python3 "$SCRIPT_DIR/submit_jobs.py" --model "$MODEL" --tasks "$TASKS_INPUT" --s3-bucket "$S3_RESULTS_BUCKET" --job-queue "$ONDEMAND_QUEUE_NAME" > "$ONDEMAND_JOB_IDS_FILE"; then
       JOB_IDS_FILE="$ONDEMAND_JOB_IDS_FILE"
+      persist_run_job_ids
       echo "  ✓ Submitted On-Demand retries"
       echo ""
       echo "→ Monitoring On-Demand retries..."
