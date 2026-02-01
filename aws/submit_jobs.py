@@ -587,12 +587,15 @@ if [ $DATASET_FOUND -eq 0 ] && [ "${{ALGOTUNE_HF_DISABLE:-0}}" != "1" ]; then
   echo '=== CHECKING FOR HUGGINGFACE DATASET ===';
   echo 'Attempting to load from HuggingFace...';
   HF_TASK_DIR=$(python3 - <<'PY'
+import contextlib
+import io
 import os
 import sys
 from AlgoTuner.utils.hf_datasets import ensure_hf_dataset
 
 task = "{task_name}"
-path = ensure_hf_dataset(task)
+with contextlib.redirect_stdout(io.StringIO()):
+    path = ensure_hf_dataset(task)
 if not path:
     sys.exit(1)
 
