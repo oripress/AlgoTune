@@ -832,6 +832,14 @@ shutdown_compute_resources() {
   echo ""
   echo "→ Shutting down AWS Batch compute resources..."
 
+  if [ "${ALGOTUNE_ALLOW_ACTIVE_SHUTDOWN:-}" != "1" ]; then
+    if any_active_jobs_exist; then
+      echo "  → Active Batch jobs detected; skipping compute shutdown."
+      echo "  → Set ALGOTUNE_ALLOW_ACTIVE_SHUTDOWN=1 to override."
+      return 0
+    fi
+  fi
+
   local -a job_ids=()
   local -A seen_job_ids=()
   add_job_id() {
@@ -1380,6 +1388,61 @@ other_active_jobs_exist() {
           return 0
         fi
       done
+    done
+  done
+
+  set -e
+  return 1
+}
+
+# Returns 0 if ANY active Batch jobs exist in any queue, else 1.
+any_active_jobs_exist() {
+  set +e
+
+  local queues=()
+  local -A seen_queues=()
+  add_queue() {
+    local queue="$1"
+    if [ -z "$queue" ]; then
+      return
+    fi
+    if [ -z "${seen_queues[$queue]+x}" ]; then
+      seen_queues["$queue"]=1
+      queues+=("$queue")
+    fi
+  }
+
+  add_queue "${JOB_QUEUE_NAME:-}"
+  add_queue "${SPOT_QUEUE_NAME:-}"
+  add_queue "${ONDEMAND_QUEUE_NAME:-}"
+
+  if [ "${#queues[@]}" -eq 0 ]; then
+    all_queues=$(aws batch describe-job-queues \
+      --region "$AWS_REGION" \
+      --query 'jobQueues[*].jobQueueName' \
+      --output text 2>/dev/null || echo "")
+    if [ -n "$all_queues" ]; then
+      for queue in $all_queues; do
+        add_queue "$queue"
+      done
+    else
+      set -e
+      return 1
+    fi
+  fi
+
+  for queue in "${queues[@]}"; do
+    for status in SUBMITTED PENDING RUNNABLE STARTING RUNNING; do
+      job_ids=$(aws batch list-jobs \
+        --job-queue "$queue" \
+        --job-status "$status" \
+        --region "$AWS_REGION" \
+        --query 'jobSummaryList[*].jobId' \
+        --output text 2>/dev/null || echo "")
+      if [ -n "$job_ids" ] && [ "$job_ids" != "None" ]; then
+        set -e
+        return 0
+      fi
     done
   done
 
