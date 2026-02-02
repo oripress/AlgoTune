@@ -273,12 +273,13 @@ def externalize_large_arrays(obj: Any, base_dir: Path, npy_subdir_name: str = "_
 
         return ref_dict
     elif _is_large_ndarray(obj):
-        # Ensure the subdirectory exists
-        npy_dir = base_dir / npy_subdir_name
+        # Ensure the subdirectory exists (shard by prefix to avoid >10k files/dir on HF)
+        filename = f"{uuid.uuid4()}.npy"
+        shard = filename[:2]
+        npy_dir = base_dir / npy_subdir_name / shard
         npy_dir.mkdir(parents=True, exist_ok=True)
 
         # Generate unique filename and save the array
-        filename = f"{uuid.uuid4()}.npy"
         npy_file_path = npy_dir / filename
         try:
             np.save(
@@ -297,16 +298,16 @@ def externalize_large_arrays(obj: Any, base_dir: Path, npy_subdir_name: str = "_
         # Return the reference dictionary
         return {
             "__type__": "ndarray_ref",
-            "npy_path": f"{npy_subdir_name}/{filename}",  # Relative path
+            "npy_path": f"{npy_subdir_name}/{shard}/{filename}",  # Relative path
         }
     elif _is_large_bytes(obj):
         # Externalize large bytes objects similar to arrays
-        npy_dir = base_dir / npy_subdir_name
-        npy_dir.mkdir(parents=True, exist_ok=True)
-
         # Generate unique filename and save the bytes
         # Use .bytes extension (HuggingFace prefers this over .bin)
         filename = f"{uuid.uuid4()}.bytes"
+        shard = filename[:2]
+        npy_dir = base_dir / npy_subdir_name / shard
+        npy_dir.mkdir(parents=True, exist_ok=True)
         bin_file_path = npy_dir / filename
         try:
             with open(bin_file_path, "wb") as f:
@@ -320,7 +321,7 @@ def externalize_large_arrays(obj: Any, base_dir: Path, npy_subdir_name: str = "_
         # Note: Key remains "bin_path" for backward compatibility with existing data
         return {
             "__type__": "bytes_ref",
-            "bin_path": f"{npy_subdir_name}/{filename}",  # Relative path
+            "bin_path": f"{npy_subdir_name}/{shard}/{filename}",  # Relative path
             "size": len(obj),
         }
     else:
