@@ -21,7 +21,7 @@ on:
 jobs:
   test-all:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[auto-format]'))
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.mes...
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -55,9 +55,10 @@ jobs:
           python -m pip cache purge || true
           rm -rf ~/.cache/pip ~/.cache/uv ~/.cache/uv-build || true
           uv cache clean || true
-          python -m pip install --only-binary=:all: psutil==5.9.8 -q --no-cache-dir
-          uv pip compile pyproject.toml -o requirements.txt --universal --all-extras
-          python -m pip install -r requirements.txt -q --no-cache-dir
+          # compile deterministic requirements with hashes
+          uv pip compile pyproject.toml -o requirements.txt --universal --all-extras --output-hashes
+          # install from compiled requirements, prefer wheels to avoid building from source
+          python -m pip install --only-binary=:all: -r requirements.txt -q --no-cache-dir
           echo "Dependencies installed."
 
       # --- Ruff Formatting & Linting --- #
