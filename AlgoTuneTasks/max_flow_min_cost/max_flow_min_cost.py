@@ -211,7 +211,7 @@ class MaxFlowMinCost(Task):
             s = problem["s"]
             t = problem["t"]
 
-            tol = 1e-5
+            tol = 1e-5 
 
             # check if solution is a valid flow:
             for i in range(n):
