@@ -1,14 +1,8 @@
-import numpy as np
+import solver_cython
 
 class Solver:
     def solve(self, problem, **kwargs):
-        import ortools
-        print(f"ortools dir: {dir(ortools)}")
-        try:
-            import ortools.graph
-            print(f"ortools.graph dir: {dir(ortools.graph)}")
-        except ImportError:
-            print("ortools.graph import failed")
-            
-        n = len(problem["capacity"])
-        return [[0]*n for _ in range(n)]
+        # Convert list of lists to numpy arrays if they aren't already, 
+        # though the cython code iterates over them assuming they are indexable.
+        # The cython function expects the problem dict.
+        return solver_cython.solve_cython(problem)
