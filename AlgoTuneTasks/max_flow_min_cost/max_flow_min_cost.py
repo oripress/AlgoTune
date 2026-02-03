@@ -207,11 +207,12 @@ class MaxFlowMinCost(Task):
     def is_solution(self, problem: dict[str, Any], solution: list[list[Any]]) -> bool:
         try:
             import math
+
             n = len(problem["capacity"])
             s = problem["s"]
             t = problem["t"]
 
-            tol = 1e-5 
+            tol = 1e-5
 
             # check if solution is a valid flow:
             for i in range(n):
