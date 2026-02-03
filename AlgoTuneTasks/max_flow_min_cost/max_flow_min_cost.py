@@ -206,6 +206,7 @@ class MaxFlowMinCost(Task):
 
     def is_solution(self, problem: dict[str, Any], solution: list[list[Any]]) -> bool:
         try:
+            import math
             n = len(problem["capacity"])
             s = problem["s"]
             t = problem["t"]
@@ -215,6 +216,9 @@ class MaxFlowMinCost(Task):
             # check if solution is a valid flow:
             for i in range(n):
                 for j in range(n):
+                    # reject NaN/inf
+                    if not math.isfinite(solution[i][j]):
+                        return False
                     # make sure that all flows are nonneg
                     if solution[i][j] < -tol:
                         return False
@@ -258,7 +262,7 @@ class MaxFlowMinCost(Task):
             for i in range(n):
                 total_out_mfnc += mfnc[s][i]
 
-            if total_out_mfnc < total_out - tol:
+            if total_out < total_out_mfnc - tol:
                 return False
 
             # now check if the cost is minimum
