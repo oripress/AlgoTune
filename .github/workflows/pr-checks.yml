@@ -55,10 +55,12 @@ jobs:
           python -m pip cache purge || true
           rm -rf ~/.cache/pip ~/.cache/uv ~/.cache/uv-build || true
           uv cache clean || true
-          # compile deterministic requirements with hashes
+          # compile deterministic requirements
           uv pip compile pyproject.toml -o requirements.txt --universal --all-extras
-          # install from compiled requirements, prefer wheels to avoid building from source
-          python -m pip install --only-binary=:all: -r requirements.txt -q --no-cache-dir
+          # install psutil explicitly, prefer wheel but allow source fallback if needed
+          python -m pip install --only-binary=:all: psutil==5.9.8 -q --no-cache-dir || python -m pip install psutil==5.9.8 -q --no-cache-dir
+          # install from compiled requirements, prefer wheels but allow source builds when necessary
+          python -m pip install -r requirements.txt -q --no-cache-dir --prefer-binary
           echo "Dependencies installed."
 
       # --- Ruff Formatting & Linting --- #
