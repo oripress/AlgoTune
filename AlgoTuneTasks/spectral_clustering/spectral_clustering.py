@@ -466,7 +466,9 @@ class SpectralClusteringTask(Task):
         weak_signal = near_constant or (eigengap < 1e-2) or (num_components > 1)
 
         # ---------- Quality signals (aggregate) ----------
-        pass_signals = []
+        structural_signals = []
+        sil_stu = None
+        dissim = None
 
         iu = _np.triu_indices(n, 1)
         same_mask = labels[:, None] == labels[None, :]
@@ -478,8 +480,8 @@ class SpectralClusteringTask(Task):
             if w_vals.size and b_vals.size:
                 avg_w = float(w_vals.mean())
                 avg_b = float(b_vals.mean())
-                req_margin = 0.010 if weak_signal else 0.040
-                pass_signals.append(avg_w >= avg_b + req_margin)
+                req_margin = 0.020 if weak_signal else 0.050
+                structural_signals.append(avg_w >= avg_b + req_margin)
         except Exception as e:
             logging.warning(f"Within/between computation failed: {e}")
 
@@ -492,19 +494,19 @@ class SpectralClusteringTask(Task):
                 topm = max(1, int(0.10 * sims.size))
                 top_idx = _np.argpartition(sims, -topm)[-topm:]
                 rate = float(same[topm * 0 + top_idx].mean())
-                req_rate = 0.40 if weak_signal else 0.50
-                pass_signals.append(rate >= req_rate)
+                req_rate = 0.50 if weak_signal else 0.60
+                structural_signals.append(rate >= req_rate)
         except Exception as e:
             logging.warning(f"Top-pair agreement failed: {e}")
 
         # Silhouette on dissimilarities (precomputed)
         try:
             if k >= 2 and n >= 3:
-                D = _np.sqrt(_np.maximum(0.0, 1.0 - _np.clip(S, 0.0, 1.0)))
-                _np.fill_diagonal(D, 0.0)
-                sil = _sil(D, labels, metric="precomputed")
-                sil_thr = -0.05 if weak_signal else 0.03
-                pass_signals.append(sil >= sil_thr)
+                dissim = _np.sqrt(_np.maximum(0.0, 1.0 - _np.clip(S, 0.0, 1.0)))
+                _np.fill_diagonal(dissim, 0.0)
+                sil_stu = float(_sil(dissim, labels, metric="precomputed"))
+                sil_thr = -0.02 if weak_signal else 0.06
+                structural_signals.append(sil_stu >= sil_thr)
         except Exception as e:
             logging.warning(f"Silhouette computation failed: {e}")
 
@@ -523,8 +525,8 @@ class SpectralClusteringTask(Task):
                     k_c = float(k_w[idx_c].sum())
                     Q += A_cc - (k_c * k_c) / two_m
                 Q /= two_m
-                Q_thr = -0.05 if weak_signal else 0.02
-                pass_signals.append(Q >= Q_thr)
+                Q_thr = -0.02 if weak_signal else 0.04
+                structural_signals.append(Q >= Q_thr)
         except Exception as e:
             logging.warning(f"Modularity computation failed: {e}")
 
@@ -572,12 +574,16 @@ class SpectralClusteringTask(Task):
                 total += cut / max(vol, 1e-12)
             return total
 
+        reference_available = False
+        reference_ok = False
+        baseline_floor_ok = True
         try:
             if U_norm is not None:
                 init_idx = _farthest_first_init(U_norm, k)
                 ref_labels = _det_lloyd_labels(U_norm, init_idx, iters=15)
                 _, inv = _np.unique(ref_labels, return_inverse=True)
                 ref_labels = inv.reshape(ref_labels.shape)
+                reference_available = True
 
                 ari_det = _ari(labels, ref_labels)
                 nmi_det = _nmi(labels, ref_labels)
@@ -585,18 +591,37 @@ class SpectralClusteringTask(Task):
                 ncut_ref = _ncut(ref_labels, deg_w, S01)
                 ncut_stu = _ncut(labels, deg_w, S01)
 
-                thr_ari = 0.40 if weak_signal else 0.55
-                thr_nmi = 0.40 if weak_signal else 0.55
-                slack = 0.30 if weak_signal else 0.15
-
-                spectral_pass = (ari_det >= thr_ari or nmi_det >= thr_nmi) or (
+                thr_ari = 0.50 if weak_signal else 0.65
+                thr_nmi = 0.50 if weak_signal else 0.65
+                slack = 0.20 if weak_signal else 0.10
+                reference_ok = (ari_det >= thr_ari or nmi_det >= thr_nmi) or (
                     ncut_stu <= ncut_ref + slack
                 )
-                pass_signals.append(spectral_pass)
+
+                # Floor guard: proposal cannot be much worse than deterministic baseline.
+                ncut_floor_slack = 0.35 if weak_signal else 0.18
+                ncut_floor_ok = ncut_stu <= ncut_ref + ncut_floor_slack
+
+                sil_floor_ok = True
+                if dissim is not None and sil_stu is not None:
+                    try:
+                        sil_ref = float(_sil(dissim, ref_labels, metric="precomputed"))
+                        max_sil_drop = 0.20 if weak_signal else 0.10
+                        sil_floor_ok = sil_stu >= sil_ref - max_sil_drop
+                    except Exception as e:
+                        logging.warning(f"Reference silhouette computation failed: {e}")
+                        sil_floor_ok = True
+
+                baseline_floor_ok = ncut_floor_ok and sil_floor_ok
         except Exception as e:
             logging.warning(f"Deterministic spectral baseline check failed: {e}")
 
-        quality_ok = any(pass_signals)
+        structural_ok = any(structural_signals)
+        if reference_available:
+            quality_ok = reference_ok and structural_ok and baseline_floor_ok
+        else:
+            # Conservative fallback when deterministic reference could not be computed.
+            quality_ok = (sum(bool(x) for x in structural_signals) >= 3) and (not weak_signal)
 
         # ---------- Hack detectors ----------
         # Helper: strong agreement / match-rate checks
