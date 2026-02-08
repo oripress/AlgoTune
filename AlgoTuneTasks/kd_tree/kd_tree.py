@@ -245,26 +245,62 @@ class KDTree(Task):
             logging.error("Negative distances found.")
             return False
 
-        sample_size = min(10, n_queries)
-        for i in np.random.choice(n_queries, sample_size, replace=False):
-            for j in range(min(3, k)):
-                idx = indices[i, j]
-                computed = np.sum((queries[i] - points[idx]) ** 2)
-                if not np.isclose(computed, distances[i, j], rtol=1e-4, atol=1e-4):
+        # Deterministic sampling keeps validation stable across runs while scaling to large inputs.
+        rng = np.random.default_rng(0)
+        sample_size = min(64, n_queries)
+        if sample_size == n_queries:
+            sample_idx = np.arange(n_queries, dtype=int)
+        else:
+            sample_idx = rng.choice(n_queries, sample_size, replace=False)
+
+        # Reject degenerate rows with repeated neighbor ids (common shortcut pattern).
+        if k > 1 and n_queries > 0:
+            sorted_idx = np.sort(indices, axis=1)
+            dup_rows = np.where(np.any(np.diff(sorted_idx, axis=1) == 0, axis=1))[0]
+            if dup_rows.size > 0:
+                logging.error(f"Duplicate neighbor indices detected for query {int(dup_rows[0])}.")
+                return False
+
+        # Validate reported squared distances for all neighbors on sampled queries.
+        for i in sample_idx:
+            row_indices = indices[i]
+            computed = np.sum((points[row_indices] - queries[i]) ** 2, axis=1)
+            if not np.allclose(computed, distances[i], rtol=1e-4, atol=1e-4):
+                max_abs = float(np.max(np.abs(computed - distances[i])))
+                logging.error(
+                    f"Distance mismatch for query {int(i)}. Max absolute error: {max_abs:.6g}"
+                )
+                return False
+
+        # Distances must be sorted in ascending order for every query row.
+        if n_queries > 0 and k > 1:
+            unsorted_rows = np.where(np.any(np.diff(distances, axis=1) < -1e-5, axis=1))[0]
+            if unsorted_rows.size > 0:
+                logging.error(f"Distances not sorted ascending for query {int(unsorted_rows[0])}.")
+                return False
+
+        # Require nearest-neighbor recall for sampled queries across all dimensions.
+        if k > 0 and n_queries > 0:
+            min_recall = 0.95 if dim <= 10 else max(0.3, 1.0 - (dim / 200.0))
+            for idx in sample_idx:
+                all_dist2 = np.sum((points - queries[idx]) ** 2, axis=1)
+                true_idx = np.argsort(all_dist2)[:k]
+                recall = len(np.intersect1d(indices[idx], true_idx)) / float(k)
+                if recall < min_recall:
                     logging.error(
-                        f"Distance mismatch for query {i}, neighbor {j}. "
-                        f"Computed: {computed}, Provided: {distances[i, j]}"
+                        f"Recall {recall:.2f} below {min_recall:.2f} for query {int(idx)} (dim={dim})."
                     )
                     return False
-        for i in range(n_queries):
-            if not np.all(np.diff(distances[i]) >= -1e-5):
-                logging.error(f"Distances not sorted ascending for query {i}.")
-                return False
 
         # ======== Boundary case handling ========
         if problem.get("distribution") == "hypercube_shell":
             pts = points.astype(np.float64)
             bq_idx = np.array(solution.get("boundary_indices", []))
+            if bq_idx.shape != (2 * dim, k):
+                logging.error(
+                    f"Boundary indices shape incorrect. Expected {(2 * dim, k)}, got {bq_idx.shape}."
+                )
+                return False
             bqs = []
             for d in range(dim):
                 q0 = np.zeros(dim, dtype=np.float64)
@@ -288,19 +324,5 @@ class KDTree(Task):
             logging.debug(
                 "Skipping boundary checks for distribution=%s", problem.get("distribution")
             )
-
-        # ======== High-dimensional correctness ========
-        if dim > 10:
-            sample = min(5, n_queries)
-            for idx in np.random.choice(n_queries, sample, replace=False):
-                all_dist = np.sqrt(np.sum((points - queries[idx]) ** 2, axis=1))
-                true_idx = np.argsort(all_dist)[:k]
-                recall = len(np.intersect1d(indices[idx], true_idx)) / float(k)
-                min_acc = max(0.3, 1.0 - (dim / 200.0))
-                if recall < min_acc:
-                    logging.error(
-                        f"High-dimensional recall {recall:.2f} below {min_acc:.2f} for dim {dim}"
-                    )
-                    return False
 
         return True
