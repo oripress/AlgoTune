@@ -617,22 +617,50 @@ class SpectralClusteringTask(Task):
             logging.warning(f"Deterministic spectral baseline check failed: {e}")
 
         structural_ok = any(structural_signals)
+        structural_count = sum(bool(x) for x in structural_signals)
         if reference_available:
             quality_ok = reference_ok and structural_ok and baseline_floor_ok
         else:
             # Conservative fallback when deterministic reference could not be computed.
-            quality_ok = (sum(bool(x) for x in structural_signals) >= 3) and (not weak_signal)
+            quality_ok = (structural_count >= 3) and (not weak_signal)
+        strict_quality_ok = (
+            reference_available and reference_ok and baseline_floor_ok and (structural_count >= 2)
+        )
 
         # ---------- Hack detectors ----------
-        # Helper: strong agreement / match-rate checks
-        def _agree(hack_labels, thr_ari=0.995, thr_nmi=0.995, thr_match=0.98):
+        near_hack = False
+        near_hack_max_score = 0.0
+
+        def _update_near(score: float, near_thr: float) -> None:
+            nonlocal near_hack, near_hack_max_score
+            if score >= near_thr:
+                near_hack = True
+                near_hack_max_score = max(near_hack_max_score, float(score))
+
+        def _agreement_stats(hack_labels):
             try:
                 ari = _ari(labels, hack_labels)
                 nmi = _nmi(labels, hack_labels)
                 match = float((labels == hack_labels).mean())
-                return (ari >= thr_ari) or (nmi >= thr_nmi) or (match >= thr_match)
+                score = max(float(ari), float(nmi), match)
+                return float(ari), float(nmi), match, score
             except Exception:
+                return None
+
+        # Helper: threshold check + continuous closeness tracking (near-hack band).
+        def _check_agreement(
+            hack_labels,
+            thr_ari=0.995,
+            thr_nmi=0.995,
+            thr_match=0.98,
+            near_thr=0.94,
+        ):
+            stats = _agreement_stats(hack_labels)
+            if stats is None:
                 return False
+            ari, nmi, match, score = stats
+            _update_near(score, near_thr)
+            return (ari >= thr_ari) or (nmi >= thr_nmi) or (match >= thr_match)
 
         suspicious = False  # mark-but-don't-fail unless quality_ok is False
 
@@ -645,7 +673,9 @@ class SpectralClusteringTask(Task):
             if n >= k:
                 hack1_raw = _np.argmax(S_raw[:, :k], axis=1)
                 hack1_use = _np.argmax(S_use[:, :k], axis=1)
-                if _agree(hack1_raw, 0.98, 0.98, 0.98) or _agree(hack1_use, 0.98, 0.98, 0.98):
+                if _check_agreement(hack1_raw, 0.98, 0.98, 0.98, near_thr=0.94) or _check_agreement(
+                    hack1_use, 0.98, 0.98, 0.98, near_thr=0.94
+                ):
                     logging.error("Detected argmax over the first k columns (hard fail).")
                     return False
         except Exception as e:
@@ -659,9 +689,9 @@ class SpectralClusteringTask(Task):
                 if e <= n:
                     hack_blk_raw = _np.argmax(S_raw[:, s:e], axis=1)
                     hack_blk_use = _np.argmax(S_use[:, s:e], axis=1)
-                    if _agree(hack_blk_raw, 0.985, 0.985, 0.985) or _agree(
-                        hack_blk_use, 0.985, 0.985, 0.985
-                    ):
+                    if _check_agreement(
+                        hack_blk_raw, 0.985, 0.985, 0.985, near_thr=0.94
+                    ) or _check_agreement(hack_blk_use, 0.985, 0.985, 0.985, near_thr=0.94):
                         logging.error(
                             "Detected argmax over a contiguous k-column window (hard fail)."
                         )
@@ -675,8 +705,8 @@ class SpectralClusteringTask(Task):
             topk_deg = _np.argsort(col_deg)[-k:]
             hack_deg_raw = _np.argmax(S_raw[:, topk_deg], axis=1)
             hack_deg_use = _np.argmax(S_use[:, topk_deg], axis=1)
-            if _agree(hack_deg_raw, 0.997, 0.997, 0.995) or _agree(
-                hack_deg_use, 0.997, 0.997, 0.995
+            if _check_agreement(hack_deg_raw, 0.997, 0.997, 0.995, near_thr=0.96) or _check_agreement(
+                hack_deg_use, 0.997, 0.997, 0.995, near_thr=0.96
             ):
                 logging.error("Detected argmax over top-degree columns (suspicious).")
                 suspicious = True
@@ -690,8 +720,8 @@ class SpectralClusteringTask(Task):
             topk_eig = _np.argsort(v1)[-k:]
             hack_eig_raw = _np.argmax(S_raw[:, topk_eig], axis=1)
             hack_eig_use = _np.argmax(S_use[:, topk_eig], axis=1)
-            if _agree(hack_eig_raw, 0.997, 0.997, 0.995) or _agree(
-                hack_eig_use, 0.997, 0.997, 0.995
+            if _check_agreement(hack_eig_raw, 0.997, 0.997, 0.995, near_thr=0.96) or _check_agreement(
+                hack_eig_use, 0.997, 0.997, 0.995, near_thr=0.96
             ):
                 logging.error("Detected argmax over highest-eigencentrality columns (suspicious).")
                 suspicious = True
@@ -723,8 +753,10 @@ class SpectralClusteringTask(Task):
 
                     sub_raw = S_raw[:, cols]
                     sub_use = S_use[:, cols]
-                    if (_passes_gap(sub_raw) and _agree(chosen_raw, 0.999, 0.999, 0.998)) or (
-                        _passes_gap(sub_use) and _agree(chosen_use, 0.999, 0.999, 0.998)
+                    raw_gap = _passes_gap(sub_raw)
+                    use_gap = _passes_gap(sub_use)
+                    if (raw_gap and _check_agreement(chosen_raw, 0.999, 0.999, 0.998, near_thr=0.96)) or (
+                        use_gap and _check_agreement(chosen_use, 0.999, 0.999, 0.998, near_thr=0.96)
                     ):
                         logging.error("Detected argmax over a k-column subset (suspicious).")
                         suspicious = True
@@ -742,13 +774,23 @@ class SpectralClusteringTask(Task):
                     if qs[i] <= qs[i - 1]:
                         qs[i] = qs[i - 1] + eps
                 deg_bins = _np.clip(_np.searchsorted(qs, node_deg, side="right") - 1, 0, k - 1)
-                if (_ari(labels, deg_bins) >= 0.97) and (_nmi(labels, deg_bins) >= 0.97):
+                ari_deg = float(_ari(labels, deg_bins))
+                nmi_deg = float(_nmi(labels, deg_bins))
+                _update_near(max(ari_deg, nmi_deg), near_thr=0.94)
+                if (ari_deg >= 0.97) and (nmi_deg >= 0.97):
                     logging.error("Detected degree-quantile induced labels (suspicious).")
                     suspicious = True
         except Exception as e:
             logging.warning(f"Degree-quantile check failed: {e}")
 
         # ---------- Final decision ----------
+        if near_hack and not strict_quality_ok:
+            logging.error(
+                f"Near-hack detector triggered (max similarity score={near_hack_max_score:.3f}) "
+                "without strict reference-backed quality."
+            )
+            return False
+
         if suspicious and not quality_ok:
             logging.error("Suspicious hack pattern without supporting quality signals → reject.")
             return False
