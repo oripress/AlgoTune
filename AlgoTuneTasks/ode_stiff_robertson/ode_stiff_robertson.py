@@ -158,7 +158,7 @@ class ODEStiffRobertson(Task):
                 "using fallback tolerance."
             )
 
-        rtol, atol = ((3e-6, 3e-9) if refs_consistent else (1e-5, 1e-8))
+        rtol, atol = (3e-6, 3e-9) if refs_consistent else (1e-5, 1e-8)
         if not np.allclose(prop_arr, ref_arr, rtol=rtol, atol=atol):
             abs_err = np.max(np.abs(prop_arr - ref_arr))
             rel_err = np.max(np.abs((prop_arr - ref_arr) / (np.abs(ref_arr) + atol)))

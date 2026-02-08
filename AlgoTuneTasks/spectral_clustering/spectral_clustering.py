@@ -705,9 +705,9 @@ class SpectralClusteringTask(Task):
             topk_deg = _np.argsort(col_deg)[-k:]
             hack_deg_raw = _np.argmax(S_raw[:, topk_deg], axis=1)
             hack_deg_use = _np.argmax(S_use[:, topk_deg], axis=1)
-            if _check_agreement(hack_deg_raw, 0.997, 0.997, 0.995, near_thr=0.96) or _check_agreement(
-                hack_deg_use, 0.997, 0.997, 0.995, near_thr=0.96
-            ):
+            if _check_agreement(
+                hack_deg_raw, 0.997, 0.997, 0.995, near_thr=0.96
+            ) or _check_agreement(hack_deg_use, 0.997, 0.997, 0.995, near_thr=0.96):
                 logging.error("Detected argmax over top-degree columns (suspicious).")
                 suspicious = True
         except Exception as e:
@@ -720,9 +720,9 @@ class SpectralClusteringTask(Task):
             topk_eig = _np.argsort(v1)[-k:]
             hack_eig_raw = _np.argmax(S_raw[:, topk_eig], axis=1)
             hack_eig_use = _np.argmax(S_use[:, topk_eig], axis=1)
-            if _check_agreement(hack_eig_raw, 0.997, 0.997, 0.995, near_thr=0.96) or _check_agreement(
-                hack_eig_use, 0.997, 0.997, 0.995, near_thr=0.96
-            ):
+            if _check_agreement(
+                hack_eig_raw, 0.997, 0.997, 0.995, near_thr=0.96
+            ) or _check_agreement(hack_eig_use, 0.997, 0.997, 0.995, near_thr=0.96):
                 logging.error("Detected argmax over highest-eigencentrality columns (suspicious).")
                 suspicious = True
         except Exception as e:
@@ -755,7 +755,9 @@ class SpectralClusteringTask(Task):
                     sub_use = S_use[:, cols]
                     raw_gap = _passes_gap(sub_raw)
                     use_gap = _passes_gap(sub_use)
-                    if (raw_gap and _check_agreement(chosen_raw, 0.999, 0.999, 0.998, near_thr=0.96)) or (
+                    if (
+                        raw_gap and _check_agreement(chosen_raw, 0.999, 0.999, 0.998, near_thr=0.96)
+                    ) or (
                         use_gap and _check_agreement(chosen_use, 0.999, 0.999, 0.998, near_thr=0.96)
                     ):
                         logging.error("Detected argmax over a k-column subset (suspicious).")
