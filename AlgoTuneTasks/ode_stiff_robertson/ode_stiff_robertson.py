@@ -89,6 +89,9 @@ class ODEStiffRobertson(Task):
 
         try:
             y0_arr = np.asarray(problem["y0"], dtype=float)
+            t0 = float(problem["t0"])
+            t1 = float(problem["t1"])
+            k1, k2, k3 = map(float, problem["k"])
             prop_arr = np.asarray(proposed, dtype=float)
         except Exception:
             logging.error("Could not convert arrays.")
@@ -101,9 +104,41 @@ class ODEStiffRobertson(Task):
             logging.error("Proposed solution contains non-finite values.")
             return False
 
+        # Physical validity checks for Robertson kinetics.
+        if np.any(prop_arr < -1e-10):
+            logging.error("Proposed solution contains negative concentrations.")
+            return False
+        mass0 = float(np.sum(y0_arr))
+        mass_prop = float(np.sum(prop_arr))
+        if abs(mass_prop - mass0) > 5e-6:
+            logging.error(
+                f"Mass conservation violated: initial sum={mass0:.12g}, proposed sum={mass_prop:.12g}"
+            )
+            return False
+
+        def rober(_t, y):
+            y1, y2, y3 = y
+            f0 = -k1 * y1 + k3 * y2 * y3
+            f1 = k1 * y1 - k2 * y2**2 - k3 * y2 * y3
+            f2 = k2 * y2**2
+            return np.array([f0, f1, f2], dtype=float)
+
         try:
-            ref_solution = self.solve(problem)
-            ref_arr = np.array(ref_solution)
+            # Primary reference (task solver configuration).
+            ref_arr = np.asarray(self.solve(problem), dtype=float)
+            # Secondary independent stiff reference to reduce overfitting to one numerical path.
+            sec = solve_ivp(
+                rober,
+                [t0, t1],
+                y0_arr,
+                method="BDF",
+                rtol=5e-10,
+                atol=1e-9,
+            )
+            if not sec.success:
+                logging.error(f"Secondary reference solver failed: {sec.message}")
+                return False
+            sec_arr = np.asarray(sec.y[:, -1], dtype=float)
         except Exception as e:
             logging.error(f"Error computing reference solution: {e}")
             return False
@@ -111,13 +146,32 @@ class ODEStiffRobertson(Task):
         if ref_arr.shape != y0_arr.shape or not np.all(np.isfinite(ref_arr)):
             logging.error("Reference solver failed internally.")
             return False
+        if sec_arr.shape != y0_arr.shape or not np.all(np.isfinite(sec_arr)):
+            logging.error("Secondary reference solver failed internally.")
+            return False
 
-        rtol, atol = 1e-5, 1e-8
+        refs_consistent = np.allclose(ref_arr, sec_arr, rtol=5e-6, atol=5e-9)
+        if not refs_consistent:
+            max_ref_gap = float(np.max(np.abs(ref_arr - sec_arr)))
+            logging.warning(
+                f"Primary/secondary references diverge (max abs gap={max_ref_gap:.3g}); "
+                "using fallback tolerance."
+            )
+
+        rtol, atol = ((3e-6, 3e-9) if refs_consistent else (1e-5, 1e-8))
         if not np.allclose(prop_arr, ref_arr, rtol=rtol, atol=atol):
             abs_err = np.max(np.abs(prop_arr - ref_arr))
             rel_err = np.max(np.abs((prop_arr - ref_arr) / (np.abs(ref_arr) + atol)))
             logging.error(
                 f"Solution verification failed: max abs err={abs_err:.3g}, max rel err={rel_err:.3g}"
+            )
+            return False
+        if not np.allclose(prop_arr, sec_arr, rtol=rtol, atol=atol):
+            abs_err = np.max(np.abs(prop_arr - sec_arr))
+            rel_err = np.max(np.abs((prop_arr - sec_arr) / (np.abs(sec_arr) + atol)))
+            logging.error(
+                f"Solution verification failed against secondary reference: "
+                f"max abs err={abs_err:.3g}, max rel err={rel_err:.3g}"
             )
             return False
         return True
