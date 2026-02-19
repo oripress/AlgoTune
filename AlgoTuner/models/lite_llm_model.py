@@ -4,7 +4,7 @@ import random
 import time
 
 import litellm
-from litellm.exceptions import APIError, InternalServerError, RateLimitError, Timeout
+from litellm.exceptions import APIConnectionError, APIError, InternalServerError, RateLimitError, Timeout
 
 from AlgoTuner.utils.error_helpers import get_error_messages_cached
 from AlgoTuner.utils.message_writer import MessageWriter
@@ -112,8 +112,28 @@ class LiteLLMModel:
                     else:
                         logging.error(f"LiteLLM API non-retryable error: {e}")
                     raise e
+            except APIConnectionError as e:
+                # OpenRouter/LiteLLM can surface malformed provider responses as APIConnectionError.
+                is_retryable = self._is_retryable_error(e)
+                if is_retryable and attempt < max_retries - 1:
+                    delay = base_delay * (2**attempt) + random.uniform(0, 1)
+                    logging.warning(
+                        f"LiteLLM connection/parsing error: {str(e)}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})"
+                    )
+                    time.sleep(delay)
+                    continue
+                logging.error(f"LiteLLM API connection/parsing error: {e}")
+                raise e
             except Exception as e:
-                # Other exceptions are not retryable
+                # Retry malformed/transient unexpected exceptions when they match known provider failure patterns.
+                is_retryable = self._is_retryable_error(e)
+                if is_retryable and attempt < max_retries - 1:
+                    delay = base_delay * (2**attempt) + random.uniform(0, 1)
+                    logging.warning(
+                        f"LiteLLM unexpected retryable error: {str(e)}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})"
+                    )
+                    time.sleep(delay)
+                    continue
                 logging.error(f"Error in litellm call: {e}")
                 logging.error(f"Error in model call: {str(e)}\n\n{get_error_messages_cached()}")
                 raise e
@@ -257,6 +277,11 @@ class LiteLLMModel:
             "connection",
             "429",  # Rate limit
             "rate limit",
+            # OpenRouter/Gemini malformed tool-call/finish-reason responses
+            "invalid response object",
+            "malformed_function_call",
+            "finish_reason",
+            "input_value='error'",
         ]
 
         return any(pattern in error_str for pattern in retryable_patterns)

@@ -141,11 +141,13 @@ def scan_logs_for_missing_entries(
         log_speedup = extract_speedup_from_log(log_path)
 
         if log_speedup is None:
-            print(f"➕ {task_name} / {model_key}: Log exists but couldn't extract speedup, adding as N/A")
-            speedup_value = 'N/A'
-        else:
-            print(f"➕ {task_name} / {model_key}: Adding missing entry with speedup={log_speedup}")
-            speedup_value = log_speedup
+            print(
+                f"⏭️  {task_name} / {model_key}: Log exists but no numeric speedup found, skipping add"
+            )
+            continue
+
+        print(f"➕ {task_name} / {model_key}: Adding missing entry with speedup={log_speedup}")
+        speedup_value = log_speedup
 
         if not dry_run:
             if task_name not in data:

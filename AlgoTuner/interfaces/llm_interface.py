@@ -5,6 +5,7 @@ import traceback
 from typing import Any
 
 from litellm import APIError, RateLimitError
+from litellm.exceptions import APIConnectionError
 
 from AlgoTuner.config.model_config import GenericAPIModelConfig, GlobalConfig
 from AlgoTuner.editor.editor_functions import Path
@@ -458,7 +459,7 @@ class LLMInterface(base_interface.BaseLLMInterface):
                     try:
                         response = self.model.query(relevant_messages)
                         break
-                    except (RateLimitError, APIError) as e:
+                    except (RateLimitError, APIError, APIConnectionError) as e:
                         # Check for non-retryable payment/quota errors
                         error_str = str(e).lower()
                         non_retryable_patterns = [
@@ -841,6 +842,8 @@ class LLMInterface(base_interface.BaseLLMInterface):
     def run(self):
         """Main loop for LLM interaction in code-only mode."""
         should_terminate = False
+        consecutive_empty_responses = 0
+        max_consecutive_empty_responses = 3
 
         while not should_terminate:
             # Check spend limit
@@ -851,12 +854,21 @@ class LLMInterface(base_interface.BaseLLMInterface):
             try:
                 response = self.get_response()
                 if response is None:
+                    consecutive_empty_responses += 1
                     logging.warning(
                         self.message_writer.format_warning(
-                            "No response received. Exiting the loop."
+                            f"No response received ({consecutive_empty_responses}/{max_consecutive_empty_responses}). Retrying."
                         )
                     )
-                    break
+                    if consecutive_empty_responses >= max_consecutive_empty_responses:
+                        logging.warning(
+                            self.message_writer.format_warning(
+                                "No response received repeatedly. Exiting the loop."
+                            )
+                        )
+                        break
+                    continue
+                consecutive_empty_responses = 0
 
                 # Ensure we have a string response
                 if isinstance(response, dict):
@@ -877,7 +889,7 @@ class LLMInterface(base_interface.BaseLLMInterface):
                     # Store the command result in history
                     self.message_handler.add_command_result(output)
 
-            except (RateLimitError, APIError) as e:
+            except (RateLimitError, APIError, APIConnectionError) as e:
                 logging.error(self.message_writer.format_api_error(str(e)))
                 should_terminate = True
                 break
@@ -920,6 +932,8 @@ class LLMInterface(base_interface.BaseLLMInterface):
         had_working_solution = False
         should_terminate = False
         api_error = None
+        consecutive_empty_responses = 0
+        max_consecutive_empty_responses = 3
 
         while not should_terminate:
             # Check spend limit
@@ -930,12 +944,21 @@ class LLMInterface(base_interface.BaseLLMInterface):
             try:
                 response = self.get_response()
                 if response is None:
+                    consecutive_empty_responses += 1
                     logging.warning(
                         self.message_writer.format_warning(
-                            "No response received. Exiting the loop."
+                            f"No response received ({consecutive_empty_responses}/{max_consecutive_empty_responses}). Retrying."
                         )
                     )
-                    break
+                    if consecutive_empty_responses >= max_consecutive_empty_responses:
+                        logging.warning(
+                            self.message_writer.format_warning(
+                                "No response received repeatedly. Exiting the loop."
+                            )
+                        )
+                        break
+                    continue
+                consecutive_empty_responses = 0
 
                 # Check for API errors
                 if "API Error" in response or "Rate limit exceeded" in response:
@@ -953,7 +976,7 @@ class LLMInterface(base_interface.BaseLLMInterface):
                     # Store the command result in history
                     self.message_handler.add_command_result(output)
 
-            except (RateLimitError, APIError) as e:
+            except (RateLimitError, APIError, APIConnectionError) as e:
                 api_error = str(e)
                 logging.error(self.message_writer.format_api_error(str(e)))
                 should_terminate = True
@@ -1069,6 +1092,15 @@ class LLMInterface(base_interface.BaseLLMInterface):
                     label = "N/A" if mean_speedup is None else mean_speedup
                     logging.info(f"Final Test Speedup: {label}")
 
+                self._final_eval_success = final_eval_success
+                self._final_eval_error = None
+                if isinstance(eval_result, dict):
+                    self._final_eval_error = eval_result.get("error_type") or eval_result.get(
+                        "error"
+                    )
+                else:
+                    self._final_eval_error = getattr(eval_result, "error", None)
+
             except Exception as e:
                 logging.error(
                     self.message_writer.format_error(str(e), "during final test evaluation")
@@ -1078,6 +1110,8 @@ class LLMInterface(base_interface.BaseLLMInterface):
                         "Final Test Performance: Error during evaluation"
                     )
                 )
+                self._final_eval_success = False
+                self._final_eval_error = str(e)
 
         # --- FIX: Use self.task_instance.task_name ---
         task_display_name = getattr(self.task_instance, "task_name", "unknown")

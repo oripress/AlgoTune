@@ -119,7 +119,7 @@ def update_summary_json(
         elif speedup is None or not math.isfinite(speedup):
             speedup_str = "N/A"
         else:
-            speedup_str = f"{speedup:.4f}"
+            speedup_str = f"{speedup:.5f}"
 
         normalized_model = normalize_summary_model_name(model_name)
         task_entry = summary_data.setdefault(task_name, {})
@@ -135,6 +135,48 @@ def update_summary_json(
         except Exception as e:
             logging.error(f"Error writing updated summary file {summary_file_path}: {e}")
 
+    finally:
+        release_lock(str(lock_file_path))
+
+
+def update_failure_json(
+    failure_file_path_str: str,
+    task_name: str,
+    model_name: str,
+    reason: str,
+    details: str | None = None,
+):
+    """Atomically records a failed run in a dedicated failure file."""
+    failure_file_path = Path(failure_file_path_str)
+    lock_file_path = failure_file_path.with_suffix(".json.lock")
+    logging.info(f"Attempting to update failure file: {failure_file_path}")
+
+    if not acquire_lock(str(lock_file_path)):
+        logging.error("Failed to acquire lock, cannot update failure file.")
+        return
+
+    try:
+        failure_data = {}
+        if failure_file_path.exists():
+            try:
+                with open(failure_file_path) as f:
+                    failure_data = json.load(f)
+                    if not isinstance(failure_data, dict):
+                        failure_data = {}
+            except Exception:
+                failure_data = {}
+
+        normalized_model = normalize_summary_model_name(model_name)
+        task_entry = failure_data.setdefault(task_name, {})
+        task_entry[normalized_model] = {
+            "reason": reason,
+            "details": details or "",
+            "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        }
+
+        with open(failure_file_path, "w") as f:
+            json.dump(failure_data, f, indent=4)
+        logging.info(f"Successfully updated failure file: {failure_file_path}")
     finally:
         release_lock(str(lock_file_path))
 
@@ -249,7 +291,14 @@ def main():
     # Re-enable parameters for normal completion calls
     litellm.drop_params = False
 
-    max_input_tokens = model_info_from_litellm.get("max_input_tokens", 4096)
+    raw_max_input_tokens = model_info_from_litellm.get("max_input_tokens")
+    if isinstance(raw_max_input_tokens, int) and raw_max_input_tokens > 0:
+        max_input_tokens = raw_max_input_tokens
+    else:
+        max_input_tokens = 65536
+        logger.info(
+            f"No valid max_input_tokens from litellm for model '{desired_model_name}'; defaulting context_length to {max_input_tokens}."
+        )
     max_output_tokens = model_info_from_litellm.get("max_output_tokens", 4096)
 
     # Check for max_completion_tokens first (for models like gpt-5, gpt-5-mini)
@@ -369,15 +418,32 @@ def main():
 
         if summary_file_env:
             test_speedup = None
+            failure_file_env = str(Path(summary_file_env).with_name("agent_failures.json"))
 
             if hasattr(llm_interface, "_final_eval_metrics") and llm_interface._final_eval_metrics:
                 test_speedup = llm_interface._final_eval_metrics.get("mean_speedup")
                 logger.info(f"Using test dataset speedup for summary: {test_speedup}")
-            else:
-                logger.info("No test evaluation metrics available, will use N/A in summary")
 
-            logger.info(f"Recording test speedup ({test_speedup}) to summary file.")
-            update_summary_json(summary_file_env, task_name, desired_model_name, test_speedup)
+            if test_speedup is not None and math.isfinite(test_speedup):
+                logger.info(f"Recording test speedup ({test_speedup}) to summary file.")
+                update_summary_json(summary_file_env, task_name, desired_model_name, test_speedup)
+            else:
+                final_eval_success = getattr(llm_interface, "_final_eval_success", None)
+                final_eval_error = getattr(llm_interface, "_final_eval_error", None)
+                reason = (
+                    final_eval_error
+                    or ("final_evaluation_failed" if final_eval_success is False else "missing_metrics")
+                )
+                logger.warning(
+                    "No valid final speedup available; skipping summary update and recording failure instead."
+                )
+                update_failure_json(
+                    failure_file_env,
+                    task_name,
+                    desired_model_name,
+                    reason=str(reason),
+                    details=f"final_eval_success={final_eval_success}",
+                )
         else:
             logger.warning("Skipping summary file update because SUMMARY_FILE env var was not set.")
 
@@ -396,11 +462,15 @@ def main():
                 else:
                     memory_info = "Memory limit exceeded"
 
-                # Record failure in summary with context
-                update_summary_json(
-                    summary_file_env, task_name, desired_model_name, None, error=memory_info
+                failure_file_env = str(Path(summary_file_env).with_name("agent_failures.json"))
+                update_failure_json(
+                    failure_file_env,
+                    task_name,
+                    desired_model_name,
+                    reason=memory_info,
+                    details="memory_error",
                 )
-                logger.info("Saved memory error to summary file")
+                logger.info("Saved memory error to failure file")
             except Exception as save_error:
                 logger.error(f"Could not save error to summary: {save_error}")
 
@@ -423,10 +493,15 @@ def main():
                 else:
                     error_info = f"Error ({error_type})"
 
-                update_summary_json(
-                    summary_file_env, task_name, desired_model_name, None, error=error_info
+                failure_file_env = str(Path(summary_file_env).with_name("agent_failures.json"))
+                update_failure_json(
+                    failure_file_env,
+                    task_name,
+                    desired_model_name,
+                    reason=error_info,
+                    details=error_msg,
                 )
-                logger.info(f"Saved error status to summary file: {error_info}")
+                logger.info(f"Saved error status to failure file: {error_info}")
             except Exception as save_error:
                 logger.error(f"Could not save error to summary: {save_error}")
 

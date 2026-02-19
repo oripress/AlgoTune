@@ -44,8 +44,15 @@ try:
     with open(sys.argv[1], 'r') as f:
         config = yaml.safe_load(f)
     models = list(config.get('models', {}).keys())
-    # Display numbered from bottom to top (reverse order)
-    for i, model in enumerate(reversed(models), 1):
+    # Display numbered from bottom to top (reverse order),
+    # but pin Gemini 3.1 Pro Preview to the top of the menu.
+    ordered_models = list(reversed(models))
+    preferred_first = 'openrouter/google/gemini-3.1-pro-preview'
+    if preferred_first in ordered_models:
+        ordered_models.remove(preferred_first)
+        ordered_models.insert(0, preferred_first)
+
+    for i, model in enumerate(ordered_models, 1):
         # Strip openrouter/provider/ prefix for display
         display_name = model.split('/')[-1] if '/' in model else model
         model_cfg = config.get('models', {}).get(model, {})

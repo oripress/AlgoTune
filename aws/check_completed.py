@@ -72,7 +72,17 @@ def get_completed_tasks(model_name, summary_file="reports/agent_summary.json", i
                     if include_na:
                         completed.add(task_name)
                 else:
-                    completed.add(task_name)
+                    # Treat explicit error-like markers as not completed so they can be retried.
+                    if isinstance(speedup, str):
+                        lowered = speedup.strip().lower()
+                        if lowered in {"error", "failed", "failure"}:
+                            continue
+                    # Accept numeric speedup values only.
+                    try:
+                        float(speedup)
+                        completed.add(task_name)
+                    except (TypeError, ValueError):
+                        continue
 
     return completed, na_tasks
 
