@@ -331,6 +331,45 @@ class LLMInterface(base_interface.BaseLLMInterface):
         """Check if any limits have been reached."""
         return self.spend_tracker.check_limits()
 
+    @staticmethod
+    def _is_malformed_provider_response_error(error: Exception) -> bool:
+        """Return True for known malformed tool/function-call response signatures."""
+        error_str = str(error).lower()
+        malformed_patterns = [
+            "invalid response object",
+            "malformed_function_call",
+            "malformed function call",
+            "finish_reason",
+            "input_value='error'",
+            "openrouterexception",
+        ]
+        return any(pattern in error_str for pattern in malformed_patterns)
+
+    def _inject_malformed_response_feedback(self, relevant_messages: list[dict[str, str]]) -> None:
+        """
+        Add a corrective user hint to guide the model back to command-only text output.
+        Appends to both persistent history and the local retry message list.
+        """
+        corrective_prompt = (
+            "Your last reply was malformed for this API gateway. "
+            "Use only AlgoTune commands in exactly one command block. "
+            "Do not emit tool/function calls, tool metadata, or JSON tool payloads. "
+            "Return a single valid command block now."
+        )
+
+        last_message = self.state.messages[-1] if self.state.messages else None
+        if (
+            isinstance(last_message, dict)
+            and last_message.get("role") == "user"
+            and last_message.get("content") == corrective_prompt
+        ):
+            return
+
+        self.message_handler.add_message("user", corrective_prompt)
+        if relevant_messages is not self.state.messages:
+            relevant_messages.append({"role": "user", "content": corrective_prompt})
+        logging.warning("Injected corrective feedback after malformed provider response.")
+
     def get_message_history(self):
         """Get the current message history."""
         return self.message_handler.get_message_history()
@@ -455,11 +494,22 @@ class LLMInterface(base_interface.BaseLLMInterface):
                 base_delay = 2.0
 
                 response = None
+                malformed_feedback_injections = 0
+                max_malformed_feedback_injections = 5
                 for attempt in range(max_retries):
                     try:
                         response = self.model.query(relevant_messages)
                         break
                     except (RateLimitError, APIError, APIConnectionError) as e:
+                        if self._is_malformed_provider_response_error(e):
+                            if malformed_feedback_injections < max_malformed_feedback_injections:
+                                self._inject_malformed_response_feedback(relevant_messages)
+                                malformed_feedback_injections += 1
+                            else:
+                                logging.warning(
+                                    "Malformed provider response persisted after feedback injections."
+                                )
+
                         # Check for non-retryable payment/quota errors
                         error_str = str(e).lower()
                         non_retryable_patterns = [

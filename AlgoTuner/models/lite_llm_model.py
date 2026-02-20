@@ -2,6 +2,7 @@ import logging
 import os
 import random
 import time
+from typing import Any
 
 import litellm
 from litellm.exceptions import APIConnectionError, APIError, InternalServerError, RateLimitError, Timeout
@@ -11,6 +12,14 @@ from AlgoTuner.utils.message_writer import MessageWriter
 
 
 class LiteLLMModel:
+    _TOOL_RELATED_KEYS = {
+        "tools",
+        "tool_choice",
+        "parallel_tool_calls",
+        "functions",
+        "function_call",
+    }
+
     def __init__(self, model_name: str, api_key: str, drop_call_params: bool = False, **kwargs):
         self.model_name = model_name
         self.api_key = api_key
@@ -43,6 +52,28 @@ class LiteLLMModel:
         base_name = self.model_name.split("/")[-1].lower()
         responses_prefixes = ("o1", "o3", "o4", "gpt-5")
         return any(base_name.startswith(prefix) for prefix in responses_prefixes)
+
+    def _enforce_text_only_request_params(self, completion_params: dict[str, Any]) -> None:
+        """Remove tool/function call payload keys so requests stay command-text only."""
+        removed_keys: list[str] = []
+
+        for key in self._TOOL_RELATED_KEYS:
+            if key in completion_params:
+                completion_params.pop(key, None)
+                removed_keys.append(key)
+
+        nested_extra_body = completion_params.get("extra_body")
+        if isinstance(nested_extra_body, dict):
+            for key in self._TOOL_RELATED_KEYS:
+                if key in nested_extra_body:
+                    nested_extra_body.pop(key, None)
+                    removed_keys.append(f"extra_body.{key}")
+
+        if removed_keys:
+            logging.warning(
+                "Removed tool/function params from LiteLLM request to enforce text-only mode: %s",
+                sorted(set(removed_keys)),
+            )
 
     def query(self, messages: list[dict[str, str]]) -> dict:
         # Retry configuration
@@ -536,6 +567,9 @@ class LiteLLMModel:
             # Add extra_body if present
             if extra_body:
                 completion_params["extra_body"] = extra_body
+
+            # Guardrail: this agent only supports command-text responses (no tool/function payloads).
+            self._enforce_text_only_request_params(completion_params)
 
             response = litellm.completion(
                 **completion_params, drop_params=self.drop_call_params, **extra_params
