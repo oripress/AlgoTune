@@ -16,7 +16,7 @@ from pathlib import Path
 
 import boto3
 from dotenv import load_dotenv
-from download_logs import cleanup_failed_logs, download_job_logs
+from download_logs import cleanup_failed_logs, download_job_logs, sync_agent_summary_from_local_logs
 
 
 # Load environment from both .env files
@@ -548,6 +548,8 @@ def monitor_jobs(
             if sync_logs and s3_client and s3_bucket:
                 for job_id in job_ids:
                     download_job_logs(s3_client, s3_bucket, job_id, output_dir)
+                if summary_file:
+                    sync_agent_summary_from_local_logs(Path(output_dir), Path(summary_file))
             if cleanup_failed and summary_file:
                 cleanup_failed_logs(Path(output_dir), Path(summary_file))
 

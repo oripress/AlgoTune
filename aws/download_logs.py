@@ -12,6 +12,7 @@ import re
 import sys
 import time
 from pathlib import Path
+from typing import Optional
 
 import boto3
 from dotenv import load_dotenv
@@ -23,9 +24,16 @@ load_dotenv(aws_dotenv)
 
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parents[1]
 
-MODEL_RE = re.compile(r"model[:=]\\s*([\\w./-]+)")
+MODEL_RE = re.compile(r"model[:=]\s*([\w./-]+)")
 TASK_RE = re.compile(r"task_name to raw '([^']+)'")
-LOG_NAME_RE = re.compile(r"^(?P<task>.+)_(?P<model>.+)_(?P<stamp>\\d{8}_\\d{6})\\.log$")
+LOG_NAME_RE = re.compile(r"^(?P<task>.+)_(?P<model>.+)_(?P<stamp>\d{8}_\d{6})\.log$")
+SUMMARY_SPEEDUP_PATTERNS = [
+    re.compile(r"Using test dataset speedup for summary:\s*(None|N/?A|[0-9]+(?:\.[0-9]+)?)", re.I),
+    re.compile(r"Recording test speedup \((None|N/?A|[0-9]+(?:\.[0-9]+)?)\)", re.I),
+    re.compile(r"Final Test Speedup \(mean\):\s*(None|N/?A|[0-9]+(?:\.[0-9]+)?)", re.I),
+    re.compile(r"Final Test Speedup:\s*(None|N/?A|[0-9]+(?:\.[0-9]+)?)", re.I),
+    re.compile(r"Final Test Performance:\s*Speedup:\s*(None|N/?A|[0-9]+(?:\.[0-9]+)?)(?:x)?", re.I),
+]
 
 
 def acquire_lock(lock_path: Path, timeout: float = 30.0) -> bool:
@@ -82,6 +90,124 @@ def load_agent_summary(summary_path: Path) -> dict:
         return data if isinstance(data, dict) else {}
     except Exception:
         return {}
+
+
+def _normalize_speedup_token(token: str) -> str:
+    token = token.strip()
+    if token.lower() in {"none", "n/a", "na"}:
+        return "N/A"
+    try:
+        return f"{float(token):.5f}"
+    except Exception:
+        return "N/A"
+
+
+def extract_summary_speedup_from_log(log_path: Path) -> tuple[bool, str]:
+    """Extract the test speedup signal that should be written to agent_summary."""
+    try:
+        with log_path.open("r", encoding="utf-8", errors="ignore") as handle:
+            lines = handle.readlines()
+    except Exception:
+        return False, "N/A"
+
+    tail_lines = lines[-3000:] if len(lines) > 3000 else lines
+    for line in reversed(tail_lines):
+        for pattern in SUMMARY_SPEEDUP_PATTERNS:
+            match = pattern.search(line)
+            if match:
+                return True, _normalize_speedup_token(match.group(1))
+
+    # Fallback: explicit failure markers imply N/A for summary.
+    failure_markers = (
+        "No valid final speedup available; skipping summary update",
+        "Critical execution error encountered",
+    )
+    if any(marker in line for line in tail_lines for marker in failure_markers):
+        return True, "N/A"
+
+    return False, "N/A"
+
+
+def _find_existing_model_key(task_entry: dict, model: str) -> str:
+    if model in task_entry:
+        return model
+    normalized = normalize_model_name(model)
+    for key in task_entry.keys():
+        if normalize_model_name(key) == normalized:
+            return key
+    return model
+
+
+def sync_agent_summary_from_local_logs(
+    project_root: Path, summary_path: Optional[Path] = None
+) -> tuple[int, int]:
+    """
+    Synchronize reports/agent_summary.json from local logs.
+    Local logs are treated as the source of truth for test speedups.
+    """
+    project_root = Path(project_root)
+    logs_dir = project_root / "logs"
+    if summary_path is None:
+        summary_path = project_root / "reports" / "agent_summary.json"
+    summary_path = Path(summary_path)
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if not logs_dir.exists():
+        return 0, 0
+
+    latest_logs: dict[tuple[str, str], tuple[str, Path]] = {}
+    for log_path in logs_dir.glob("*.log"):
+        task, model, stamp = parse_log_name(log_path.name)
+        if not task or not model:
+            continue
+        pair = (task, normalize_model_name(model))
+        existing = latest_logs.get(pair)
+        if existing is None or stamp > existing[0]:
+            latest_logs[pair] = (stamp, log_path)
+
+    lock_path = summary_path.with_suffix(".json.lock")
+    if not acquire_lock(lock_path):
+        print(f"Warning: Could not acquire summary lock {lock_path}", file=sys.stderr)
+        return 0, 0
+
+    updated = 0
+    unresolved = 0
+    try:
+        summary = load_agent_summary(summary_path)
+        if not isinstance(summary, dict):
+            summary = {}
+
+        for (task, model), (_, log_path) in latest_logs.items():
+            found, speedup = extract_summary_speedup_from_log(log_path)
+            if not found:
+                unresolved += 1
+                continue
+
+            task_entry = summary.setdefault(task, {})
+            if not isinstance(task_entry, dict):
+                task_entry = {}
+                summary[task] = task_entry
+
+            model_key = _find_existing_model_key(task_entry, model)
+            model_entry = task_entry.get(model_key)
+            if not isinstance(model_entry, dict):
+                model_entry = {}
+
+            current = model_entry.get("final_speedup", "N/A")
+            if current != speedup:
+                model_entry["final_speedup"] = speedup
+                task_entry[model_key] = model_entry
+                updated += 1
+
+        if updated > 0:
+            temp_path = summary_path.with_suffix(summary_path.suffix + ".tmp")
+            with temp_path.open("w", encoding="utf-8") as handle:
+                json.dump(summary, handle, indent=2, sort_keys=True)
+            os.replace(temp_path, summary_path)
+    finally:
+        release_lock(lock_path)
+
+    return updated, unresolved
 
 
 def extract_task_model_from_log(log_path: Path):
@@ -460,11 +586,10 @@ def download_job_logs(s3_client, bucket, job_id, project_root="."):
                     job_map[job_id] = entry
                     save_job_map(job_map_path, job_map)
             elif relative_path == "agent_summary.json":
-                temp_path = reports_dir / f"agent_summary_{job_id}.json"
-                s3_client.download_file(bucket, key, str(temp_path))
-                merge_agent_summary(reports_dir / "agent_summary.json", temp_path)
-                temp_path.unlink(missing_ok=True)
-                continue
+                # Keep per-job snapshots for auditing, but do not merge remote summary
+                # into local canonical summary. Local logs are the source of truth.
+                reports_dir.mkdir(parents=True, exist_ok=True)
+                local_path = reports_dir / f"agent_summary_{job_id}.json"
             elif relative_path == "summary.json":
                 reports_dir.mkdir(parents=True, exist_ok=True)
                 local_path = reports_dir / f"summary_{job_id}.json"
@@ -577,6 +702,14 @@ def main():
 
     # Validate arguments
     if args.prune_local:
+        updated, unresolved = sync_agent_summary_from_local_logs(
+            Path(args.output_dir), Path(args.summary_file)
+        )
+        if updated:
+            noun = "entry" if updated == 1 else "entries"
+            print(f"Synchronized {updated} summary {noun} from local logs")
+        if unresolved:
+            print(f"Warning: {unresolved} latest log(s) had no parseable test speedup signal")
         removed = cleanup_failed_logs(Path(args.output_dir), Path(args.summary_file))
         print(f"Pruned {removed} local file(s)")
         return
@@ -632,6 +765,16 @@ def main():
                     print(f"  {filename}")
             else:
                 print("No new files to download")
+
+        # Canonicalize summary from local logs after each sync cycle.
+        updated, unresolved = sync_agent_summary_from_local_logs(
+            Path(args.output_dir), Path(args.summary_file)
+        )
+        if updated:
+            noun = "entry" if updated == 1 else "entries"
+            print(f"Synchronized {updated} summary {noun} from local logs")
+        if unresolved:
+            print(f"Warning: {unresolved} latest log(s) had no parseable test speedup signal")
 
         # Cleanup after download (if requested)
         if args.cleanup_failed:
