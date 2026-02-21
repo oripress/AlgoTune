@@ -114,6 +114,7 @@ def clean_model_name(raw_model_name):
         "gemini-2.5-pro": "Gemini 2.5 Pro",
         "gemini-3-flash-preview": "Gemini 3 Flash Preview",
         "gemini-3-pro-preview": "Gemini 3 Pro Preview",
+        "gemini-3.1-pro-preview": "Gemini 3.1 Pro Preview",
         # DeepSeek models
         "DeepSeek-R1": "DeepSeek R1",
         "deepseek-ai/DeepSeek-R1": "DeepSeek R1",
@@ -127,6 +128,8 @@ def clean_model_name(raw_model_name):
         "claude-opus-4-1-20250805": "Claude Opus 4.1",
         "anthropic/claude-opus-4-1-20250805": "Claude Opus 4.1",
         "claude-opus-4.5": "Claude Opus 4.5",
+        "claude-opus-4.6": "Claude Opus 4.6",
+        "anthropic/claude-opus-4.6": "Claude Opus 4.6",
         "claude-3-5-sonnet-20241022": "Claude 3.5 Sonnet",
         "claude-3-7-sonnet-20250219": "Claude 3.7 Sonnet",
         "claude-sonnet-4-5-20250929": "Claude Sonnet 4.5",
@@ -142,7 +145,7 @@ def clean_model_name(raw_model_name):
         "gpt-5-mini": "GPT-5 Mini",  # Check gpt-5-mini BEFORE gpt-5
         "gpt-5": "GPT-5",
         "gpt-5-pro": "GPT-5 Pro (medium)",
-        "gpt-5.2": "GPT-5.2 (medium)",
+        "gpt-5.2": "GPT-5.2",
         "gpt-oss-120b": "GPT-OSS-120B",
         # OpenAI o-series
         "o3": "o3",
@@ -209,6 +212,7 @@ def get_model_logo(clean_model_name):
         "Claude Opus 4": "claude_logo.png",
         "Claude Opus 4.1": "claude_logo.png",
         "Claude Opus 4.5": "claude_logo.png",
+        "Claude Opus 4.6": "claude_logo.png",
         "Claude 3.5 Sonnet": "claude_logo.png",
         "Claude 3.7 Sonnet": "claude_logo.png",
         "Claude Sonnet 4.5": "claude_logo.png",
@@ -218,6 +222,7 @@ def get_model_logo(clean_model_name):
         "Gemini 2.5 Pro 0605": "gemini_logo.png",
         "Gemini 3 Flash Preview": "gemini_logo.png",
         "Gemini 3 Pro Preview": "gemini_logo.png",
+        "Gemini 3.1 Pro Preview": "gemini_logo.png",
         "o3": "openai_logo.png",
         "o4-mini": "openai_logo.png",
         "GPT-4o Mini": "openai_logo.png",
@@ -225,6 +230,7 @@ def get_model_logo(clean_model_name):
         "GPT-5": "openai_logo.png",
         "GPT-5 Mini": "openai_logo.png",
         "GPT-5 Pro": "openai_logo.png",
+        "GPT-5 Pro (medium)": "openai_logo.png",
         "GPT-5.2": "openai_logo.png",
         "GPT-OSS-120B": "openai_logo.png",
         "Qwen3 Coder": "qwen_logo.png",
@@ -462,6 +468,8 @@ def parse_log_file(filepath):
         known_models = [
             "claude-opus-4-1-20250805",
             "claude-opus-4-20250514",
+            "claude-opus-4.6",
+            "gemini-3.1-pro-preview",
             "gemini-2.5-pro-preview",
             "deepseek-reasoner",
             "gemini-2.5-pro",
@@ -2126,7 +2134,11 @@ def generate_single_log_html(data, all_data=None):
 
             runs_html = ""
             for log in all_task_logs:
-                clean_filename = f"{log['task_name']}_{log['model_name'].replace('/', '_').replace(' ', '_')}.html"
+                clean_filename = log.get("html_filename")
+                if not clean_filename:
+                    clean_filename = (
+                        f"{log['task_name']}_{log['model_name'].replace('/', '_').replace(' ', '_')}.html"
+                    )
 
                 # Determine display score with lower bound 1x for color and text
                 if log["final_test_score"] is not None:
@@ -3706,6 +3718,13 @@ def generate_index_html_content(tasks_data, all_data):
 </head>
 <body>
 
+    <!-- Job Market Banner -->
+    <div class="job-market-banner">
+        <div class="banner-content">
+            ✨ New: AlgoTune can now be easily run on AWS with just an OpenRouter API key and AWS credentials. <a href="https://github.com/oripress/AlgoTune#running-on-aws" target="_blank" rel="noopener noreferrer">Try it out!</a>
+        </div>
+    </div>
+
     <header class="header-section">
         <div class="header-content">
             <div class="algotune-banner">
@@ -3754,11 +3773,16 @@ def generate_index_html_content(tasks_data, all_data):
             
             <div class="buttons-container"> 
                 <a href="https://arxiv.org/abs/2507.15887" target="_blank" class="button">
-                    <i class="fas fa-file-pdf"></i> Paper
+                    <img src="assets/arxiv_logo.png" alt="arXiv logo" class="button-logo">&nbsp;&nbsp;Paper
                 </a>
                 <a href="https://github.com/oripress/AlgoTune" target="_blank" class="button">
                     <i class="fab fa-github"></i> Code
                 </a>
+                <!--
+                <a href="https://huggingface.co/datasets/oripress/AlgoTune" target="_blank" class="button">
+                    <img src="assets/huggingface_logo.png" alt="Hugging Face logo" class="button-logo">&nbsp;&nbsp;Dataset
+                </a>
+                -->
             </div>
         </div>
     </header>
@@ -3784,15 +3808,10 @@ def generate_index_html_content(tasks_data, all_data):
         <div class="tables-content">
             <h2 class="tables-heading" id="leaderboard"><a href="#leaderboard">Leaderboard</a></h2>
             
-            <p class="overview-text">
-                We use our agent, called AlgoTuner, to optimize functions in AlgoTune, using ten state-of-the-art models. 
-                AlgoTuner, using these models, is able to achieve impressive surface-level speedups on many tasks, but is unable to come up with novel algorithms.
-            </p>
-            
             {model_summary_html}
             
             <p class="overview-text" style="margin-top: 20px; text-align: left;">
-                The AlgoTune score for each model is the harmonic mean of its speedups across all AlgoTune tasks. In the table at the bottom of this page, you can find the speedups achieved by each model on each AlgoTune task.
+                The AlgoTune score for each model is the harmonic mean of its speedups across all AlgoTune tasks using the AlgoTuner agent. In the table at the bottom of this page, you can find the speedups achieved by each model on each AlgoTune task.
             </p>
         </div>
     </section>
@@ -4152,7 +4171,11 @@ def generate_task_summary_table(tasks_data):
         for i in range(4):
             if i < len(all_logs_sorted):
                 log = all_logs_sorted[i]
-                clean_filename = f"{log['task_name']}_{log['model_name'].replace('/', '_').replace(' ', '_')}.html"
+                clean_filename = log.get("html_filename")
+                if not clean_filename:
+                    clean_filename = (
+                        f"{log['task_name']}_{log['model_name'].replace('/', '_').replace(' ', '_')}.html"
+                    )
 
                 # Determine display text and color
                 if log["final_test_score"] is not None:
@@ -4212,9 +4235,11 @@ def generate_task_summary_table(tasks_data):
 
         for i in range(len(all_logs_sorted)):
             log = all_logs_sorted[i]
-            clean_filename = (
-                f"{log['task_name']}_{log['model_name'].replace('/', '_').replace(' ', '_')}.html"
-            )
+            clean_filename = log.get("html_filename")
+            if not clean_filename:
+                clean_filename = (
+                    f"{log['task_name']}_{log['model_name'].replace('/', '_').replace(' ', '_')}.html"
+                )
             score_color = get_speedup_color(log["final_test_score"])
 
             clean_model = clean_model_name(log["model_name"])
