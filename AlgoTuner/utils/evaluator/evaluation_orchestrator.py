@@ -54,6 +54,11 @@ class EvaluationOrchestrator:
 
         self.logger.info("Initialized evaluation orchestrator")
 
+    @staticmethod
+    def _capture_expected_is_solution_method(task_instance: Any) -> Any | None:
+        method = getattr(task_instance, "is_solution", None)
+        return method if callable(method) else None
+
     def evaluate_dataset(
         self,
         task_instance: Any,
@@ -319,6 +324,8 @@ class EvaluationOrchestrator:
         """
         self.logger.debug(f"Evaluating problem {problem_id}")
 
+        expected_is_solution_method = self._capture_expected_is_solution_method(task_instance)
+
         # Step 1: Execute solver
         execution_result = self.executor.execute(
             solver_func=solver_func,
@@ -339,6 +346,7 @@ class EvaluationOrchestrator:
                 problem=problem,
                 solution=execution_result.output,
                 capture_context=True,
+                expected_is_solution_method=expected_is_solution_method,
             )
             self.logger.info(
                 f"Validation complete for {problem_id}: is_valid={validation_result.is_valid}"

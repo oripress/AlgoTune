@@ -5,6 +5,8 @@ This validator runs during the edit phase to prevent monkey-patching
 of standard library functions before the code is executed.
 """
 
+from __future__ import annotations
+
 import ast
 import logging
 import re
@@ -85,6 +87,14 @@ class TamperingDetector(ast.NodeVisitor):
         "sys.modules",
     }
 
+    # Runtime code-evasion primitives we do not allow in solver code.
+    DISALLOWED_CALLS = {
+        "exec",
+        "eval",
+        "compile",
+        "gc.get_objects",
+    }
+
     def __init__(self):
         self.violations = []
 
@@ -103,8 +113,95 @@ class TamperingDetector(ast.NodeVisitor):
             self.violations.append(violation)
         self.generic_visit(node)
 
+    def visit_Subscript(self, node):
+        module_name = self._get_module_name(node.value)
+        if module_name == "sys.modules":
+            self.violations.append(
+                {
+                    "line": node.lineno,
+                    "type": "subscript",
+                    "module": "sys",
+                    "attribute": "modules",
+                    "code": "sys.modules[...]",
+                    "message": "Accessing sys.modules is not allowed in solver code.",
+                }
+            )
+        self.generic_visit(node)
+
+    def visit_Import(self, node):
+        for alias in node.names:
+            module_name = (alias.name or "").split(".", 1)[0]
+            if module_name == "ctypes":
+                self.violations.append(
+                    {
+                        "line": node.lineno,
+                        "type": "import",
+                        "module": "ctypes",
+                        "attribute": "<module>",
+                        "code": "import ctypes",
+                        "message": "Importing ctypes is not allowed in solver code.",
+                    }
+                )
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node):
+        module_name = (node.module or "").split(".", 1)[0]
+        if module_name == "ctypes":
+            self.violations.append(
+                {
+                    "line": node.lineno,
+                    "type": "import",
+                    "module": "ctypes",
+                    "attribute": "<module>",
+                    "code": f"from {node.module} import ...",
+                    "message": "Importing ctypes is not allowed in solver code.",
+                }
+            )
+        self.generic_visit(node)
+
     def visit_Call(self, node):
-        """Detect setattr() calls on protected modules."""
+        """Detect calls that attempt runtime tampering or code injection."""
+        func_name = self._get_module_name(node.func)
+        if func_name in self.DISALLOWED_CALLS:
+            self.violations.append(
+                {
+                    "line": node.lineno,
+                    "type": "call",
+                    "module": func_name.split(".", 1)[0],
+                    "attribute": func_name.split(".", 1)[-1],
+                    "code": f"{func_name}(...)",
+                    "message": f"Calling {func_name} is not allowed in solver code.",
+                }
+            )
+
+        if isinstance(node.func, ast.Name) and node.func.id == "__import__" and node.args:
+            first_arg = self._get_string_value(node.args[0])
+            if first_arg and first_arg.split(".", 1)[0] == "ctypes":
+                self.violations.append(
+                    {
+                        "line": node.lineno,
+                        "type": "dynamic_import",
+                        "module": "ctypes",
+                        "attribute": "<module>",
+                        "code": "__import__('ctypes')",
+                        "message": "Dynamically importing ctypes is not allowed in solver code.",
+                    }
+                )
+
+        # Detect direct sys.modules access used for broad monkey-patching.
+        if func_name and func_name.startswith("sys.modules"):
+            self.violations.append(
+                {
+                    "line": node.lineno,
+                    "type": "call",
+                    "module": "sys",
+                    "attribute": "modules",
+                    "code": f"{func_name}()",
+                    "message": "Accessing sys.modules is not allowed in solver code.",
+                }
+            )
+
+        # Detect setattr() calls on protected modules.
         if isinstance(node.func, ast.Name) and node.func.id == "setattr":
             if len(node.args) >= 2:
                 # Check if first arg is a protected module
@@ -118,6 +215,18 @@ class TamperingDetector(ast.NodeVisitor):
                             "module": module_name,
                             "attribute": attr_name or "<dynamic>",
                             "code": f"setattr({module_name}, ...)",
+                        }
+                    )
+                attr_name = self._get_string_value(node.args[1])
+                if attr_name == "is_solution":
+                    self.violations.append(
+                        {
+                            "line": node.lineno,
+                            "type": "setattr",
+                            "module": module_name or "<dynamic>",
+                            "attribute": "is_solution",
+                            "code": "setattr(..., 'is_solution', ...)",
+                            "message": "Overriding is_solution at runtime is not allowed.",
                         }
                     )
 
@@ -141,6 +250,15 @@ class TamperingDetector(ast.NodeVisitor):
         """Check if assignment target is a protected module attribute."""
         if isinstance(target, ast.Attribute):
             module_name = self._get_module_name(target.value)
+            if target.attr == "is_solution":
+                return {
+                    "line": lineno,
+                    "type": "assignment",
+                    "module": module_name or "<dynamic>",
+                    "attribute": "is_solution",
+                    "code": f"{module_name or '<dynamic>'}.is_solution = ...",
+                    "message": "Overriding is_solution at runtime is not allowed.",
+                }
             if module_name in self.PROTECTED_MODULES:
                 full_name = f"{module_name}.{target.attr}"
                 return {
@@ -246,12 +364,17 @@ def format_tampering_error(violations: list[dict], code_lines: list[str]) -> str
     for v in violations:
         line_num = v["line"]
         line_content = code_lines[line_num - 1].strip() if line_num <= len(code_lines) else ""
+        violation_msg = v.get(
+            "message", f"Tampering with {v.get('module', '<unknown>')}.{v.get('attribute', '')}"
+        )
 
         msg_parts.append(f"\nLine {line_num}: {line_content}")
-        msg_parts.append(f"  Tampering with {v['module']}.{v['attribute']} is not allowed")
+        msg_parts.append(f"  {violation_msg}")
         msg_parts.append(f"  Detected: {v['code']}")
 
-    msg_parts.append("\nMonkey-patching standard library functions is prohibited.")
+    msg_parts.append(
+        "\nOnly algorithmic solver logic is allowed. Runtime tampering, dynamic code injection, and harness introspection are prohibited."
+    )
     return "\n".join(msg_parts)
 
 
@@ -269,6 +392,11 @@ def check_code_for_tampering(code: str, filename: str = "solver.py") -> str | No
     violations = validate_code(code, filename)
 
     if violations:
+        logger.warning(
+            "SECURITY_VIOLATION: detected %d tampering violation(s) in %s",
+            len(violations),
+            filename,
+        )
         code_lines = code.split("\n")
         return format_tampering_error(violations, code_lines)
 

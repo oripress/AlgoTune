@@ -507,6 +507,7 @@ def _run_benchmark(
         # Extract problem from args for isolated benchmark
         problem = positional_args[0] if positional_args else None
         task_instance = getattr(func, "__self__", None)
+        expected_is_solution_method = _capture_expected_is_solution_method(task_instance)
         task_name = getattr(task_instance, "task_name", "unknown_task")
 
         # Get task directory
@@ -569,7 +570,12 @@ def _run_benchmark(
                     logging.info(
                         f"Running in-process validation for {func_name} (result will be stripped afterwards)"
                     )
-                    validation_result = _validate_solution(task_instance, problem, solver_result)
+                    validation_result = _validate_solution(
+                        task_instance,
+                        problem,
+                        solver_result,
+                        expected_is_solution_method=expected_is_solution_method,
+                    )
                     logging.info(
                         f"In-process validation completed: {validation_result.get('success', False)}"
                     )
@@ -835,8 +841,38 @@ class ValidationException(Exception):
         super().__init__(self.message)
 
 
+def _as_function(method: Any) -> Any:
+    """Return underlying function for bound methods, otherwise the object itself."""
+    return getattr(method, "__func__", method)
+
+
+def _capture_expected_is_solution_method(task_instance: Any) -> Any | None:
+    method = getattr(task_instance, "is_solution", None)
+    return method if callable(method) else None
+
+
+def _detect_is_solution_tampering(task_instance: Any, expected_method: Any | None) -> str | None:
+    """Return a security violation message when task_instance.is_solution was mutated."""
+    if expected_method is None:
+        return None
+
+    current_method = getattr(task_instance, "is_solution", None)
+    if not callable(current_method):
+        return "SECURITY_VIOLATION: task is_solution method is missing or non-callable"
+
+    if _as_function(current_method) is not _as_function(expected_method):
+        return "SECURITY_VIOLATION: task is_solution method was modified at runtime"
+
+    return None
+
+
 # Add a utility function to check solution using is_solution directly
-def _validate_solution(task_instance: Any, problem: Any, solution: Any) -> dict[str, Any]:
+def _validate_solution(
+    task_instance: Any,
+    problem: Any,
+    solution: Any,
+    expected_is_solution_method: Any | None = None,
+) -> dict[str, Any]:
     """
     Validate a solution against a problem using the task's is_solution method.
 
@@ -854,15 +890,27 @@ def _validate_solution(task_instance: Any, problem: Any, solution: Any) -> dict[
     """
     try:
         # Call the task's is_solution method to validate the solution
-        task_has_is_solution = hasattr(task_instance, "is_solution") and callable(
-            getattr(task_instance, "is_solution")
-        )
+        is_solution_method = expected_is_solution_method or getattr(task_instance, "is_solution", None)
+        task_has_is_solution = callable(is_solution_method)
         if not task_has_is_solution:
             return {
                 "success": False,
                 "is_critical_validation_error": True,
                 "error": "Task has no is_solution method",
                 "error_type": "validation_error",
+            }
+
+        tampering_error = _detect_is_solution_tampering(
+            task_instance,
+            expected_is_solution_method,
+        )
+        if tampering_error:
+            logging.error(tampering_error)
+            return {
+                "success": False,
+                "error_type": "invalid_solution",
+                "error": tampering_error,
+                "security_violation": True,
             }
 
         nonconcrete_reason = find_nonconcrete_solution(solution)
@@ -888,7 +936,7 @@ def _validate_solution(task_instance: Any, problem: Any, solution: Any) -> dict[
             except:
                 pass
 
-        is_valid = task_instance.is_solution(problem, solution)
+        is_valid = is_solution_method(problem, solution)
         logging.debug(
             f"[VALIDATION_DEBUG] task.is_solution returned: {is_valid} (type: {type(is_valid)})"
         )
@@ -1793,9 +1841,13 @@ def run_evaluation(
 
     # === Validation ===
     validation_result = None
+    expected_is_solution_method = _capture_expected_is_solution_method(task_instance)
     try:
         validation_result = _validate_solution(
-            task_instance, processed_problem, final_oracle_result
+            task_instance,
+            processed_problem,
+            final_oracle_result,
+            expected_is_solution_method=expected_is_solution_method,
         )
         t_now = time.perf_counter_ns()
         logging.info(f"Oracle Eval Timing: Validation took {(t_now - t_last) / 1e6:.2f}ms")
@@ -2233,10 +2285,14 @@ def run_oracle_evaluation(
 
     # === Validation ===
     validation_result = None
+    expected_is_solution_method = _capture_expected_is_solution_method(task_instance)
     if not skip_validation:
         try:
             validation_result = _validate_solution(
-                task_instance, processed_problem, final_oracle_result
+                task_instance,
+                processed_problem,
+                final_oracle_result,
+                expected_is_solution_method=expected_is_solution_method,
             )
             t_now = time.perf_counter_ns()
             logging.info(f"Oracle Eval Timing: Validation took {(t_now - t_last) / 1e6:.2f}ms")

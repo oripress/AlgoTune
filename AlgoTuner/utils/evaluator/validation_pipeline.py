@@ -16,6 +16,24 @@ from AlgoTuner.utils.evaluator.failure_analyzer import trace_is_solution_failure
 from AlgoTuner.utils.evaluator.solution_checks import find_nonconcrete_solution
 
 
+def _as_function(method: Any) -> Any:
+    return getattr(method, "__func__", method)
+
+
+def _detect_is_solution_tampering(task_instance: Any, expected_method: Any | None) -> str | None:
+    if expected_method is None:
+        return None
+
+    current_method = getattr(task_instance, "is_solution", None)
+    if not callable(current_method):
+        return "SECURITY_VIOLATION: task is_solution method is missing or non-callable"
+
+    if _as_function(current_method) is not _as_function(expected_method):
+        return "SECURITY_VIOLATION: task is_solution method was modified at runtime"
+
+    return None
+
+
 class ValidationPipeline:
     """Handles all solution validation in a single, consistent way."""
 
@@ -25,7 +43,12 @@ class ValidationPipeline:
         self._context_cache = {}  # Cache contexts by task instance id
 
     def validate(
-        self, task_instance: Any, problem: Any, solution: Any, capture_context: bool = True
+        self,
+        task_instance: Any,
+        problem: Any,
+        solution: Any,
+        capture_context: bool = True,
+        expected_is_solution_method: Any | None = None,
     ) -> ValidationResult:
         """
         Validate a solution against a problem.
@@ -92,7 +115,35 @@ class ValidationPipeline:
                     f"Solution structure: {type(solution)}, length: {len(solution) if hasattr(solution, '__len__') else 'N/A'}"
                 )
 
-            is_valid = task_instance.is_solution(problem, solution)
+            is_solution_method = expected_is_solution_method or getattr(
+                task_instance,
+                "is_solution",
+                None,
+            )
+            if not callable(is_solution_method):
+                return ValidationResult(
+                    is_valid=False,
+                    error_type=ErrorType.VALIDATION_ERROR,
+                    error_message="Task has no callable is_solution method",
+                    context=None,
+                    validation_time_ms=(time.perf_counter() - start_time) * 1000,
+                )
+
+            tampering_error = _detect_is_solution_tampering(
+                task_instance,
+                expected_is_solution_method,
+            )
+            if tampering_error:
+                self.logger.error(tampering_error)
+                return ValidationResult(
+                    is_valid=False,
+                    error_type=ErrorType.INVALID_SOLUTION,
+                    error_message=tampering_error,
+                    context=None,
+                    validation_time_ms=(time.perf_counter() - start_time) * 1000,
+                )
+
+            is_valid = is_solution_method(problem, solution)
             self.logger.info(f"Validation result: {is_valid}")
 
             # Convert to boolean explicitly

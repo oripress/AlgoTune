@@ -435,8 +435,9 @@ def main():
                     or ("final_evaluation_failed" if final_eval_success is False else "missing_metrics")
                 )
                 logger.warning(
-                    "No valid final speedup available; skipping summary update and recording failure instead."
+                    "No valid final speedup available; writing N/A to summary and recording failure."
                 )
+                update_summary_json(summary_file_env, task_name, desired_model_name, None)
                 update_failure_json(
                     failure_file_env,
                     task_name,
