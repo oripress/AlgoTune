@@ -23,7 +23,7 @@ class InterfaceState:
 
     spend: float = 0.0
     messages_sent: int = 0
-    messages: list[dict[str, str]] = None
+    messages: list[dict[str, Any]] = None
     _state_dict: dict[str, Any] = None
     editor_state: EditorState | None = None
 

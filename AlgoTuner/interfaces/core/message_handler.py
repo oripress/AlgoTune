@@ -20,6 +20,23 @@ class MessageHandler:
         self.message_lock = Lock()
         self.message_writer = MessageWriter()
 
+    @staticmethod
+    def _build_history_message(role: str, content: Any) -> dict[str, Any]:
+        """Normalize a stored history message while preserving assistant phase metadata."""
+        if isinstance(content, dict):
+            raw_content = content.get("content")
+            if raw_content is None:
+                raw_content = content.get("message", str(content))
+        else:
+            raw_content = content
+
+        message_to_append = {"role": role, "content": str(raw_content)}
+        phase = content.get("phase") if role == "assistant" and isinstance(content, dict) else None
+        if isinstance(phase, str) and phase:
+            message_to_append["phase"] = phase
+
+        return message_to_append
+
     def add_message(self, role: str, content: Any) -> None:
         """Add a message to history with proper formatting.
 
@@ -27,14 +44,12 @@ class MessageHandler:
             role: The role of the message sender ("user", "assistant", "system")
             content: The message content (can be string or dict)
         """
-        formatted_content = (
-            content.get("message", str(content)) if isinstance(content, dict) else str(content)
-        )
+        message_to_append = self._build_history_message(role, content)
+        formatted_content = message_to_append["content"]
 
         logging.info(f"Adding message - Role: {role}, Content: {formatted_content[:200]}...")
 
         with self.message_lock:
-            message_to_append = {"role": role, "content": formatted_content}
             self.interface.state.messages.append(message_to_append)
 
     def add_command_result(self, result: Any) -> None:
@@ -361,7 +376,7 @@ class MessageHandler:
             # Extract message from response
             try:
                 if isinstance(response, dict):
-                    message = response.get("message", "").strip()
+                    message = str(response.get("message", "")).strip()
                 else:
                     message = str(response).strip()
             except Exception as extract_error:
@@ -396,7 +411,7 @@ class MessageHandler:
             logging.info(f"Received from LLM:\n{message}")
 
             # Add the assistant's response to history
-            self.add_message("assistant", message)
+            self.add_message("assistant", response)
 
             # Log the updated budget status after response
             logging.debug(self.interface.format_spend_status())
@@ -453,7 +468,7 @@ class MessageHandler:
         else:
             return self.message_writer.format_error(error_message)
 
-    def get_message_history(self) -> list[dict[str, str]]:
+    def get_message_history(self) -> list[dict[str, Any]]:
         """Get the current message history."""
         return self.interface.state.messages.copy()
 
@@ -475,7 +490,7 @@ class MessageHandler:
 
     # --- Helper function for custom truncation ---
     def _prepare_truncated_history(
-        self, full_history: list[dict[str, str]], token_limit: int
+        self, full_history: list[dict[str, Any]], token_limit: int
     ) -> dict[str, Any]:
         """
         Prepares the message history for the LLM API call, applying custom truncation rules.

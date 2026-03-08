@@ -45,9 +45,9 @@ try:
         config = yaml.safe_load(f)
     models = list(config.get('models', {}).keys())
     # Display numbered from bottom to top (reverse order),
-    # but pin Gemini 3.1 Pro Preview to the top of the menu.
+    # but pin GPT-5.4 to the top of the menu.
     ordered_models = list(reversed(models))
-    preferred_first = 'openrouter/google/gemini-3.1-pro-preview'
+    preferred_first = 'openrouter/openai/gpt-5.4'
     if preferred_first in ordered_models:
         ordered_models.remove(preferred_first)
         ordered_models.insert(0, preferred_first)

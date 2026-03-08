@@ -345,7 +345,7 @@ class LLMInterface(base_interface.BaseLLMInterface):
         ]
         return any(pattern in error_str for pattern in malformed_patterns)
 
-    def _inject_malformed_response_feedback(self, relevant_messages: list[dict[str, str]]) -> None:
+    def _inject_malformed_response_feedback(self, relevant_messages: list[dict[str, Any]]) -> None:
         """
         Add a corrective user hint to guide the model back to command-only text output.
         Appends to both persistent history and the local retry message list.
@@ -558,7 +558,7 @@ class LLMInterface(base_interface.BaseLLMInterface):
                     logging.error(f"Invalid response type: {type(response)}, expected dict")
                     return None
 
-                assistant_message = response.get("message", "").strip()
+                assistant_message = str(response.get("message", "")).strip()
                 cost = response.get("cost")
                 if cost is None and "usage" in response:
                     cost = response["usage"].get("cost")
@@ -573,7 +573,12 @@ class LLMInterface(base_interface.BaseLLMInterface):
                     except Exception as spend_error:
                         logging.error(f"Error updating spend: {spend_error}")
 
-                return assistant_message
+                response_payload = {"message": assistant_message}
+                phase = response.get("phase")
+                if isinstance(phase, str) and phase:
+                    response_payload["phase"] = phase
+
+                return response_payload
 
             except Exception as e:
                 logging.error(f"Exception in get_response: {e}")
@@ -921,12 +926,15 @@ class LLMInterface(base_interface.BaseLLMInterface):
                 consecutive_empty_responses = 0
 
                 # Ensure we have a string response
-                if isinstance(response, dict):
-                    response = response.get("message", "").strip()
+                response_message = (
+                    str(response.get("message", "")).strip()
+                    if isinstance(response, dict)
+                    else str(response).strip()
+                )
 
                 # Check for API or rate-limit errors
-                if "API Error" in response or "Rate limit exceeded" in response:
-                    logging.error(self.message_writer.format_api_error(response))
+                if "API Error" in response_message or "Rate limit exceeded" in response_message:
+                    logging.error(self.message_writer.format_api_error(response_message))
                     should_terminate = True
                     break
 
@@ -934,7 +942,7 @@ class LLMInterface(base_interface.BaseLLMInterface):
                 self.message_handler.add_message("assistant", response)
 
                 # Handle the command and get result
-                output = self.handle_function_call(response)
+                output = self.handle_function_call(response_message)
                 if output is not None:
                     # Store the command result in history
                     self.message_handler.add_command_result(output)
@@ -1011,9 +1019,15 @@ class LLMInterface(base_interface.BaseLLMInterface):
                 consecutive_empty_responses = 0
 
                 # Check for API errors
-                if "API Error" in response or "Rate limit exceeded" in response:
-                    api_error = response
-                    logging.error(self.message_writer.format_api_error(response))
+                response_message = (
+                    str(response.get("message", "")).strip()
+                    if isinstance(response, dict)
+                    else str(response).strip()
+                )
+
+                if "API Error" in response_message or "Rate limit exceeded" in response_message:
+                    api_error = response_message
+                    logging.error(self.message_writer.format_api_error(response_message))
                     should_terminate = True
                     break
 
@@ -1021,7 +1035,7 @@ class LLMInterface(base_interface.BaseLLMInterface):
                 self.message_handler.add_message("assistant", response)
 
                 # Handle the command and get result
-                output = self.handle_function_call(response)
+                output = self.handle_function_call(response_message)
                 if output is not None:
                     # Store the command result in history
                     self.message_handler.add_command_result(output)

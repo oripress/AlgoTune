@@ -75,7 +75,7 @@ class LiteLLMModel:
                 sorted(set(removed_keys)),
             )
 
-    def query(self, messages: list[dict[str, str]]) -> dict:
+    def query(self, messages: list[dict[str, Any]]) -> dict:
         # Retry configuration
         max_retries = 5
         base_delay = 2.0
@@ -331,7 +331,7 @@ class LiteLLMModel:
                 pass
         return 600
 
-    def _execute_query(self, messages: list[dict[str, str]]) -> dict:
+    def _execute_query(self, messages: list[dict[str, Any]]) -> dict:
         try:
             # Debug logging of context
             if len(messages) > 1:
@@ -585,6 +585,10 @@ class LiteLLMModel:
                     return {"message": "", "cost": cost}
 
                 message = choices[0].get("message", {})
+                phase = message.get("phase")
+                logging.info(
+                    "Raw LLM response phase field for %s: %r", self.model_name, phase
+                )
                 content = message.get("content")
 
                 if content is None or not content.strip():
@@ -593,7 +597,11 @@ class LiteLLMModel:
                     )
                     return {"message": "", "cost": cost}
 
-                return {"message": content.strip(), "cost": cost}
+                response_payload = {"message": content.strip(), "cost": cost}
+                if isinstance(phase, str) and phase:
+                    response_payload["phase"] = phase
+
+                return response_payload
 
             except (AttributeError, IndexError, KeyError) as e:
                 logging.warning(
