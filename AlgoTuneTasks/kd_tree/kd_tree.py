@@ -245,62 +245,100 @@ class KDTree(Task):
             logging.error("Negative distances found.")
             return False
 
-        # Deterministic sampling keeps validation stable across runs while scaling to large inputs.
-        rng = np.random.default_rng(0)
-        sample_size = min(64, n_queries)
-        if sample_size == n_queries:
-            sample_idx = np.arange(n_queries, dtype=int)
-        else:
-            sample_idx = rng.choice(n_queries, sample_size, replace=False)
+        exact_index = faiss.IndexFlatL2(dim)
+        exact_index.add(points.astype(np.float32))
 
-        # Reject degenerate rows with repeated neighbor ids (common shortcut pattern).
-        if k > 1 and n_queries > 0:
-            sorted_idx = np.sort(indices, axis=1)
-            dup_rows = np.where(np.any(np.diff(sorted_idx, axis=1) == 0, axis=1))[0]
-            if dup_rows.size > 0:
-                logging.error(f"Duplicate neighbor indices detected for query {int(dup_rows[0])}.")
-                return False
+        def _validate_neighbor_block(
+            query_points: np.ndarray,
+            candidate_indices: np.ndarray,
+            candidate_distances: np.ndarray,
+            block_name: str,
+        ) -> bool:
+            num_query_points = len(query_points)
 
-        # Validate reported squared distances for all neighbors on sampled queries.
-        for i in sample_idx:
-            row_indices = indices[i]
-            computed = np.sum((points[row_indices] - queries[i]) ** 2, axis=1)
-            if not np.allclose(computed, distances[i], rtol=1e-4, atol=1e-4):
-                max_abs = float(np.max(np.abs(computed - distances[i])))
+            if candidate_indices.shape != (num_query_points, k):
                 logging.error(
-                    f"Distance mismatch for query {int(i)}. Max absolute error: {max_abs:.6g}"
+                    f"{block_name} indices shape incorrect. Expected {(num_query_points, k)}, "
+                    f"got {candidate_indices.shape}."
                 )
                 return False
-
-        # Distances must be sorted in ascending order for every query row.
-        if n_queries > 0 and k > 1:
-            unsorted_rows = np.where(np.any(np.diff(distances, axis=1) < -1e-5, axis=1))[0]
-            if unsorted_rows.size > 0:
-                logging.error(f"Distances not sorted ascending for query {int(unsorted_rows[0])}.")
+            if candidate_distances.shape != (num_query_points, k):
+                logging.error(
+                    f"{block_name} distances shape incorrect. Expected {(num_query_points, k)}, "
+                    f"got {candidate_distances.shape}."
+                )
                 return False
+            try:
+                if np.any((candidate_indices < 0) | (candidate_indices >= n_points)):
+                    logging.error(f"{block_name} indices out of valid range.")
+                    return False
+            except Exception as e:
+                logging.error(f"Failed to validate {block_name} index range: {e}")
+                return False
+            if np.any(candidate_distances < 0):
+                logging.error(f"Negative {block_name} distances found.")
+                return False
+            if num_query_points == 0 or k == 0:
+                return True
 
-        # Require nearest-neighbor recall for sampled queries across all dimensions.
-        if k > 0 and n_queries > 0:
-            min_recall = 0.95 if dim <= 10 else max(0.3, 1.0 - (dim / 200.0))
-            for idx in sample_idx:
-                all_dist2 = np.sum((points - queries[idx]) ** 2, axis=1)
-                true_idx = np.argsort(all_dist2)[:k]
-                recall = len(np.intersect1d(indices[idx], true_idx)) / float(k)
-                if recall < min_recall:
+            if k > 1:
+                sorted_idx = np.sort(candidate_indices, axis=1)
+                dup_rows = np.where(np.any(np.diff(sorted_idx, axis=1) == 0, axis=1))[0]
+                if dup_rows.size > 0:
                     logging.error(
-                        f"Recall {recall:.2f} below {min_recall:.2f} for query {int(idx)} (dim={dim})."
+                        f"Duplicate {block_name} neighbor indices detected for query "
+                        f"{int(dup_rows[0])}."
                     )
                     return False
 
-        # ======== Boundary case handling ========
-        if problem.get("distribution") == "hypercube_shell":
-            pts = points.astype(np.float64)
-            bq_idx = np.array(solution.get("boundary_indices", []))
-            if bq_idx.shape != (2 * dim, k):
+                unsorted_rows = np.where(
+                    np.any(np.diff(candidate_distances, axis=1) < -1e-5, axis=1)
+                )[0]
+                if unsorted_rows.size > 0:
+                    logging.error(
+                        f"{block_name} distances not sorted ascending for query "
+                        f"{int(unsorted_rows[0])}."
+                    )
+                    return False
+
+            try:
+                computed_distances = np.sum(
+                    (points[candidate_indices] - query_points[:, None, :]) ** 2,
+                    axis=2,
+                )
+            except Exception as e:
+                logging.error(f"Failed to compute {block_name} distances: {e}")
+                return False
+
+            if not np.allclose(computed_distances, candidate_distances, rtol=1e-4, atol=1e-4):
+                row_errors = np.max(np.abs(computed_distances - candidate_distances), axis=1)
+                bad_row = int(np.argmax(row_errors))
                 logging.error(
-                    f"Boundary indices shape incorrect. Expected {(2 * dim, k)}, got {bq_idx.shape}."
+                    f"{block_name} distance mismatch for query {bad_row}. "
+                    f"Max absolute error: {float(row_errors[bad_row]):.6g}"
                 )
                 return False
+
+            ref_distances, _ = exact_index.search(query_points.astype(np.float32), k)
+            # Match the exact top-k distance profile for every query row; ties remain valid
+            # because any neighbor ids at the same squared distance are accepted.
+            if not np.allclose(ref_distances, candidate_distances, rtol=1e-4, atol=1e-4):
+                row_errors = np.max(np.abs(ref_distances - candidate_distances), axis=1)
+                bad_row = int(np.argmax(row_errors))
+                logging.error(
+                    f"{block_name} does not match exact top-k distances for query {bad_row}. "
+                    f"Max absolute error: {float(row_errors[bad_row]):.6g}"
+                )
+                return False
+
+            return True
+
+        if not _validate_neighbor_block(queries, indices, distances, "Main"):
+            return False
+
+        # ======== Boundary case handling ========
+        if problem.get("distribution") == "hypercube_shell":
+            bq_idx = np.array(solution.get("boundary_indices", []))
             bqs = []
             for d in range(dim):
                 q0 = np.zeros(dim, dtype=np.float64)
@@ -309,17 +347,21 @@ class KDTree(Task):
                 q1[d] = 1.0
                 bqs.extend([q0, q1])
             bqs = np.stack(bqs, axis=0)
-            for i, bq in enumerate(bqs):
-                true_order = np.argsort(np.sum((pts - bq) ** 2, axis=1))[:k]
-                found = bq_idx[i]
-                recall = len(set(found).intersection(true_order)) / float(k)
-                min_rec = max(0.5, 1.0 - dim / 200.0)
-                if recall < min_rec:
-                    logging.error(
-                        f"Boundary recall too low ({recall:.2f}) for dim {dim}, "
-                        f"threshold {min_rec:.2f}"
-                    )
+            if "boundary_distances" in solution:
+                try:
+                    bq_dist = np.array(solution["boundary_distances"])
+                except Exception as e:
+                    logging.error(f"Could not convert boundary distances to numpy array: {e}")
                     return False
+            else:
+                try:
+                    bq_dist = np.sum((points[bq_idx] - bqs[:, None, :]) ** 2, axis=2)
+                except Exception as e:
+                    logging.error(f"Could not derive boundary distances from boundary indices: {e}")
+                    return False
+
+            if not _validate_neighbor_block(bqs, bq_idx, bq_dist, "Boundary"):
+                return False
         else:
             logging.debug(
                 "Skipping boundary checks for distribution=%s", problem.get("distribution")
