@@ -1,11 +1,23 @@
 # Copyright (c) 2025 Ori Press and the AlgoTune contributors
 # https://github.com/oripress/AlgoTune
+from contextlib import nullcontext
 import logging
 
 import numpy as np
 from scipy import signal
 
 from AlgoTuneTasks.base import register_task, Task
+
+try:
+    from threadpoolctl import threadpool_limits
+except Exception:
+    threadpool_limits = None
+
+
+def _single_thread_blas():
+    if threadpool_limits is None:
+        return nullcontext()
+    return threadpool_limits(limits=1)
 
 
 @register_task("firls")
@@ -37,7 +49,8 @@ class FIRLS(Task):
         # JSON round-trip may turn `edges` into a list – convert to tuple
         edges = tuple(edges)
 
-        coeffs = signal.firls(n, (0.0, *edges, 1.0), [1, 1, 0, 0])
+        with _single_thread_blas():
+            coeffs = signal.firls(n, (0.0, *edges, 1.0), [1, 1, 0, 0])
         return coeffs
 
     def is_solution(self, problem: tuple[int, tuple[float, float]], solution: np.ndarray) -> bool:
@@ -46,7 +59,8 @@ class FIRLS(Task):
         edges = tuple(edges)
 
         try:
-            reference = signal.firls(n, (0.0, *edges, 1.0), [1, 1, 0, 0])
+            with _single_thread_blas():
+                reference = signal.firls(n, (0.0, *edges, 1.0), [1, 1, 0, 0])
         except Exception as e:
             logging.error(f"Reference firls failed: {e}")
             return False
