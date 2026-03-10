@@ -97,6 +97,18 @@ class TamperingDetector(ast.NodeVisitor):
 
     def __init__(self):
         self.violations = []
+        self.import_aliases = {}
+
+    def _record_import_alias(self, bound_name: str, imported_name: str) -> None:
+        if bound_name:
+            self.import_aliases[bound_name] = imported_name
+
+    def _is_protected_path(self, module_name: str | None) -> bool:
+        if not module_name:
+            return False
+        if module_name in self.PROTECTED_MODULES:
+            return True
+        return module_name.split(".", 1)[0] in self.PROTECTED_MODULES
 
     def visit_Assign(self, node):
         """Detect direct assignment to module attributes."""
@@ -130,7 +142,11 @@ class TamperingDetector(ast.NodeVisitor):
 
     def visit_Import(self, node):
         for alias in node.names:
-            module_name = (alias.name or "").split(".", 1)[0]
+            imported_name = alias.name or ""
+            bound_name = alias.asname or imported_name.split(".", 1)[0]
+            self._record_import_alias(bound_name, imported_name)
+
+            module_name = imported_name.split(".", 1)[0]
             if module_name == "ctypes":
                 self.violations.append(
                     {
@@ -146,6 +162,12 @@ class TamperingDetector(ast.NodeVisitor):
 
     def visit_ImportFrom(self, node):
         module_name = (node.module or "").split(".", 1)[0]
+        for alias in node.names:
+            if alias.name == "*":
+                continue
+            full_name = f"{node.module}.{alias.name}" if node.module else alias.name
+            bound_name = alias.asname or alias.name
+            self._record_import_alias(bound_name, full_name)
         if module_name == "ctypes":
             self.violations.append(
                 {
@@ -206,7 +228,7 @@ class TamperingDetector(ast.NodeVisitor):
             if len(node.args) >= 2:
                 # Check if first arg is a protected module
                 module_name = self._get_module_name(node.args[0])
-                if module_name in self.PROTECTED_MODULES:
+                if self._is_protected_path(module_name):
                     attr_name = self._get_string_value(node.args[1])
                     self.violations.append(
                         {
@@ -233,7 +255,7 @@ class TamperingDetector(ast.NodeVisitor):
         # Also check for __setattr__ calls
         elif isinstance(node.func, ast.Attribute) and node.func.attr == "__setattr__":
             module_name = self._get_module_name(node.func.value)
-            if module_name in self.PROTECTED_MODULES:
+            if self._is_protected_path(module_name):
                 self.violations.append(
                     {
                         "line": node.lineno,
@@ -259,7 +281,7 @@ class TamperingDetector(ast.NodeVisitor):
                     "code": f"{module_name or '<dynamic>'}.is_solution = ...",
                     "message": "Overriding is_solution at runtime is not allowed.",
                 }
-            if module_name in self.PROTECTED_MODULES:
+            if self._is_protected_path(module_name):
                 full_name = f"{module_name}.{target.attr}"
                 return {
                     "line": lineno,
@@ -286,7 +308,7 @@ class TamperingDetector(ast.NodeVisitor):
                 }
             if target.value.attr == "__dict__":
                 module_name = self._get_module_name(target.value.value)
-                if module_name in self.PROTECTED_MODULES:
+                if self._is_protected_path(module_name):
                     return {
                         "line": lineno,
                         "type": "dict_assignment",
@@ -300,17 +322,11 @@ class TamperingDetector(ast.NodeVisitor):
     def _get_module_name(self, node) -> str | None:
         """Extract module name from AST node."""
         if isinstance(node, ast.Name):
-            return node.id
+            return self.import_aliases.get(node.id, node.id)
         elif isinstance(node, ast.Attribute):
-            # Handle nested attributes like os.path
-            parts = []
-            current = node
-            while isinstance(current, ast.Attribute):
-                parts.append(current.attr)
-                current = current.value
-            if isinstance(current, ast.Name):
-                parts.append(current.id)
-                return ".".join(reversed(parts))
+            base_name = self._get_module_name(node.value)
+            if base_name:
+                return f"{base_name}.{node.attr}"
         return None
 
     def _get_string_value(self, node) -> str | None:

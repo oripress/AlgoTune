@@ -52,6 +52,10 @@ _load_config_env()
 from AlgoTuner.config.loader import load_config
 from AlgoTuner.utils.error_utils import create_standard_error_result
 from AlgoTuner.utils.evaluator.loader import load_task, reload_all_llm_src
+from AlgoTuner.utils.evaluator.solution_checks import (
+    capture_validation_dependency_snapshot,
+    prepare_isolated_solver_result_for_validation,
+)
 from AlgoTuner.utils.evaluator.runner import (
     _validate_solution,
     run_oracle_evaluation,
@@ -661,6 +665,14 @@ def _evaluate_single_problem(
     else:
         raise ValueError("Dataset context required for warmup problem generation")
 
+    expected_is_solution_method = getattr(task_instance, "is_solution", None)
+    if not callable(expected_is_solution_method):
+        expected_is_solution_method = None
+    expected_validation_snapshot = capture_validation_dependency_snapshot(
+        task_instance,
+        expected_is_solution_method,
+    )
+
     # --- Solver evaluation timing ---
     solver_start = time.perf_counter_ns()
     # SOLVER_RUN phase wraps solver benchmarking
@@ -710,7 +722,11 @@ def _evaluate_single_problem(
             # Always validate first, then strip
             logging.info("Running validation")
             validation_result = _validate_solution(
-                task_instance, processed_problem, result_to_validate
+                task_instance,
+                processed_problem,
+                result_to_validate,
+                expected_is_solution_method=expected_is_solution_method,
+                expected_validation_snapshot=expected_validation_snapshot,
             )
 
             # Strip result immediately after validation but preserve validation result
@@ -1226,6 +1242,14 @@ def run_evaluation_on_input(
         except Exception as e:
             logging.warning(f"Failed to load random warmup problem: {e}")
 
+        expected_is_solution_method = getattr(task_instance, "is_solution", None)
+        if not callable(expected_is_solution_method):
+            expected_is_solution_method = None
+        expected_validation_snapshot = capture_validation_dependency_snapshot(
+            task_instance,
+            expected_is_solution_method,
+        )
+
         # Use unified solver benchmark harness for eval_input
         # Single measurement run with 3 warmups, capturing stdout
         result = run_solver_evaluation(
@@ -1341,7 +1365,13 @@ def run_evaluation_on_input(
             logging.debug("Skipping output casting for eval_input; using raw result.")
 
             # Perform validation on the extracted result
-            validation_result = _validate_solution(task_instance, problem, final_result_value)
+            validation_result = _validate_solution(
+                task_instance,
+                problem,
+                final_result_value,
+                expected_is_solution_method=expected_is_solution_method,
+                expected_validation_snapshot=expected_validation_snapshot,
+            )
 
         # Process validation result
         try:
@@ -2211,6 +2241,23 @@ def _eval_worker_target(
     try:
         # Redirect stdout to capture any prints from the solver
         with redirect_stdout(f_out), redirect_stderr(f_out):
+            task_obj = None
+            expected_is_solution_method = None
+            expected_validation_snapshot = None
+            try:
+                task_obj = load_task(task_name, data_dir)
+                expected_is_solution_method = getattr(task_obj, "is_solution", None)
+                if not callable(expected_is_solution_method):
+                    expected_is_solution_method = None
+                expected_validation_snapshot = capture_validation_dependency_snapshot(
+                    task_obj,
+                    expected_is_solution_method,
+                )
+            except Exception as task_load_error:
+                logging.warning(
+                    f"EVAL_WORKER (PID: {worker_pid}): Failed to pre-load task for validation guards: {task_load_error}"
+                )
+
             # Locate and load the solver module dynamically
             # This ensures the worker uses the latest code from CODE_DIR
             try:
@@ -2436,13 +2483,22 @@ def _eval_worker_target(
                     logging.info(
                         f"EVAL_WORKER (PID: {worker_pid}): Starting in-process validation..."
                     )
-                    # Need to get the task instance for validation
-                    from AlgoTuner.utils.evaluator.loader import load_task
-
-                    task_obj = load_task(task_name, data_dir)
+                    if task_obj is None:
+                        task_obj = load_task(task_name, data_dir)
+                        expected_is_solution_method = getattr(task_obj, "is_solution", None)
+                        if not callable(expected_is_solution_method):
+                            expected_is_solution_method = None
+                        expected_validation_snapshot = capture_validation_dependency_snapshot(
+                            task_obj,
+                            expected_is_solution_method,
+                        )
 
                     validation_result = _validate_solution(
-                        task_obj, timed_problem_instance, benchmark_result.get("result")
+                        task_obj,
+                        timed_problem_instance,
+                        benchmark_result.get("result"),
+                        expected_is_solution_method=expected_is_solution_method,
+                        expected_validation_snapshot=expected_validation_snapshot,
                     )
                     logging.info(
                         f"EVAL_WORKER (PID: {worker_pid}): In-process validation completed."
@@ -2749,6 +2805,14 @@ def _evaluate_problem_parent_isolated(
                 )
                 logging.debug(f"PARENT_ISOLATED: A matrices are equal: {arrays_equal}")
 
+    expected_is_solution_method = getattr(task_obj, "is_solution", None)
+    if not callable(expected_is_solution_method):
+        expected_is_solution_method = None
+    expected_validation_snapshot = capture_validation_dependency_snapshot(
+        task_obj,
+        expected_is_solution_method,
+    )
+
     benchmark_result = run_isolated_benchmark(
         task_name=task_obj.task_name,
         code_dir=code_dir,
@@ -2758,21 +2822,8 @@ def _evaluate_problem_parent_isolated(
         timeout_seconds=timeout_seconds,
     )
 
-    # For validation, run solver once more in main process to get result
     if benchmark_result.get("success"):
-        try:
-            logging.debug("PARENT_ISOLATED: Running solver for validation")
-            # Load solver and get result for validation
-            from AlgoTuner.utils.solver_loader import get_fresh_solve_callable, load_solver_module
-
-            solver_module = load_solver_module(code_dir)
-            solve_callable = get_fresh_solve_callable(solver_module)
-            solver_result_for_validation = solve_callable(problem_instance)
-            benchmark_result["result"] = solver_result_for_validation
-            logging.debug("PARENT_ISOLATED: Successfully captured solver result for validation")
-        except Exception as e:
-            logging.warning(f"PARENT_ISOLATED: Failed to get solver result for validation: {e}")
-            benchmark_result["result"] = None
+        prepare_isolated_solver_result_for_validation(benchmark_result)
 
     # Build eval_result in the same shape _eval_worker_target produces.
     success_flag = bool(benchmark_result.get("success"))
@@ -2799,6 +2850,7 @@ def _evaluate_problem_parent_isolated(
     if success_flag:
         try:
             solver_result = benchmark_result.get("result")
+            validation_result = benchmark_result.get("validation_result")
             logging.debug(
                 f"PARENT_ISOLATED: About to validate solver result: {type(solver_result)} (is None: {solver_result is None})"
             )
@@ -2821,7 +2873,22 @@ def _evaluate_problem_parent_isolated(
             if hasattr(problem_instance, "keys"):
                 logging.debug(f"PARENT_ISOLATED: Problem keys: {list(problem_instance.keys())}")
 
-            validation_result = _validate_solution(task_obj, problem_instance, solver_result)
+            if (
+                isinstance(solver_result, dict)
+                and solver_result.get("stripped_after_validation")
+                and validation_result is not None
+            ):
+                logging.debug(
+                    "PARENT_ISOLATED: Using pre-computed validation result for stripped solver output"
+                )
+            else:
+                validation_result = _validate_solution(
+                    task_obj,
+                    problem_instance,
+                    solver_result,
+                    expected_is_solution_method=expected_is_solution_method,
+                    expected_validation_snapshot=expected_validation_snapshot,
+                )
 
             logging.debug(f"PARENT_ISOLATED: Validation result: {validation_result}")
             eval_result["validation_result"] = validation_result

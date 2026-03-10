@@ -20,6 +20,7 @@ from AlgoTuner.utils.evaluator.evaluation_types import (
 from AlgoTuner.utils.evaluator.memory_optimizer import MemoryOptimizer
 from AlgoTuner.utils.evaluator.result_aggregator import ResultAggregator
 from AlgoTuner.utils.evaluator.solver_executor import SolverExecutor
+from AlgoTuner.utils.evaluator.solution_checks import capture_validation_dependency_snapshot
 from AlgoTuner.utils.evaluator.validation_pipeline import ValidationPipeline
 
 
@@ -325,6 +326,10 @@ class EvaluationOrchestrator:
         self.logger.debug(f"Evaluating problem {problem_id}")
 
         expected_is_solution_method = self._capture_expected_is_solution_method(task_instance)
+        expected_validation_snapshot = capture_validation_dependency_snapshot(
+            task_instance,
+            expected_is_solution_method,
+        )
 
         # Step 1: Execute solver
         execution_result = self.executor.execute(
@@ -347,6 +352,7 @@ class EvaluationOrchestrator:
                 solution=execution_result.output,
                 capture_context=True,
                 expected_is_solution_method=expected_is_solution_method,
+                expected_validation_snapshot=expected_validation_snapshot,
             )
             self.logger.info(
                 f"Validation complete for {problem_id}: is_valid={validation_result.is_valid}"

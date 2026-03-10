@@ -54,7 +54,12 @@ from AlgoTuner.utils.solver_loader import (
 
 # Import utils that are safe (don't create circular dependencies)
 from AlgoTuner.utils.utils import format_object_shape
-from AlgoTuner.utils.evaluator.solution_checks import find_nonconcrete_solution
+from AlgoTuner.utils.evaluator.solution_checks import (
+    capture_validation_dependency_snapshot,
+    detect_validation_dependency_tampering,
+    find_nonconcrete_solution,
+    prepare_isolated_solver_result_for_validation,
+)
 
 
 # Directory where LLM-generated code is stored
@@ -508,6 +513,10 @@ def _run_benchmark(
         problem = positional_args[0] if positional_args else None
         task_instance = getattr(func, "__self__", None)
         expected_is_solution_method = _capture_expected_is_solution_method(task_instance)
+        expected_validation_snapshot = capture_validation_dependency_snapshot(
+            task_instance,
+            expected_is_solution_method,
+        )
         task_name = getattr(task_instance, "task_name", "unknown_task")
 
         # Get task directory
@@ -575,6 +584,7 @@ def _run_benchmark(
                         problem,
                         solver_result,
                         expected_is_solution_method=expected_is_solution_method,
+                        expected_validation_snapshot=expected_validation_snapshot,
                     )
                     logging.info(
                         f"In-process validation completed: {validation_result.get('success', False)}"
@@ -872,6 +882,7 @@ def _validate_solution(
     problem: Any,
     solution: Any,
     expected_is_solution_method: Any | None = None,
+    expected_validation_snapshot: Any | None = None,
 ) -> dict[str, Any]:
     """
     Validate a solution against a problem using the task's is_solution method.
@@ -910,6 +921,19 @@ def _validate_solution(
                 "success": False,
                 "error_type": "invalid_solution",
                 "error": tampering_error,
+                "security_violation": True,
+            }
+
+        dependency_tampering_error = detect_validation_dependency_tampering(
+            task_instance,
+            expected_validation_snapshot,
+        )
+        if dependency_tampering_error:
+            logging.error(dependency_tampering_error)
+            return {
+                "success": False,
+                "error_type": "invalid_solution",
+                "error": dependency_tampering_error,
                 "security_violation": True,
             }
 
@@ -1322,19 +1346,7 @@ def run_solver_evaluation(
                 f"[RUNNER_DEBUG] run_isolated_benchmark returned: success={benchmark_result.get('success')}, keys={list(benchmark_result.keys())}"
             )
 
-            if benchmark_result.get("success"):
-                try:
-                    logging.info("[ISOLATED_VALIDATION] Running solver once more for validation")
-                    solver_result_for_validation = solver_callable(problem)
-                    benchmark_result["result"] = solver_result_for_validation
-                    logging.info(
-                        "[ISOLATED_VALIDATION] Successfully captured solver result for validation"
-                    )
-                except Exception as e:
-                    logging.warning(
-                        f"[ISOLATED_VALIDATION] Failed to get solver result for validation: {e}"
-                    )
-                    benchmark_result["result"] = None
+            prepare_isolated_solver_result_for_validation(benchmark_result)
         else:
             task_code_dir = code_dir_path / "AlgoTuneTasks" / task_name
             if task_code_dir.is_dir():
@@ -1842,12 +1854,17 @@ def run_evaluation(
     # === Validation ===
     validation_result = None
     expected_is_solution_method = _capture_expected_is_solution_method(task_instance)
+    expected_validation_snapshot = capture_validation_dependency_snapshot(
+        task_instance,
+        expected_is_solution_method,
+    )
     try:
         validation_result = _validate_solution(
             task_instance,
             processed_problem,
             final_oracle_result,
             expected_is_solution_method=expected_is_solution_method,
+            expected_validation_snapshot=expected_validation_snapshot,
         )
         t_now = time.perf_counter_ns()
         logging.info(f"Oracle Eval Timing: Validation took {(t_now - t_last) / 1e6:.2f}ms")
@@ -2286,6 +2303,10 @@ def run_oracle_evaluation(
     # === Validation ===
     validation_result = None
     expected_is_solution_method = _capture_expected_is_solution_method(task_instance)
+    expected_validation_snapshot = capture_validation_dependency_snapshot(
+        task_instance,
+        expected_is_solution_method,
+    )
     if not skip_validation:
         try:
             validation_result = _validate_solution(
@@ -2293,6 +2314,7 @@ def run_oracle_evaluation(
                 processed_problem,
                 final_oracle_result,
                 expected_is_solution_method=expected_is_solution_method,
+                expected_validation_snapshot=expected_validation_snapshot,
             )
             t_now = time.perf_counter_ns()
             logging.info(f"Oracle Eval Timing: Validation took {(t_now - t_last) / 1e6:.2f}ms")

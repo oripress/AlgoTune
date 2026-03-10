@@ -23,6 +23,10 @@ RUN apt-get update \
 # Workdir for project
 WORKDIR /app
 
+ARG ALGOTUNE_GIT_SHA=unknown
+ARG ALGOTUNE_GIT_STATUS=unknown
+ARG ALGOTUNE_BUILD_TIME=unknown
+
 # Copy project files
 COPY pyproject.toml /app/pyproject.toml
 COPY algotune.py /app/algotune.py
@@ -34,6 +38,17 @@ COPY scripts /app/scripts
 
 # Create directories for logs and outputs FIRST
 RUN mkdir -p /app/logs /app/aws/outputs /app/aws/errors /app/reports
+
+RUN printf '%s\n' \
+    "git_sha=${ALGOTUNE_GIT_SHA}" \
+    "git_status=${ALGOTUNE_GIT_STATUS}" \
+    "build_time=${ALGOTUNE_BUILD_TIME}" \
+    > /app/.image-build-info \
+    && { \
+        cd /app; \
+        find AlgoTuner AlgoTuneTasks scripts -type f ! -path '*/__pycache__/*' ! -name '*.pyc' -print0 | LC_ALL=C sort -z | xargs -0 sha256sum; \
+        sha256sum pyproject.toml algotune.py algotune.sh; \
+    } > /app/.image-manifest.sha256
 
 # Copy generation config (contains n values for each task)
 # Use wildcard to make optional - if file doesn't exist, pattern won't match

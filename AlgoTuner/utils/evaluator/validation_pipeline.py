@@ -13,7 +13,10 @@ from AlgoTuner.utils.evaluator.evaluation_types import (
     ValidationResult,
 )
 from AlgoTuner.utils.evaluator.failure_analyzer import trace_is_solution_failure
-from AlgoTuner.utils.evaluator.solution_checks import find_nonconcrete_solution
+from AlgoTuner.utils.evaluator.solution_checks import (
+    detect_validation_dependency_tampering,
+    find_nonconcrete_solution,
+)
 
 
 def _as_function(method: Any) -> Any:
@@ -49,6 +52,7 @@ class ValidationPipeline:
         solution: Any,
         capture_context: bool = True,
         expected_is_solution_method: Any | None = None,
+        expected_validation_snapshot: Any | None = None,
     ) -> ValidationResult:
         """
         Validate a solution against a problem.
@@ -139,6 +143,20 @@ class ValidationPipeline:
                     is_valid=False,
                     error_type=ErrorType.INVALID_SOLUTION,
                     error_message=tampering_error,
+                    context=None,
+                    validation_time_ms=(time.perf_counter() - start_time) * 1000,
+                )
+
+            dependency_tampering_error = detect_validation_dependency_tampering(
+                task_instance,
+                expected_validation_snapshot,
+            )
+            if dependency_tampering_error:
+                self.logger.error(dependency_tampering_error)
+                return ValidationResult(
+                    is_valid=False,
+                    error_type=ErrorType.INVALID_SOLUTION,
+                    error_message=dependency_tampering_error,
                     context=None,
                     validation_time_ms=(time.perf_counter() - start_time) * 1000,
                 )
