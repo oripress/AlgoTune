@@ -1,11 +1,23 @@
 # Copyright (c) 2025 Ori Press and the AlgoTune contributors
 # https://github.com/oripress/AlgoTune
+from contextlib import nullcontext
 import logging
 import random
 
 import numpy as np
 
 from AlgoTuneTasks.base import register_task, Task
+
+try:
+    from threadpoolctl import threadpool_limits
+except Exception:
+    threadpool_limits = None
+
+
+def _single_thread_blas():
+    if threadpool_limits is None:
+        return nullcontext()
+    return threadpool_limits(limits=1)
 
 
 @register_task("polynomial_real")
@@ -76,7 +88,8 @@ class PolynomialReal(Task):
         :return: A list of real roots of the polynomial, sorted in decreasing order.
         """
         coefficients = problem
-        computed_roots = np.roots(coefficients)
+        with _single_thread_blas():
+            computed_roots = np.roots(coefficients)
         # Convert roots to real numbers if the imaginary parts are negligible (tol=1e-3)
         computed_roots = np.real_if_close(computed_roots, tol=1e-3)
         computed_roots = np.real(computed_roots)
@@ -98,7 +111,8 @@ class PolynomialReal(Task):
         :return: True if the solution is valid and optimal, False otherwise.
         """
         coefficients = problem
-        reference_roots = np.roots(coefficients)
+        with _single_thread_blas():
+            reference_roots = np.roots(coefficients)
         reference_roots = np.real_if_close(reference_roots, tol=1e-3)
         reference_roots = np.real(reference_roots)
         reference_roots = np.sort(reference_roots)[::-1]

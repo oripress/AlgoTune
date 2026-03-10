@@ -1,11 +1,23 @@
 # Copyright (c) 2025 Ori Press and the AlgoTune contributors
 # https://github.com/oripress/AlgoTune
+from contextlib import nullcontext
 import logging
 import random
 
 import numpy as np
 
 from AlgoTuneTasks.base import register_task, Task
+
+try:
+    from threadpoolctl import threadpool_limits
+except Exception:
+    threadpool_limits = None
+
+
+def _single_thread_blas():
+    if threadpool_limits is None:
+        return nullcontext()
+    return threadpool_limits(limits=1)
 
 
 @register_task("polynomial_mixed")
@@ -90,7 +102,8 @@ class PolynomialMixed(Task):
         :return: A list of roots (real and complex) sorted in descending order.
         """
         coefficients = problem
-        computed_roots = np.roots(coefficients)
+        with _single_thread_blas():
+            computed_roots = np.roots(coefficients)
         sorted_roots = sorted(computed_roots, key=lambda z: (z.real, z.imag), reverse=True)
         logging.debug(f"Computed roots (descending order): {sorted_roots}")
         return sorted_roots
@@ -108,12 +121,38 @@ class PolynomialMixed(Task):
         :return: True if the solution is valid and optimal, False otherwise.
         """
         coefficients = problem
-        reference_roots = np.roots(coefficients)
+        with _single_thread_blas():
+            reference_roots = np.roots(coefficients)
         sorted_reference = sorted(reference_roots, key=lambda z: (z.real, z.imag), reverse=True)
-        candidate = np.array(solution)
-        reference = np.array(sorted_reference)
+        try:
+            candidate = np.asarray(solution, dtype=np.complex128)
+        except Exception as exc:
+            logging.error(f"Could not convert polynomial solution to a complex array: {exc}")
+            return False
+
+        reference = np.asarray(sorted_reference, dtype=np.complex128)
+        if candidate.shape != reference.shape:
+            logging.error(
+                "Polynomial mixed solution shape %s does not match reference shape %s.",
+                candidate.shape,
+                reference.shape,
+            )
+            return False
+
+        if not (
+            np.isfinite(candidate.real).all()
+            and np.isfinite(candidate.imag).all()
+            and np.isfinite(reference.real).all()
+            and np.isfinite(reference.imag).all()
+        ):
+            logging.error("Polynomial mixed solution contains non-finite values.")
+            return False
+
         tol = 1e-6
         error = np.linalg.norm(candidate - reference) / (np.linalg.norm(reference) + 1e-12)
+        if not np.isfinite(error):
+            logging.error("Polynomial mixed solution error is non-finite.")
+            return False
         if error > tol:
             logging.error(f"Polynomial mixed solution error {error} exceeds tolerance {tol}.")
             return False
