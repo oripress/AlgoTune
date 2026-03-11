@@ -23,6 +23,29 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 RUN_ID="$(date +%Y%m%d_%H%M%S)"
 RUN_STATE_DIR="$ROOT_DIR/reports/batch_runs/$RUN_ID"
 RUN_JOB_IDS_FILE="$RUN_STATE_DIR/job_ids.txt"
+ALL_TASKS_COUNT=$(find "$ROOT_DIR/AlgoTuneTasks" -mindepth 1 -maxdepth 1 -type d ! -name "__pycache__" | wc -l | tr -d '[:space:]')
+
+# Curated subset exposed as a launcher preset.
+PRESET_TASKS_NAME="AlgoTune Lite"
+PRESET_TASKS=(
+  lp_mdp
+  ode_hodgkinhuxley
+  power_control
+  dynamic_assortment_planning
+  ode_brusselator
+  ode_seirs
+  articulation_points
+  wasserstein_dist
+  minimum_spanning_tree
+  count_connected_components
+  pde_burgers1d
+  cumulative_simpson_1d
+  robust_kalman_filter
+  multi_dim_knapsack
+  spectral_clustering
+)
+PRESET_TASKS_COUNT=${#PRESET_TASKS[@]}
+PRESET_TASKS_CSV="$(IFS=,; echo "${PRESET_TASKS[*]}")"
 
 #######################################################
 # Interactive Configuration
@@ -43,22 +66,29 @@ import sys
 try:
     with open(sys.argv[1], 'r') as f:
         config = yaml.safe_load(f)
-    models = list(config.get('models', {}).keys())
+    models_cfg = config.get('models', {})
+    models = list(models_cfg.keys())
     # Display numbered from bottom to top (reverse order),
-    # but pin GPT-5.4 to the top of the menu.
+    # but pin GPT-5.4 variants to the top of the menu.
     ordered_models = list(reversed(models))
-    preferred_first = 'openrouter/openai/gpt-5.4'
-    if preferred_first in ordered_models:
-        ordered_models.remove(preferred_first)
-        ordered_models.insert(0, preferred_first)
+    preferred_first = [
+        'openrouter/openai/gpt-5.4-xhigh',
+        'openrouter/openai/gpt-5.4',
+    ]
+    for preferred_model in reversed(preferred_first):
+        if preferred_model in ordered_models:
+            ordered_models.remove(preferred_model)
+            ordered_models.insert(0, preferred_model)
 
     for i, model in enumerate(ordered_models, 1):
+        model_cfg = models_cfg.get(model, {})
+        base_model = model_cfg.get('model_name', model)
         # Strip openrouter/provider/ prefix for display
-        display_name = model.split('/')[-1] if '/' in model else model
-        model_cfg = config.get('models', {}).get(model, {})
+        display_name = base_model.split('/')[-1] if '/' in base_model else base_model
         effort = (model_cfg.get('reasoning') or {}).get('effort')
-        if effort == 'medium':
-            display_name = f\"{display_name} (medium)\"
+        if effort and effort != 'high':
+            effort_display = 'extra high' if effort == 'xhigh' else effort.replace('_', ' ')
+            display_name = f\"{display_name} ({effort_display})\"
         print(f'{i}|{model}|{display_name}')
 except Exception as e:
     print(f'ERROR: {e}', file=sys.stderr)
@@ -101,16 +131,17 @@ MODEL_DISPLAY="${MODEL##*/}"
 # Prompt for task selection
 echo ""
 echo "Which tasks do you want to run?"
-echo "  1) All tasks (154 tasks)"
+echo "  1) All tasks ($ALL_TASKS_COUNT tasks)"
 echo "  2) Specific tasks (comma-separated)"
+echo "  3) $PRESET_TASKS_NAME ($PRESET_TASKS_COUNT tasks)"
 echo ""
-read -p "Choice [1/2]: " TASK_CHOICE
+read -p "Choice [1/2/3]: " TASK_CHOICE
 
 while true; do
   case "$TASK_CHOICE" in
     1)
       TASK_ARGS="--all-tasks"
-      echo "  → Will run all 154 tasks"
+      echo "  → Will run all $ALL_TASKS_COUNT tasks"
       break
       ;;
     2)
@@ -187,9 +218,27 @@ PYTHON
       done
       break
       ;;
+    3)
+      INVALID_PRESET_TASKS=""
+      for task in "${PRESET_TASKS[@]}"; do
+        if [ ! -d "$ROOT_DIR/AlgoTuneTasks/$task" ]; then
+          INVALID_PRESET_TASKS="$INVALID_PRESET_TASKS $task"
+        fi
+      done
+
+      if [ -n "$INVALID_PRESET_TASKS" ]; then
+        echo "❌ ERROR: The following preset tasks do not exist:$INVALID_PRESET_TASKS"
+        exit 1
+      fi
+
+      TASKS_INPUT="$PRESET_TASKS_CSV"
+      TASK_ARGS="--tasks $TASKS_INPUT"
+      echo "  → Will run $PRESET_TASKS_NAME ($PRESET_TASKS_COUNT tasks)"
+      break
+      ;;
     *)
       echo "❌ ERROR: Invalid choice"
-      read -p "Choice [1/2]: " TASK_CHOICE
+      read -p "Choice [1/2/3]: " TASK_CHOICE
       ;;
   esac
 done
@@ -207,6 +256,9 @@ case "$TASK_CHOICE" in
   2)
     # For specific tasks, use the provided list
     ALL_TASKS_LIST=$(echo "$TASKS_INPUT" | tr ',' '\n')
+    ;;
+  3)
+    ALL_TASKS_LIST=$(printf "%s\n" "${PRESET_TASKS[@]}")
     ;;
 esac
 

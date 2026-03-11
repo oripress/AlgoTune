@@ -267,6 +267,8 @@ def main():
         logger.critical(f"Model '{desired_model_name}' is not defined in the configuration.")
         sys.exit(1)
 
+    llm_model_name = model_info.get("model_name", desired_model_name)
+
     budget = model_info.get("spend_limit", global_config.spend_limit)
     model_info["spend_limit"] = budget
 
