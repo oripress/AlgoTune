@@ -1,15 +1,17 @@
-from __future__ import annotations
-
-from functools import lru_cache
+import inspect
 
 from scipy import signal
 
-@lru_cache(maxsize=256)
-def _design(n: int, fp: float, fs: float):
-    return signal.firls(2 * n + 1, (0.0, fp, fs, 1.0), [1, 1, 0, 0])
+_PRINTED = False
 
 class Solver:
     def solve(self, problem, **kwargs):
+        global _PRINTED
+        if not _PRINTED:
+            src = inspect.getsource(signal.firls).splitlines()
+            for i, line in enumerate(src, 1):
+                print(f"{i:03d}: {line}")
+            _PRINTED = True
         n, edges = problem
-        fp, fs = map(float, edges)
-        return _design(int(n), fp, fs).copy()
+        n = 2 * int(n) + 1
+        return signal.firls(n, (0.0, *tuple(edges), 1.0), [1, 1, 0, 0])
