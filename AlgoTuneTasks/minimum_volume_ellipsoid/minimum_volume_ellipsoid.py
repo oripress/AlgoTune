@@ -127,7 +127,7 @@ class MinimumVolumeEllipsoid(Task):
         proposed_Y = np.array(proposed_ellipsoid["Y"])
 
         # 1. Check the solution structure
-        if (proposed_X.shape != reference_X.shape) and (proposed_Y.shape != reference_Y.shape):
+        if (proposed_X.shape != reference_X.shape) or (proposed_Y.shape != reference_Y.shape):
             logging.error("The ellipsoid has wrong dimension.")
             return False
 
