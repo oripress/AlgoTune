@@ -64,8 +64,8 @@ class PCA(Task):
     def is_solution(self, problem: dict[str, Any], solution: list[list[float]]) -> bool:
         try:
             n_components = problem["n_components"]
-            V = np.array(solution)
-            X = np.array(problem["X"])
+            V = np.array(solution, dtype=float)
+            X = np.array(problem["X"], dtype=float)
             X = X - np.mean(X, axis=0)
 
             r, n = V.shape
@@ -82,15 +82,20 @@ class PCA(Task):
             if not np.allclose(VVT, np.eye(n_components), rtol=tol, atol=tol / 10):
                 return False
 
-            # check objective
-            res = self.solve(problem)
-            V_solver = np.array(res)
+            # Match sklearn's ordered principal components up to per-row sign flips.
+            # A rotated basis for the same top-k subspace is not equivalent to the
+            # reference PCA output, even if it preserves the aggregate objective.
+            V_solver = np.array(self.solve(problem), dtype=float)
+            if V_solver.shape != V.shape:
+                return False
 
-            obj_solver = np.linalg.norm(X @ V_solver.T) ** 2
-            obj_sol = np.linalg.norm(X @ V.T) ** 2
-            if np.allclose(obj_sol, obj_solver, rtol=tol, atol=tol / 10):
-                return True
-            return False
+            component_alignment = np.abs(V @ V_solver.T)
+            return np.allclose(
+                component_alignment,
+                np.eye(n_components),
+                rtol=tol,
+                atol=tol / 10,
+            )
 
         except Exception as e:
             logging.error(f"Error when verifying solution: {e}")
