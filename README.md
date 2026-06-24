@@ -229,12 +229,13 @@ If you found this work helpful, please consider citing it using the following:
 <summary> AlgoTune citation</summary>
 
 ```bibtex
-@article{press2025algotune, title={AlgoTune: Can Language Models Speed Up General-Purpose Numerical Programs?}, 
-author={Press, Ori and Amos, Brandon and Zhao, Haoyu and Wu, Yikai and Ainsworth, Samuel K. and Krupke, Dominik and Kidger, Patrick and Sajed, Touqir and Stellato, Bartolomeo and Park, Jisun and Bosch, Nathanael and Meril, Eli and Steppi, Albert and Zharmagambetov, Arman and Zhang, Fangzhao and Perez-Pineiro, David and Mercurio, Alberto and Zhan, Ni and Abramovich, Talor and Lieret, Kilian and Zhang, Hanlin and Huang, Shirley and Bethge, Matthias and Press, Ofir}, 
-journal={arXiv preprint arXiv:2507.15887},
-year={2025},
- doi={10.48550/arXiv.2507.15887}, 
- url={https://arxiv.org/abs/2507.15887}}
+@article{press2025algotune,
+  title={AlgoTune: Can Language Models Speed Up General-Purpose Numerical Programs?},
+  author={Press, Ori and Amos, Brandon and Zhao, Haoyu and Wu, Yikai and Ainsworth, Samuel and Krupke, Dominik and Kidger, Patrick and Sajed, Touqir and Stellato, Bartolomeo and Park, Jisun and others},
+  journal={Advances in Neural Information Processing Systems},
+  volume={38},
+  year={2025}
+}
 ```
 </details>
 
