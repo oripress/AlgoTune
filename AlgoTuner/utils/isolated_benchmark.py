@@ -888,7 +888,7 @@ def _fork_run_worker(
             # Known problematic modules with C++ registered classes
             cpp_modules = {"torch", "tensorflow"}
 
-            for module_name, module in sys.modules.items():
+            for module_name, module in list(sys.modules.items()):
                 if hasattr(module, "Solver"):
                     try:
                         solver_class = getattr(module, "Solver")
@@ -960,7 +960,7 @@ def _fork_run_worker(
 
             # Clear functools caches in user modules
 
-            for module_name, module in sys.modules.items():
+            for module_name, module in list(sys.modules.items()):
                 # Only clear caches from user code
                 module_file = getattr(module, "__file__", None)
                 if module_file and any(
